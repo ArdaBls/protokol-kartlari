@@ -1,4 +1,4 @@
-const CACHE_NAME = "omu-protokol-v1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
+const CACHE_NAME = "omu-protokol-v2.0.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
@@ -49,6 +49,12 @@ self.addEventListener("activate", (e) => {
 // Fetch (Ağ İstekleri)
 self.addEventListener("fetch", (e) => {
   const url = e.request.url;
+
+  // 0) Sadece http/https isteklerini ele al. Tarayıcı uzantılarının (chrome-extension://)
+  // ürettiği istekler Cache API tarafından desteklenmiyor, bunları hiç işleme.
+  if (!url.startsWith("http")) {
+    return;
+  }
 
   // 1) Firebase veritabanı / auth istekleri: ASLA önbelleğe alma, doğrudan ağa bırak
   if (url.includes("firebaseio.com") || url.includes("firebasedatabase.app") || url.includes("googleapis.com")) {
