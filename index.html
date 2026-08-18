@@ -31,7 +31,8 @@
 
 			*{box-sizing:border-box;}
 			html,body{margin:0;padding:0;}
-			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Inter',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; }
+			html{ overflow-x:hidden; max-width:100%; }
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Inter',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; max-width:100%; }
 
 			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
 			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
@@ -46,6 +47,9 @@
 			header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 40px); pointer-events:none; }
 			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
+			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
+			.eyebrow-short{ display:none; }
+			@media (max-width: 600px) { .eyebrow-full{ display:none; } .eyebrow-short{ display:inline; } }
 			h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0 0 4px; letter-spacing:-.01em; }
 			.sub{ color:#c9d0dd; font-size:14px; max-width:520px; line-height:1.4; margin:0; }
 
@@ -196,6 +200,10 @@
 
 			/* --- MOBİL UYUMLULUK --- */
 			@media (max-width: 600px) {
+				header { padding-bottom: 16px; }
+				h1 { padding-right: 0; }
+				.header-auth .btn-auth, .header-auth .user-chip { font-size: 11.5px; padding: 6px 9px; }
+
 				.controlbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px; }
 				.search-wrap { grid-column: span 2; min-width: unset; width: 100%; }
 				.toggle-group { grid-column: span 2; display: flex; width: 100%; justify-content: center; }
@@ -248,7 +256,9 @@
 				@keyframes afPulse{ from{ transform:scale(.9); opacity:1;} to{ transform:scale(1.8); opacity:0;} }
 
 				/* === HEADER GİRİŞ ALANI === */
-				.header-auth{ position:absolute; top:20px; right:20px; display:flex; align-items:center; gap:8px; font-family:'Inter',sans-serif; font-size:12.5px; z-index:5; flex-wrap:wrap; justify-content:flex-end; }
+				.header-auth{ position:absolute; top:20px; right:20px; display:flex; flex-direction:column; align-items:flex-end; gap:6px; font-family:'Inter',sans-serif; font-size:12.5px; z-index:5; }
+				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+				.header-auth .ha-row2{ display:flex; justify-content:flex-end; }
 				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:12.5px; white-space:nowrap; }
 				.header-auth .btn-auth:hover{ background:rgba(255,255,255,.18); }
 				.header-auth .user-chip{ color:#f3efe6; display:flex; align-items:center; gap:6px; padding:6px 10px; }
@@ -305,7 +315,7 @@
 			<div class="header-auth" id="headerAuth"></div>
 
 			<div style="max-width:1040px;margin:0 auto;">
-				<div class="eyebrow">OMÜ Basın ve Halkla İlişkiler</div>
+				<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
 				<h1>Protokol Kartları</h1>
 				<p class="sub" id="listSubtitle">Bulut Veritabanına (Firebase) Bağlı Sürüm.</p>
 			</div>
@@ -689,14 +699,16 @@
 			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin")); }
 
 			function renderAuthUI() {
-				const wrap = document.getElementById("headerAuth");
-				if (!currentUser) { wrap.innerHTML = '<button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>'; return; }
-				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
-				const adminBtn = (currentUser.role === "admin") ? '<button class="btn-auth" onclick="openAdminPanel()">Admin Paneli</button>' : "";
-				wrap.innerHTML =
-					'<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
-					adminBtn +
-					'<button class="btn-auth" onclick="handleLogout()">Çıkış</button>';
+   				const wrap = document.getElementById("headerAuth");
+   				if (!currentUser) { wrap.innerHTML = '<button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>'; return; }
+   				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
+   				const adminBtn = (currentUser.role === "admin") ? '<button class="btn-auth" onclick="openAdminPanel()">Admin Paneli</button>' : "";
+   				wrap.innerHTML =
+   				    '<div class="ha-row1">' +
+   				        '<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
+   				        adminBtn +
+   				    '</div>' +
+   				    '<div class="ha-row2"><button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
 			}
 
 			function applyPermissions() {
