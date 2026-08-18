@@ -369,10 +369,11 @@
 					<input id="search" type="text" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
 					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()">✕</button>
 				</div>
+
 				<div class="toggle-group" id="statusToggle">
-					<button data-mode="aktif" class="active">Aktif</button>
-					<button data-mode="pasif">Arşiv</button>
-					<button data-mode="silindi">Silinenler</button>
+   					 <button data-mode="aktif" class="active">Aktif</button>
+   					 <button data-mode="pasif">Arşiv</button>
+   					 <button data-mode="silindi" class="edit-only">Silinenler</button>
 				</div>
 				
 				<div class="mobile-layout-toggle" id="mobileLayoutToggle">
@@ -1369,10 +1370,11 @@
 			}
 
 			function resetForm(){
-			  document.getElementById("personForm").reset(); document.getElementById("f_status").value = "aktif"; document.getElementById("f_prefix").value = "";
-			  const ranks = people.filter(p=> (!p.status || p.status==="aktif") && p.rank !== undefined && p.rank !== null && p.rank !== "").map(p=> Number(p.rank)); document.getElementById("f_rank").value = ranks.length ? Math.max(...ranks) + 1 : 1;
-			  document.getElementById("f_start").value = new Date().toISOString().slice(0,10); document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
-			  ['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
+				document.getElementById("personForm").reset(); document.getElementById("f_status").value = "aktif"; document.getElementById("f_prefix").value = "";
+				const ranks = people.filter(p=> (!p.status || p.status==="aktif") && p.rank !== undefined && p.rank !== null && p.rank !== "").map(p=> Number(p.rank)); document.getElementById("f_rank").value = ranks.length ? Math.max(...ranks) + 1 : 1;
+				document.getElementById("f_start").value = new Date().toISOString().slice(0,10); document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
+				document.getElementById("f_note").style.height = "54px";
+				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
 			function openAddModal(){ editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("modalBg").classList.add("open"); }
@@ -1382,7 +1384,6 @@
 			  document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
 			  document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
 			  document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
-			  
 			  if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
 			  document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; document.getElementById("modalBg").classList.add("open");
 			  ['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
