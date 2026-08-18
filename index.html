@@ -360,25 +360,18 @@
 				.admin-user-row select:disabled{ background:#f0eee7; color:var(--muted); cursor:not-allowed; }
 				.admin-user-empty{ text-align:center; color:var(--muted); font-size:13px; padding:20px; }
 				.admin-log-row{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; background:var(--card); border:1px solid #e7e1d3; border-radius:8px; font-size:12.5px; }
-				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; color:var(--navy); font-weight:600; }
+				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; }
+				.admin-log-row .al-by{ color:var(--navy); font-weight:600; }
 				.admin-log-row .al-action{ color:var(--ink); }
-				.admin-log-row .al-time{ font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; white-space:nowrap; }
-				.admin-data-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--card); border:1px solid #e7e1d3; border-radius:10px; }
-				.admin-data-row .adr-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-				.admin-data-row .adr-name{ font-weight:700; font-size:13.5px; color:var(--ink); }
-				.admin-data-row .adr-meta{ font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-				.admin-data-row .adr-actions{ display:flex; gap:6px; flex-shrink:0; }
-				.admin-data-row .adr-actions button{ border:none; border-radius:7px; padding:6px 9px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; }
-				.adr-btn-edit{ background:var(--navy); color:#fff; }
-				.adr-btn-restore{ background:var(--ok-bg); color:var(--ok); }
-				.adr-btn-del{ background:#fdf2f2; color:#a33; }
-				.adr-status{ font-family:'JetBrains Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; padding:2px 7px; border-radius:999px; margin-left:6px; }
-				.adr-status.aktif{ background:var(--ok-bg); color:var(--ok); }
-				.adr-status.pasif{ background:var(--off-bg); color:var(--off); }
-				.adr-status.silindi{ background:#fdf2f2; color:#a33; }
+				/* "kim yaptı" (al-by, lacivert/kalın) ile "kime yapıldı" (al-target, altın rozet) birbirine karışmasın diye ayrı stiller */
+				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:#8a6a24; font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
+				.admin-log-row .al-time{ font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; font-weight:500; white-space:nowrap; }
+				/* Hangi alanın değiştiği ("Protokol Sırası: 2. sıradan 4. sıraya düşürüldü") alt satırlar hâlinde listelenir */
+				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:11.5px; line-height:1.55; color:var(--muted); }
+				.admin-log-row .al-detail b{ color:var(--ink); font-weight:600; }
 		</style>
 	</head>
-	<body>
+	<body class="is-readonly">
 
 								<div class="loading-overlay" id="loadingOverlay">
 			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
@@ -713,20 +706,11 @@
 				<h2>Admin Paneli</h2>
 				<div style="display:flex; gap:8px; margin-bottom:14px;">
 					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
-					<button class="btn btn-ghost" id="adminTabDataBtn" onclick="switchAdminTab('data')" style="flex:1;">Veri</button>
 					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Geçmiş</button>
 				</div>
 				<div id="adminUsersView">
 					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir.</p>
 					<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
-				</div>
-				<div id="adminDataView" style="display:none;">
-					<div style="display:flex; gap:8px; margin-bottom:10px;">
-						<button class="btn btn-primary" id="adminDataIlBtn" onclick="switchAdminDataList('il')" style="flex:1; font-size:12.5px;">İl Protokol Sırası</button>
-						<button class="btn btn-ghost" id="adminDataUniBtn" onclick="switchAdminDataList('universite')" style="flex:1; font-size:12.5px;">Üniversite Protokol Sırası</button>
-					</div>
-					<p class="hint">Silinenler dahil <b>tüm kayıtlar</b>. Düzenle / geri al / kalıcı sil buradan yapılır.</p>
-					<div id="adminDataList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
 				</div>
 				<div id="adminLogsView" style="display:none;">
 					<p class="hint">Tüm listelerdeki (İl + Üniversite) son 50 değişiklik.</p>
@@ -801,6 +785,20 @@
 			function handleLogout() { auth.signOut(); showToast("Çıkış yapıldı.", "success"); }
 
 			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin")); }
+			function isAdminUser() { return !!(currentUser && currentUser.role === "admin"); }
+
+			// .edit-only sınıfı butonları sadece GİZLİYOR; fonksiyonlar global olduğu için konsoldan veya
+			// klavyeyle hâlâ çağrılabiliyordu. Yazma yapan her fonksiyon artık bu kapıdan geçiyor.
+			function requireEdit() {
+				if (canEditData()) return true;
+				showToast("Bu işlem için düzenleme yetkiniz yok.", "error");
+				return false;
+			}
+			function requireAdmin() {
+				if (isAdminUser()) return true;
+				showToast("Bu bölüm sadece yöneticilere açık.", "error");
+				return false;
+			}
 
 			function renderAuthUI() {
 				const wrap = document.getElementById("headerAuth");
@@ -816,7 +814,17 @@
 			}
 
 			function applyPermissions() {
-				document.body.classList.toggle("is-readonly", !canEditData());
+				const editable = canEditData();
+				document.body.classList.toggle("is-readonly", !editable);
+				// Yetki gelmeden önce açılmış bir modal veya seçim modu, yetki düşünce ekranda kalmasın.
+				if (!editable) {
+					closeModal();
+					if (isBulkMode) toggleBulkDeleteMode();
+					if (isReorderMode) toggleReorderMode();
+					if (mode === "silindi") { mode = "aktif"; applyModeToolbar(); }
+					render();
+					return;
+				}
 				if (!isBulkMode && !isNewsMode) render();
 			}
 
@@ -844,20 +852,18 @@
 			function closeAdminPanel() { document.getElementById("adminPanelBg").classList.remove("open"); }
 
 			function switchAdminTab(tab) {
+				if (!requireAdmin()) return;
 				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
-				document.getElementById("adminDataView").style.display = (tab === "data") ? "block" : "none";
 				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
-				document.getElementById("adminTabDataBtn").classList.toggle("btn-primary", tab === "data");
-				document.getElementById("adminTabDataBtn").classList.toggle("btn-ghost", tab !== "data");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
-				if (tab === "users") loadAdminUsers(); else if (tab === "data") loadAdminData(); else loadAdminLogs();
+				if (tab === "users") loadAdminUsers(); else loadAdminLogs();
 }
 
 			function loadAdminLogs() {
-				if (!database) return;
+				if (!database || !requireAdmin()) return;
 				const listEl = document.getElementById("adminLogList");
 				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
 				Promise.all([
@@ -871,13 +877,28 @@
 				listEl.innerHTML = entries.map(function(e) {
 				const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
 				const listLabel = LIST_LABELS[e._list] || e._list;
-				return '<div class="admin-log-row"><div class="al-top"><span>' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + escapeHtml(e.action || "") + ' <span style="color:var(--muted); font-size:11px;">· ' + escapeHtml(listLabel) + '</span></div></div>';
+				// Mesaj " · " ile parçalanır: ilk parça başlık, kalan parçalar "hangi alan değişti" detaylarıdır.
+				const parts = String(e.action || "").split(" · ");
+				let headline = parts.shift() || "";
+				// Eski log kayıtlarında "target" alanı yok — o zaman rozet gösterilmez, eski görünüm aynen kalır.
+				let targetHtml = "";
+				if (e.target) {
+					targetHtml = '<span class="al-target">' + escapeHtml(e.target) + '</span> ';
+					// İsim hem rozette hem cümlenin başında tekrar etmesin diye cümleden çıkarılır.
+					if (headline.indexOf(e.target) === 0) headline = headline.slice(e.target.length).replace(/^\s+/, "");
+				}
+				const detailHtml = parts.map(function(part) {
+					const sepIdx = part.indexOf(":");
+					if (sepIdx > 0) return '<span class="al-detail"><b>' + escapeHtml(part.slice(0, sepIdx)) + '</b>' + escapeHtml(part.slice(sepIdx)) + '</span>';
+					return '<span class="al-detail">' + escapeHtml(part) + '</span>';
+				}).join("");
+				return '<div class="admin-log-row"><div class="al-top"><span class="al-by">' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + targetHtml + escapeHtml(headline) + ' <span style="color:var(--muted); font-size:11px;">· ' + escapeHtml(listLabel) + '</span>' + detailHtml + '</div></div>';
 				}).join("");
 				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Kayıtlar yüklenemedi.</p>'; });
 				}
 
 			function loadAdminUsers() {
-				if (!database) return;
+				if (!database || !requireAdmin()) return;
 				const listEl = document.getElementById("adminUserList");
 				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
 				database.ref("users").once("value").then(function(snap) {
@@ -908,84 +929,19 @@
 			}
 
 			async function setUserRole(uid, newRole) {
+				if (!requireAdmin()) return;
+				// Kendi yetkisini yükseltmeyi engelleyen <select disabled> sadece görseldi, gerçek kontrol burada.
+				if (currentUser && uid === currentUser.uid) { showToast("Kendi yetkinizi değiştiremezsiniz.", "error"); return; }
 				try { await database.ref("users/" + uid + "/role").set(newRole); showToast("Yetki güncellendi.", "success"); loadAdminUsers(); }
 				catch (err) { showToast("Yetki güncellenemedi.", "error"); }
 			}
 
-						let adminDataListKey = 'il';
-			let adminDataCache = { il: [], universite: [] };
-
-			function switchAdminDataList(key) {
-				adminDataListKey = key;
-				document.getElementById("adminDataIlBtn").classList.toggle("btn-primary", key === "il");
-				document.getElementById("adminDataIlBtn").classList.toggle("btn-ghost", key !== "il");
-				document.getElementById("adminDataUniBtn").classList.toggle("btn-primary", key === "universite");
-				document.getElementById("adminDataUniBtn").classList.toggle("btn-ghost", key !== "universite");
-				loadAdminData();
-			}
-
-			function loadAdminData() {
-				if (!database) return;
-				const listEl = document.getElementById("adminDataList");
-				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
-				database.ref(LIST_PATHS[adminDataListKey]).once("value").then(function(snap) {
-					const data = snap.val() || [];
-					adminDataCache[adminDataListKey] = data;
-					if (!data.length) { listEl.innerHTML = '<p class="admin-user-empty">Bu listede kayıt yok.</p>'; return; }
-					listEl.innerHTML = data.map(function(p, idx) {
-						const status = p.status || "aktif";
-						const statusLabel = { aktif: "Aktif", pasif: "Pasif", silindi: "Silindi" }[status] || status;
-						const fullName = ((p.prefix ? p.prefix + " " : "") + (p.name || "")).trim() || "(isim yok)";
-						let actions = '<button class="adr-btn-edit" onclick="openAdminDataEdit(\'' + adminDataListKey + '\',' + idx + ')">Düzenle</button>';
-						if (status === "silindi") {
-							actions += '<button class="adr-btn-restore" onclick="adminRestoreRecord(\'' + adminDataListKey + '\',' + idx + ')">Geri Al</button>';
-							actions += '<button class="adr-btn-del" onclick="adminPermDeleteRecord(\'' + adminDataListKey + '\',' + idx + ')">Kalıcı Sil</button>';
-						}
-						return '<div class="admin-data-row"><div class="adr-info"><span class="adr-name">' + escapeHtml(fullName) + '<span class="adr-status ' + status + '">' + statusLabel + '</span></span><span class="adr-meta">' + escapeHtml(p.title || "") + (p.unit ? " · " + escapeHtml(p.unit) : "") + '</span></div><div class="adr-actions">' + actions + '</div></div>';
-					}).join("");
-				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Veriler yüklenemedi.</p>'; });
-			}
-
-			function openAdminDataEdit(listKey, idx) {
-				if (listKey !== currentListKey) {
-					currentListKey = listKey; localStorage.setItem('omuProtokolListKey', listKey);
-					document.querySelectorAll('#listSwitch button').forEach(function(b){ b.classList.toggle('active', b.dataset.list === listKey); });
-					document.getElementById("search").value = ""; openedRanks.clear();
-					if (isBulkMode) toggleBulkDeleteMode(); if (isReorderMode) toggleReorderMode(); if (isNewsMode) toggleNewsMode();
-				}
-				people = adminDataCache[listKey] || [];
-				closeAdminPanel();
-				openEditModal(idx);
-				attachListener();
-			}
-
-			async function adminRestoreRecord(listKey, idx) {
-				if (!database) return;
-				try {
-					await database.ref(LIST_PATHS[listKey] + "/" + idx + "/status").set("aktif");
-					showToast("Kayıt geri alındı.", "success");
-					if (listKey === currentListKey) attachListener();
-					loadAdminData();
-				} catch (err) { showToast("Geri alınamadı.", "error"); }
-			}
-
-			async function adminPermDeleteRecord(listKey, idx) {
-				if (!confirm("Bu kayıt kalıcı olarak silinecek. Emin misin?")) return;
-				if (!database) return;
-				try {
-					const snap = await database.ref(LIST_PATHS[listKey]).once("value");
-					let arr = snap.val() || [];
-					arr = arr.filter(function(_, i) { return i !== idx; });
-					await database.ref(LIST_PATHS[listKey]).set(arr);
-					showToast("Kayıt kalıcı olarak silindi.", "error");
-					if (listKey === currentListKey) attachListener();
-					loadAdminData();
-				} catch (err) { showToast("Silinemedi.", "error"); }
-			}
-
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
 			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası' };
-			let currentListKey = localStorage.getItem('omuProtokolListKey') || 'il';
+			// localStorage'dan gelen değer doğrulanmazsa LIST_PATHS[key] undefined olur ve
+			// database.ref(undefined) VERİTABANI KÖKÜNE işaret eder — tüm veri (users, logs dâhil) ezilebilirdi.
+			const storedListKey = localStorage.getItem('omuProtokolListKey');
+			let currentListKey = LIST_PATHS[storedListKey] ? storedListKey : 'il';
 			let activeListenerRef = null; let activeListenerCallback = null;
 
 			// Üniversite Protokol Sırası'na özel fakülte/enstitü/yüksekokul/koordinatörlük listesi.
@@ -1083,16 +1039,41 @@
 			let isReorderMode = false; let isBulkMode = false; let isNewsMode = false;
 			let bulkSelection = []; let newsSelection = [];
 
+			// Firebase seyrek diziyi nesneye çevirebilir ve silinen çocukların yerine null bırakabilir;
+			// bu hâliyle people.map/push çağrıları patlar veya isimsiz "hayalet" kartlar oluşur.
+			let peopleNeedsFullSave = false;
+			function normalizePeopleSnapshot(data) {
+				if (!data) { peopleNeedsFullSave = false; return []; }
+				let arr;
+				if (Array.isArray(data)) { arr = data; }
+				else { arr = Object.keys(data).sort(function(a, b){ return Number(a) - Number(b); }).map(function(k){ return data[k]; }); }
+				const clean = arr.filter(function(x){ return x && typeof x === "object"; });
+				// Boşluk bulunduysa indeksler kaydı: tek kayıt yazımı yanlış yere gideceğinden tüm liste yazılmalı.
+				peopleNeedsFullSave = clean.length !== arr.length || !Array.isArray(data);
+				return clean;
+			}
+
 			function attachListener() {
 				if (!database) return;
+				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz.", "error"); return; }
 				if (activeListenerRef && activeListenerCallback) { activeListenerRef.off('value', activeListenerCallback); }
 				document.getElementById("countLabel").textContent = "Veriler İndiriliyor...";
 				
 				activeListenerRef = database.ref(LIST_PATHS[currentListKey]);
 				activeListenerCallback = function(snapshot) {
-					const data = snapshot.val(); people = data ? data : [];
+					const previousLength = people.length;
+					people = normalizePeopleSnapshot(snapshot.val());
+					// Seçim ve sürükleme modları kişileri dizi indeksiyle tutuyor. Başka bir editör kayıt ekler/silerse
+					// indeksler kayar ve ekranda işaretlenen kişi ile işlem yapılan kişi farklı olur — bu yüzden mod iptal edilir.
+					if ((isBulkMode || isNewsMode || isReorderMode) && people.length !== previousLength) {
+						showToast("Liste başka bir kullanıcı tarafından değiştirildi, seçiminiz iptal edildi.", "error");
+						if (isBulkMode) toggleBulkDeleteMode();
+						if (isNewsMode) toggleNewsMode();
+						if (isReorderMode) toggleReorderMode();
+					}
 					renderFacultySidebar();
-					if(!isBulkMode && !isNewsMode) render();
+					// Sürükleme sırasında yeniden çizmek Sortable örneklerini altından çeker; o modda çizim ertelenir.
+					if (!isBulkMode && !isNewsMode && !isReorderMode) render();
 				};
 				activeListenerRef.on('value', activeListenerCallback, function() {
 					document.getElementById("countLabel").textContent = "Bağlantı Hatası!"; showToast("Veritabanına bağlanılamadı!", "error");
@@ -1103,6 +1084,7 @@
 				if (key === currentListKey) return; currentListKey = key; localStorage.setItem('omuProtokolListKey', key);
 				document.querySelectorAll('#listSwitch button').forEach(b => b.classList.toggle('active', b.dataset.list === key));
 				mode = "aktif"; document.querySelectorAll('#statusToggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === 'aktif'));
+			applyModeToolbar();
 				document.getElementById("search").value = "";
 				
 				openedRanks.clear();
@@ -1244,24 +1226,32 @@
 				document.addEventListener("mouseup", onEnd);
 			})();
 
-			function logAction(actionLabel) {
+			// targetName ayrı tutulur ki log listesinde "kim yaptı" (by) ile "kime yapıldı" (target)
+			// birbirine karışmasın — ikisi de kalın yazınca ayırt edilemiyordu, artık target ayrı renkte bir etiket.
+			function logAction(actionLabel, targetName) {
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				database.ref("logs/" + currentListKey).push({ by: who, email: currentUser.email, action: actionLabel, timestamp: Date.now() }).catch(function(){});
+				database.ref("logs/" + currentListKey).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
 			}
 
-			async function saveData() {
+			async function saveData(actionLabel, targetName) {
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
-				try { await database.ref(LIST_PATHS[currentListKey]).set(people); logAction("Liste güncellendi"); return true; } 
+				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
+				try { await database.ref(LIST_PATHS[currentListKey]).set(people); peopleNeedsFullSave = false; logAction(actionLabel || "Liste güncellendi", targetName); return true; }
 				catch (err) { showToast("Buluta kaydedilemedi.", "error"); return false; }
 			}
 
 			// Tüm listeyi değil, sadece TEK kişiyi gönderir — çok daha hızlı kayıt için
-			async function savePerson(idx) {
+			async function savePerson(idx, actionLabel, targetName) {
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
+				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
+				if (!people[idx]) { showToast("Kayıt bulunamadı, sayfayı yenileyin.", "error"); return false; }
+				// Dizide boşluk vardı ve yerel kopya sıkıştırıldıysa indeksler kaymıştır; tek kayıt yerine tüm liste yazılır.
+				if (peopleNeedsFullSave) { const ok = await saveData(actionLabel, targetName); if (ok) peopleNeedsFullSave = false; return ok; }
 				try {
 					await database.ref(LIST_PATHS[currentListKey] + "/" + idx).set(people[idx]);
-					logAction((people[idx] && people[idx].name ? people[idx].name : "Kayıt") + " güncellendi");
+					const name = (people[idx] && people[idx].name) ? people[idx].name : "Kayıt";
+					logAction(actionLabel || (name + " güncellendi"), targetName || name);
 					return true;
 				}
 				catch (err) { showToast("Buluta kaydedilemedi.", "error"); return false; }
@@ -1306,6 +1296,7 @@
 			function closeBulkConfirmModal() { document.getElementById("bulkConfirmModalBg").classList.remove("open"); }
 
 			function toggleBulkDeleteMode() {
+				if (!isBulkMode && !requireEdit()) return;
 				if (isReorderMode) toggleReorderMode(); if (isNewsMode) toggleNewsMode();
 				isBulkMode = !isBulkMode; bulkSelection = [];
 				
@@ -1334,8 +1325,18 @@
 			}
 
 			async function executeBulkDelete() {
-				for (var i = 0; i < bulkSelection.length; i++) { people[bulkSelection[i]].status = "silindi"; }
-				await saveData(); closeBulkConfirmModal(); toggleBulkDeleteMode(); showToast(bulkSelection.length + " kayıt çöpe taşındı.", "error");
+				if (!requireEdit()) return;
+				// Sadece gerçekten var olan indeksler işlenir; liste kısalmışsa people[i] undefined olup hata veriyordu.
+				const valid = bulkSelection.filter(function(i) { return !!people[i]; });
+				if (!valid.length) { closeBulkConfirmModal(); toggleBulkDeleteMode(); showToast("Seçim geçersiz, liste yenilendi.", "error"); return; }
+				const names = valid.map(function(i) { return people[i].name || "İsimsiz kayıt"; });
+				for (var i = 0; i < valid.length; i++) { people[valid[i]].status = "silindi"; }
+				const label = names.length === 1 ? (names[0] + " kişisi çöpe atıldı") : (names.length + " kişi çöpe atıldı: " + names.join(", "));
+				// Sayı toggleBulkDeleteMode() ÖNCESİNDE alınır; o fonksiyon bulkSelection'ı boşalttığı için bildirim hep "0" yazıyordu.
+				const movedCount = valid.length;
+				const ok = await saveData(label, names.length === 1 ? names[0] : undefined);
+				closeBulkConfirmModal(); toggleBulkDeleteMode();
+				if (ok) showToast(movedCount + " kayıt çöpe taşındı.", "error");
 			}
 
 			function toggleNewsMode() {
@@ -1384,7 +1385,7 @@
 				let selectedPeople = newsSelection.map(idx => people[idx]);
 
 				selectedPeople.sort((a,b) => {
-					const ra = (a.rank === undefined || a.rank === null || a.rank === "") ? Infinity : Number(a.rank); const rb = (b.rank === undefined || b.rank === null || b.rank === "") ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
+					const ra = (a.rank === undefined || a.rank === null || a.rank === "" || isNaN(Number(a.rank))) ? Infinity : Number(a.rank); const rb = (b.rank === undefined || b.rank === null || b.rank === "" || isNaN(Number(b.rank))) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
 					const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if(ha !== hb) return ha - hb;
 					const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if(ia !== ib) return ia - ib;
 					const oa = (a.order === undefined || a.order === null || a.order === "") ? Infinity : Number(a.order); const ob = (b.order === undefined || b.order === null || b.order === "") ? Infinity : Number(b.order); if(oa !== ob) return oa - ob;
@@ -1417,22 +1418,41 @@
 			function closeNewsModal() { document.getElementById("newsModalBg").classList.remove("open"); }
 			function copyNewsText() { document.getElementById("newsOutputText").select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success"); }
 
-			async function restoreSingle(idx) { people[idx].status = "aktif"; await saveData(); showToast("Kayıt aktif klasörüne geri alındı."); render(); }
+			async function restoreSingle(idx) {
+				if (!requireEdit()) return;
+				const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
+				p.status = "aktif";
+				const hasRank = p.rank !== undefined && p.rank !== null && p.rank !== "";
+				const label = (p.name || "Kayıt") + " kişisi yeniden aktif listeye katıldı" + (hasRank ? (", " + p.rank + ". sıraya") : "");
+				await saveData(label, p.name); showToast("Kayıt aktif klasörüne geri alındı."); render();
+			}
 
 			function openSinglePermDelete(idx) { singlePermDeleteIdx = idx; closeModal(); document.getElementById("singlePermDeleteModalBg").classList.add("open"); }
 			function closeSinglePermDelete() { document.getElementById("singlePermDeleteModalBg").classList.remove("open"); singlePermDeleteIdx = null; }
 			async function executeSinglePermDelete() {
-				if (singlePermDeleteIdx !== null) { people.splice(singlePermDeleteIdx, 1); await saveData(); closeSinglePermDelete(); showToast("Kayıt kalıcı olarak yok edildi.", "error"); render(); }
+				if (!requireEdit()) return;
+				if (singlePermDeleteIdx !== null && people[singlePermDeleteIdx]) {
+					const name = (people[singlePermDeleteIdx] && people[singlePermDeleteIdx].name) ? people[singlePermDeleteIdx].name : "Kayıt";
+					people.splice(singlePermDeleteIdx, 1);
+					// Dizi yeniden indekslendi: "Rektörlük / Merkez" seçimi indeks tuttuğu için artık başka kişiyi işaret eder.
+					selectedCentralAdminIdx.clear();
+					await saveData(name + " kişisi kalıcı olarak silindi", name); closeSinglePermDelete(); showToast("Kayıt kalıcı olarak yok edildi.", "error"); render();
+				}
 			}
 
 			function openEmptyTrashModal() { document.getElementById("emptyTrashModalBg").classList.add("open"); }
 			function closeEmptyTrashModal() { document.getElementById("emptyTrashModalBg").classList.remove("open"); }
 			async function executeEmptyTrash() {
-				people = people.filter(p => p.status !== "silindi"); await saveData(); closeEmptyTrashModal(); showToast("Çöp kutusu tamamen boşaltıldı.", "error"); render();
+				if (!requireEdit()) return;
+				const removedCount = people.filter(function(p) { return p.status === "silindi"; }).length;
+				people = people.filter(p => p.status !== "silindi");
+				selectedCentralAdminIdx.clear();
+				await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)"); closeEmptyTrashModal(); showToast("Çöp kutusu tamamen boşaltıldı.", "error"); render();
 			}
 
 			async function sortRankGroupByName(evt, key) {
 				evt.preventDefault(); evt.stopPropagation();
+				if (!requireEdit()) return;
 				const groupPeople = people.map((p, idx) => ({ p, idx }))
 					.filter(o => (!o.p.status || o.p.status === "aktif") && ((o.p.rank === "" || o.p.rank == null) ? "__none__" : String(o.p.rank)) === key);
 
@@ -1443,12 +1463,14 @@
 				});
 
 				groupPeople.forEach((o, i) => { people[o.idx].order = i + 1; });
-				await saveData();
+				const groupLabel = key === "__none__" ? "Sırasız" : ("Sıra " + key);
+				await saveData(groupLabel + " grubu (" + groupPeople.length + " kişi) isme göre A-Z sıralandı");
 				showToast("İsim sırasına göre düzenlendi.", "success");
 				render();
 			}
 
 			function toggleReorderMode() {
+				if (!isReorderMode && !requireEdit()) return;
 				if (isBulkMode) toggleBulkDeleteMode(); if (isNewsMode) toggleNewsMode();
 				if (mode !== "aktif") document.querySelector('[data-mode="aktif"]').click();
 				
@@ -1468,31 +1490,38 @@
 				render();
 			}
 
+			// "Silinenler" sekmesinde açılan kırmızı "Çöp Kutusunu Boşalt" butonu, liste değiştirilince ekranda kalıyordu:
+			// kullanıcı Aktif listeye bakarken o butona basıp, hiç görmediği diğer listenin çöpünü kalıcı silebiliyordu.
+			function applyModeToolbar() {
+				const emptyTrashBtn = document.getElementById("emptyTrashBtn");
+				const bulkDelBtn = document.getElementById("bulkDeleteModeBtn");
+				const actionsLeft = document.getElementById("actionsLeftWrap");
+				const trashView = (mode === "silindi");
+				if (emptyTrashBtn) emptyTrashBtn.style.display = trashView ? "inline-flex" : "none";
+				if (bulkDelBtn) bulkDelBtn.style.display = trashView ? "none" : "inline-flex";
+				if (actionsLeft) actionsLeft.style.display = trashView ? "none" : "flex";
+			}
+
 			document.getElementById("statusToggle").addEventListener("click", function(e){
 			if(isReorderMode || isBulkMode || isNewsMode) return; 
 			const btn = e.target.closest("button"); if(!btn) return;
 			mode = btn.dataset.mode; 
 			document.querySelectorAll("#statusToggle button").forEach(b => b.classList.remove("active"));
 			btn.classList.add("active"); 
-			
-			const emptyTrashBtn = document.getElementById("emptyTrashBtn");
-			const bulkDelBtn = document.getElementById("bulkDeleteModeBtn");
-			const actionsLeft = document.getElementById("actionsLeftWrap");
-			
-			if (mode === "silindi") {
-				if(emptyTrashBtn) emptyTrashBtn.style.display = "inline-flex";
-				if(bulkDelBtn) bulkDelBtn.style.display = "none";
-				actionsLeft.style.display = "none";
-			} else {
-				if(emptyTrashBtn) emptyTrashBtn.style.display = "none";
-				if(bulkDelBtn) bulkDelBtn.style.display = "inline-flex";
-				actionsLeft.style.display = "flex";
-			}
+			applyModeToolbar();
 			render();
 			});
 
 			function initials(name) { return name ? name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase() : "?"; }
-			function escapeHtml(str) { return String(str || "").replace(/[&<>"']/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]; }); }
+			function escapeHtml(str) { return String((str === undefined || str === null) ? "" : str).replace(/[&<>"']/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]; }); }
+			// Fotoğraf değeri doğrudan <img src="..."> içine yazıldığı için, sadece güvenli şemalara izin verilir.
+			// Aksi hâlde kayda yazılmış bir metin, tırnaktan kaçıp herkesin tarayıcısında kod çalıştırabilir.
+			function safePhotoUrl(u) {
+				const s = String(u === undefined || u === null ? "" : u).trim();
+				if (!s) return "";
+				if (/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s;
+				return "";
+			}
 			function fmtDate(d) { if(!d) return "—"; const parts = d.split("-"); return parts.length === 3 ? parts[2] + "." + parts[1] + "." + parts[0] : d; }
 
 			function render() {
@@ -1511,7 +1540,9 @@
 			else if(mode === "silindi") list = list.filter(p => p.status === "silindi");
 
 			// Üniversite listesinde soldaki fakülte/birim filtresi (reorder modunda tam tabloyu görmek için uygulanmaz)
-			if (currentListKey === "universite" && !isReorderMode && (selectedFaculties.size > 0 || selectedCentralAdminIdx.size > 0)) {
+			// Çöp görünümünde filtre uygulanmaz: ekranda "Kayıt Yok" yazarken "Çöp Kutusunu Boşalt"
+			// yine de filtrelenmemiş TÜM kayıtları sildiği için kullanıcı görmediği veriyi yok ediyordu.
+			if (currentListKey === "universite" && !isReorderMode && mode !== "silindi" && (selectedFaculties.size > 0 || selectedCentralAdminIdx.size > 0)) {
 				list = list.filter(p => {
 					if (selectedCentralAdminIdx.has(p._realIdx)) return true;
 					if (selectedFaculties.size && Array.isArray(p.faculties) && p.faculties.some(f => selectedFaculties.has(f))) return true;
@@ -1520,7 +1551,9 @@
 			}
 
 			list.sort((a,b) => {
-				const ra = (a.rank === "" || a.rank == null) ? -Infinity : Number(a.rank); const rb = (b.rank === "" || b.rank == null) ? -Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
+				// Sırasız kayıtlar önceden -Infinity ile EN ÜSTE, yani Rektör'ün de önüne çıkıyordu.
+			// Haber çıktısı zaten Infinity kullanıyordu; ikisi artık aynı: sırasızlar en sonda.
+			const ra = (a.rank === "" || a.rank == null || isNaN(Number(a.rank))) ? Infinity : Number(a.rank); const rb = (b.rank === "" || b.rank == null || isNaN(Number(b.rank))) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
 				const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if(ha !== hb) return ha - hb;
 				const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if(ia !== ib) return ia - ib;
 				const oa = (a.order === "" || a.order == null) ? Infinity : Number(a.order); const ob = (b.order === "" || b.order == null) ? Infinity : Number(b.order); if(oa !== ob) return oa - ob;
@@ -1547,13 +1580,14 @@
 				if (openedRanks.has(key)) section.open = true;
 				section.addEventListener("toggle", function() { if (section.open) openedRanks.add(key); else openedRanks.delete(key); });
 
-				const summary = document.createElement("summary"); summary.innerHTML = ((key === "__none__") ? "Sırasız" : ("Sıra " + escapeHtml(g.rank))) + ' <span class="count-pill">' + g.items.length + ' kişi</span>' + ' <button type="button" class="az-sort-btn" onclick="sortRankGroupByName(event, \'' + key + '\')">A-Z İsme Göre Sırala</button>'; section.appendChild(summary);
+				const summary = document.createElement("summary"); summary.innerHTML = ((key === "__none__") ? "Sırasız" : ("Sıra " + escapeHtml(g.rank))) + ' <span class="count-pill">' + g.items.length + ' kişi</span>' + ' <button type="button" class="az-sort-btn" onclick="sortRankGroupByName(event, \'' + escapeHtml(key) + '\')">A-Z İsme Göre Sırala</button>'; section.appendChild(summary);
 				const subgrid = document.createElement("div"); subgrid.className = "rank-subgrid"; subgrid.dataset.rankKey = key;
 
 				g.items.forEach((p, idx) => {
 					const row = document.createElement("div"); row.className = "reorder-row"; row.dataset.realIdx = p._realIdx;
-					const imgHtml = p.photo ? '<img src="' + p.photo + '" alt="" loading="lazy">' : "";
-					row.innerHTML = `<div class="internal-order-badge">${idx + 1}</div> <span class="drag-handle-mini">⋮⋮</span> <span class="row-thumb">${imgHtml || initials(p.name)}</span>
+					const rowPhoto = safePhotoUrl(p.photo);
+						const imgHtml = rowPhoto ? '<img src="' + escapeHtml(rowPhoto) + '" alt="" loading="lazy">' : "";
+					row.innerHTML = `<div class="internal-order-badge">${idx + 1}</div> <span class="drag-handle-mini">⋮⋮</span> <span class="row-thumb">${imgHtml || escapeHtml(initials(p.name))}</span>
 					<span class="row-text"><span class="row-name">${p.prefix ? '<span style="color:#8a8f98;font-size:11px;">'+escapeHtml(p.prefix)+'</span><br>' : ''}${escapeHtml(p.name)}</span><span class="row-title">${escapeHtml(p.title)}</span></span>`;
 					subgrid.appendChild(row);
 				});
@@ -1567,14 +1601,20 @@
 					onMove: function (evt) {
 					const draggedIdx = Number(evt.dragged.dataset.realIdx); const relatedIdx = Number(evt.related.dataset.realIdx);
 					const dp = people[draggedIdx], rp = people[relatedIdx];
+					if (!dp || !rp) return false;
 					if (getHierarchyWeight(dp) !== getHierarchyWeight(rp)) return false;
 					if (getInstitutionWeight(dp) !== getInstitutionWeight(rp)) return false;
 					return true;
 					},
 					onEnd: async function (evt) {
 					if (evt.oldIndex === evt.newIndex) return; const rowEls = Array.from(subgrid.children);
+					// Sürükleme sırasında liste uzaktan değişmiş olabilir; kayan indekslerle yazmak yanlış kişilere sıra numarası verirdi.
+					if (rowEls.some(function(el){ return !people[Number(el.dataset.realIdx)]; })) { showToast("Liste değişti, sıralama kaydedilmedi.", "error"); render(); return; }
 					rowEls.forEach((el, idx) => { const realIdx = Number(el.dataset.realIdx); people[realIdx].order = idx + 1; el.querySelector('.internal-order-badge').textContent = idx + 1; });
-					await saveData();
+					const draggedIdx = Number(evt.item.dataset.realIdx);
+					const draggedName = (people[draggedIdx] && people[draggedIdx].name) ? people[draggedIdx].name : "Kayıt";
+					const rankKey = subgrid.dataset.rankKey === "__none__" ? "Sırasız" : ("Sıra " + subgrid.dataset.rankKey);
+					await saveData(draggedName + " kişisi " + rankKey + " içinde " + (evt.newIndex + 1) + ". konuma sürüklendi", draggedName);
 					}
 				}); sortableInstances.push(inst);
 				});
@@ -1591,7 +1631,8 @@
 					else if (isNewsMode) { cClass += " news-mode"; if (newsSelection.includes(p._realIdx)) cClass += " news-selected"; } 
 
 					card.className = cClass; card.dataset.realIdx = p._realIdx;
-					const imgHtml = p.photo ? '<img src="' + p.photo + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : "";
+					const safePhoto = safePhotoUrl(p.photo);
+					const imgHtml = safePhoto ? '<img src="' + escapeHtml(safePhoto) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : "";
 					const hasRank = (p.rank !== undefined && p.rank !== ""); const cbLeft = hasRank ? '42px' : '10px';
 
 					const bulkHtml = isBulkMode ? '<input type="checkbox" class="bulk-cb" style="left:'+cbLeft+';" ' + (bulkSelection.includes(p._realIdx) ? 'checked' : '') + '>' : "";
@@ -1612,15 +1653,15 @@
 					else { actionHtml = canEditData() ? '<button class="card-edit" onclick="openEditModal(' + p._realIdx + '); event.stopPropagation();">Düzenle</button>' : ""; }
 
 					card.innerHTML = bulkHtml + newsHtml +
-					'<div class="photo-wrap"><div class="avatar-fallback">' + initials(p.name) + '</div>' + imgHtml +
+					'<div class="photo-wrap"><div class="avatar-fallback">' + escapeHtml(initials(p.name)) + '</div>' + imgHtml +
 						'<div class="rank-badge">' + (hasRank ? escapeHtml(p.rank) : '?') + '</div>' +
-						'<span class="status-chip ' + (p.status || 'aktif') + '">' + (p.status === "pasif" ? "Arşiv" : p.status === "silindi" ? "Silindi" : "Aktif") + '</span>' +
+						'<span class="status-chip ' + escapeHtml(p.status || 'aktif') + '">' + (p.status === "pasif" ? "Arşiv" : p.status === "silindi" ? "Silindi" : "Aktif") + '</span>' +
 					'</div>' +
 					'<div class="info">' +
 						'<p class="name">' + (p.prefix ? '<span class="prefix">' + escapeHtml(p.prefix) + '</span> ' : '') + escapeHtml(p.name) + '</p>' +
 						'<p class="title">' + escapeHtml(p.title) + '</p>' +
 						'<p class="unit">' + escapeHtml(p.unit) + '</p>' +
-						'<div class="meta"><span>' + fmtDate(p.start) + '</span><span>' + (p.end ? fmtDate(p.end) : "devam ediyor") + '</span></div>' +
+						'<div class="meta"><span>' + escapeHtml(fmtDate(p.start)) + '</span><span>' + (p.end ? escapeHtml(fmtDate(p.end)) : "devam ediyor") + '</span></div>' +
 						(p.note ? '<p class="note">' + escapeHtml(p.note) + '</p>' : '') + actionHtml +
 					'</div>';
 
@@ -1702,8 +1743,9 @@ function renderFacultyPickerField(selected) {
 				if (e.target.classList.contains("fm-cb")) syncUnitFromFaculties();
 			});
 
-function openAddModal(){ editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
+function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
+			if (!requireEdit()) return;
 			editIndex = idx; const p = people[idx]; resetForm();
 			document.getElementById("f_prefix").value = p.prefix || ""; document.getElementById("f_name").value = p.name || ""; document.getElementById("f_title").value = p.title || "";
 			document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
@@ -1734,64 +1776,188 @@ function openAddModal(){ editIndex = null; resetForm(); document.getElementById(
 			}
 
 			function handleFormKeydown(e) {
-				if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") { e.preventDefault(); saveForm(); }
+				// Eskiden form içindeki HER öğede (Vazgeç, Çöpe At, ✕ butonları dâhil) Enter kaydediyordu.
+				if (e.key !== "Enter") return;
+				const el = e.target;
+				if (el.tagName === "TEXTAREA" || el.tagName === "BUTTON" || el.type === "button" || el.type === "submit" || el.type === "file") return;
+				e.preventDefault(); saveForm();
+			}
+
+			// Kayıt düzenlemede tam olarak HANGİ alanın değiştiğini bulur (eski değer → yeni değer).
+			// Log mesajında " · " ile ayrılmış detaylar hâline gelir, panelde alt satırlar olarak gösterilir.
+			const LOG_FIELD_LABELS = {
+				prefix: "Unvan Ön Eki", name: "İsim Soyisim", title: "Görev Unvanı", unit: "Birim / Kurum",
+				status: "Durum", rank: "Protokol Sırası", start: "Başlangıç Tarihi", end: "Bitiş Tarihi",
+				note: "Not", photo: "Fotoğraf", faculties: "Bağlı Birim / Ek Görev"
+			};
+			const LOG_STATUS_LABELS = { aktif: "Aktif", pasif: "Pasif (arşiv)", silindi: "Çöp kutusunda" };
+
+			// Uzun metinler (not, birim vb.) logu şişirmesin diye kısaltılır; boş değerler "(boş)" yazılır.
+			function logValueOrEmpty(v) {
+				// " · " log mesajının satır ayıracı olduğu için, kullanıcı metninde geçerse zararsız hâle getirilir.
+				const s = ((v === undefined || v === null) ? "" : String(v).trim()).split(" · ").join(" - ");
+				if (!s) return "(boş)";
+				return s.length > 60 ? s.slice(0, 60) + "…" : s;
+			}
+
+			function describeRecordChanges(oldRec, newRec) {
+				const changes = [];
+				const oldRank = (oldRec.rank === undefined || oldRec.rank === null || oldRec.rank === "") ? null : Number(oldRec.rank);
+				const newRank = (newRec.rank === undefined || newRec.rank === null || newRec.rank === "") ? null : Number(newRec.rank);
+				if (oldRank !== newRank) {
+					if (oldRank !== null && newRank !== null) {
+						// Protokolde küçük sayı daha üst sırayı ifade eder: 2'den 4'e geçmek "düşürüldü" demektir.
+						changes.push(LOG_FIELD_LABELS.rank + ": " + oldRank + ". sıradan " + newRank + ". sıraya " + (newRank < oldRank ? "yükseltildi" : "düşürüldü"));
+					} else if (newRank !== null) {
+						changes.push(LOG_FIELD_LABELS.rank + ": (boş) → " + newRank + ". sıra");
+					} else {
+						changes.push(LOG_FIELD_LABELS.rank + ": " + oldRank + ". sıra → (boş)");
+					}
+				}
+				const oldStatus = oldRec.status || "aktif"; const newStatus = newRec.status || "aktif";
+				if (oldStatus !== newStatus) {
+					changes.push(LOG_FIELD_LABELS.status + ": " + (LOG_STATUS_LABELS[oldStatus] || oldStatus) + " → " + (LOG_STATUS_LABELS[newStatus] || newStatus));
+				}
+				["prefix", "name", "title", "unit", "start", "end", "note"].forEach(function(key) {
+					const oldVal = (oldRec[key] === undefined || oldRec[key] === null) ? "" : String(oldRec[key]).trim();
+					const newVal = (newRec[key] === undefined || newRec[key] === null) ? "" : String(newRec[key]).trim();
+					if (oldVal !== newVal) changes.push(LOG_FIELD_LABELS[key] + ": " + logValueOrEmpty(oldVal) + " → " + logValueOrEmpty(newVal));
+				});
+				const oldPhoto = oldRec.photo || ""; const newPhoto = newRec.photo || "";
+				if (oldPhoto !== newPhoto) {
+					// Fotoğraf base64 olabildiği için değerin kendisi değil, sadece ne yapıldığı yazılır.
+					changes.push(LOG_FIELD_LABELS.photo + ": " + (!oldPhoto ? "eklendi" : (!newPhoto ? "kaldırıldı" : "değiştirildi")));
+				}
+				// Fakülte/ek görev bir dizi olduğu için eklenen ve çıkarılan birimler ayrı ayrı yazılır.
+				if (Array.isArray(newRec.faculties) || Array.isArray(oldRec.faculties)) {
+					const newFac = Array.isArray(newRec.faculties) ? newRec.faculties : [];
+					const oldFac = Array.isArray(oldRec.faculties) ? oldRec.faculties : [];
+					const added = newFac.filter(function(f) { return oldFac.indexOf(f) === -1; });
+					const removed = oldFac.filter(function(f) { return newFac.indexOf(f) === -1; });
+					if (added.length || removed.length) {
+						const parts = [];
+						if (added.length) parts.push("+ " + added.join(", "));
+						if (removed.length) parts.push("− " + removed.join(", "));
+						changes.push(LOG_FIELD_LABELS.faculties + ": " + parts.join("; "));
+					}
+				}
+				return changes;
 			}
 
 			async function saveForm(){
+				if (!requireEdit()) return;
 			const name = document.getElementById("f_name").value.trim(); const title = document.getElementById("f_title").value.trim();
 			if(!name || !title){ showToast("İsim ve unvan zorunlu!", "error"); return; }
 			const status = document.getElementById("f_status").value; if(status === "pasif" && !document.getElementById("f_end").value){ showToast("Pasif kayıtlar için bitiş tarihi girilmelidir.", "error"); return; }
+			// Sıra alanı metin girişi olduğu için "1a" gibi bir değer Number() ile NaN oluyordu.
+			// NaN Firebase tarafından reddedilir; eskiden bu sessizce yutulup "kaydedildi" deniyordu ve
+			// NaN yerel listede kaldığı için sonraki TÜM kayıt işlemleri de sessizce başarısız oluyordu.
+			const rankRaw = document.getElementById("f_rank").value.trim();
+			if (rankRaw !== "" && !/^\d+$/.test(rankRaw)) { showToast("Protokol sırası sadece rakam olmalı.", "error"); return; }
 
 			const record = {
 				prefix: document.getElementById("f_prefix").value, name: name, title: title, unit: document.getElementById("f_unit").value.trim(), status: status,
-				rank: document.getElementById("f_rank").value.trim() === "" ? "" : Number(document.getElementById("f_rank").value.trim()),
+				rank: rankRaw === "" ? "" : Number(rankRaw),
 				photo: document.getElementById("photoPreview").dataset.value || "", start: document.getElementById("f_start").value, end: document.getElementById("f_end").value, note: document.getElementById("f_note").value.trim()
 			};
 			if (currentListKey === "universite") {
 				record.faculties = Array.from(document.querySelectorAll("#facultyMultiSelect .fm-cb:checked")).map(function(cb) { return cb.value; });
 			}
-			let targetIdx;
-			if(editIndex === null) { people.push(record); targetIdx = people.length - 1; } else { people[editIndex] = Object.assign({}, people[editIndex], record); targetIdx = editIndex; }
-			await savePerson(targetIdx); closeModal(); showToast("Kayıt başarıyla kaydedildi.");
+			let targetIdx; let actionLabel;
+			if(editIndex === null) {
+				// İki editör aynı anda kişi eklerse ikisi de people.length-1 ile AYNI indekse yazıp birbirini siliyordu.
+				// Yazmadan hemen önce sunucudaki güncel liste okunarak bu pencere daraltılır.
+				if (database && LIST_PATHS[currentListKey]) {
+					try { const fresh = await database.ref(LIST_PATHS[currentListKey]).once("value"); people = normalizePeopleSnapshot(fresh.val()); } catch (err) {}
+				}
+				people.push(record); targetIdx = people.length - 1;
+				const newRank = (record.rank !== "" && record.rank !== undefined && record.rank !== null) ? Number(record.rank) : null;
+				actionLabel = name + " kişisi eklendi" + (newRank !== null ? ", " + newRank + ". sıra" : "");
+			} else {
+				const oldRecord = Object.assign({}, people[editIndex]);
+				people[editIndex] = Object.assign({}, people[editIndex], record);
+				targetIdx = editIndex;
+				const changes = describeRecordChanges(oldRecord, people[editIndex]);
+				if (oldRecord.status === "silindi" && record.status !== "silindi") {
+					// Çöpten geri dönüş özel bir durum: kuru "Durum: ... → ..." yerine açıkça belirtilir.
+					const backRank = (record.rank !== "" && record.rank !== undefined && record.rank !== null) ? Number(record.rank) : null;
+					actionLabel = name + " kişisi çöp kutusundan geri alındı" + (backRank !== null ? ", " + backRank + ". sıra" : "");
+					const rest = changes.filter(function(c) { return c.indexOf(LOG_FIELD_LABELS.status + ":") !== 0; });
+					if (rest.length) actionLabel += " · " + rest.join(" · ");
+				} else if (changes.length) {
+					actionLabel = name + " kişisi güncellendi · " + changes.join(" · ");
+				} else {
+					actionLabel = name + " kişisi kaydedildi (içerikte değişiklik yok)";
+				}
+			}
+			// Yazma başarısızsa modal kapatılıp "başarıyla kaydedildi" denmemeli — kullanıcı kaydettiğini sanıyordu.
+			const saved = await savePerson(targetIdx, actionLabel, name);
+			if (!saved) { if (editIndex === null) people.pop(); return; }
+			closeModal(); showToast("Kayıt başarıyla kaydedildi.");
 			}
 
 			function openConfirmModal() { closeModal(); document.getElementById("confirmModalBg").classList.add("open"); }
 			function closeConfirmModal() { document.getElementById("confirmModalBg").classList.remove("open"); if (editIndex !== null) openEditModal(editIndex); }
-			async function executeDelete() { if(editIndex === null) return; people[editIndex].status = "silindi"; await saveData(); document.getElementById("confirmModalBg").classList.remove("open"); showToast("Kayıt çöpe atıldı.", "error"); }
+			async function executeDelete() {
+				if (!requireEdit()) return;
+				if(editIndex === null) return;
+				const name = (people[editIndex] && people[editIndex].name) ? people[editIndex].name : "Kayıt";
+				people[editIndex].status = "silindi";
+				await saveData(name + " kişisi çöpe atıldı", name);
+				document.getElementById("confirmModalBg").classList.remove("open"); showToast("Kayıt çöpe atıldı.", "error");
+			}
 
 			function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], {type: mimeType}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url); }
 			function exportJSON(){ const fileName = currentListKey === "universite" ? "Üniversite-Protokol-Listesi.json" : "İl-Protokol-Listesi.json"; downloadFile(JSON.stringify(people, null, 2), fileName, "application/json"); showToast("JSON yedeği indirildi."); }
 			function importJSON(e){
+			if (!requireEdit()) { e.target.value = ""; return; }
 			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
 			reader.onload = async function(ev) {
+				// Girdi doğrulanmadan kabul edilirse: rank:null → Number(null)=0 olup kişiyi Rektör'ün üstüne çıkarıyor,
+				// rank:"abc" → NaN olup TÜM içe aktarmayı sessizce çöpe atıyor, status/tarih alanları ise HTML enjeksiyonuna açık kalıyordu.
+				const VALID_STATUS = { aktif: 1, pasif: 1, silindi: 1 };
+				function cleanRank(v, fallback) {
+					if (v === undefined || v === null || v === "") return (fallback === undefined ? "" : fallback);
+					const n = Number(v);
+					return (isNaN(n) || n < 0) ? (fallback === undefined ? "" : fallback) : n;
+				}
+				function cleanDate(v) { const s = String(v === undefined || v === null ? "" : v).trim(); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ""; }
+				const snapshotBefore = JSON.parse(JSON.stringify(people));
 				try{
 				const data = JSON.parse(ev.target.result); if(!Array.isArray(data)) throw new Error("Format hatalı");
-				let matchCount = 0; let newCount = 0;
+				let matchCount = 0; let newCount = 0; let skipped = 0;
 				for (var i = 0; i < data.length; i++) {
-					const item = data[i]; if(!item || typeof item !== "object" || !item.name || !item.title) continue;
+					const item = data[i]; if(!item || typeof item !== "object" || !item.name || !item.title) { skipped++; continue; }
 					const name = String(item.name).trim(); const title = String(item.title).trim();
-					const existingIndex = people.findIndex(p => p.name.trim() === name && p.title.trim() === title);
+					const existingIndex = people.findIndex(function(pp) { return String(pp.name || "").trim() === name && String(pp.title || "").trim() === title; });
+					const status = (item.status && VALID_STATUS[item.status]) ? item.status : "aktif";
 					if (existingIndex !== -1) {
 						matchCount++;
-						people[existingIndex].rank = (item.rank !== undefined && item.rank !== "") ? Number(item.rank) : people[existingIndex].rank;
-						people[existingIndex].status = item.status ? item.status : "aktif";
-						if(item.prefix) people[existingIndex].prefix = item.prefix;
+						people[existingIndex].rank = cleanRank(item.rank, people[existingIndex].rank);
+						people[existingIndex].status = status;
+						if(item.prefix) people[existingIndex].prefix = String(item.prefix);
 						if(item.unit !== undefined && item.unit !== null) people[existingIndex].unit = String(item.unit);
-						if(Array.isArray(item.faculties)) people[existingIndex].faculties = item.faculties.slice();
+						if(Array.isArray(item.faculties)) people[existingIndex].faculties = item.faculties.map(String);
 					} else {
 						newCount++;
 						const newRecord = {
 							prefix: item.prefix ? String(item.prefix) : "", name: name, title: title, unit: item.unit ? String(item.unit) : "",
-							status: item.status ? item.status : "aktif", rank: (item.rank === undefined || item.rank === null || item.rank === "") ? "" : Number(item.rank),
-							photo: item.photo ? String(item.photo) : "", start: item.start ? String(item.start) : "", end: item.end ? String(item.end) : "", note: item.note ? String(item.note) : "", isNew: true
+							status: status, rank: cleanRank(item.rank),
+							photo: safePhotoUrl(item.photo), start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : "", isNew: true
 						};
-						if (Array.isArray(item.faculties)) newRecord.faculties = item.faculties.slice();
+						// order alanı eskiden atlanıyordu; bu yüzden içe aktarılan kişilerin sıra içi dizilimi kayboluyordu.
+						const ord = cleanRank(item.order); if (ord !== "") newRecord.order = ord;
+						if (Array.isArray(item.faculties)) newRecord.faculties = item.faculties.map(String);
 						people.push(newRecord);
 					}
 				}
-				await saveData();
-				if(matchCount > 0) showToast(matchCount + " kişi güncellendi. " + newCount + " kişi eklendi."); else showToast(newCount + " yeni kişi başarıyla eklendi.");
-				}catch(err){ showToast("Dosya hatalı veya bozuk!", "error"); }
+				const importLabel = "JSON içe aktarıldı (" + matchCount + " kişi güncellendi, " + newCount + " kişi eklendi)";
+				// Bulut yazımı başarısızsa yerel liste geri alınır; aksi hâlde ekranda duran veriler sunucuda yoktu.
+				const ok = await saveData(importLabel);
+				if (!ok) { people = snapshotBefore; render(); return; }
+				const skipNote = skipped ? (" " + skipped + " geçersiz satır atlandı.") : "";
+				if(matchCount > 0) showToast(matchCount + " kişi güncellendi. " + newCount + " kişi eklendi." + skipNote); else showToast(newCount + " yeni kişi başarıyla eklendi." + skipNote);
+				}catch(err){ people = snapshotBefore; render(); showToast("Dosya hatalı veya bozuk!", "error"); }
 			}; reader.readAsText(file); e.target.value = "";
 			}
 		// Service Worker Kaydı (Offline / PWA desteği)
