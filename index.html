@@ -229,7 +229,7 @@
 				.af-wrap{ position:relative; }
 				.af-close{ position:absolute; top:14px; right:14px; background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.7; z-index:2; }
 				.af-close:hover{ opacity:1; }
-				.af-form{ display:flex; flex-direction:column; gap:10px; max-width:350px; width:100%; padding:26px; border-radius:20px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+				.af-form{ display:flex; flex-direction:column; gap:10px; max-width:350px; min-width:350px; width:100%; padding:26px; border-radius:20px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
 				.af-title{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; letter-spacing:-1px; position:relative; display:flex; align-items:center; padding-left:26px; color:var(--brass-light); margin:0; }
 				.af-title::before,.af-title::after{ position:absolute; content:""; height:14px; width:14px; border-radius:50%; left:0; background-color:var(--brass-light); }
 				.af-title::after{ animation: afPulse 1s linear infinite; }
@@ -306,6 +306,19 @@
 				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; color:var(--navy); font-weight:600; }
 				.admin-log-row .al-action{ color:var(--ink); }
 				.admin-log-row .al-time{ font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; white-space:nowrap; }
+				.admin-data-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--card); border:1px solid #e7e1d3; border-radius:10px; }
+				.admin-data-row .adr-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+				.admin-data-row .adr-name{ font-weight:700; font-size:13.5px; color:var(--ink); }
+				.admin-data-row .adr-meta{ font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+				.admin-data-row .adr-actions{ display:flex; gap:6px; flex-shrink:0; }
+				.admin-data-row .adr-actions button{ border:none; border-radius:7px; padding:6px 9px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; }
+				.adr-btn-edit{ background:var(--navy); color:#fff; }
+				.adr-btn-restore{ background:var(--ok-bg); color:var(--ok); }
+				.adr-btn-del{ background:#fdf2f2; color:#a33; }
+				.adr-status{ font-family:'JetBrains Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; padding:2px 7px; border-radius:999px; margin-left:6px; }
+				.adr-status.aktif{ background:var(--ok-bg); color:var(--ok); }
+				.adr-status.pasif{ background:var(--off-bg); color:var(--off); }
+				.adr-status.silindi{ background:#fdf2f2; color:#a33; }
 		</style>
 	</head>
 	<body>
@@ -382,7 +395,7 @@
 				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Metni Oluştur (0)</button>
 				<button class="btn btn-ghost" id="cancelNewsBtn" style="display:none;" onclick="toggleNewsMode()">İptal</button>
 
-				<button class="btn btn-ghost" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
+				<button class="btn btn-ghost edit-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
 				<button class="btn btn-ghost edit-only" id="importBtn" onclick="document.getElementById('importFile').click()">JSON Yükle</button>
 				<input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">
 			</div>
@@ -628,12 +641,21 @@
         <button class="close-x" onclick="closeAdminPanel()">✕</button>
         <h2>Admin Paneli</h2>
         <div style="display:flex; gap:8px; margin-bottom:14px;">
-            <button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
-            <button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Değişiklik Geçmişi</button>
-        </div>
+    		<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
+    		<button class="btn btn-ghost" id="adminTabDataBtn" onclick="switchAdminTab('data')" style="flex:1;">Veri</button>
+    		<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Geçmiş</button>
+		</div>
         <div id="adminUsersView">
             <p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir.</p>
             <div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+                <div id="adminDataView" style="display:none;">
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <button class="btn btn-primary" id="adminDataIlBtn" onclick="switchAdminDataList('il')" style="flex:1; font-size:12.5px;">İl Protokol Sırası</button>
+                <button class="btn btn-ghost" id="adminDataUniBtn" onclick="switchAdminDataList('universite')" style="flex:1; font-size:12.5px;">Üniversite Protokol Sırası</button>
+            </div>
+            <p class="hint">Silinenler dahil <b>tüm kayıtlar</b>. Düzenle / geri al / kalıcı sil buradan yapılır.</p>
+            <div id="adminDataList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
         </div>
         <div id="adminLogsView" style="display:none;">
             <p class="hint">Şu an açık olan listedeki (<b id="adminLogsListLabel"></b>) son 50 değişiklik.</p>
@@ -749,14 +771,17 @@
 			function closeAdminPanel() { document.getElementById("adminPanelBg").classList.remove("open"); }
 
 			function switchAdminTab(tab) {
-				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
-				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
-				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
-				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
-				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
-				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
-				if (tab === "users") loadAdminUsers(); else loadAdminLogs();
-			}
+   				 document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
+   				 document.getElementById("adminDataView").style.display = (tab === "data") ? "block" : "none";
+   				 document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
+   				 document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
+   				 document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
+   				 document.getElementById("adminTabDataBtn").classList.toggle("btn-primary", tab === "data");
+   				 document.getElementById("adminTabDataBtn").classList.toggle("btn-ghost", tab !== "data");
+   				 document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
+   				 document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
+   				 if (tab === "users") loadAdminUsers(); else if (tab === "data") loadAdminData(); else loadAdminLogs();
+}
 
 			function loadAdminLogs() {
 				if (!database) return;
@@ -808,6 +833,77 @@
 			async function setUserRole(uid, newRole) {
 				try { await database.ref("users/" + uid + "/role").set(newRole); showToast("Yetki güncellendi.", "success"); loadAdminUsers(); }
 				catch (err) { showToast("Yetki güncellenemedi.", "error"); }
+			}
+
+						let adminDataListKey = 'il';
+			let adminDataCache = { il: [], universite: [] };
+
+			function switchAdminDataList(key) {
+				adminDataListKey = key;
+				document.getElementById("adminDataIlBtn").classList.toggle("btn-primary", key === "il");
+				document.getElementById("adminDataIlBtn").classList.toggle("btn-ghost", key !== "il");
+				document.getElementById("adminDataUniBtn").classList.toggle("btn-primary", key === "universite");
+				document.getElementById("adminDataUniBtn").classList.toggle("btn-ghost", key !== "universite");
+				loadAdminData();
+			}
+
+			function loadAdminData() {
+				if (!database) return;
+				const listEl = document.getElementById("adminDataList");
+				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				database.ref(LIST_PATHS[adminDataListKey]).once("value").then(function(snap) {
+					const data = snap.val() || [];
+					adminDataCache[adminDataListKey] = data;
+					if (!data.length) { listEl.innerHTML = '<p class="admin-user-empty">Bu listede kayıt yok.</p>'; return; }
+					listEl.innerHTML = data.map(function(p, idx) {
+						const status = p.status || "aktif";
+						const statusLabel = { aktif: "Aktif", pasif: "Pasif", silindi: "Silindi" }[status] || status;
+						const fullName = ((p.prefix ? p.prefix + " " : "") + (p.name || "")).trim() || "(isim yok)";
+						let actions = '<button class="adr-btn-edit" onclick="openAdminDataEdit(\'' + adminDataListKey + '\',' + idx + ')">Düzenle</button>';
+						if (status === "silindi") {
+							actions += '<button class="adr-btn-restore" onclick="adminRestoreRecord(\'' + adminDataListKey + '\',' + idx + ')">Geri Al</button>';
+							actions += '<button class="adr-btn-del" onclick="adminPermDeleteRecord(\'' + adminDataListKey + '\',' + idx + ')">Kalıcı Sil</button>';
+						}
+						return '<div class="admin-data-row"><div class="adr-info"><span class="adr-name">' + escapeHtml(fullName) + '<span class="adr-status ' + status + '">' + statusLabel + '</span></span><span class="adr-meta">' + escapeHtml(p.title || "") + (p.unit ? " · " + escapeHtml(p.unit) : "") + '</span></div><div class="adr-actions">' + actions + '</div></div>';
+					}).join("");
+				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Veriler yüklenemedi.</p>'; });
+			}
+
+			function openAdminDataEdit(listKey, idx) {
+				if (listKey !== currentListKey) {
+					currentListKey = listKey; localStorage.setItem('omuProtokolListKey', listKey);
+					document.querySelectorAll('#listSwitch button').forEach(function(b){ b.classList.toggle('active', b.dataset.list === listKey); });
+					document.getElementById("search").value = ""; openedRanks.clear();
+					if (isBulkMode) toggleBulkDeleteMode(); if (isReorderMode) toggleReorderMode(); if (isNewsMode) toggleNewsMode();
+				}
+				people = adminDataCache[listKey] || [];
+				closeAdminPanel();
+				openEditModal(idx);
+				attachListener();
+			}
+
+			async function adminRestoreRecord(listKey, idx) {
+				if (!database) return;
+				try {
+					await database.ref(LIST_PATHS[listKey] + "/" + idx + "/status").set("aktif");
+					showToast("Kayıt geri alındı.", "success");
+					if (listKey === currentListKey) attachListener();
+					loadAdminData();
+				} catch (err) { showToast("Geri alınamadı.", "error"); }
+			}
+
+			async function adminPermDeleteRecord(listKey, idx) {
+				if (!confirm("Bu kayıt kalıcı olarak silinecek. Emin misin?")) return;
+				if (!database) return;
+				try {
+					const snap = await database.ref(LIST_PATHS[listKey]).once("value");
+					let arr = snap.val() || [];
+					arr = arr.filter(function(_, i) { return i !== idx; });
+					await database.ref(LIST_PATHS[listKey]).set(arr);
+					showToast("Kayıt kalıcı olarak silindi.", "error");
+					if (listKey === currentListKey) attachListener();
+					loadAdminData();
+				} catch (err) { showToast("Silinemedi.", "error"); }
 			}
 
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
