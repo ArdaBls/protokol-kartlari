@@ -181,14 +181,14 @@
 			.modal-bg{ gap:16px; }
 			.rank-reference{ display:none; }
 			@media (min-width: 900px) {
-			    .rank-reference{ display:flex; flex-direction:column; align-self:stretch; width:230px; max-height: calc(100vh - 48px); background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Inter',sans-serif; }
+			    .rank-reference{ display:flex; flex-direction:column; align-self:stretch; width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Inter',sans-serif; overflow:hidden; }
 			}
 			.rank-reference .rr-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
-			.rank-reference .rr-list{ overflow-y:auto; display:flex; flex-direction:column; gap:5px; }
+			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
 			.rank-reference .rr-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 7px; border-radius:7px; background:#faf8f2; }
-			.rank-reference .rr-num{ font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--navy); min-width:1.4em; text-align:right; flex-shrink:0; }
+			.rank-reference .rr-num{ font-family:'JetBrains Mono',monospace; font-weight:700; width:22px; height:22px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.rank-reference .rr-info{ min-width:0; display:flex; flex-direction:column; }
-			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:normal; line-height:1.3; }
 			.rank-reference .rr-info .rr-n{ color:var(--muted); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:none; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; }
 			.modal-bg.open{ display:flex; animation: fadeIn 0.2s ease; }
@@ -488,7 +488,7 @@
 					</form>
 			</div>
 			<div class="rank-reference" id="rankReference">
-				<div class="rr-title">Mevcut Sıralama</div>
+				<div class="rr-title">Protokol Sırası (Referans)</div>
 				<div class="rr-list" id="rankReferenceList"></div>
 			</div>
 		</div>
@@ -1365,15 +1365,24 @@
  				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
+			const UNIVERSITY_PROTOCOL_TITLES = [
+				"Rektör",
+				"Rektör Yardımcıları",
+				"Fakülte Dekanları",
+				"Enstitü ve Yüksekokul Müdürleri",
+				"Dekan Yardımcıları ve Müdür Yardımcıları",
+				"Profesörler",
+				"Doçentler",
+				"Doktor Öğretim Üyeleri",
+				"Bölüm Başkanları ve Anabilim Dalı Başkanları",
+				"Öğretim Görevlileri ve Araştırma Görevlileri",
+				"Genel Sekreter ve Daire Başkanları"
+			];
 			function renderRankReferencePanel() {
    				const el = document.getElementById("rankReferenceList");
    				if (!el) return;
-   				const items = people.filter(function(p){ return (!p.status || p.status === "aktif") && p.rank !== undefined && p.rank !== null && p.rank !== ""; })
-   				    .map(function(p){ return { rank: Number(p.rank), title: p.title || "", name: ((p.prefix ? p.prefix + " " : "") + (p.name || "")).trim() }; })
-   				    .sort(function(a,b){ return a.rank - b.rank; });
-   				if (!items.length) { el.innerHTML = '<p class="hint" style="margin:0;">Henüz sıralanmış kayıt yok.</p>'; return; }
-   				el.innerHTML = items.map(function(it){
-   				    return '<div class="rr-row"><span class="rr-num">' + it.rank + '</span><div class="rr-info"><span class="rr-t">' + escapeHtml(it.title || "—") + '</span><span class="rr-n">' + escapeHtml(it.name || "") + '</span></div></div>';
+   				el.innerHTML = UNIVERSITY_PROTOCOL_TITLES.map(function(title, i){
+   				    return '<div class="rr-row"><span class="rr-num">' + (i + 1) + '</span><div class="rr-info"><span class="rr-t">' + escapeHtml(title) + '</span></div></div>';
    				}).join("");
 			}
 
