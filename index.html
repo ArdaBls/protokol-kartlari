@@ -1379,8 +1379,11 @@
 				"Genel Sekreter ve Daire Başkanları"
 			];
 			function renderRankReferencePanel() {
+				const panel = document.getElementById("rankReference");
 				const el = document.getElementById("rankReferenceList");
-				if (!el) return;
+				if (!panel || !el) return;
+				if (currentListKey !== "universite") { panel.style.display = "none"; return; }
+				panel.style.display = "";
 				el.innerHTML = UNIVERSITY_PROTOCOL_TITLES.map(function(title, i){
 				return '<div class="rr-row"><span class="rr-num">' + (i + 1) + '</span><div class="rr-info"><span class="rr-t">' + escapeHtml(title) + '</span></div></div>';
 				}).join("");
