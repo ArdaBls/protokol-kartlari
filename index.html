@@ -256,40 +256,13 @@
 				.header-auth .user-chip.editor .role-dot{ background:#6fbf8f; }
 				.header-auth .user-chip.admin .role-dot{ background:var(--brass-light); }
 
-				/* === YÜKLENİYOR EKRANI (Uiverse.io by Nawsome) === */
+				/* === YÜKLENİYOR EKRANI  === */
 				.loading-overlay{ position:fixed; inset:0; background:rgba(243,239,230,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:300; }
 				.loading-overlay.open{ display:flex; }
 				.loading-overlay .loading-label{ font-family:'Inter',sans-serif; font-size:13px; color:var(--muted); font-weight:600; }
 
-				.wheel-and-hamster { --dur: 1s; position: relative; width: 8em; height: 8em; font-size: 14px; }
-				.wheel, .hamster, .hamster div, .spoke { position: absolute; }
-				.wheel, .spoke { border-radius: 50%; top: 0; left: 0; width: 100%; height: 100%; }
-				.wheel { background: radial-gradient(100% 100% at center,hsla(0,0%,60%,0) 47.8%,hsl(0,0%,60%) 48%); z-index: 2; }
-				.hamster { animation: hamster var(--dur) ease-in-out infinite; top: 50%; left: calc(50% - 3.5em); width: 7em; height: 3.75em; transform: rotate(4deg) translate(-0.8em,1.85em); transform-origin: 50% 0; z-index: 1; }
-				.hamster__head { animation: hamsterHead var(--dur) ease-in-out infinite; background: hsl(30,90%,55%); border-radius: 70% 30% 0 100% / 40% 25% 25% 60%; box-shadow: 0 -0.25em 0 hsl(30,90%,80%) inset, 0.75em -1.55em 0 hsl(30,90%,90%) inset; top: 0; left: -2em; width: 2.75em; height: 2.5em; transform-origin: 100% 50%; }
-				.hamster__ear { animation: hamsterEar var(--dur) ease-in-out infinite; background: hsl(0,90%,85%); border-radius: 50%; box-shadow: -0.25em 0 hsl(30,90%,55%) inset; top: -0.25em; right: -0.25em; width: 0.75em; height: 0.75em; transform-origin: 50% 75%; }
-				.hamster__eye { animation: hamsterEye var(--dur) linear infinite; background-color: hsl(0,0%,0%); border-radius: 50%; top: 0.375em; left: 1.25em; width: 0.5em; height: 0.5em; }
-				.hamster__nose { background: hsl(0,90%,75%); border-radius: 35% 65% 85% 15% / 70% 50% 50% 30%; top: 0.75em; left: 0; width: 0.2em; height: 0.25em; }
-				.hamster__body { animation: hamsterBody var(--dur) ease-in-out infinite; background: hsl(30,90%,90%); border-radius: 50% 30% 50% 30% / 15% 60% 40% 40%; box-shadow: 0.1em 0.75em 0 hsl(30,90%,55%) inset, 0.15em -0.5em 0 hsl(30,90%,80%) inset; top: 0.25em; left: 2em; width: 4.5em; height: 3em; transform-origin: 17% 50%; transform-style: preserve-3d; }
-				.hamster__limb--fr, .hamster__limb--fl { clip-path: polygon(0 0,100% 0,70% 80%,60% 100%,0% 100%,40% 80%); top: 2em; left: 0.5em; width: 1em; height: 1.5em; transform-origin: 50% 0; }
-				.hamster__limb--fr { animation: hamsterFRLimb var(--dur) linear infinite; background: linear-gradient(hsl(30,90%,80%) 80%,hsl(0,90%,75%) 80%); transform: rotate(15deg) translateZ(-1px); }
-				.hamster__limb--fl { animation: hamsterFLLimb var(--dur) linear infinite; background: linear-gradient(hsl(30,90%,90%) 80%,hsl(0,90%,85%) 80%); transform: rotate(15deg); }
-				.hamster__limb--br, .hamster__limb--bl { border-radius: 0.75em 0.75em 0 0; clip-path: polygon(0 0,100% 0,100% 30%,70% 90%,70% 100%,30% 100%,40% 90%,0% 30%); top: 1em; left: 2.8em; width: 1.5em; height: 2.5em; transform-origin: 50% 30%; }
-				.hamster__limb--br { animation: hamsterBRLimb var(--dur) linear infinite; background: linear-gradient(hsl(30,90%,80%) 90%,hsl(0,90%,75%) 90%); transform: rotate(-25deg) translateZ(-1px); }
-				.hamster__limb--bl { animation: hamsterBLLimb var(--dur) linear infinite; background: linear-gradient(hsl(30,90%,90%) 90%,hsl(0,90%,85%) 90%); transform: rotate(-25deg); }
-				.hamster__tail { animation: hamsterTail var(--dur) linear infinite; background: hsl(0,90%,85%); border-radius: 0.25em 50% 50% 0.25em; box-shadow: 0 -0.2em 0 hsl(0,90%,75%) inset; top: 1.5em; right: -0.5em; width: 1em; height: 0.5em; transform: rotate(30deg) translateZ(-1px); transform-origin: 0.25em 0.25em; }
-				.spoke { animation: spoke var(--dur) linear infinite; background: radial-gradient(100% 100% at center,hsl(0,0%,60%) 4.8%,hsla(0,0%,60%,0) 5%), linear-gradient(hsla(0,0%,55%,0) 46.9%,hsl(0,0%,65%) 47% 52.9%,hsla(0,0%,65%,0) 53%) 50% 50% / 99% 99% no-repeat; }
-				@keyframes hamster { from, to { transform: rotate(4deg) translate(-0.8em,1.85em); } 50% { transform: rotate(0) translate(-0.8em,1.85em); } }
-				@keyframes hamsterHead { from, 25%, 50%, 75%, to { transform: rotate(0); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(8deg); } }
-				@keyframes hamsterEye { from, 90%, to { transform: scaleY(1); } 95% { transform: scaleY(0); } }
-				@keyframes hamsterEar { from, 25%, 50%, 75%, to { transform: rotate(0); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(12deg); } }
-				@keyframes hamsterBody { from, 25%, 50%, 75%, to { transform: rotate(0); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-2deg); } }
-				@keyframes hamsterFRLimb { from, 25%, 50%, 75%, to { transform: rotate(50deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-30deg) translateZ(-1px); } }
-				@keyframes hamsterFLLimb { from, 25%, 50%, 75%, to { transform: rotate(-30deg); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(50deg); } }
-				@keyframes hamsterBRLimb { from, 25%, 50%, 75%, to { transform: rotate(-60deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(20deg) translateZ(-1px); } }
-				@keyframes hamsterBLLimb { from, 25%, 50%, 75%, to { transform: rotate(20deg); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-60deg); } }
-				@keyframes hamsterTail { from, 25%, 50%, 75%, to { transform: rotate(30deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(10deg) translateZ(-1px); } }
-				@keyframes spoke { from { transform: rotate(0); } to { transform: rotate(-1turn); } }
+				.simple-spinner { width: 3.5em; height: 3.5em; border: 5px solid #e3ded2; border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
+				@keyframes spin { to { transform: rotate(360deg); } }
 
 				/* === YETKİ BAZLI GİZLEME === */
 				body.is-readonly .edit-only{ display:none !important; }
@@ -323,25 +296,8 @@
 	</head>
 	<body>
 
-				<div class="loading-overlay" id="loadingOverlay">
-			<div aria-label="Yükleniyor" role="img" class="wheel-and-hamster">
-				<div class="wheel"></div>
-				<div class="hamster">
-					<div class="hamster__body">
-						<div class="hamster__head">
-							<div class="hamster__ear"></div>
-							<div class="hamster__eye"></div>
-							<div class="hamster__nose"></div>
-						</div>
-						<div class="hamster__limb hamster__limb--fr"></div>
-						<div class="hamster__limb hamster__limb--fl"></div>
-						<div class="hamster__limb hamster__limb--br"></div>
-						<div class="hamster__limb hamster__limb--bl"></div>
-						<div class="hamster__tail"></div>
-					</div>
-				</div>
-				<div class="spoke"></div>
-			</div>
+								<div class="loading-overlay" id="loadingOverlay">
+			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
 			<p class="loading-label" id="loadingLabel">Yükleniyor…</p>
 		</div>
 
@@ -468,7 +424,7 @@
 						<div class="field">
 							<label>Protokol Sırası (Ana Kat)</label>
 							<div class="input-wrap">
-								<input type="text" inputmode="numeric" id="f_rank" placeholder="örn. 1" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_rank')">
+								<input type="text" inputmode="numeric" id="f_rank" placeholder="?" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_rank')">
 								<button type="button" class="clear-btn" id="clear_f_rank" onclick="clearFieldInput('f_rank')">✕</button>
 							</div>
 						</div>
@@ -496,7 +452,7 @@
 					</div>
 					<div class="field">
 						<label>Not (opsiyonel)</label>
-						<textarea id="f_note" rows="2"></textarea>
+						<textarea id="f_note" rows="2" style="resize:vertical; width:416px; height:54px; max-width:100%;"></textarea>
 					</div>
 					<div class="modal-actions">
 						<button class="btn btn-ghost" type="button" onclick="closeModal()">Vazgeç</button>
@@ -659,7 +615,7 @@
             <div id="adminDataList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
         </div>
         <div id="adminLogsView" style="display:none;">
-            <p class="hint">Şu an açık olan listedeki (<b id="adminLogsListLabel"></b>) son 50 değişiklik.</p>
+            <p class="hint">Tüm listelerdeki (İl + Üniversite) son 50 değişiklik.</p>
             <div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
         </div>
     </div>
@@ -785,20 +741,24 @@
 }
 
 			function loadAdminLogs() {
-				if (!database) return;
-				document.getElementById("adminLogsListLabel").textContent = LIST_LABELS[currentListKey];
-				const listEl = document.getElementById("adminLogList");
-				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
-				database.ref("logs/" + currentListKey).limitToLast(50).once("value").then(function(snap) {
-					const logsObj = snap.val() || {};
-					const entries = Object.values(logsObj).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
-					if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
-					listEl.innerHTML = entries.map(function(e) {
-						const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
-						return '<div class="admin-log-row"><div class="al-top"><span>' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + escapeHtml(e.action || "") + '</div></div>';
-					}).join("");
-				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Kayıtlar yüklenemedi.</p>'; });
-			}
+  				 if (!database) return;
+  				 const listEl = document.getElementById("adminLogList");
+  				 listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+  				 Promise.all([
+  				     database.ref("logs/il").limitToLast(50).once("value"),
+  				     database.ref("logs/universite").limitToLast(50).once("value")
+  				 ]).then(function(snaps) {
+  				     const ilLogs = Object.values(snaps[0].val() || {}).map(function(e){ e._list = "il"; return e; });
+  				     const uniLogs = Object.values(snaps[1].val() || {}).map(function(e){ e._list = "universite"; return e; });
+  				     const entries = ilLogs.concat(uniLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
+  				     if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
+  				     listEl.innerHTML = entries.map(function(e) {
+  				         const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
+  				         const listLabel = LIST_LABELS[e._list] || e._list;
+  				         return '<div class="admin-log-row"><div class="al-top"><span>' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + escapeHtml(e.action || "") + ' <span style="color:var(--muted); font-size:11px;">· ' + escapeHtml(listLabel) + '</span></div></div>';
+  				     }).join("");
+  				 }).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Kayıtlar yüklenemedi.</p>'; });
+				}
 
 			function loadAdminUsers() {
 				if (!database) return;
@@ -1257,7 +1217,7 @@
 			  else if(mode === "silindi") list = list.filter(p => p.status === "silindi");
 
 			  list.sort((a,b) => {
-				const ra = (a.rank === "" || a.rank == null) ? Infinity : Number(a.rank); const rb = (b.rank === "" || b.rank == null) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
+				const ra = (a.rank === "" || a.rank == null) ? -Infinity : Number(a.rank); const rb = (b.rank === "" || b.rank == null) ? -Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
 				const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if(ha !== hb) return ha - hb;
 				const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if(ia !== ib) return ia - ib;
 				const oa = (a.order === "" || a.order == null) ? Infinity : Number(a.order); const ob = (b.order === "" || b.order == null) ? Infinity : Number(b.order); if(oa !== ob) return oa - ob;
@@ -1350,7 +1310,7 @@
 
 					card.innerHTML = bulkHtml + newsHtml +
 					  '<div class="photo-wrap"><div class="avatar-fallback">' + initials(p.name) + '</div>' + imgHtml +
-						(hasRank ? '<div class="rank-badge">' + escapeHtml(p.rank) + '</div>' : '') +
+						'<div class="rank-badge">' + (hasRank ? escapeHtml(p.rank) : '?') + '</div>' +
 						'<span class="status-chip ' + (p.status || 'aktif') + '">' + (p.status === "pasif" ? "Arşiv" : p.status === "silindi" ? "Silindi" : "Aktif") + '</span>' +
 					  '</div>' +
 					  '<div class="info">' +
@@ -1370,11 +1330,11 @@
 			}
 
 			function resetForm(){
-				document.getElementById("personForm").reset(); document.getElementById("f_status").value = "aktif"; document.getElementById("f_prefix").value = "";
-				const ranks = people.filter(p=> (!p.status || p.status==="aktif") && p.rank !== undefined && p.rank !== null && p.rank !== "").map(p=> Number(p.rank)); document.getElementById("f_rank").value = ranks.length ? Math.max(...ranks) + 1 : 1;
-				document.getElementById("f_start").value = new Date().toISOString().slice(0,10); document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
-				document.getElementById("f_note").style.height = "54px";
-				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
+ 				document.getElementById("personForm").reset(); document.getElementById("f_status").value = "aktif"; document.getElementById("f_prefix").value = "";
+ 				document.getElementById("f_rank").value = "";
+ 				document.getElementById("f_start").value = ""; document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
+ 				document.getElementById("f_note").style.height = "54px";
+ 				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
 			function openAddModal(){ editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("modalBg").classList.add("open"); }
@@ -1432,8 +1392,7 @@
 			async function executeDelete() { if(editIndex === null) return; people[editIndex].status = "silindi"; await saveData(); document.getElementById("confirmModalBg").classList.remove("open"); showToast("Kayıt çöpe atıldı.", "error"); }
 
 			function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], {type: mimeType}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url); }
-			function exportJSON(){ downloadFile(JSON.stringify(people, null, 2), "omu-protokol-verileri.json", "application/json"); showToast("JSON yedeği indirildi."); }
-
+			function exportJSON(){ const fileName = currentListKey === "universite" ? "Üniversite-Protokol-Listesi.json" : "İl-Protokol-Listesi.json"; downloadFile(JSON.stringify(people, null, 2), fileName, "application/json"); showToast("JSON yedeği indirildi."); }
 			function importJSON(e){
 			  const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
 			  reader.onload = async function(ev) {
