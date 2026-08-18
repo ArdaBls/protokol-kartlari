@@ -181,7 +181,7 @@
 			.modal-bg{ gap:16px; }
 			.rank-reference{ display:none; }
 			@media (min-width: 900px) {
-			    .rank-reference{ display:flex; flex-direction:column; align-self:stretch; width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Inter',sans-serif; overflow:hidden; }
+			.rank-reference{ display:flex; flex-direction:column; align-self:stretch; width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Inter',sans-serif; overflow:hidden; }
 			}
 			.rank-reference .rr-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
 			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
@@ -349,9 +349,9 @@
 				</div>
 
 				<div class="toggle-group" id="statusToggle">
-   					 <button data-mode="aktif" class="active">Aktif</button>
-   					 <button data-mode="pasif">Arşiv</button>
-   					 <button data-mode="silindi" class="edit-only">Silinenler</button>
+					<button data-mode="aktif" class="active">Aktif</button>
+					<button data-mode="pasif">Arşiv</button>
+					<button data-mode="silindi" class="edit-only">Silinenler</button>
 				</div>
 				
 				<div class="mobile-layout-toggle" id="mobileLayoutToggle">
@@ -393,7 +393,7 @@
 
 		<!-- Ekle/Düzenle Modalı -->
 		<div class="modal-bg" id="modalBg">
-    		<div class="modal">
+		<div class="modal">
 				<button class="close-x" onclick="closeModal()">✕</button>
 				<h2 id="modalTitle">Yeni Kişi Ekle</h2>
 				<p class="hint" id="modalHint">Bilgileri doldur, fotoğraf otomatik kareye sığdırılır.</p>
@@ -568,84 +568,84 @@
 		</div>
 
 		<div class="authform-bg" id="authFormBg">
-    <div class="af-wrap">
-        <button class="af-close" onclick="closeAuthForm()">✕</button>
+			<div class="af-wrap">
+				<button class="af-close" onclick="closeAuthForm()">✕</button>
 
-        <form class="af-form" id="loginForm" style="display:none;" onsubmit="event.preventDefault(); handleLogin();">
-            <p class="af-title">Giriş Yap</p>
-            <p class="af-message">Hesabınızla giriş yapın.</p>
-            <label>
-                <input class="af-input" type="email" id="li_email" placeholder="" required>
-                <span>E-posta</span>
-            </label>
-            <label>
-                <input class="af-input" type="password" id="li_password" placeholder="" required>
-                <span>Şifre</span>
-            </label>
-            <p class="af-error" id="loginError"></p>
-            <button class="af-submit" type="submit" id="loginSubmitBtn">Giriş Yap</button>
-            <p class="af-signin">Hesabınız yok mu? <a onclick="switchAuthForm('signup')">Kayıt Ol</a></p>
-        </form>
+				<form class="af-form" id="loginForm" style="display:none;" onsubmit="event.preventDefault(); handleLogin();">
+					<p class="af-title">Giriş Yap</p>
+					<p class="af-message">Hesabınızla giriş yapın.</p>
+					<label>
+						<input class="af-input" type="email" id="li_email" placeholder="" required>
+						<span>E-posta</span>
+					</label>
+					<label>
+						<input class="af-input" type="password" id="li_password" placeholder="" required>
+						<span>Şifre</span>
+					</label>
+					<p class="af-error" id="loginError"></p>
+					<button class="af-submit" type="submit" id="loginSubmitBtn">Giriş Yap</button>
+					<p class="af-signin">Hesabınız yok mu? <a onclick="switchAuthForm('signup')">Kayıt Ol</a></p>
+				</form>
 
-        <form class="af-form" id="signupForm" style="display:none;" onsubmit="event.preventDefault(); handleSignup();">
-            <p class="af-title">Kayıt Ol</p>
-            <p class="af-message">Kayıt olun, admin onayından sonra düzenleme yetkisi kazanın.</p>
-            <div class="af-flex">
-                <label>
-                    <input class="af-input" type="text" id="su_firstname" placeholder="" required>
-                    <span>Ad</span>
-                </label>
-                <label>
-                    <input class="af-input" type="text" id="su_lastname" placeholder="" required>
-                    <span>Soyad</span>
-                </label>
-            </div>
-            <label>
-                <input class="af-input" type="email" id="su_email" placeholder="" required>
-                <span>E-posta</span>
-            </label>
-            <label>
-                <input class="af-input" type="password" id="su_password" placeholder="" required>
-                <span>Şifre</span>
-            </label>
-            <label>
-                <input class="af-input" type="password" id="su_password2" placeholder="" required>
-                <span>Şifre Tekrar</span>
-            </label>
-            <p class="af-error" id="signupError"></p>
-            <button class="af-submit" type="submit" id="signupSubmitBtn">Kayıt Ol</button>
-            <p class="af-signin">Zaten hesabınız var mı? <a onclick="switchAuthForm('login')">Giriş Yap</a></p>
-        </form>
-    </div>
-</div>
+				<form class="af-form" id="signupForm" style="display:none;" onsubmit="event.preventDefault(); handleSignup();">
+					<p class="af-title">Kayıt Ol</p>
+					<p class="af-message">Kayıt olun, admin onayından sonra düzenleme yetkisi kazanın.</p>
+					<div class="af-flex">
+						<label>
+							<input class="af-input" type="text" id="su_firstname" placeholder="" required>
+							<span>Ad</span>
+						</label>
+						<label>
+							<input class="af-input" type="text" id="su_lastname" placeholder="" required>
+							<span>Soyad</span>
+						</label>
+					</div>
+					<label>
+						<input class="af-input" type="email" id="su_email" placeholder="" required>
+						<span>E-posta</span>
+					</label>
+					<label>
+						<input class="af-input" type="password" id="su_password" placeholder="" required>
+						<span>Şifre</span>
+					</label>
+					<label>
+						<input class="af-input" type="password" id="su_password2" placeholder="" required>
+						<span>Şifre Tekrar</span>
+					</label>
+					<p class="af-error" id="signupError"></p>
+					<button class="af-submit" type="submit" id="signupSubmitBtn">Kayıt Ol</button>
+					<p class="af-signin">Zaten hesabınız var mı? <a onclick="switchAuthForm('login')">Giriş Yap</a></p>
+				</form>
+			</div>
+		</div>
 
 <div class="modal-bg" id="adminPanelBg">
-    <div class="modal" style="max-width:640px;">
-        <button class="close-x" onclick="closeAdminPanel()">✕</button>
-        <h2>Admin Paneli</h2>
-        <div style="display:flex; gap:8px; margin-bottom:14px;">
-    		<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
-    		<button class="btn btn-ghost" id="adminTabDataBtn" onclick="switchAdminTab('data')" style="flex:1;">Veri</button>
-    		<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Geçmiş</button>
+			<div class="modal" style="max-width:640px;">
+				<button class="close-x" onclick="closeAdminPanel()">✕</button>
+				<h2>Admin Paneli</h2>
+				<div style="display:flex; gap:8px; margin-bottom:14px;">
+					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
+					<button class="btn btn-ghost" id="adminTabDataBtn" onclick="switchAdminTab('data')" style="flex:1;">Veri</button>
+					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Geçmiş</button>
+				</div>
+				<div id="adminUsersView">
+					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir.</p>
+					<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+				</div>
+				<div id="adminDataView" style="display:none;">
+					<div style="display:flex; gap:8px; margin-bottom:10px;">
+						<button class="btn btn-primary" id="adminDataIlBtn" onclick="switchAdminDataList('il')" style="flex:1; font-size:12.5px;">İl Protokol Sırası</button>
+						<button class="btn btn-ghost" id="adminDataUniBtn" onclick="switchAdminDataList('universite')" style="flex:1; font-size:12.5px;">Üniversite Protokol Sırası</button>
+					</div>
+					<p class="hint">Silinenler dahil <b>tüm kayıtlar</b>. Düzenle / geri al / kalıcı sil buradan yapılır.</p>
+					<div id="adminDataList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+				</div>
+				<div id="adminLogsView" style="display:none;">
+					<p class="hint">Tüm listelerdeki (İl + Üniversite) son 50 değişiklik.</p>
+					<div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+				</div>
+			</div>
 		</div>
-        <div id="adminUsersView">
-            <p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir.</p>
-            <div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
-                <div id="adminDataView" style="display:none;">
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-                <button class="btn btn-primary" id="adminDataIlBtn" onclick="switchAdminDataList('il')" style="flex:1; font-size:12.5px;">İl Protokol Sırası</button>
-                <button class="btn btn-ghost" id="adminDataUniBtn" onclick="switchAdminDataList('universite')" style="flex:1; font-size:12.5px;">Üniversite Protokol Sırası</button>
-            </div>
-            <p class="hint">Silinenler dahil <b>tüm kayıtlar</b>. Düzenle / geri al / kalıcı sil buradan yapılır.</p>
-            <div id="adminDataList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
-        <div id="adminLogsView" style="display:none;">
-            <p class="hint">Tüm listelerdeki (İl + Üniversite) son 50 değişiklik.</p>
-            <div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
-        </div>
-    </div>
-</div>
 
 		<div id="toastContainer"></div>
 
@@ -715,16 +715,16 @@
 			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin")); }
 
 			function renderAuthUI() {
-   				const wrap = document.getElementById("headerAuth");
-   				if (!currentUser) { wrap.innerHTML = '<button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>'; return; }
-   				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
-   				const adminBtn = (currentUser.role === "admin") ? '<button class="btn-auth" onclick="openAdminPanel()">Admin Paneli</button>' : "";
-   				wrap.innerHTML =
-   				    '<div class="ha-row1">' +
-   				        '<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
-   				        adminBtn +
-   				    '</div>' +
-   				    '<div class="ha-row2"><button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
+				const wrap = document.getElementById("headerAuth");
+				if (!currentUser) { wrap.innerHTML = '<button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>'; return; }
+				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
+				const adminBtn = (currentUser.role === "admin") ? '<button class="btn-auth" onclick="openAdminPanel()">Admin Paneli</button>' : "";
+				wrap.innerHTML =
+				'<div class="ha-row1">' +
+				'<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
+				adminBtn +
+				'</div>' +
+				'<div class="ha-row2"><button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
 			}
 
 			function applyPermissions() {
@@ -756,36 +756,36 @@
 			function closeAdminPanel() { document.getElementById("adminPanelBg").classList.remove("open"); }
 
 			function switchAdminTab(tab) {
-   				 document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
-   				 document.getElementById("adminDataView").style.display = (tab === "data") ? "block" : "none";
-   				 document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
-   				 document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
-   				 document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
-   				 document.getElementById("adminTabDataBtn").classList.toggle("btn-primary", tab === "data");
-   				 document.getElementById("adminTabDataBtn").classList.toggle("btn-ghost", tab !== "data");
-   				 document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
-   				 document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
-   				 if (tab === "users") loadAdminUsers(); else if (tab === "data") loadAdminData(); else loadAdminLogs();
+				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
+				document.getElementById("adminDataView").style.display = (tab === "data") ? "block" : "none";
+				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
+				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
+				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
+				document.getElementById("adminTabDataBtn").classList.toggle("btn-primary", tab === "data");
+				document.getElementById("adminTabDataBtn").classList.toggle("btn-ghost", tab !== "data");
+				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
+				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
+				if (tab === "users") loadAdminUsers(); else if (tab === "data") loadAdminData(); else loadAdminLogs();
 }
 
 			function loadAdminLogs() {
-  				 if (!database) return;
-  				 const listEl = document.getElementById("adminLogList");
-  				 listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
-  				 Promise.all([
-  				     database.ref("logs/il").limitToLast(50).once("value"),
-  				     database.ref("logs/universite").limitToLast(50).once("value")
-  				 ]).then(function(snaps) {
-  				     const ilLogs = Object.values(snaps[0].val() || {}).map(function(e){ e._list = "il"; return e; });
-  				     const uniLogs = Object.values(snaps[1].val() || {}).map(function(e){ e._list = "universite"; return e; });
-  				     const entries = ilLogs.concat(uniLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
-  				     if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
-  				     listEl.innerHTML = entries.map(function(e) {
-  				         const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
-  				         const listLabel = LIST_LABELS[e._list] || e._list;
-  				         return '<div class="admin-log-row"><div class="al-top"><span>' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + escapeHtml(e.action || "") + ' <span style="color:var(--muted); font-size:11px;">· ' + escapeHtml(listLabel) + '</span></div></div>';
-  				     }).join("");
-  				 }).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Kayıtlar yüklenemedi.</p>'; });
+				if (!database) return;
+				const listEl = document.getElementById("adminLogList");
+				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				Promise.all([
+				database.ref("logs/il").limitToLast(50).once("value"),
+				database.ref("logs/universite").limitToLast(50).once("value")
+				]).then(function(snaps) {
+				const ilLogs = Object.values(snaps[0].val() || {}).map(function(e){ e._list = "il"; return e; });
+				const uniLogs = Object.values(snaps[1].val() || {}).map(function(e){ e._list = "universite"; return e; });
+				const entries = ilLogs.concat(uniLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
+				if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
+				listEl.innerHTML = entries.map(function(e) {
+				const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
+				const listLabel = LIST_LABELS[e._list] || e._list;
+				return '<div class="admin-log-row"><div class="al-top"><span>' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + escapeHtml(e.action || "") + ' <span style="color:var(--muted); font-size:11px;">· ' + escapeHtml(listLabel) + '</span></div></div>';
+				}).join("");
+				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Kayıtlar yüklenemedi.</p>'; });
 				}
 
 			function loadAdminUsers() {
@@ -805,12 +805,12 @@
 						const selectHtml = isSelf
 							? '<select disabled title="Kendi yetkini burada değiştiremezsin (güvenlik için).">' +
 								'<option selected>Admin (Siz)</option>' +
-							  '</select>'
+							'</select>'
 							: '<select onchange="setUserRole(\'' + uid + '\', this.value)">' +
 								'<option value="pending"' + (role==="pending"?' selected':'') + '>Onay Bekliyor</option>' +
 								'<option value="editor"' + (role==="editor"?' selected':'') + '>Editör</option>' +
 								'<option value="admin"' + (role==="admin"?' selected':'') + '>Admin</option>' +
-							  '</select>';
+							'</select>';
 						return '<div class="admin-user-row">' +
 							'<div class="au-info"><span class="au-name">' + escapeHtml(fullName) + (isSelf ? ' <span style="color:var(--brass); font-weight:600;">(Siz)</span>' : '') + '</span><span class="au-email">' + escapeHtml(u.email || "") + '</span></div>' +
 							selectHtml +
@@ -1203,26 +1203,26 @@
 			}
 
 			document.getElementById("statusToggle").addEventListener("click", function(e){
-			  if(isReorderMode || isBulkMode || isNewsMode) return; 
-			  const btn = e.target.closest("button"); if(!btn) return;
-			  mode = btn.dataset.mode; 
-			  document.querySelectorAll("#statusToggle button").forEach(b => b.classList.remove("active"));
-			  btn.classList.add("active"); 
-			  
-			  const emptyTrashBtn = document.getElementById("emptyTrashBtn");
-			  const bulkDelBtn = document.getElementById("bulkDeleteModeBtn");
-			  const actionsLeft = document.getElementById("actionsLeftWrap");
-			  
-			  if (mode === "silindi") {
-				  if(emptyTrashBtn) emptyTrashBtn.style.display = "inline-flex";
-				  if(bulkDelBtn) bulkDelBtn.style.display = "none";
-				  actionsLeft.style.display = "none";
-			  } else {
-				  if(emptyTrashBtn) emptyTrashBtn.style.display = "none";
-				  if(bulkDelBtn) bulkDelBtn.style.display = "inline-flex";
-				  actionsLeft.style.display = "flex";
-			  }
-			  render();
+			if(isReorderMode || isBulkMode || isNewsMode) return; 
+			const btn = e.target.closest("button"); if(!btn) return;
+			mode = btn.dataset.mode; 
+			document.querySelectorAll("#statusToggle button").forEach(b => b.classList.remove("active"));
+			btn.classList.add("active"); 
+			
+			const emptyTrashBtn = document.getElementById("emptyTrashBtn");
+			const bulkDelBtn = document.getElementById("bulkDeleteModeBtn");
+			const actionsLeft = document.getElementById("actionsLeftWrap");
+			
+			if (mode === "silindi") {
+				if(emptyTrashBtn) emptyTrashBtn.style.display = "inline-flex";
+				if(bulkDelBtn) bulkDelBtn.style.display = "none";
+				actionsLeft.style.display = "none";
+			} else {
+				if(emptyTrashBtn) emptyTrashBtn.style.display = "none";
+				if(bulkDelBtn) bulkDelBtn.style.display = "inline-flex";
+				actionsLeft.style.display = "flex";
+			}
+			render();
 			});
 
 			function initials(name) { return name ? name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase() : "?"; }
@@ -1230,33 +1230,33 @@
 			function fmtDate(d) { if(!d) return "—"; const parts = d.split("-"); return parts.length === 3 ? parts[2] + "." + parts[1] + "." + parts[0] : d; }
 
 			function render() {
-			  const q = document.getElementById("search").value.trim().toLocaleLowerCase("tr");
-			  
-			  if (!isReorderMode) { 
-				  const clrBtn = document.getElementById("clearSearchBtn"); 
-				  if(clrBtn) clrBtn.style.display = q.length > 0 ? "flex" : "none"; 
-			  }
+			const q = document.getElementById("search").value.trim().toLocaleLowerCase("tr");
+			
+			if (!isReorderMode) { 
+				const clrBtn = document.getElementById("clearSearchBtn"); 
+				if(clrBtn) clrBtn.style.display = q.length > 0 ? "flex" : "none"; 
+			}
 
-			  let list = people.map((p, idx) => Object.assign({}, p, { _realIdx: idx }))
+			let list = people.map((p, idx) => Object.assign({}, p, { _realIdx: idx }))
 				.filter(p => ((p.name||"")+" "+(p.prefix||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr").includes(q));
 
-			  if(mode === "aktif") list = list.filter(p => !p.status || p.status === "aktif"); 
-			  else if(mode === "pasif") list = list.filter(p => p.status === "pasif"); 
-			  else if(mode === "silindi") list = list.filter(p => p.status === "silindi");
+			if(mode === "aktif") list = list.filter(p => !p.status || p.status === "aktif"); 
+			else if(mode === "pasif") list = list.filter(p => p.status === "pasif"); 
+			else if(mode === "silindi") list = list.filter(p => p.status === "silindi");
 
-			  list.sort((a,b) => {
+			list.sort((a,b) => {
 				const ra = (a.rank === "" || a.rank == null) ? -Infinity : Number(a.rank); const rb = (b.rank === "" || b.rank == null) ? -Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
 				const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if(ha !== hb) return ha - hb;
 				const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if(ia !== ib) return ia - ib;
 				const oa = (a.order === "" || a.order == null) ? Infinity : Number(a.order); const ob = (b.order === "" || b.order == null) ? Infinity : Number(b.order); if(oa !== ob) return oa - ob;
 				return (a.name||"").localeCompare(b.name||"", "tr");
-			  });
+			});
 
-			  const grid = document.getElementById("grid");
-			  grid.innerHTML = ""; document.getElementById("countLabel").textContent = list.length + " Kayıt";
-			  if(list.length === 0){ document.getElementById("emptyState").style.display = "block"; return; } document.getElementById("emptyState").style.display = "none";
+			const grid = document.getElementById("grid");
+			grid.innerHTML = ""; document.getElementById("countLabel").textContent = list.length + " Kayıt";
+			if(list.length === 0){ document.getElementById("emptyState").style.display = "block"; return; } document.getElementById("emptyState").style.display = "none";
 
-			  if (isReorderMode) {
+			if (isReorderMode) {
 				grid.classList.add("is-reorder");
 
 				const topBar = document.createElement("div"); topBar.className = "reorder-header-bar";
@@ -1268,43 +1268,43 @@
 				list.forEach(p => { const key = (p.rank === "" || p.rank == null) ? "__none__" : String(p.rank); if (!groupsMap[key]) { groupsMap[key] = { key: key, rank: p.rank, items: [] }; groupsOrder.push(key); } groupsMap[key].items.push(p); });
 
 				groupsOrder.forEach(key => {
-				  const g = groupsMap[key]; const section = document.createElement("details"); section.className = "rank-group";
-				  if (openedRanks.has(key)) section.open = true;
-				  section.addEventListener("toggle", function() { if (section.open) openedRanks.add(key); else openedRanks.delete(key); });
+				const g = groupsMap[key]; const section = document.createElement("details"); section.className = "rank-group";
+				if (openedRanks.has(key)) section.open = true;
+				section.addEventListener("toggle", function() { if (section.open) openedRanks.add(key); else openedRanks.delete(key); });
 
-				  const summary = document.createElement("summary"); summary.innerHTML = ((key === "__none__") ? "Sırasız" : ("Sıra " + escapeHtml(g.rank))) + ' <span class="count-pill">' + g.items.length + ' kişi</span>' + ' <button type="button" class="az-sort-btn" onclick="sortRankGroupByName(event, \'' + key + '\')">A-Z İsme Göre Sırala</button>'; section.appendChild(summary);
-				  const subgrid = document.createElement("div"); subgrid.className = "rank-subgrid"; subgrid.dataset.rankKey = key;
+				const summary = document.createElement("summary"); summary.innerHTML = ((key === "__none__") ? "Sırasız" : ("Sıra " + escapeHtml(g.rank))) + ' <span class="count-pill">' + g.items.length + ' kişi</span>' + ' <button type="button" class="az-sort-btn" onclick="sortRankGroupByName(event, \'' + key + '\')">A-Z İsme Göre Sırala</button>'; section.appendChild(summary);
+				const subgrid = document.createElement("div"); subgrid.className = "rank-subgrid"; subgrid.dataset.rankKey = key;
 
-				  g.items.forEach((p, idx) => {
+				g.items.forEach((p, idx) => {
 					const row = document.createElement("div"); row.className = "reorder-row"; row.dataset.realIdx = p._realIdx;
 					const imgHtml = p.photo ? '<img src="' + p.photo + '" alt="" loading="lazy">' : "";
 					row.innerHTML = `<div class="internal-order-badge">${idx + 1}</div> <span class="drag-handle-mini">⋮⋮</span> <span class="row-thumb">${imgHtml || initials(p.name)}</span>
-					  <span class="row-text"><span class="row-name">${p.prefix ? '<span style="color:#8a8f98;font-size:11px;">'+escapeHtml(p.prefix)+'</span><br>' : ''}${escapeHtml(p.name)}</span><span class="row-title">${escapeHtml(p.title)}</span></span>`;
+					<span class="row-text"><span class="row-name">${p.prefix ? '<span style="color:#8a8f98;font-size:11px;">'+escapeHtml(p.prefix)+'</span><br>' : ''}${escapeHtml(p.name)}</span><span class="row-title">${escapeHtml(p.title)}</span></span>`;
 					subgrid.appendChild(row);
-				  });
-				  section.appendChild(subgrid); grid.appendChild(section);
+				});
+				section.appendChild(subgrid); grid.appendChild(section);
 				});
 
 				sortableInstances.forEach(inst => inst.destroy()); sortableInstances = [];
 				document.querySelectorAll(".rank-subgrid").forEach(subgrid => {
-				  const inst = new Sortable(subgrid, {
+				const inst = new Sortable(subgrid, {
 					animation: 200, handle: '.drag-handle-mini', ghostClass: 'dragging', delay: 150, delayOnTouchOnly: true,
 					onMove: function (evt) {
-					  const draggedIdx = Number(evt.dragged.dataset.realIdx); const relatedIdx = Number(evt.related.dataset.realIdx);
-					  const dp = people[draggedIdx], rp = people[relatedIdx];
-					  if (getHierarchyWeight(dp) !== getHierarchyWeight(rp)) return false;
-					  if (getInstitutionWeight(dp) !== getInstitutionWeight(rp)) return false;
-					  return true;
+					const draggedIdx = Number(evt.dragged.dataset.realIdx); const relatedIdx = Number(evt.related.dataset.realIdx);
+					const dp = people[draggedIdx], rp = people[relatedIdx];
+					if (getHierarchyWeight(dp) !== getHierarchyWeight(rp)) return false;
+					if (getInstitutionWeight(dp) !== getInstitutionWeight(rp)) return false;
+					return true;
 					},
 					onEnd: async function (evt) {
-					  if (evt.oldIndex === evt.newIndex) return; const rowEls = Array.from(subgrid.children);
-					  rowEls.forEach((el, idx) => { const realIdx = Number(el.dataset.realIdx); people[realIdx].order = idx + 1; el.querySelector('.internal-order-badge').textContent = idx + 1; });
-					  await saveData();
+					if (evt.oldIndex === evt.newIndex) return; const rowEls = Array.from(subgrid.children);
+					rowEls.forEach((el, idx) => { const realIdx = Number(el.dataset.realIdx); people[realIdx].order = idx + 1; el.querySelector('.internal-order-badge').textContent = idx + 1; });
+					await saveData();
 					}
-				  }); sortableInstances.push(inst);
+				}); sortableInstances.push(inst);
 				});
 
-			  } else {
+			} else {
 				grid.classList.remove("is-reorder");
 
 				list.forEach(p => {
@@ -1337,32 +1337,32 @@
 					else { actionHtml = canEditData() ? '<button class="card-edit" onclick="openEditModal(' + p._realIdx + '); event.stopPropagation();">Düzenle</button>' : ""; }
 
 					card.innerHTML = bulkHtml + newsHtml +
-					  '<div class="photo-wrap"><div class="avatar-fallback">' + initials(p.name) + '</div>' + imgHtml +
+					'<div class="photo-wrap"><div class="avatar-fallback">' + initials(p.name) + '</div>' + imgHtml +
 						'<div class="rank-badge">' + (hasRank ? escapeHtml(p.rank) : '?') + '</div>' +
 						'<span class="status-chip ' + (p.status || 'aktif') + '">' + (p.status === "pasif" ? "Arşiv" : p.status === "silindi" ? "Silindi" : "Aktif") + '</span>' +
-					  '</div>' +
-					  '<div class="info">' +
+					'</div>' +
+					'<div class="info">' +
 						'<p class="name">' + (p.prefix ? '<span class="prefix">' + escapeHtml(p.prefix) + '</span> ' : '') + escapeHtml(p.name) + '</p>' +
 						'<p class="title">' + escapeHtml(p.title) + '</p>' +
 						'<p class="unit">' + escapeHtml(p.unit) + '</p>' +
 						'<div class="meta"><span>' + fmtDate(p.start) + '</span><span>' + (p.end ? fmtDate(p.end) : "devam ediyor") + '</span></div>' +
 						(p.note ? '<p class="note">' + escapeHtml(p.note) + '</p>' : '') + actionHtml +
-					  '</div>';
+					'</div>';
 
 					if (isBulkMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateBulkSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.bulk-cb'); cb.checked = !cb.checked; updateBulkSelection(personIdx, cb.checked, crd); };})(p._realIdx, card); } 
 					else if (isNewsMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateNewsSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.news-cb'); cb.checked = !cb.checked; updateNewsSelection(personIdx, cb.checked, crd); };})(p._realIdx, card); } 
 
 					grid.appendChild(card);
 				});
-			  }
+			}
 			}
 
 			function resetForm(){
- 				document.getElementById("personForm").reset(); document.getElementById("f_status").value = "aktif"; document.getElementById("f_prefix").value = "";
- 				document.getElementById("f_rank").value = "";
- 				document.getElementById("f_start").value = ""; document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
- 				document.getElementById("f_note").style.height = "54px";
- 				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
+				document.getElementById("personForm").reset(); document.getElementById("f_status").value = "aktif"; document.getElementById("f_prefix").value = "";
+				document.getElementById("f_rank").value = "";
+				document.getElementById("f_start").value = ""; document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
+				document.getElementById("f_note").style.height = "54px";
+				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
 			const UNIVERSITY_PROTOCOL_TITLES = [
@@ -1379,37 +1379,37 @@
 				"Genel Sekreter ve Daire Başkanları"
 			];
 			function renderRankReferencePanel() {
-   				const el = document.getElementById("rankReferenceList");
-   				if (!el) return;
-   				el.innerHTML = UNIVERSITY_PROTOCOL_TITLES.map(function(title, i){
-   				    return '<div class="rr-row"><span class="rr-num">' + (i + 1) + '</span><div class="rr-info"><span class="rr-t">' + escapeHtml(title) + '</span></div></div>';
-   				}).join("");
+				const el = document.getElementById("rankReferenceList");
+				if (!el) return;
+				el.innerHTML = UNIVERSITY_PROTOCOL_TITLES.map(function(title, i){
+				return '<div class="rr-row"><span class="rr-num">' + (i + 1) + '</span><div class="rr-info"><span class="rr-t">' + escapeHtml(title) + '</span></div></div>';
+				}).join("");
 			}
 
 function openAddModal(){ editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; renderRankReferencePanel(); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
-			  editIndex = idx; const p = people[idx]; resetForm();
-			  document.getElementById("f_prefix").value = p.prefix || ""; document.getElementById("f_name").value = p.name || ""; document.getElementById("f_title").value = p.title || "";
-			  document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
-			  document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
-			  document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
-			  if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
-			  document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; renderRankReferencePanel(); document.getElementById("modalBg").classList.add("open");
-			  ['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
+			editIndex = idx; const p = people[idx]; resetForm();
+			document.getElementById("f_prefix").value = p.prefix || ""; document.getElementById("f_name").value = p.name || ""; document.getElementById("f_title").value = p.title || "";
+			document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
+			document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
+			document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
+			if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
+			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; renderRankReferencePanel(); document.getElementById("modalBg").classList.add("open");
+			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
 			function closeModal(){ document.getElementById("modalBg").classList.remove("open"); }
 			document.getElementById("f_status").addEventListener("change", function(e){ document.getElementById("endDateField").style.display = e.target.value === "pasif" ? "block" : "none"; });
 
 			function previewPhoto(e){
-			  const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
-			  reader.onload = function(ev){
+			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
+			reader.onload = function(ev){
 				const img = new Image(); img.onload = function(){
-				  const MAX = 480; let w = img.width, h = img.height; if(w >= h && w > MAX){ h = Math.round(h * (MAX / w)); w = MAX; } else if(h > w && h > MAX){ w = Math.round(w * (MAX / h)); h = MAX; }
-				  const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; canvas.getContext("2d").drawImage(img, 0, 0, w, h); const compressed = canvas.toDataURL("image/jpeg", 0.75); 
-				  document.getElementById("photoPreview").src = compressed; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = compressed; document.getElementById("f_photo_url").value = ""; 
+				const MAX = 480; let w = img.width, h = img.height; if(w >= h && w > MAX){ h = Math.round(h * (MAX / w)); w = MAX; } else if(h > w && h > MAX){ w = Math.round(w * (MAX / h)); h = MAX; }
+				const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; canvas.getContext("2d").drawImage(img, 0, 0, w, h); const compressed = canvas.toDataURL("image/jpeg", 0.75); 
+				document.getElementById("photoPreview").src = compressed; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = compressed; document.getElementById("f_photo_url").value = ""; 
 				}; img.src = ev.target.result;
-			  }; reader.readAsDataURL(file);
+			}; reader.readAsDataURL(file);
 			}
 
 			function updatePhotoPreviewFromUrl() {
@@ -1422,18 +1422,18 @@ function openAddModal(){ editIndex = null; resetForm(); document.getElementById(
 			}
 
 			async function saveForm(){
-			  const name = document.getElementById("f_name").value.trim(); const title = document.getElementById("f_title").value.trim();
-			  if(!name || !title){ showToast("İsim ve unvan zorunlu!", "error"); return; }
-			  const status = document.getElementById("f_status").value; if(status === "pasif" && !document.getElementById("f_end").value){ showToast("Pasif kayıtlar için bitiş tarihi girilmelidir.", "error"); return; }
+			const name = document.getElementById("f_name").value.trim(); const title = document.getElementById("f_title").value.trim();
+			if(!name || !title){ showToast("İsim ve unvan zorunlu!", "error"); return; }
+			const status = document.getElementById("f_status").value; if(status === "pasif" && !document.getElementById("f_end").value){ showToast("Pasif kayıtlar için bitiş tarihi girilmelidir.", "error"); return; }
 
-			  const record = {
+			const record = {
 				prefix: document.getElementById("f_prefix").value, name: name, title: title, unit: document.getElementById("f_unit").value.trim(), status: status,
 				rank: document.getElementById("f_rank").value.trim() === "" ? "" : Number(document.getElementById("f_rank").value.trim()),
 				photo: document.getElementById("photoPreview").dataset.value || "", start: document.getElementById("f_start").value, end: document.getElementById("f_end").value, note: document.getElementById("f_note").value.trim()
-			  };
-			  let targetIdx;
-			  if(editIndex === null) { people.push(record); targetIdx = people.length - 1; } else { people[editIndex] = Object.assign({}, people[editIndex], record); targetIdx = editIndex; }
-			  await savePerson(targetIdx); closeModal(); showToast("Kayıt başarıyla kaydedildi.");
+			};
+			let targetIdx;
+			if(editIndex === null) { people.push(record); targetIdx = people.length - 1; } else { people[editIndex] = Object.assign({}, people[editIndex], record); targetIdx = editIndex; }
+			await savePerson(targetIdx); closeModal(); showToast("Kayıt başarıyla kaydedildi.");
 			}
 
 			function openConfirmModal() { closeModal(); document.getElementById("confirmModalBg").classList.add("open"); }
@@ -1443,33 +1443,33 @@ function openAddModal(){ editIndex = null; resetForm(); document.getElementById(
 			function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], {type: mimeType}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url); }
 			function exportJSON(){ const fileName = currentListKey === "universite" ? "Üniversite-Protokol-Listesi.json" : "İl-Protokol-Listesi.json"; downloadFile(JSON.stringify(people, null, 2), fileName, "application/json"); showToast("JSON yedeği indirildi."); }
 			function importJSON(e){
-			  const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
-			  reader.onload = async function(ev) {
+			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
+			reader.onload = async function(ev) {
 				try{
-				  const data = JSON.parse(ev.target.result); if(!Array.isArray(data)) throw new Error("Format hatalı");
-				  let matchCount = 0; let newCount = 0;
-				  for (var i = 0; i < data.length; i++) {
-					  const item = data[i]; if(!item || typeof item !== "object" || !item.name || !item.title) continue;
-					  const name = String(item.name).trim(); const title = String(item.title).trim();
-					  const existingIndex = people.findIndex(p => p.name.trim() === name && p.title.trim() === title);
-					  if (existingIndex !== -1) {
-						  matchCount++;
-						  people[existingIndex].rank = (item.rank !== undefined && item.rank !== "") ? Number(item.rank) : people[existingIndex].rank;
-						  people[existingIndex].status = item.status ? item.status : "aktif";
-						  if(item.prefix) people[existingIndex].prefix = item.prefix;
-					  } else {
-						  newCount++;
-						  people.push({
-							  prefix: item.prefix ? String(item.prefix) : "", name: name, title: title, unit: item.unit ? String(item.unit) : "", 
-							  status: item.status ? item.status : "aktif", rank: (item.rank === undefined || item.rank === null || item.rank === "") ? "" : Number(item.rank),
-							  photo: item.photo ? String(item.photo) : "", start: item.start ? String(item.start) : "", end: item.end ? String(item.end) : "", note: item.note ? String(item.note) : "", isNew: true 
-						  });
-					  }
-				  }
-				  await saveData();
-				  if(matchCount > 0) showToast(matchCount + " kişi güncellendi. " + newCount + " kişi eklendi."); else showToast(newCount + " yeni kişi başarıyla eklendi.");
+				const data = JSON.parse(ev.target.result); if(!Array.isArray(data)) throw new Error("Format hatalı");
+				let matchCount = 0; let newCount = 0;
+				for (var i = 0; i < data.length; i++) {
+					const item = data[i]; if(!item || typeof item !== "object" || !item.name || !item.title) continue;
+					const name = String(item.name).trim(); const title = String(item.title).trim();
+					const existingIndex = people.findIndex(p => p.name.trim() === name && p.title.trim() === title);
+					if (existingIndex !== -1) {
+						matchCount++;
+						people[existingIndex].rank = (item.rank !== undefined && item.rank !== "") ? Number(item.rank) : people[existingIndex].rank;
+						people[existingIndex].status = item.status ? item.status : "aktif";
+						if(item.prefix) people[existingIndex].prefix = item.prefix;
+					} else {
+						newCount++;
+						people.push({
+							prefix: item.prefix ? String(item.prefix) : "", name: name, title: title, unit: item.unit ? String(item.unit) : "", 
+							status: item.status ? item.status : "aktif", rank: (item.rank === undefined || item.rank === null || item.rank === "") ? "" : Number(item.rank),
+							photo: item.photo ? String(item.photo) : "", start: item.start ? String(item.start) : "", end: item.end ? String(item.end) : "", note: item.note ? String(item.note) : "", isNew: true 
+						});
+					}
+				}
+				await saveData();
+				if(matchCount > 0) showToast(matchCount + " kişi güncellendi. " + newCount + " kişi eklendi."); else showToast(newCount + " yeni kişi başarıyla eklendi.");
 				}catch(err){ showToast("Dosya hatalı veya bozuk!", "error"); }
-			  }; reader.readAsText(file); e.target.value = "";
+			}; reader.readAsText(file); e.target.value = "";
 			}
 		// Service Worker Kaydı (Offline / PWA desteği)
 			if ("serviceWorker" in navigator) {
