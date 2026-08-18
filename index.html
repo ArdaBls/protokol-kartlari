@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!--
+	=====================================================================
+	OMÜ Protokol Kartları · Etkinlik Takvimi ve Haber Aracı
+	Copyright (c) 2026 Arda Bilasa. Tüm hakları saklıdır.
+
+	Bu yazılımın kaynak kodu, arayüz tasarımı, CSS düzeni ve JavaScript
+	mantığı 5846 sayılı Fikir ve Sanat Eserleri Kanunu ile korunmaktadır.
+	Hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz,
+	dağıtılamaz, uyarlanamaz veya türev çalışma üretiminde kullanılamaz.
+	İzinsiz kullanım tespit edildiğinde yasal yollara başvurulur.
+	İletişim / izin talebi: bilasaarda@gmail.com
+	=====================================================================
+-->
 <html lang="tr">
 	<head>
 		<meta charset="UTF-8">
@@ -291,8 +304,12 @@
 			.cal-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
 
 			/* ---- Mini ay takvimi (sol ray) ---- */
-			.cal-mini-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-			.cal-mini-title{ font-family:'Fraunces',serif; font-size:13.5px; font-weight:600; color:var(--navy); }
+			.cal-mini-head{ display:flex; align-items:center; justify-content:space-between; gap:1px; margin-bottom:8px; }
+			.cal-mini-title{ flex:1; text-align:center; font-family:'Fraunces',serif; font-size:13.5px; font-weight:600; color:var(--navy); white-space:nowrap; }
+			.cal-mini-head .cal-iconbtn{ width:21px; height:21px; font-size:12.5px; }
+			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu. */
+			.cal-jump{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:12.5px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; }
+			.cal-jump:hover{ border-color:var(--brass); }
 			.cal-mini-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
 			.cal-mini-dow{ text-align:center; font-size:9.5px; font-weight:600; color:var(--muted); padding-bottom:3px; }
 			.cal-mini-day{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11px; border:none; background:none; border-radius:6px; cursor:pointer; color:var(--ink); font-family:inherit; }
@@ -480,6 +497,7 @@
 				.cal-addbtn .ab-full{ display:none; }
 				.cal-addbtn .ab-short{ display:inline; font-size:16px; line-height:1; }
 				.cal-addbtn{ padding:5px 12px; }
+				.cal-jump{ padding:0 4px; font-size:11px; height:27px; max-width:120px; }
 				.cal-viewbtn{ padding:4px 9px; font-size:11.5px; }
 				.cal-addbtn{ padding:5px 10px; font-size:12px; }
 				.cal-m-grid{ grid-auto-rows:minmax(74px,1fr); }
@@ -529,7 +547,24 @@
 			.toast.show { transform: translateX(0); opacity:1; }
 			.toast.error { background: #b03a3a; }
 
-			footer{ max-width:1040px; margin:40px auto 0; padding:0 20px; font-size:12px; color:var(--muted); text-align:center; }
+			footer{ max-width:1040px; margin:40px auto 0; padding:0 20px 28px; font-size:12px; color:var(--muted); text-align:center; }
+			.foot-copy{ margin:0 0 6px; font-size:12.5px; color:var(--ink); }
+			.foot-copy strong{ font-weight:600; }
+			.foot-links{ margin:0 0 8px; display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; }
+			.foot-link{ background:none; border:none; padding:0; font-family:inherit; font-size:12px; color:var(--navy); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+			.foot-link:hover{ color:var(--brass); }
+			.foot-sep{ color:#cfc6b2; }
+			.foot-note{ margin:0; font-size:11px; line-height:1.6; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto; }
+			/* Kullanım Şartları / Gizlilik Politikası penceresi */
+			.legal-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+			.legal-tabs .btn{ flex:1; font-size:12.5px; padding:8px 10px; }
+			.legal-body{ max-height:52vh; overflow-y:auto; padding-right:6px; font-size:13px; line-height:1.7; color:var(--ink); }
+			.legal-body h3{ font-family:'Fraunces',serif; font-size:14.5px; margin:16px 0 6px; color:var(--navy); }
+			.legal-body h3:first-child{ margin-top:0; }
+			.legal-body p{ margin:0 0 8px; }
+			.legal-body ul{ margin:0 0 10px; padding-left:18px; }
+			.legal-body li{ margin-bottom:5px; }
+			.legal-body .lg-meta{ font-size:11.5px; color:var(--muted); border-top:1px solid #eee6d4; padding-top:8px; margin-top:14px; }
 
 			/* --- MOBİL UYUMLULUK --- */
 			@media (max-width: 600px) {
@@ -719,6 +754,17 @@
 			</aside>
 		</div>
 
+		<!-- ================= TELİF VE YASAL BİLDİRİM ================= -->
+		<footer>
+			<p class="foot-copy">&copy; <span id="footYear">2026</span> <strong>Arda Bilasa</strong>. Tüm hakları saklıdır.</p>
+			<p class="foot-links">
+				<button type="button" class="foot-link" onclick="openLegalModal('terms')">Kullanım Şartları</button>
+				<span class="foot-sep">·</span>
+				<button type="button" class="foot-link" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
+			</p>
+			<p class="foot-note">Bu uygulamanın kaynak kodu, arayüz tasarımı ve içeriği telif hakkıyla korunmaktadır; hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz veya dağıtılamaz.</p>
+		</footer>
+
 		<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()">🗓️ <span>Takvim</span></button>
 
 		<!-- Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet) -->
@@ -745,11 +791,11 @@
 				<aside class="cal-rail-left">
 					<div>
 						<div class="cal-mini-head">
+							<button type="button" class="cal-iconbtn" onclick="calMiniShiftYear(-1)" title="Önceki yıl">«</button>
+							<button type="button" class="cal-iconbtn" onclick="calMiniShift(-1)" title="Önceki ay">‹</button>
 							<span class="cal-mini-title" id="calMiniTitle">—</span>
-							<span style="display:flex; gap:1px;">
-								<button type="button" class="cal-iconbtn" onclick="calMiniShift(-1)">‹</button>
-								<button type="button" class="cal-iconbtn" onclick="calMiniShift(1)">›</button>
-							</span>
+							<button type="button" class="cal-iconbtn" onclick="calMiniShift(1)" title="Sonraki ay">›</button>
+							<button type="button" class="cal-iconbtn" onclick="calMiniShiftYear(1)" title="Sonraki yıl">»</button>
 						</div>
 						<div class="cal-mini-grid" id="calMiniGrid"></div>
 					</div>
@@ -768,6 +814,7 @@
 						<button type="button" class="cal-iconbtn" onclick="calShift(-1)" title="Önceki">‹</button>
 						<button type="button" class="cal-iconbtn" onclick="calShift(1)" title="Sonraki">›</button>
 						<button type="button" class="cal-textbtn" onclick="calToday()">Bugün</button>
+						<input type="date" class="cal-jump" id="calJumpDate" onchange="calJumpTo(this.value)" title="İstediğin tarihe git" aria-label="Tarihe git">
 						<span class="cal-spacer"></span>
 						<div class="cal-viewtabs" id="calViewTabs">
 							<button type="button" class="cal-viewbtn" data-view="day" onclick="calSetView('day')">Gün</button>
@@ -1111,8 +1158,24 @@
 					</div>
 				</div>
 				<div id="adminLogsView" style="display:none;">
-					<p class="hint">Tüm listelerdeki (İl + Üniversite) son 50 değişiklik.</p>
+					<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
 					<div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kullanım Şartları / Gizlilik Politikası -->
+		<div class="modal-bg" id="legalModalBg" style="z-index:120;">
+			<div class="modal" style="max-width:600px;">
+				<button class="close-x" onclick="closeLegalModal()">✕</button>
+				<h2 id="legalModalTitle">Kullanım Şartları</h2>
+				<div class="legal-tabs">
+					<button type="button" class="btn btn-primary" id="legalTabTerms" onclick="openLegalModal('terms')">Kullanım Şartları</button>
+					<button type="button" class="btn btn-ghost" id="legalTabPrivacy" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
+				</div>
+				<div class="legal-body" id="legalBody"></div>
+				<div class="modal-actions">
+					<button class="btn btn-primary" type="button" onclick="closeLegalModal()">Kapat</button>
 				</div>
 			</div>
 		</div>
@@ -1370,6 +1433,9 @@
 					"Havelsan Siber Güvenlik Meslek Yüksekokulu", "Havza Meslek Yüksekokulu", "Ladik Meslek Yüksekokulu",
 					"Sağlık Hizmetleri Meslek Yüksekokulu", "Samsun Meslek Yüksekokulu", "Terme Meslek Yüksekokulu",
 					"Vezirköprü Meslek Yüksekokulu", "Yeşilyurt Demir Çelik Meslek Yüksekokulu"
+				] },
+				{ title: "Ofisler ve Merkezler", items: [
+					"Teknoloji Transfer Ofisi"
 				] },
 				{ title: "Koordinatörlükler", items: [
 					"Araştırma ve Geliştirme Koordinatörlüğü (AR-GE)", "Eğitim Öğretim Koordinatörlüğü", "Kalite Koordinatörlüğü",
@@ -1689,6 +1755,120 @@
 				toast.className = "toast " + type; toast.textContent = msg; container.appendChild(toast);
 				requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("show")));
 				setTimeout(() => { toast.classList.remove("show"); setTimeout(() => toast.remove(), 300); }, 4000);
+			}
+
+
+			/* ================= YASAL METİNLER (Kullanım Şartları / Gizlilik) ================= */
+			const LEGAL_OWNER = "Arda Bilasa";
+			const LEGAL_CONTACT = "bilasaarda@gmail.com";
+			const LEGAL_TEXTS = {
+				terms: {
+					baslik: "Kullanım Şartları",
+					html:
+						'<h3>1. Kapsam</h3>' +
+						'<p>Bu uygulama ("Protokol Kartları"), Ondokuz Mayıs Üniversitesi Basın ve Halkla İlişkiler ekibinin protokol sırası takibi, etkinlik planlaması ve haber metni üretimi işlerinde kullanılmak üzere geliştirilmiş bir iç çalışma aracıdır. Uygulamaya erişen herkes aşağıdaki şartları kabul etmiş sayılır.</p>' +
+						'<h3>2. Fikri Mülkiyet ve Telif</h3>' +
+						'<p>Uygulamanın <b>kaynak kodu, HTML yapısı, CSS tasarımı, JavaScript mantığı, arayüz düzeni, renk paleti, metinleri ve tüm görsel unsurları</b> ' + LEGAL_OWNER + ' adlı hak sahibine aittir ve 5846 sayılı Fikir ve Sanat Eserleri Kanunu kapsamında korunmaktadır.</p>' +
+						'<p>Hak sahibinin <b>yazılı izni olmaksızın</b> aşağıdakiler yasaktır:</p>' +
+						'<ul>' +
+						'<li>Kaynak kodun tamamının veya bir bölümünün kopyalanması, çoğaltılması, indirilmesi ve başka bir projede kullanılması,</li>' +
+						'<li>Tasarımın, arayüz düzeninin veya CSS stillerinin taklit edilmesi ya da uyarlanması,</li>' +
+						'<li>Uygulamanın türev bir çalışmaya dönüştürülmesi, yeniden adlandırılarak dağıtılması veya satılması,</li>' +
+						'<li>Otomatik araçlarla (bot, crawler, scraper) içerik veya veri toplanması,</li>' +
+						'<li>Tersine mühendislik yapılması veya güvenlik önlemlerinin aşılmaya çalışılması.</li>' +
+						'</ul>' +
+						'<h3>3. Hesap ve Yetki</h3>' +
+						'<ul>' +
+						'<li>Hesaplar kişiye özeldir; kullanıcı adı ve şifre üçüncü kişilerle paylaşılamaz.</li>' +
+						'<li>Düzenleme yetkisi (editör/yönetici) yalnızca yönetici onayıyla verilir ve her an geri alınabilir.</li>' +
+						'<li>Hesabıyla yapılan tüm işlemlerden hesap sahibi sorumludur.</li>' +
+						'</ul>' +
+						'<h3>4. İçerik Sorumluluğu</h3>' +
+						'<p>Uygulamaya girilen kişi bilgileri, etkinlik kayıtları ve notların doğruluğundan bunları giren kullanıcı sorumludur. Kişisel veri niteliğindeki bilgiler yalnızca kurumsal iş amacıyla ve ilgili mevzuata uygun şekilde işlenmelidir.</p>' +
+						'<h3>5. İhlal Hâlinde</h3>' +
+						'<p>Bu şartların ihlali hâlinde ilgili hesabın erişimi bildirimsiz olarak kapatılır. Telif ihlali tespit edilmesi durumunda hak sahibi, 5846 sayılı Kanun ve ilgili mevzuat uyarınca <b>hukuki ve cezai yollara başvurma hakkını saklı tutar.</b></p>' +
+						'<h3>6. Değişiklikler ve İletişim</h3>' +
+						'<p>Bu şartlar önceden bildirilmeksizin güncellenebilir. İzin talepleri ve sorular için: <b>' + LEGAL_CONTACT + '</b></p>' +
+						'<p class="lg-meta">Son güncelleme: 18 Ağustos 2026 · Hak sahibi: ' + LEGAL_OWNER + '</p>'
+				},
+				privacy: {
+					baslik: "Gizlilik Politikası",
+					html:
+						'<h3>1. İşlenen Veriler</h3>' +
+						'<ul>' +
+						'<li><b>Hesap bilgileri:</b> ad, soyad, e-posta adresi ve yetki rolü (bekliyor / editör / yönetici).</li>' +
+						'<li><b>İçerik verileri:</b> protokol kartlarına girilen kişi bilgileri (unvan, görev, birim, tarih, fotoğraf, not) ve etkinlik takvimi kayıtları.</li>' +
+						'<li><b>İşlem kayıtları (log):</b> her ekleme, düzenleme ve silme işleminde işlemi yapan kullanıcı, zaman damgası ve hangi alanın ne şekilde değiştiği.</li>' +
+						'</ul>' +
+						'<h3>2. Saklama Yeri</h3>' +
+						'<p>Veriler Google Firebase altyapısında, <b>Avrupa (europe-west1)</b> bölgesindeki sunucularda saklanır. Yazma erişimi veritabanı güvenlik kurallarıyla sınırlandırılmıştır; yalnızca editör ve yönetici rolündeki oturum açmış kullanıcılar kayıt değiştirebilir.</p>' +
+						'<h3>3. İşleme Amacı</h3>' +
+						'<p>Veriler yalnızca kimlik doğrulama, yetkilendirme, protokol sırası takibi, etkinlik planlaması, haber metni üretimi ve değişiklik geçmişinin denetlenmesi amacıyla işlenir.</p>' +
+						'<h3>4. Paylaşım</h3>' +
+						'<p>Veriler üçüncü kişilere satılmaz, pazarlama veya reklam amacıyla kullanılmaz. Barındırma hizmeti dışında hiçbir üçüncü tarafla paylaşılmaz. İşlem kayıtlarını yalnızca yönetici rolündeki kullanıcılar görüntüleyebilir.</p>' +
+						'<h3>5. Çerezler ve Yerel Depolama</h3>' +
+						'<p>Reklam veya takip çerezi kullanılmaz. Oturumun açık kalabilmesi için Firebase Authentication tarayıcının yerel depolama alanını kullanır; uygulama ayrıca çevrimdışı çalışabilmek için sayfa dosyalarını tarayıcı önbelleğinde tutar.</p>' +
+						'<h3>6. Haklarınız</h3>' +
+						'<p>6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında; verilerinize erişme, düzeltilmesini veya silinmesini isteme hakkına sahipsiniz. Talebinizi <b>' + LEGAL_CONTACT + '</b> adresine iletebilir ya da uygulama yöneticisine başvurabilirsiniz.</p>' +
+						'<p class="lg-meta">Son güncelleme: 18 Ağustos 2026 · Veri sorumlusu: ' + LEGAL_OWNER + '</p>'
+				}
+			};
+			let legalTab = "terms";
+			function openLegalModal(which){
+				legalTab = LEGAL_TEXTS[which] ? which : "terms";
+				const t = LEGAL_TEXTS[legalTab];
+				document.getElementById("legalModalTitle").textContent = t.baslik;
+				document.getElementById("legalBody").innerHTML = t.html;
+				document.getElementById("legalBody").scrollTop = 0;
+				document.getElementById("legalTabTerms").className = "btn " + (legalTab === "terms" ? "btn-primary" : "btn-ghost");
+				document.getElementById("legalTabPrivacy").className = "btn " + (legalTab === "privacy" ? "btn-primary" : "btn-ghost");
+				document.getElementById("legalModalBg").classList.add("open");
+			}
+			function closeLegalModal(){ document.getElementById("legalModalBg").classList.remove("open"); }
+			// Telif yılı her yıl elle güncellenmesin diye otomatik yazılır.
+			(function setFooterYear(){
+				const el = document.getElementById("footYear");
+				if (el) el.textContent = String(new Date().getFullYear());
+			})();
+
+			/* ================= İÇERİK KORUMA (caydırıcı katman) ================= */
+			// DÜRÜST NOT: Tarayıcıya inen HTML/CSS/JS teknik olarak tamamen gizlenemez.
+			// Bu katman sıradan kopyalamayı zorlaştırır; asıl koruma yasal bildirim,
+			// Firebase güvenlik kuralları ve deponun gizli tutulmasıdır.
+			// Ekibin çalışma akışı bozulmasın diye form alanları ve haber metni kutusu muaf tutulur.
+			const COPY_GUARD_ENABLED = true;
+			let copyGuardToastTs = 0;
+			function copyGuardWarn(msg){
+				const now = Date.now();
+				if (now - copyGuardToastTs < 3000) return;   // arka arkaya uyarı yağmuru olmasın
+				copyGuardToastTs = now;
+				showToast(msg, "error");
+			}
+			function copyGuardExempt(el){
+				if (!el || !el.closest) return false;
+				// Yazı yazılan/kopyalanan her yer serbest: formlar, arama, haber çıktısı, etkinlik detayı.
+				return !!el.closest("input, textarea, select, [contenteditable='true'], .cal-peek-body, .legal-body");
+			}
+			if (COPY_GUARD_ENABLED) {
+				document.addEventListener("contextmenu", function(e){
+					if (copyGuardExempt(e.target)) return;
+					e.preventDefault();
+					copyGuardWarn("Bu içerik telif hakkıyla korunmaktadır (© " + LEGAL_OWNER + ").");
+				});
+				document.addEventListener("keydown", function(e){
+					if (copyGuardExempt(e.target)) return;
+					const k = (e.key || "").toLowerCase();
+					// Ctrl+U (kaynağı görüntüle) ve Ctrl+S (sayfayı kaydet)
+					if ((e.ctrlKey || e.metaKey) && (k === "u" || k === "s")) {
+						e.preventDefault();
+						copyGuardWarn("Bu sayfanın kaynağı telif hakkıyla korunmaktadır.");
+					}
+				});
+				// Fotoğrafların masaüstüne sürüklenerek indirilmesi engellenir; sıralama sürüklemesi bundan etkilenmez.
+				document.addEventListener("dragstart", function(e){
+					if (isReorderMode) return;
+					if (e.target && e.target.tagName === "IMG") e.preventDefault();
+				});
 			}
 
 			function openBulkConfirmModal() {
@@ -2411,6 +2591,7 @@ function calDayCount(){
 }
 
 let calEvents = {};              // { pushKey: etkinlik }
+let calEventsReadErrorShown = false;
 let calView = "week";
 let calAnchor = new Date();      // ana görünümde bakılan tarih
 let calMiniAnchor = new Date();  // sol raydaki mini takvimin ayı
@@ -2444,7 +2625,12 @@ function attachEventsListener(){
 		calEvents = (v && typeof v === "object") ? v : {};
 		renderCalendarRail();
 		if(document.getElementById("calendarOverlay").classList.contains("open")) renderCalendar();
-	}, function(){ /* yetki yoksa sessizce boş kalır */ });
+	}, function(err){
+		console.error("etkinlikler okunamadı:", err);
+		calEvents = {}; renderCalendarRail();
+		// Uyarı sadece giriş yapmış kullanıcıya gösterilir; ziyaretçi için takvim sessizce boş kalır.
+		if(currentUser && !calEventsReadErrorShown){ calEventsReadErrorShown = true; showToast("Takvim etkinlikleri yüklenemedi (yetki sorunu olabilir).", "error"); }
+	});
 }
 
 function calEventList(){
@@ -2613,6 +2799,15 @@ function calShift(dir){
 }
 function calToday(){ calAnchor=todayDate(); calMiniAnchor=new Date(calAnchor.getFullYear(), calAnchor.getMonth(), 1); renderCalendar(); }
 function calMiniShift(dir){ calMiniAnchor=new Date(calMiniAnchor.getFullYear(), calMiniAnchor.getMonth()+dir, 1); renderCalMini(); }
+// Ay ay tıklamadan uzak tarihlere gidebilmek için yıl atlama.
+function calMiniShiftYear(dir){ calMiniAnchor=new Date(calMiniAnchor.getFullYear()+dir, calMiniAnchor.getMonth(), 1); renderCalMini(); }
+// Üstteki tarih kutusundan seçilen güne doğrudan atlar (takvimin ileri/geri sınırı yoktur).
+function calJumpTo(v){
+	const d=parseKey(v); if(!d) return;
+	calAnchor=d;
+	calMiniAnchor=new Date(d.getFullYear(), d.getMonth(), 1);
+	if(calView==="list") calSetView("day"); else renderCalendar();
+}
 // Mini takvimden bir güne tıklandığında o günün içine girilir (gün görünümü).
 function calGoToDay(dateKey){ const d=parseKey(dateKey); if(!d) return; calAnchor=d; calSetView("day"); }
 
@@ -2625,6 +2820,7 @@ function renderCalendar(){
 }
 
 function renderCalTopbar(){
+	const jump=document.getElementById("calJumpDate"); if(jump) jump.value=dKey(calAnchor);
 	const lab=document.getElementById("calMonthLabel"); if(!lab) return;
 	if(calView==="day"){
 		const d=calAnchor;
@@ -2899,7 +3095,9 @@ async function calDrop(e, dateKey){
 		patch.saat=""; patch.bitisSaat="";
 	}
 	if(ev.tarih===patch.tarih && patch.saat===undefined) return;
-	await persistEvent(id, Object.assign({}, ev, patch), (ev.ad||"Etkinlik")+" etkinliği "+fmtTrDate(dateKey)+" tarihine taşındı");
+	const moved=Object.assign({}, ev, patch);
+	const moveChanges=describeEventChanges(ev, moved);
+	await persistEvent(id, moved, evLogName(ev.ad)+" etkinliği takvimde taşındı ("+fmtTrDate(dateKey)+")"+(moveChanges.length?" · "+moveChanges.join(" · "):""));
 }
 
 /* --- Etkinlik detay paneli (sağdan açılan peek) --- */
@@ -2967,7 +3165,8 @@ async function eventQuickStamp(){
 		toast="Bitiş "+hm+" olarak işaretlendi.";
 	}
 	patch.guncellemeTs=Date.now();
-	const ok=await persistEvent(calPeekedId, patch, label);
+	const stampChanges=describeEventChanges(e, patch);
+	const ok=await persistEvent(calPeekedId, patch, evLogName(label)+(stampChanges.length?" · "+stampChanges.join(" · "):""));
 	if(!ok) return;
 	calEvents[calPeekedId]=patch;
 	openEventPeek(calPeekedId);
@@ -3060,6 +3259,58 @@ document.addEventListener("change", function(e){
 	}
 });
 
+/* --- Etkinlik log detayları --- */
+// Etkinliğin KENDİSİ Firebase'de aynı anahtarın üzerine yazılır (geçmiş kopya tutulmaz);
+// her düzenleme için logs/etkinlik altına AYRI bir log satırı eklenir. Böylece kaydın son hâli tek,
+// ama "kim, ne zaman, hangi alanı ne yaptı" geçmişi eksiksiz durur.
+const EVENT_LOG_LABELS = {
+	ad:"Etkinlik Adı", tur:"Tür", durum:"Durum", tarih:"Tarih", saat:"Başlangıç Saati",
+	bitisSaat:"Bitiş Saati", yer:"Yer / Mekân", birim:"Düzenleyen Birim",
+	planlayan:"Planlayan / Sorumlu", gorevli:"Basın Görevlisi",
+	arsiv:"Arşiv Bağlantısı", not:"Not", katilimcilar:"Katılımcılar"
+};
+// " · " log satırlarının ayıracı olduğu için etkinlik adında geçerse zararsızlaştırılır.
+function evLogName(s){ return String(s||"Etkinlik").split(" · ").join(" - "); }
+function evAttNames(list){
+	return (Array.isArray(list)?list:[]).map(function(a){ return String((a&&a.name)||"").trim(); }).filter(Boolean);
+}
+function describeEventChanges(oldE, newE){
+	oldE=oldE||{}; newE=newE||{};
+	const changes=[];
+	// Tür ve durum anahtar olarak saklanır; loga okunabilir adıyla yazılır.
+	if((oldE.tur||"diger")!==(newE.tur||"diger")) changes.push(EVENT_LOG_LABELS.tur+": "+evType(oldE.tur).ad+" → "+evType(newE.tur).ad);
+	if((oldE.durum||"planlandi")!==(newE.durum||"planlandi")) changes.push(EVENT_LOG_LABELS.durum+": "+evStatus(oldE.durum).ad+" → "+evStatus(newE.durum).ad);
+	if((oldE.tarih||"")!==(newE.tarih||"")) changes.push(EVENT_LOG_LABELS.tarih+": "+(oldE.tarih?fmtTrDate(oldE.tarih):"(boş)")+" → "+(newE.tarih?fmtTrDate(newE.tarih):"(boş)"));
+	["ad","saat","bitisSaat","yer","birim","planlayan","gorevli","arsiv","not"].forEach(function(k){
+		const o=(oldE[k]===undefined||oldE[k]===null)?"":String(oldE[k]).trim();
+		const n=(newE[k]===undefined||newE[k]===null)?"":String(newE[k]).trim();
+		if(o!==n) changes.push(EVENT_LOG_LABELS[k]+": "+logValueOrEmpty(o)+" → "+logValueOrEmpty(n));
+	});
+	// Katılımcılar dizi olduğu için eklenen ve çıkarılan kişiler ayrı ayrı yazılır.
+	const oldA=evAttNames(oldE.katilimcilar), newA=evAttNames(newE.katilimcilar);
+	const added=newA.filter(function(x){ return oldA.indexOf(x)===-1; });
+	const removed=oldA.filter(function(x){ return newA.indexOf(x)===-1; });
+	if(added.length||removed.length){
+		const parts=[];
+		if(added.length) parts.push("+ "+added.join(", "));
+		if(removed.length) parts.push("− "+removed.join(", "));
+		changes.push(EVENT_LOG_LABELS.katilimcilar+": "+logValueOrEmpty(parts.join("; ")));
+	}
+	return changes;
+}
+// Yeni etkinlikte de "ne planlandı" özeti loga geçsin.
+function describeEventCreation(e){
+	const out=[EVENT_LOG_LABELS.tur+": "+evType(e.tur).ad, EVENT_LOG_LABELS.durum+": "+evStatus(e.durum).ad];
+	if(e.saat) out.push(EVENT_LOG_LABELS.saat+": "+e.saat+(e.bitisSaat?" → "+e.bitisSaat:""));
+	if(e.yer) out.push(EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer));
+	if(e.birim) out.push(EVENT_LOG_LABELS.birim+": "+logValueOrEmpty(e.birim));
+	if(e.planlayan) out.push(EVENT_LOG_LABELS.planlayan+": "+logValueOrEmpty(e.planlayan));
+	if(e.gorevli) out.push(EVENT_LOG_LABELS.gorevli+": "+logValueOrEmpty(e.gorevli));
+	const att=evAttNames(e.katilimcilar);
+	if(att.length) out.push(EVENT_LOG_LABELS.katilimcilar+": "+logValueOrEmpty(att.join(", ")));
+	return out;
+}
+
 async function persistEvent(id, obj, logLabel){
 	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return false; }
 	try{
@@ -3070,10 +3321,15 @@ async function persistEvent(id, obj, logLabel){
 				by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
 				email: currentUser.email, action: logLabel || "Etkinlik güncellendi",
 				target: obj.ad || "", timestamp: Date.now()
-			}).catch(function(){});
+			}).catch(function(err){ console.error("Etkinlik log kaydı yazılamadı:", err); });
 		}
 		return true;
-	}catch(err){ showToast("Etkinlik kaydedilemedi.", "error"); return false; }
+	}catch(err){
+		console.error("Etkinlik kaydedilemedi:", err);
+		const reason = (err && (err.code || err.message)) ? (" (" + (err.code || err.message) + ")") : "";
+		showToast("Etkinlik kaydedilemedi" + reason + ".", "error");
+		return false;
+	}
 }
 
 async function saveEvent(){
@@ -3099,7 +3355,18 @@ async function saveEvent(){
 	if(eski){ obj.olusturan=eski.olusturan||""; obj.olusturmaTs=eski.olusturmaTs||Date.now(); }
 	else { obj.olusturan=(currentUser? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""); obj.olusturmaTs=Date.now(); }
 	obj.guncellemeTs=Date.now();
-	const label = calEditingId ? (ad+" etkinliği güncellendi ("+fmtTrDate(tarih)+")") : (ad+" etkinliği takvime eklendi ("+fmtTrDate(tarih)+(saat?", "+saat:"")+")");
+	// Kayıt üzerine yazılır; log ise her seferinde yeni satır olarak eklenir ve hangi alanın
+	// ne olduğu tek tek yazılır.
+	const adSafe = evLogName(ad);
+	let label;
+	if(calEditingId){
+		const changes = describeEventChanges(eski, obj);
+		label = changes.length
+			? (adSafe+" etkinliği güncellendi ("+fmtTrDate(tarih)+") · "+changes.join(" · "))
+			: (adSafe+" etkinliği kaydedildi (içerikte değişiklik yok)");
+	} else {
+		label = adSafe+" etkinliği takvime eklendi ("+fmtTrDate(tarih)+(saat?", "+saat:"")+") · "+describeEventCreation(obj).join(" · ");
+	}
 	const ok=await persistEvent(calEditingId, obj, label);
 	if(!ok) return;
 	closeEventModal(); showToast("Etkinlik kaydedildi.", "success");
@@ -3107,6 +3374,7 @@ async function saveEvent(){
 
 async function deleteEvent(){
 	if(!requireEdit() || !calEditingId) return;
+	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return; }
 	const e=calEvents[calEditingId]; const ad=e?(e.ad||"Etkinlik"):"Etkinlik";
 	if(!confirm('"'+ad+'" etkinliği takvimden silinecek. Emin misin?')) return;
 	try{
@@ -3114,11 +3382,15 @@ async function deleteEvent(){
 		if(currentUser){
 			database.ref("logs/etkinlik").push({
 				by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
-				email: currentUser.email, action: ad+" etkinliği takvimden silindi", target: ad, timestamp: Date.now()
+				email: currentUser.email, action: evLogName(ad)+" etkinliği takvimden silindi"+(e&&e.tarih?" · "+EVENT_LOG_LABELS.tarih+": "+fmtTrDate(e.tarih):"")+(e&&e.yer?" · "+EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer):""), target: ad, timestamp: Date.now()
 			}).catch(function(){});
 		}
 		closeEventModal(); closeEventPeek(); showToast("Etkinlik silindi.", "error");
-	}catch(err){ showToast("Etkinlik silinemedi.", "error"); }
+	}catch(err){
+		console.error("Etkinlik silinemedi:", err);
+		const reason = (err && (err.code || err.message)) ? (" (" + (err.code || err.message) + ")") : "";
+		showToast("Etkinlik silinemedi" + reason + ".", "error");
+	}
 }
 
 /* ================= HABER ŞABLONLARI ================= */
