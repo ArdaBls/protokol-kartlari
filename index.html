@@ -252,7 +252,7 @@
 			.calendar-rail{ display:none; flex-direction:column; gap:10px; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; font-family:'Inter',sans-serif; }
 			@media (min-width: 1050px) { .calendar-rail{ display:flex; } }
 			.cal-rail-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:16px 12px; border:1px solid #e7e1d3; border-radius:16px; background:var(--card); box-shadow:0 8px 30px rgba(0,0,0,.12); cursor:pointer; font-family:inherit; }
-			.cal-rail-btn:hover{ background:#fff; border-color:var(--brass-light); }
+			.cal-rail-btn:hover{ background:#fffdf8; border-color:var(--brass-light); }
 			.cal-rail-icon{ font-size:26px; line-height:1; }
 			.cal-rail-label{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); }
 			.cal-rail-count{ font-size:11.5px; color:var(--muted); }
@@ -272,7 +272,7 @@
 			/* ---- Tam ekran kabuk ---- */
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
-			.cal-overlay{ position:fixed; inset:0; z-index:90; background:#fff; display:none; font-family:'Inter',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			.cal-overlay{ position:fixed; inset:0; z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Inter',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
 			.cal-overlay.open{ display:block; }
 			.cal-launch-backdrop{ position:fixed; inset:0; z-index:89; background:rgba(22,35,61,.42); display:none; opacity:0; pointer-events:none; transition:opacity .32s ease; }
 			.cal-launch-backdrop.show{ display:block; }
@@ -287,7 +287,7 @@
 			@media (prefers-reduced-motion: reduce){
 				.cal-overlay, .cal-shell, .cal-launch-backdrop, .cal-rail-btn, .calendar-fab{ transition:none !important; }
 			}
-			.cal-rail-left{ flex:0 0 232px; border-right:1px solid #ece8dd; background:#fbfaf7; padding:16px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
+			.cal-rail-left{ flex:0 0 232px; border-right:1px solid #ddd5c2; background:rgba(22,35,61,.045); padding:16px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
 			.cal-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
 
 			/* ---- Mini ay takvimi (sol ray) ---- */
@@ -314,17 +314,17 @@
 			.cal-legend-count{ margin-left:auto; font-size:10px; color:var(--muted); }
 
 			/* ---- Üst bar ---- */
-			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid #ece8dd; background:#fff; }
+			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid #ddd5c2; background:transparent; }
 			.cal-month-label{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--navy); }
 			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
 			.cal-iconbtn{ background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.cal-iconbtn:hover{ background:#f4f1e8; color:var(--navy); }
-			.cal-textbtn{ background:#fff; border:1px solid #e2ddcf; color:var(--ink); border-radius:7px; padding:5px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+			.cal-textbtn{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:5px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
 			.cal-textbtn:hover{ background:#f4f1e8; }
 			.cal-spacer{ flex:1; }
-			.cal-viewtabs{ display:flex; gap:2px; background:#f4f1e8; border-radius:8px; padding:2px; }
+			.cal-viewtabs{ display:flex; gap:2px; background:rgba(22,35,61,.07); border-radius:8px; padding:2px; }
 			.cal-viewbtn{ background:none; border:none; color:var(--muted); border-radius:6px; padding:5px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
-			.cal-viewbtn.active{ background:#fff; color:var(--navy); box-shadow:0 1px 2px rgba(0,0,0,.1); }
+			.cal-viewbtn.active{ background:var(--card); color:var(--navy); box-shadow:0 1px 2px rgba(22,35,61,.16); }
 			.cal-addbtn{ background:var(--navy); border:none; color:#f3efe6; border-radius:7px; padding:6px 13px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
 			.cal-addbtn:hover{ background:var(--navy-2); }
 			.cal-addbtn .ab-short{ display:none; }
@@ -333,9 +333,9 @@
 
 			/* ---- Hafta / gün: saat ızgarası ---- */
 			.cal-tg{ display:flex; flex-direction:column; height:100%; min-height:0; }
-			.cal-tg-head{ flex-shrink:0; display:grid; border-bottom:1px solid #ece8dd; background:#fff; }
+			.cal-tg-head{ flex-shrink:0; display:grid; border-bottom:1px solid #ddd5c2; background:transparent; }
 			.cal-gutter-cell{ border-right:1px solid #f0ece0; }
-			.cal-dhead{ text-align:center; padding:7px 4px 8px; border-right:1px solid #f0ece0; }
+			.cal-dhead{ text-align:center; padding:7px 4px 8px; border-right:1px solid #e2dccb; }
 			.cal-dhead:last-child{ border-right:none; }
 			.cal-dhead .dw{ display:block; font-size:10.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
 			.cal-dhead .dn{ display:inline-flex; align-items:center; justify-content:center; min-width:25px; height:25px; padding:0 5px; font-size:15px; font-weight:600; color:var(--ink); border-radius:7px; margin-top:2px; }
@@ -345,20 +345,20 @@
 			.cal-dhead.is-today.is-weekend .dn{ color:#fff; }
 
 			/* tüm gün şeridi */
-			.cal-allday{ flex-shrink:0; display:grid; border-bottom:1px solid #ece8dd; background:#fff; max-height:104px; overflow-y:auto; }
-			.cal-allday-label{ font-size:9.5px; color:var(--muted); text-align:right; padding:5px 7px 0 0; border-right:1px solid #f0ece0; text-transform:uppercase; letter-spacing:.03em; }
-			.cal-allday-col{ border-right:1px solid #f0ece0; padding:3px; display:flex; flex-direction:column; gap:2px; min-height:24px; }
+			.cal-allday{ flex-shrink:0; display:grid; border-bottom:1px solid #ddd5c2; background:transparent; max-height:104px; overflow-y:auto; }
+			.cal-allday-label{ font-size:9.5px; color:var(--muted); text-align:right; padding:5px 7px 0 0; border-right:1px solid #e2dccb; text-transform:uppercase; letter-spacing:.03em; }
+			.cal-allday-col{ border-right:1px solid #e2dccb; padding:3px; display:flex; flex-direction:column; gap:2px; min-height:24px; }
 			.cal-allday-col:last-child{ border-right:none; }
 
 			.cal-tg-scroll{ flex:1; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; position:relative; }
 			.cal-tg-body{ display:grid; position:relative; }
-			.cal-gutter{ border-right:1px solid #f0ece0; position:relative; }
+			.cal-gutter{ border-right:1px solid #e2dccb; position:relative; background:transparent; }
 			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; transform:translateY(-50%); }
-			.cal-daycol{ position:relative; border-right:1px solid #f0ece0; }
+			.cal-daycol{ position:relative; border-right:1px solid #e2dccb; background:transparent; }
 			.cal-daycol:last-child{ border-right:none; }
-			.cal-daycol.is-weekend{ background:#fdfcf9; }
-			.cal-daycol.is-today{ background:#fffdf7; }
-			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid #f4f0e6; pointer-events:none; }
+			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
+			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
+			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid #e6dfcd; pointer-events:none; }
 			.cal-hrline.half{ border-top-style:dotted; border-top-color:#f8f5ed; }
 			.cal-nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid #c2410c; z-index:6; pointer-events:none; }
 			/* Şu anki saat: tüm günleri kesen tek çizgi, dakikada bir kendini günceller. */
@@ -384,15 +384,16 @@
 
 			/* ---- Ay görünümü ---- */
 			.cal-m{ display:flex; flex-direction:column; height:100%; min-height:0; }
-			.cal-m-dow{ flex-shrink:0; display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid #ece8dd; }
+			.cal-m-dow{ flex-shrink:0; display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid #ddd5c2; background:transparent; }
 			.cal-m-dow span{ text-align:left; font-size:10.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:7px 8px; }
 			.cal-m-grid{ flex:1; min-height:0; overflow-y:auto; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(112px,1fr); }
-			.cal-mday{ border-right:1px solid #f0ece0; border-bottom:1px solid #f0ece0; padding:4px 5px 6px; display:flex; flex-direction:column; gap:2px; overflow:hidden; background:#fff; min-width:0; }
+			.cal-mday{ border-right:1px solid #e2dccb; border-bottom:1px solid #e2dccb; padding:4px 5px 6px; display:flex; flex-direction:column; gap:2px; overflow:hidden; background:transparent; min-width:0; }
 			.cal-mday:nth-child(7n){ border-right:none; }
-			.cal-mday.other{ background:#fcfbf7; }
+			.cal-mday.other{ background:rgba(22,35,61,.05); }
 			.cal-mday.other .cal-mdaynum{ color:#c3bfb4; }
-			.cal-mday.weekend{ background:#fdfcf9; }
-			.cal-mday.drop-target{ box-shadow:inset 0 0 0 2px var(--brass-light); background:#f8f5ee; }
+			.cal-mday.weekend{ background:rgba(22,35,61,.035); }
+			.cal-mday.today{ background:rgba(184,146,63,.11); }
+			.cal-mday.drop-target{ box-shadow:inset 0 0 0 2px var(--brass-light); background:rgba(184,146,63,.16); }
 			.cal-mdayhead{ display:flex; align-items:center; justify-content:space-between; height:21px; flex-shrink:0; }
 			.cal-mdaynum{ font-size:12px; font-weight:600; color:var(--ink); padding:0 3px; }
 			.cal-mday.today .cal-mdaynum{ background:#c2410c; color:#fff; border-radius:50%; width:21px; height:21px; display:flex; align-items:center; justify-content:center; font-size:11.5px; }
@@ -406,12 +407,12 @@
 			/* ---- Liste görünümü ---- */
 			.cal-list{ max-width:780px; margin:0 auto; width:100%; display:flex; flex-direction:column; padding:18px 16px 60px; }
 			.cal-list-wrap{ flex:1; min-height:0; overflow-y:auto; }
-			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid #e7e1d3; }
+			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid #e2dccb; }
 			.cal-list-daysep:first-child{ margin-top:0; }
 			.cal-list-daysep .dow{ font-family:'Inter',sans-serif; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; }
 			.cal-list-daysep.is-today{ color:#c2410c; }
 			.cal-ev{ display:flex; gap:11px; align-items:flex-start; border-radius:8px; padding:9px 10px; cursor:pointer; border:none; background:none; text-align:left; font-family:inherit; width:100%; }
-			.cal-ev:hover{ background:var(--card); }
+			.cal-ev:hover{ background:rgba(22,35,61,.05); }
 			.cal-ev-dot{ flex-shrink:0; width:9px; height:9px; border-radius:3px; margin-top:4px; }
 			.cal-ev-time{ flex-shrink:0; width:44px; font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:600; color:var(--muted); padding-top:2px; }
 			.cal-ev-main{ min-width:0; flex:1; }
@@ -425,19 +426,41 @@
 			/* ---- Yan detay paneli ---- */
 			.cal-peek-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.28); z-index:91; display:none; }
 			.cal-peek-backdrop.open{ display:block; }
-			.cal-peek{ position:fixed; top:0; right:0; bottom:0; width:400px; max-width:94vw; background:#fff; box-shadow:-12px 0 44px rgba(0,0,0,.22); z-index:92; transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.8,.32,1); display:flex; flex-direction:column; font-family:'Inter',sans-serif; }
+			.cal-peek{ position:fixed; top:0; right:0; bottom:0; width:400px; max-width:94vw; background:var(--card); box-shadow:-12px 0 44px rgba(0,0,0,.22); z-index:92; transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.8,.32,1); display:flex; flex-direction:column; font-family:'Inter',sans-serif; }
 			.cal-peek.open{ transform:translateX(0); }
-			.cal-peek-head{ flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:16px 18px 12px; border-bottom:1px solid #f0ece0; }
+			.cal-peek-head{ flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:16px 18px 12px; border-bottom:1px solid #e7e1d3; }
 			.cal-peek-head h3{ margin:0; font-family:'Fraunces',serif; font-size:17px; color:var(--navy); font-weight:600; line-height:1.3; }
 			.cal-peek-body{ flex:1; overflow-y:auto; padding:14px 18px 18px; }
 			.cal-peek-foot{ flex-shrink:0; display:flex; gap:8px; padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid #f0ece0; }
-			.cal-peek-foot .btn{ flex:1; }
 			body.is-readonly .cal-peek-foot .btn-ghost{ display:none; }
 			.cal-detail-row{ display:flex; gap:10px; font-size:12.5px; padding:7px 0; border-bottom:1px solid #f7f4ec; }
 			.cal-detail-row:last-child{ border-bottom:none; }
 			.cal-detail-row .k{ flex:0 0 92px; color:var(--muted); font-weight:600; font-size:11.5px; padding-top:1px; }
 			.cal-detail-row .v{ flex:1; min-width:0; color:var(--ink); line-height:1.5; word-break:break-word; }
-			.cal-att-chip{ display:inline-block; background:#f6f3ec; border:1px solid #ece8dd; border-radius:20px; padding:2px 9px; font-size:11px; margin:0 3px 4px 0; }
+			.cal-att-chip{ display:inline-block; background:var(--paper); border:1px solid #e2dccb; border-radius:20px; padding:2px 9px; font-size:11px; margin:0 3px 4px 0; }
+
+			/* Tarih + başlangıç + bitiş dar ekranda üst üste biniyordu; artık sarıyor. */
+			/* Özgüllük .field-row .field{flex:1} kuralını geçmeli, yoksa tarih satırı sarmıyor. */
+			.field-row.ev-datetime-row{ flex-wrap:wrap; }
+			.field-row.ev-datetime-row .field.ev-date{ flex:1 1 100%; }
+			.field-row.ev-datetime-row .field.ev-time{ flex:1 1 calc(50% - 5px); min-width:0; }
+			@media (min-width: 620px){
+				.field-row.ev-datetime-row .field.ev-date{ flex:1 1 150px; }
+				.field-row.ev-datetime-row .field.ev-time{ flex:0 0 142px; }
+			}
+			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
+			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid #dcd6c7; border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; background:#fff; box-sizing:border-box; }
+			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
+			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:#8a6a24; border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap; }
+			.ev-now-btn:hover{ background:rgba(184,146,63,.26); }
+			.ev-now-btn:active{ transform:scale(.94); }
+
+			/* Detay panelindeki büyük "şimdi başlat / şimdi bitir" tuşu */
+			.cal-peek-foot{ flex-direction:column; }
+			.cal-peek-foot .peek-row{ display:flex; gap:8px; width:100%; }
+			.cal-peek-foot .peek-row .btn{ flex:1; }
+			.cal-quick-btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:7px; }
+			body.is-readonly .cal-quick-btn{ display:none; }
 
 			/* ---- Etkinlik formundaki katılımcı seçici ---- */
 			.ev-attendee-box{ max-height:180px; overflow-y:auto; border:1px solid #dcd6c7; border-radius:8px; background:#fff; padding:6px; }
@@ -769,8 +792,11 @@
 			</div>
 			<div class="cal-peek-body" id="calPeekBody"></div>
 			<div class="cal-peek-foot">
-				<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Metni Üret</button>
-				<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
+				<button class="btn btn-primary cal-quick-btn" id="calPeekQuickBtn" onclick="eventQuickStamp()">Şimdi Bitir</button>
+				<div class="peek-row">
+					<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Metni Üret</button>
+					<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
+				</div>
 			</div>
 		</div>
 
@@ -789,10 +815,14 @@
 						<div class="field"><label>Tür</label><select id="ev_tur"></select></div>
 						<div class="field"><label>Durum</label><select id="ev_durum"></select></div>
 					</div>
-					<div class="field-row">
-						<div class="field"><label>Tarih</label><input type="date" id="ev_tarih"></div>
-						<div class="field" style="flex:0 0 96px;"><label>Başlangıç</label><input type="time" id="ev_saat" style="width:100%; padding:9px 10px; border:1px solid #dcd6c7; border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; background:#fff; box-sizing:border-box;"></div>
-						<div class="field" style="flex:0 0 96px;"><label>Bitiş</label><input type="time" id="ev_bitisSaat" style="width:100%; padding:9px 10px; border:1px solid #dcd6c7; border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; background:#fff; box-sizing:border-box;"></div>
+					<div class="field-row ev-datetime-row">
+						<div class="field ev-date"><label>Tarih</label><input type="date" id="ev_tarih"></div>
+						<div class="field ev-time"><label>Başlangıç</label>
+							<div class="ev-time-wrap"><input type="time" id="ev_saat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_saat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
+						</div>
+						<div class="field ev-time"><label>Bitiş</label>
+							<div class="ev-time-wrap"><input type="time" id="ev_bitisSaat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_bitisSaat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
+						</div>
 					</div>
 					<div class="field"><label>Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
 					<div class="field"><label>Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
@@ -2897,6 +2927,13 @@ function openEventPeek(id){
 		row("Arşiv", e.arsiv ? '<a href="'+escapeHtml(safeLinkUrl(e.arsiv))+'" target="_blank" rel="noopener noreferrer">Klasörü aç ↗</a>' : "")+
 		row("Not", escapeHtml(e.not||""));
 	document.getElementById("calPeekNewsBtn").style.display = att.length ? "" : "none";
+	// Sahadaki kullanım: etkinlik başlamadıysa "başlat", başladıysa "bitir" damgası basar.
+	const qb=document.getElementById("calPeekQuickBtn");
+	if(qb){
+		if(!e.saat) qb.textContent="▶  Şimdi Başlat";
+		else if(!e.bitisSaat) qb.textContent="■  Şimdi Bitir";
+		else qb.textContent="■  Bitişi Şimdiye Al";
+	}
 	document.getElementById("calPeek").classList.add("open");
 	document.getElementById("calPeekBackdrop").classList.add("open");
 }
@@ -2906,6 +2943,37 @@ function closeEventPeek(){
 	document.getElementById("calPeekBackdrop").classList.remove("open");
 }
 function editPeekedEvent(){ if(calPeekedId) openEventModal(calPeekedId); }
+
+// Etkinlik o an başlıyor/bitiyorsa tek dokunuşla saatini damgalar ve buluta yazar.
+async function eventQuickStamp(){
+	if(!requireEdit() || !calPeekedId) return;
+	const e=calEvents[calPeekedId]; if(!e){ showToast("Etkinlik bulunamadı.", "error"); return; }
+	const nw=new Date(); const hm=pad2(nw.getHours())+":"+pad2(nw.getMinutes());
+	const patch=Object.assign({}, e);
+	let label, toast;
+	if(!e.saat){
+		patch.saat=hm;
+		if(patch.bitisSaat && hmToMin(patch.bitisSaat)<=hmToMin(hm)) patch.bitisSaat="";
+		label=(e.ad||"Etkinlik")+" etkinliği "+hm+" olarak başlatıldı";
+		toast="Başlangıç "+hm+" olarak işaretlendi.";
+	} else {
+		// Gece yarısını aşan etkinlikler bu tuşla tutarsız kayıt üretmesin.
+		if(hmToMin(hm)<=hmToMin(e.saat)){
+			showToast("Şu anki saat başlangıçtan önce, bitiş elle girilmeli.", "error"); return;
+		}
+		patch.bitisSaat=hm;
+		if((patch.durum||"planlandi")==="planlandi") patch.durum="cekildi";
+		label=(e.ad||"Etkinlik")+" etkinliği "+hm+" olarak bitirildi";
+		toast="Bitiş "+hm+" olarak işaretlendi.";
+	}
+	patch.guncellemeTs=Date.now();
+	const ok=await persistEvent(calPeekedId, patch, label);
+	if(!ok) return;
+	calEvents[calPeekedId]=patch;
+	openEventPeek(calPeekedId);
+	renderCalendar();
+	showToast(toast, "success");
+}
 // Arşiv bağlantısı da <a href> içine gidiyor; javascript: gibi şemalar engellenir.
 function safeLinkUrl(u){
 	const s=String(u===undefined||u===null?"":u).trim();
@@ -2945,6 +3013,17 @@ function openEventModal(id, presetDate, presetTime){
 	closeEventPeek();
 	document.getElementById("eventModalBg").classList.add("open");
 }
+// Form içindeki küçük "şimdi" tuşu: o anki saati ilgili kutuya yazar.
+function setEventTimeNow(fieldId){
+	const el=document.getElementById(fieldId); if(!el) return;
+	const nw=new Date();
+	el.value=pad2(nw.getHours())+":"+pad2(nw.getMinutes());
+	// Bitiş yazılıp başlangıç boşsa, kayıt sırasında tuhaf durum oluşmasın diye uyarılır.
+	if(fieldId==="ev_bitisSaat" && !document.getElementById("ev_saat").value){
+		showToast("Başlangıç saati de girilmeli.", "error");
+	}
+}
+
 function closeEventModal(){ document.getElementById("eventModalBg").classList.remove("open"); calEditingId=null; }
 
 // Katılımcı seçici: kişileri üniversite listesinden okur (yoksa aktif listeden).
