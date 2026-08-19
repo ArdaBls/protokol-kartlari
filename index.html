@@ -257,16 +257,6 @@
 			.fs-scope .fs-group-title::after{ content:"▸"; font-size:10px; color:var(--muted); transition:transform .15s ease; }
 			.fs-scope .fs-group[open] > .fs-group-title::after{ transform:rotate(90deg); }
 
-			/* Admin: haber şablonu düzenleyici */
-			.tpl-row{ border:1px solid var(--border-soft); border-radius:10px; padding:9px 10px; background:var(--card); margin-bottom:8px; }
-			.tpl-head{ display:flex; gap:6px; margin-bottom:6px; }
-			.tpl-ad{ flex:1; min-width:0; padding:6px 8px; border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:600; }
-			.tpl-tur{ flex:0 0 150px; padding:6px 8px; border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; background:#fff; }
-			.tpl-del{ flex-shrink:0; width:28px; border:none; background:var(--danger-bg); color:#a33; border-radius:7px; cursor:pointer; font-size:13px; }
-			.tpl-metin{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:13px; resize:vertical; box-sizing:border-box; line-height:1.5; }
-			.tpl-help{ font-size:11px; color:var(--muted); line-height:1.7; background:var(--surface-input); border:1px solid var(--divider-faint); border-radius:8px; padding:9px 11px; margin-bottom:10px; }
-			.tpl-help code{ background:#fff; border:1px solid var(--border-soft); border-radius:4px; padding:1px 5px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--navy); }
-
 			/* ================= ETKİNLİK TAKVİMİ (Notion Calendar tarzı saat ızgarası) ================= */
 			/* Sağ ray: kapalı hâlde sadece takvim düğmesi + sıradaki birkaç etkinlik durur. */
 			.calendar-rail{ display:none; flex-direction:column; gap:10px; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; font-family:'Roboto',sans-serif; }
@@ -580,7 +570,7 @@
 			@media (max-width: 600px) {
 				header { padding-bottom: 16px; }
 				h1 { padding-right: 0; }
-				.header-auth .btn-auth, .header-auth .user-chip { font-size: 11.5px; padding: 6px 9px; }
+				.header-auth .btn-auth, .header-auth .user-chip { font-size: 12px; padding: 6px 9px; }
 
 				.controlbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px; }
 				.search-wrap { grid-column: span 2; min-width: unset; width: 100%; }
@@ -602,7 +592,7 @@
 				.grid:not(.is-reorder) { grid-template-columns: repeat(var(--mobile-cols, 4), 1fr) !important; gap: 8px; }
 				.grid:not(.is-reorder).grid-cols-2 .info { padding: 10px; }
 				.grid:not(.is-reorder).grid-cols-3 .info { padding: 8px; } .grid:not(.is-reorder).grid-cols-3 .name { font-size: 12px; margin-bottom: 2px;} .grid:not(.is-reorder).grid-cols-3 .title { font-size: 10px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-3 .unit { font-size: 9px; } .grid:not(.is-reorder).grid-cols-3 .card-edit { padding: 5px; font-size: 10px; } .grid:not(.is-reorder).grid-cols-3 .rank-badge { width:22px; height:22px; font-size:10px; top:6px; left:6px;} .grid:not(.is-reorder).grid-cols-3 .avatar-fallback { font-size:24px; }
-				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 10.5px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 8.5px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; margin-top:4px;} .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .new-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
+				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 11px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 9px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; margin-top:4px;} .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .new-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
 				.grid:not(.is-reorder).grid-cols-4 .bulk-cb, .grid:not(.is-reorder).grid-cols-4 .restore-cb, .grid:not(.is-reorder).grid-cols-4 .news-cb { width: 16px; height: 16px; top: 5px; }
 
 				.reorder-header-bar { flex-direction: column; align-items: stretch; gap: 10px; }
@@ -615,7 +605,7 @@
 				.af-wrap{ position:relative; }
 				.af-close{ position:absolute; top:14px; right:14px; background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.7; z-index:2; }
 				.af-close:hover{ opacity:1; }
-				.af-form{ display:flex; flex-direction:column; gap:10px; max-width:350px; min-width:350px; width:100%; padding:26px; border-radius:20px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+				.af-form{ display:flex; flex-direction:column; gap:10px; max-width:350px; width:100%; padding:26px; border-radius:20px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
 				.af-title{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; letter-spacing:-1px; position:relative; display:flex; align-items:center; padding-left:26px; color:var(--brass-light); margin:0; }
 				.af-title::before,.af-title::after{ position:absolute; content:""; height:14px; width:14px; border-radius:50%; left:0; background-color:var(--brass-light); }
 				.af-title::after{ animation: afPulse 1s linear infinite; }
@@ -678,6 +668,12 @@
 			:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; border-radius:3px; }
 			#search:focus-visible{ outline:2px solid var(--brass); outline-offset:1px; }
 			.af-input:focus-visible, .af-submit:focus-visible{ outline:2px solid var(--brass-light); outline-offset:2px; }
+
+			/* Herhangi bir panel (kişi ekle/düzenle, admin, haber çıktısı, onay pencereleri, takvim, giriş formu,
+				mobil fakülte çekmecesi) açıkken arka plandaki kart listesi kaydırılamasın diye body sabitlenir.
+				Sadece overflow:hidden mobilde (özellikle iOS Safari) dokunmatik kaydırmayı engellemeye yetmiyor;
+				position:fixed ise body'yi akıştan tamamen çıkarıp gerçekten kilitliyor. */
+			body.scroll-locked{ position:fixed; left:0; right:0; overflow:hidden; }
 		</style>
 	</head>
 	<body class="is-readonly">
@@ -1154,28 +1150,12 @@
 				<h2>Admin Paneli</h2>
 				<div style="display:flex; gap:8px; margin-bottom:14px;">
 					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
-					<button class="btn btn-ghost" id="adminTabTplBtn" onclick="switchAdminTab('templates')" style="flex:1;">Şablonlar</button>
 					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Geçmiş</button>
 					<button class="btn btn-ghost" id="adminTabBackupBtn" onclick="switchAdminTab('backup')" style="flex:1;">Yedekleme</button>
 				</div>
 				<div id="adminUsersView">
 					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir.</p>
 					<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
-				</div>
-				<div id="adminTemplatesView" style="display:none;">
-					<div class="tpl-help">Haber metni cümle kalıpları. Yer tutucular metne otomatik yerleşir:<br>
-						<code>{kisiler}</code> protokol sırasına göre "…'in yanı sıra …" · 
-						<code>{kisilerDuz}</code> düz virgüllü liste · 
-						<code>{ilkKisi}</code> en üst protokol · 
-						<code>{ilkKisiIn}</code> onun -in hâli · <code>{digerKisiler}</code> ilk kişi hariç kalanlar<br>
-						<code>{yer}</code> yer ifadesi · <code>{etkinlik}</code> etkinlik adı · <code>{birim}</code> birim · <code>{tarih}</code> tarih · <code>{gruplar}</code> "…ile çok sayıda öğrenci ve vatandaş"<br>
-						<b>Tür</b> seçersen, takvimden o türde bir etkinliğin haberi üretilirken bu şablon otomatik seçilir.</p></div>
-					<div id="adminTemplateList" style="max-height:360px; overflow-y:auto;"></div>
-					<div style="display:flex; gap:8px; margin-top:10px;">
-						<button class="btn btn-ghost" style="flex:1; font-size:13px;" onclick="addTemplateRow()">+ Yeni Şablon</button>
-						<button class="btn btn-ghost" style="flex:1; font-size:13px;" onclick="resetTemplatesToDefault()">Varsayılana Dön</button>
-						<button class="btn btn-primary" style="flex:1; font-size:13px;" onclick="saveAdminTemplates()">Kaydet</button>
-					</div>
 				</div>
 				<div id="adminLogsView" style="display:none;">
 					<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
@@ -1344,18 +1324,15 @@
 			function switchAdminTab(tab) {
 				if (!requireAdmin()) return;
 				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
-				document.getElementById("adminTemplatesView").style.display = (tab === "templates") ? "block" : "none";
 				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
 				document.getElementById("adminEventsBackupView").style.display = (tab === "backup") ? "block" : "none";
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
-				document.getElementById("adminTabTplBtn").classList.toggle("btn-primary", tab === "templates");
-				document.getElementById("adminTabTplBtn").classList.toggle("btn-ghost", tab !== "templates");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
 				document.getElementById("adminTabBackupBtn").classList.toggle("btn-primary", tab === "backup");
 				document.getElementById("adminTabBackupBtn").classList.toggle("btn-ghost", tab !== "backup");
-				if (tab === "users") loadAdminUsers(); else if (tab === "templates") renderAdminTemplates(); else if (tab === "backup") { document.getElementById("adminEventsBackupInfo").textContent = "Takvimde şu an " + Object.keys(calEvents).length + " etkinlik kayıtlı."; } else loadAdminLogs();
+				if (tab === "users") loadAdminUsers(); else if (tab === "backup") { document.getElementById("adminEventsBackupInfo").textContent = "Takvimde şu an " + Object.keys(calEvents).length + " etkinlik kayıtlı."; } else loadAdminLogs();
 }
 
 			function loadAdminLogs() {
@@ -1691,14 +1668,12 @@
 			function openFacultySheet() {
 				document.getElementById("facultySheetBackdrop").classList.add("open");
 				document.getElementById("facultySheet").classList.add("open");
-				document.body.style.overflow = "hidden";
 			}
 			function closeFacultySheet() {
 				const backdrop = document.getElementById("facultySheetBackdrop");
 				const sheet = document.getElementById("facultySheet");
 				if (backdrop) backdrop.classList.remove("open");
 				if (sheet) { sheet.classList.remove("open"); sheet.classList.remove("dragging"); sheet.style.transform = ""; }
-				document.body.style.overflow = "";
 			}
 			(function setupFacultySheetDrag() {
 				const sheet = document.getElementById("facultySheet");
@@ -2029,7 +2004,7 @@
 				else if (categories.length > 1) { const lastCat = categories.pop(); categoryList = categories.join(", ") + " ve " + lastCat; }
 				const categoryPart = categoryList ? " ile çok sayıda " + categoryList : "";
 
-				// Cümle iskeleti artık koda gömülü değil; admin panelinden düzenlenebilen şablondan geliyor.
+				// Cümle iskeleti koda gömülü değil, DEFAULT_NEWS_TEMPLATES listesinden geliyor (artık admin panelinden düzenlenmiyor, sabit).
 				const tpl = currentTemplate();
 				const etkEl = document.getElementById("newsEtkinlikInput"); const brmEl = document.getElementById("newsBirimInput");
 				const ctx = {
@@ -2390,7 +2365,8 @@ function renderFacultyPickerField(selected) {
 function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
-			editIndex = idx; const p = people[idx]; resetForm();
+			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
+			editIndex = idx; resetForm();
 			document.getElementById("f_prefix").value = p.prefix || ""; document.getElementById("f_name").value = p.name || ""; document.getElementById("f_title").value = p.title || "";
 			document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
 			document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
@@ -2507,7 +2483,7 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			if (currentListKey === "universite") {
 				record.faculties = Array.from(document.querySelectorAll("#facultyMultiSelect .fm-cb:checked")).map(function(cb) { return cb.value; });
 			}
-			let targetIdx; let actionLabel;
+			let targetIdx; let actionLabel; let oldRecord = null;
 			if(editIndex === null) {
 				// İki editör aynı anda kişi eklerse ikisi de people.length-1 ile AYNI indekse yazıp birbirini siliyordu.
 				// Yazmadan hemen önce sunucudaki güncel liste okunarak bu pencere daraltılır.
@@ -2518,7 +2494,7 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				const newRank = (record.rank !== "" && record.rank !== undefined && record.rank !== null) ? Number(record.rank) : null;
 				actionLabel = name + " kişisi eklendi" + (newRank !== null ? ", " + newRank + ". sıra" : "");
 			} else {
-				const oldRecord = Object.assign({}, people[editIndex]);
+				oldRecord = Object.assign({}, people[editIndex]);
 				people[editIndex] = Object.assign({}, people[editIndex], record);
 				targetIdx = editIndex;
 				const changes = describeRecordChanges(oldRecord, people[editIndex]);
@@ -2536,7 +2512,9 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			}
 			// Yazma başarısızsa modal kapatılıp "başarıyla kaydedildi" denmemeli — kullanıcı kaydettiğini sanıyordu.
 			const saved = await savePerson(targetIdx, actionLabel, name);
-			if (!saved) { if (editIndex === null) people.pop(); return; }
+			// Duzenleme sirasinda yazma basarisiz olursa yerel diziyi de eski haline dondur; aksi halde
+			// ekranda "kaydedilmis" gorunen ama sunucuya hic ulasmamis veri, bir sonraki gercek guncellemeye kadar fark edilmez.
+			if (!saved) { if (editIndex === null) people.pop(); else if (oldRecord) people[editIndex] = oldRecord; return; }
 			closeModal(); showToast("Kayıt başarıyla kaydedildi.");
 			}
 
@@ -2834,7 +2812,6 @@ function openCalendar(){
 	const origin=calOriginRect();
 	calMiniAnchor=new Date(calAnchor.getFullYear(), calAnchor.getMonth(), 1);
 	ov.classList.add("open");
-	document.body.style.overflow="hidden";
 	renderCalendar();
 	calStartNowTicker();
 	if(!origin || calReducedMotion()){ calClearAnim(ov, shell); return; }
@@ -2870,7 +2847,6 @@ function closeCalendar(){
 	const origin=calOriginRect();
 	const finish=function(){
 		ov.classList.remove("open");
-		document.body.style.overflow="";
 		if(bd){ bd.classList.remove("on"); bd.classList.remove("show"); }
 		calClearAnim(ov, shell);
 		calAnimating=false;
@@ -3502,7 +3478,7 @@ async function deleteEvent(){
 }
 
 /* ================= HABER ŞABLONLARI ================= */
-// Şablonlar Firebase'de "haberSablonlari" dalında tutulur; yoksa aşağıdaki varsayılanlar kullanılır.
+// Şablonlar artık admin panelinden düzenlenmiyor; sabit (aşağıdaki) varsayılan liste kullanılır.
 // Yer tutucular: {kisiler} {kisilerDuz} {ilkKisi} {ilkKisiIn} {etkinlik} {yer} {tarih} {birim} {gruplar}
 const DEFAULT_NEWS_TEMPLATES = [
 	{ id:"serbest",   ad:"Serbest / Genel",        tur:"diger",     metin:"{yer} {kisiler}{gruplar} katıldı." },
@@ -3518,20 +3494,6 @@ const DEFAULT_NEWS_TEMPLATES = [
 let newsTemplates = DEFAULT_NEWS_TEMPLATES.slice();
 let newsPeopleOverride = null;   // takvimden üretilirken etkinliğin katılımcıları
 let newsEventContext = null;     // { etkinlik, yer, tarih, birim }
-
-function attachTemplatesListener(){
-	if(!database) return;
-	database.ref("haberSablonlari").on("value", function(snap){
-		const v=snap.val();
-		if(Array.isArray(v) && v.length) newsTemplates=v.filter(function(t){ return t && t.ad && t.metin; });
-		else if(v && typeof v==="object"){
-			const arr=Object.keys(v).map(function(k){ return Object.assign({}, v[k], { id:k }); }).filter(function(t){ return t && t.ad && t.metin; });
-			newsTemplates = arr.length ? arr : DEFAULT_NEWS_TEMPLATES.slice();
-		} else newsTemplates = DEFAULT_NEWS_TEMPLATES.slice();
-		fillNewsTemplateSelect();
-		if(document.getElementById("adminTemplatesView") && document.getElementById("adminTemplatesView").style.display!=="none") renderAdminTemplates();
-	}, function(){});
-}
 
 function fillNewsTemplateSelect(keepId){
 	const sel=document.getElementById("newsTemplateSelect"); if(!sel) return;
@@ -3551,8 +3513,8 @@ function renderNewsPlaceholderFields(){
 	const wrap=document.getElementById("newsPlaceholderFields"); if(!wrap) return;
 	const m=currentTemplate().metin||"";
 	let html="";
-	if(m.indexOf("{etkinlik}")>-1) html+='<label style="font-family:\'Inter\',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik Adı</label><input type="text" id="newsEtkinlikInput" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:\'Inter\',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">';
-	if(m.indexOf("{birim}")>-1) html+='<label style="font-family:\'Inter\',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Birim</label><input type="text" id="newsBirimInput" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:\'Inter\',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">';
+	if(m.indexOf("{etkinlik}")>-1) html+='<label style="font-family:\'Roboto\',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik Adı</label><input type="text" id="newsEtkinlikInput" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:\'Roboto\',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">';
+	if(m.indexOf("{birim}")>-1) html+='<label style="font-family:\'Roboto\',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Birim</label><input type="text" id="newsBirimInput" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:\'Roboto\',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">';
 	wrap.innerHTML=html;
 	if(newsEventContext){
 		const a=document.getElementById("newsEtkinlikInput"); if(a) a.value=newsEventContext.etkinlik||"";
@@ -3604,67 +3566,10 @@ function generateNewsFromEvent(){
 	setTimeout(function(){ document.getElementById("newsModalBg").classList.add("open"); }, 370);
 }
 
-/* --- Admin: şablon düzenleyici --- */
-function renderAdminTemplates(){
-	if(!requireAdmin()) return;
-	const el=document.getElementById("adminTemplateList"); if(!el) return;
-	el.innerHTML=newsTemplates.map(function(t,i){
-		return '<div class="tpl-row">'+
-			'<div class="tpl-head">'+
-				'<input type="text" class="tpl-ad" data-i="'+i+'" value="'+escapeHtml(t.ad||"")+'" placeholder="Şablon adı">'+
-				'<select class="tpl-tur" data-i="'+i+'">'+
-					'<option value="">(tür yok)</option>'+
-					EVENT_TYPES.map(function(ty){ return '<option value="'+ty.key+'"'+(t.tur===ty.key?" selected":"")+'>'+escapeHtml(ty.ad)+'</option>'; }).join("")+
-				'</select>'+
-				'<button type="button" class="tpl-del" onclick="deleteTemplateRow('+i+')" title="Sil">✕</button>'+
-			'</div>'+
-			'<textarea class="tpl-metin" data-i="'+i+'" rows="2" placeholder="Cümle kalıbı">'+escapeHtml(t.metin||"")+'</textarea>'+
-		'</div>';
-	}).join("");
-}
-function collectTemplatesFromForm(){
-	const out=[];
-	document.querySelectorAll("#adminTemplateList .tpl-row").forEach(function(row){
-		const ad=row.querySelector(".tpl-ad").value.trim();
-		const tur=row.querySelector(".tpl-tur").value;
-		const metin=row.querySelector(".tpl-metin").value.trim();
-		if(ad && metin) out.push({ ad:ad, tur:tur, metin:metin });
-	});
-	return out;
-}
-function addTemplateRow(){
-	if(!requireAdmin()) return;
-	newsTemplates=collectTemplatesFromForm();
-	newsTemplates.push({ ad:"Yeni Şablon", tur:"", metin:"{yer} {kisiler}{gruplar} katıldı." });
-	renderAdminTemplates();
-}
-function deleteTemplateRow(i){
-	if(!requireAdmin()) return;
-	const arr=collectTemplatesFromForm();
-	arr.splice(i,1);
-	newsTemplates=arr.length?arr:DEFAULT_NEWS_TEMPLATES.slice();
-	renderAdminTemplates();
-}
-function resetTemplatesToDefault(){
-	if(!requireAdmin()) return;
-	if(!confirm("Tüm şablonlar fabrika ayarlarına dönecek. Emin misin?")) return;
-	newsTemplates=DEFAULT_NEWS_TEMPLATES.slice();
-	renderAdminTemplates();
-}
-async function saveAdminTemplates(){
-	if(!requireAdmin()) return;
-	const arr=collectTemplatesFromForm();
-	if(!arr.length){ showToast("En az bir şablon olmalı.", "error"); return; }
-	try{
-		await database.ref("haberSablonlari").set(arr);
-		newsTemplates=arr; fillNewsTemplateSelect();
-		showToast("Şablonlar kaydedildi.", "success");
-	}catch(err){ showToast("Şablonlar kaydedilemedi.", "error"); }
-}
 
-		// Takvim ve şablon dinleyicileri, ilgili let değişkenleri tanımlandıktan SONRA başlatılır.
+		// Takvim dinleyicisi, ilgili let değişkenleri tanımlandıktan SONRA başlatılır.
+		// Haber şablonları artık admin panelinden düzenlenmiyor; doğrudan DEFAULT_NEWS_TEMPLATES kullanılır.
 		attachEventsListener();
-		attachTemplatesListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();
 		renderCalendarRail();
@@ -3674,6 +3579,38 @@ async function saveAdminTemplates(){
 			const onCalMq=function(){ if(document.getElementById("calendarOverlay").classList.contains("open")) renderCalendar(); };
 			if(calMq.addEventListener) calMq.addEventListener("change", onCalMq); else if(calMq.addListener) calMq.addListener(onCalMq);
 		}
+
+		// ---- Arka plan kaydırma kilidi ----
+		// Herhangi bir panel açıkken (.modal-bg'lerin TÜMÜ: kişi ekle/düzenle, admin, haber çıktısı, onay
+		// pencereleri, silinenler/çöp boşaltma vb. + takvim + giriş formu + mobil fakülte çekmecesi) arka
+		// plandaki kart listesinin kaymasını engeller. Tek tek her open/close fonksiyonuna dokunmak yerine
+		// bu panellerin hepsi zaten aynı "open" sınıfını kullandığından, o sınıftaki değişikliği izleyip
+		// body'yi otomatik kilitleyip açan tek, merkezi bir gözlemci yeterli.
+		var scrollLockY = 0, scrollLockActive = false;
+		function lockBodyScroll(){
+			if (scrollLockActive) return;
+			scrollLockActive = true;
+			scrollLockY = window.scrollY || window.pageYOffset || 0;
+			document.body.style.top = (-scrollLockY) + "px";
+			document.body.classList.add("scroll-locked");
+		}
+		function unlockBodyScroll(){
+			if (!scrollLockActive) return;
+			scrollLockActive = false;
+			document.body.classList.remove("scroll-locked");
+			document.body.style.top = "";
+			window.scrollTo(0, scrollLockY);
+		}
+		(function setupScrollLock(){
+			var watched = Array.prototype.slice.call(document.querySelectorAll(".modal-bg, #calendarOverlay, #authFormBg, #facultySheetBackdrop, #loadingOverlay"));
+			function recomputeLock(){
+				var anyOpen = watched.some(function(el){ return el.classList.contains("open"); });
+				if (anyOpen) lockBodyScroll(); else unlockBodyScroll();
+			}
+			var observer = new MutationObserver(recomputeLock);
+			watched.forEach(function(el){ observer.observe(el, { attributes: true, attributeFilter: ["class"] }); });
+			recomputeLock();
+		})();
 
 		// Service Worker Kaydı (Offline / PWA desteği)
 			if ("serviceWorker" in navigator) {
