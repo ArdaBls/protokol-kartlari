@@ -37,7 +37,8 @@
 			:root{
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
 			--paper: #f3efe6; --card: #fbf9f4; --ink: #1b1b1b; --muted: #6b6f76;
-			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #8a8f98; --off-bg: #eceae5;
+			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
+			--warn: #a8631a; --brass-text: #7c5c1f;
 			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
 			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
 			}
@@ -128,6 +129,9 @@
 			.meta{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); border-top:1px dashed #ddd6c4; padding-top:7px; display:flex; justify-content:space-between; }
 			.note{ font-size:11px; color:var(--muted); font-style:italic; margin-top:5px; line-height:1.3; }
 			.empty{ max-width:1040px; margin:60px auto; text-align:center; color:var(--muted); font-family:'Inter',sans-serif; padding:0 20px; }
+			.empty-icon{ font-size:32px; margin-bottom:8px; opacity:.55; }
+			.empty-title{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+			.empty-sub{ font-size:12.5px; color:var(--muted); max-width:360px; margin:0 auto; line-height:1.5; }
 
 			/* --- AKSİYON BUTONLARI HİZALAMA --- */
 			.actions-row { max-width:1040px; margin:14px auto 0; padding:0 20px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -269,12 +273,12 @@
 			.cal-rail-icon{ font-size:26px; line-height:1; }
 			.cal-rail-label{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); }
 			.cal-rail-count{ font-size:11.5px; color:var(--muted); }
-			.cal-rail-count b{ color:var(--brass); font-size:13px; }
+			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
 			.cal-rail-next{ background:var(--card); border:1px solid #e7e1d3; border-radius:14px; padding:12px; }
 			.cal-rail-next h4{ margin:0 0 8px; font-family:'Fraunces',serif; font-size:12.5px; color:var(--navy); font-weight:600; }
 			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid #f0ece0; cursor:pointer; }
 			.cal-next-item:first-of-type{ border-top:none; }
-			.cal-next-item:hover .cal-next-name{ color:var(--brass); }
+			.cal-next-item:hover .cal-next-name{ color:var(--brass-text); }
 			.cal-next-date{ flex-shrink:0; width:34px; text-align:center; background:#f4f1e8; border-radius:7px; padding:3px 0; }
 			.cal-next-date .d{ display:block; font-size:14px; font-weight:700; color:var(--navy); line-height:1.1; }
 			.cal-next-date .m{ display:block; font-size:9px; color:var(--muted); text-transform:uppercase; }
@@ -307,6 +311,7 @@
 			.cal-mini-head{ display:flex; align-items:center; justify-content:space-between; gap:1px; margin-bottom:8px; }
 			.cal-mini-title{ flex:1; text-align:center; font-family:'Fraunces',serif; font-size:13.5px; font-weight:600; color:var(--navy); white-space:nowrap; }
 			.cal-mini-head .cal-iconbtn{ width:21px; height:21px; font-size:12.5px; }
+			.cal-mini-head .cal-iconbtn::after{ inset:-6px; }
 			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu. */
 			.cal-jump{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:12.5px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; }
 			.cal-jump:hover{ border-color:var(--brass); }
@@ -314,7 +319,7 @@
 			.cal-mini-dow{ text-align:center; font-size:9.5px; font-weight:600; color:var(--muted); padding-bottom:3px; }
 			.cal-mini-day{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11px; border:none; background:none; border-radius:6px; cursor:pointer; color:var(--ink); font-family:inherit; }
 			.cal-mini-day:hover{ background:#ece7d9; }
-			.cal-mini-day.other{ color:#c3bfb4; }
+			.cal-mini-day.other{ color:#87806f; }
 			.cal-mini-day.in-view{ background:#ece7d9; }
 			.cal-mini-day.today{ background:var(--brass); color:#fff; font-weight:700; }
 			.cal-mini-day .hasdot{ position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:var(--navy); }
@@ -334,7 +339,8 @@
 			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid #ddd5c2; background:transparent; }
 			.cal-month-label{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--navy); }
 			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
-			.cal-iconbtn{ background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+			.cal-iconbtn::after{ content:""; position:absolute; inset:-8px; }
 			.cal-iconbtn:hover{ background:#f4f1e8; color:var(--navy); }
 			.cal-textbtn{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:5px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
 			.cal-textbtn:hover{ background:#f4f1e8; }
@@ -407,7 +413,7 @@
 			.cal-mday{ border-right:1px solid #e2dccb; border-bottom:1px solid #e2dccb; padding:4px 5px 6px; display:flex; flex-direction:column; gap:2px; overflow:hidden; background:transparent; min-width:0; }
 			.cal-mday:nth-child(7n){ border-right:none; }
 			.cal-mday.other{ background:rgba(22,35,61,.05); }
-			.cal-mday.other .cal-mdaynum{ color:#c3bfb4; }
+			.cal-mday.other .cal-mdaynum{ color:#87806f; }
 			.cal-mday.weekend{ background:rgba(22,35,61,.035); }
 			.cal-mday.today{ background:rgba(184,146,63,.11); }
 			.cal-mday.drop-target{ box-shadow:inset 0 0 0 2px var(--brass-light); background:rgba(184,146,63,.16); }
@@ -529,8 +535,8 @@
 			@media (min-width: 1050px) {
 			.faculty-fab, .faculty-sheet, .faculty-sheet-backdrop{ display:none !important; }
 			}
-			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:none; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; }
-			.modal-bg.open{ display:flex; animation: fadeIn 0.2s ease; }
+			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
+			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
 			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Inter',sans-serif; position:relative; }
 			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; }
 			.modal .hint{ font-size:12.5px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
@@ -546,13 +552,14 @@
 			.toast { background:var(--navy); color:#fff; font-family:'Inter',sans-serif; font-size:13px; font-weight:500; padding:12px 20px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; opacity:0; }
 			.toast.show { transform: translateX(0); opacity:1; }
 			.toast.error { background: #b03a3a; }
+			.toast.warn { background: var(--warn); }
 
 			footer{ max-width:1040px; margin:40px auto 0; padding:0 20px 28px; font-size:12px; color:var(--muted); text-align:center; }
 			.foot-copy{ margin:0 0 6px; font-size:12.5px; color:var(--ink); }
 			.foot-copy strong{ font-weight:600; }
 			.foot-links{ margin:0 0 8px; display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; }
 			.foot-link{ background:none; border:none; padding:0; font-family:inherit; font-size:12px; color:var(--navy); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
-			.foot-link:hover{ color:var(--brass); }
+			.foot-link:hover{ color:var(--brass-text); }
 			.foot-sep{ color:#cfc6b2; }
 			.foot-note{ margin:0; font-size:11px; line-height:1.6; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto; }
 			/* Kullanım Şartları / Gizlilik Politikası penceresi */
@@ -663,6 +670,11 @@
 				/* Hangi alanın değiştiği ("Protokol Sırası: 2. sıradan 4. sıraya düşürüldü") alt satırlar hâlinde listelenir */
 				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:11.5px; line-height:1.55; color:var(--muted); }
 				.admin-log-row .al-detail b{ color:var(--ink); font-weight:600; }
+
+			/* Klavye ile gezinirken hangi öğenin odakta olduğu her zaman görünür olsun (erişilebilirlik). */
+			:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; border-radius:3px; }
+			#search:focus-visible{ outline:2px solid var(--brass); outline-offset:1px; }
+			.af-input:focus-visible, .af-submit:focus-visible{ outline:2px solid var(--brass-light); outline-offset:2px; }
 		</style>
 	</head>
 	<body class="is-readonly">
@@ -741,7 +753,11 @@
 			<aside class="faculty-sidebar fs-scope" id="facultySidebar"></aside>
 			<div class="main-content">
 				<div class="grid grid-cols-4" id="grid" style="--mobile-cols: 4;"></div>
-				<div class="empty" id="emptyState" style="display:none;">Kayıt Yok.</div>
+				<div class="empty" id="emptyState" style="display:none;">
+					<div class="empty-icon" aria-hidden="true">🗂️</div>
+					<div class="empty-title">Kayıt Yok.</div>
+					<div class="empty-sub">Arama veya filtre ölçütünüzü değiştirmeyi deneyin.</div>
+				</div>
 			</div>
 			<!-- Sağ ray: takvim kapalı hâlde burada durur, tıklanınca tam ekran açılır -->
 			<aside class="calendar-rail" id="calendarRail">
@@ -1387,7 +1403,7 @@
 								'<option value="admin"' + (role==="admin"?' selected':'') + '>Admin</option>' +
 							'</select>';
 						return '<div class="admin-user-row">' +
-							'<div class="au-info"><span class="au-name">' + escapeHtml(fullName) + (isSelf ? ' <span style="color:var(--brass); font-weight:600;">(Siz)</span>' : '') + '</span><span class="au-email">' + escapeHtml(u.email || "") + '</span></div>' +
+							'<div class="au-info"><span class="au-name">' + escapeHtml(fullName) + (isSelf ? ' <span style="color:var(--brass-text); font-weight:600;">(Siz)</span>' : '') + '</span><span class="au-email">' + escapeHtml(u.email || "") + '</span></div>' +
 							selectHtml +
 						'</div>';
 					}).join("");
@@ -1919,7 +1935,7 @@
 				const movedCount = valid.length;
 				const ok = await saveData(label, names.length === 1 ? names[0] : undefined);
 				closeBulkConfirmModal(); toggleBulkDeleteMode();
-				if (ok) showToast(movedCount + " kayıt çöpe taşındı.", "error");
+				if (ok) showToast(movedCount + " kayıt çöpe taşındı.", "warn");
 			}
 
 			function toggleNewsMode() {
@@ -2033,7 +2049,7 @@
 					people.splice(singlePermDeleteIdx, 1);
 					// Dizi yeniden indekslendi: "Rektörlük / Merkez" seçimi indeks tuttuğu için artık başka kişiyi işaret eder.
 					selectedCentralAdminIdx.clear();
-					await saveData(name + " kişisi kalıcı olarak silindi", name); closeSinglePermDelete(); showToast("Kayıt kalıcı olarak yok edildi.", "error"); render();
+					await saveData(name + " kişisi kalıcı olarak silindi", name); closeSinglePermDelete(); showToast("Kayıt kalıcı olarak yok edildi.", "warn"); render();
 				}
 			}
 
@@ -2044,7 +2060,7 @@
 				const removedCount = people.filter(function(p) { return p.status === "silindi"; }).length;
 				people = people.filter(p => p.status !== "silindi");
 				selectedCentralAdminIdx.clear();
-				await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)"); closeEmptyTrashModal(); showToast("Çöp kutusu tamamen boşaltıldı.", "error"); render();
+				await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)"); closeEmptyTrashModal(); showToast("Çöp kutusu tamamen boşaltıldı.", "warn"); render();
 			}
 
 			async function sortRankGroupByName(evt, key) {
@@ -2185,7 +2201,7 @@
 					const rowPhoto = safePhotoUrl(p.photo);
 						const imgHtml = rowPhoto ? '<img src="' + escapeHtml(rowPhoto) + '" alt="" loading="lazy">' : "";
 					row.innerHTML = `<div class="internal-order-badge">${idx + 1}</div> <span class="drag-handle-mini">⋮⋮</span> <span class="row-thumb">${imgHtml || escapeHtml(initials(p.name))}</span>
-					<span class="row-text"><span class="row-name">${p.prefix ? '<span style="color:#8a8f98;font-size:11px;">'+escapeHtml(p.prefix)+'</span><br>' : ''}${escapeHtml(p.name)}</span><span class="row-title">${escapeHtml(p.title)}</span></span>`;
+					<span class="row-text"><span class="row-name">${p.prefix ? '<span style="color:var(--off);font-size:11px;">'+escapeHtml(p.prefix)+'</span><br>' : ''}${escapeHtml(p.name)}</span><span class="row-title">${escapeHtml(p.title)}</span></span>`;
 					subgrid.appendChild(row);
 				});
 				section.appendChild(subgrid); grid.appendChild(section);
@@ -2322,6 +2338,17 @@ function renderFacultyPickerField(selected) {
 						}).join("") +
 					'</details>';
 				}).join("");
+				// Kişinin işaretli olduğu birim(ler) varsa, kutuyu elle kaydırmaya gerek kalmadan
+				// listede EN ÜSTTE duran işaretli seçenek otomatik görünür alana (kutunun üstüne) getirilir.
+				// Birden fazla işaretli birim varsa da yine sadece listede daha önce gelen (en üstteki) esas alınır;
+				// alttaki ikinci işaretli seçeneğe göre kaydırma yapılmaz.
+				const firstCheckedItem = wrap.querySelector(".fm-cb:checked");
+				if (firstCheckedItem) {
+					const row = firstCheckedItem.closest(".fm-item");
+					wrap.scrollTop += row.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
+				} else {
+					wrap.scrollTop = 0;
+				}
 			}
 
 			// Aşağıdaki birim/ek görev kutusunda işaretlenenler değiştikçe, "Birim / Kurum" alanı
@@ -2501,7 +2528,7 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				const name = (people[editIndex] && people[editIndex].name) ? people[editIndex].name : "Kayıt";
 				people[editIndex].status = "silindi";
 				await saveData(name + " kişisi çöpe atıldı", name);
-				document.getElementById("confirmModalBg").classList.remove("open"); showToast("Kayıt çöpe atıldı.", "error");
+				document.getElementById("confirmModalBg").classList.remove("open"); showToast("Kayıt çöpe atıldı.", "warn");
 			}
 
 			function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], {type: mimeType}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url); }
@@ -2666,7 +2693,7 @@ function renderCalendarRail(){
 	const thisWeek=upcoming.filter(function(e){ const d=parseKey(e.tarih); return d<weekEnd; });
 	countEl.innerHTML='<b>'+thisWeek.length+'</b> etkinlik · 7 gün';
 	const next=upcoming.slice(0,4);
-	if(!next.length){ nextEl.innerHTML='<h4>Sıradaki</h4><div class="cal-rail-empty">Planlanmış etkinlik yok.</div>'; return; }
+	if(!next.length){ nextEl.innerHTML='<h4>Sıradaki</h4><div class="cal-rail-empty">📭 Planlanmış etkinlik yok.</div>'; return; }
 	nextEl.innerHTML='<h4>Sıradaki</h4>'+next.map(function(e){
 		const d=parseKey(e.tarih); const ty=evType(e.tur);
 		return '<div class="cal-next-item" onclick="openCalendarAt(\''+escapeHtml(e.tarih)+'\',\''+escapeHtml(e._id)+'\')">'+
@@ -3385,7 +3412,7 @@ async function deleteEvent(){
 				email: currentUser.email, action: evLogName(ad)+" etkinliği takvimden silindi"+(e&&e.tarih?" · "+EVENT_LOG_LABELS.tarih+": "+fmtTrDate(e.tarih):"")+(e&&e.yer?" · "+EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer):""), target: ad, timestamp: Date.now()
 			}).catch(function(){});
 		}
-		closeEventModal(); closeEventPeek(); showToast("Etkinlik silindi.", "error");
+		closeEventModal(); closeEventPeek(); showToast("Etkinlik silindi.", "warn");
 	}catch(err){
 		console.error("Etkinlik silinemedi:", err);
 		const reason = (err && (err.code || err.message)) ? (" (" + (err.code || err.message) + ")") : "";
