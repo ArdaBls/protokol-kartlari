@@ -146,7 +146,6 @@
 			.btn-ghost{ background:#fff; color:var(--navy); border-color:var(--border); } .btn-ghost:hover{ background:#f3efe6; }
 			.btn-danger{ background:#a33; color:#fff; } .btn-danger:hover{ background:#8a2727; }
 			.btn-danger-outline{ background:#fff; color:#a33; border-color:#e3c7c7; } .btn-danger-outline:hover{ background:#fff0f0; }
-			.btn-success { background: #2f6f4e; color: #fff; } .btn-success:hover { background: #23543b; }
 			.btn-news { background: var(--news); color: #fff; } .btn-news:hover { background: #004494; }
 			
 			.card-edit{ width:100%; margin-top:12px; background:#fff; border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; } .card-edit:hover{ background:#f3efe6; }
@@ -313,7 +312,7 @@
 			.cal-mini-day{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11px; border:none; background:none; border-radius:6px; cursor:pointer; color:var(--ink); font-family:inherit; }
 			.cal-mini-day:hover{ background:var(--surface-hover-2); }
 			.cal-mini-day.other{ color:#87806f; }
-			.cal-mini-day.in-view{ background:var(--surface-hover-2); }
+			.cal-mini-day.in-view{ background:var(--surface-hover-3); box-shadow:inset 0 0 0 2px var(--navy); font-weight:700; }
 			.cal-mini-day.today{ background:var(--brass); color:#fff; font-weight:700; }
 			.cal-mini-day .hasdot{ position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:var(--navy); }
 			.cal-mini-day.today .hasdot{ background:#fff; }
@@ -375,7 +374,6 @@
 			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
 			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
 			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid #e6dfcd; pointer-events:none; }
-			.cal-hrline.half{ border-top-style:dotted; border-top-color:#f8f5ed; }
 			.cal-nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; }
 			/* Şu anki saat: tüm günleri kesen tek çizgi, dakikada bir kendini günceller. */
 			.cal-nowline-full{ position:absolute; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; transition:top .4s linear; }
@@ -592,8 +590,8 @@
 				.grid:not(.is-reorder) { grid-template-columns: repeat(var(--mobile-cols, 4), 1fr) !important; gap: 8px; }
 				.grid:not(.is-reorder).grid-cols-2 .info { padding: 10px; }
 				.grid:not(.is-reorder).grid-cols-3 .info { padding: 8px; } .grid:not(.is-reorder).grid-cols-3 .name { font-size: 12px; margin-bottom: 2px;} .grid:not(.is-reorder).grid-cols-3 .title { font-size: 10px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-3 .unit { font-size: 9px; } .grid:not(.is-reorder).grid-cols-3 .card-edit { padding: 5px; font-size: 10px; } .grid:not(.is-reorder).grid-cols-3 .rank-badge { width:22px; height:22px; font-size:10px; top:6px; left:6px;} .grid:not(.is-reorder).grid-cols-3 .avatar-fallback { font-size:24px; }
-				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 11px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 9px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; margin-top:4px;} .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .new-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
-				.grid:not(.is-reorder).grid-cols-4 .bulk-cb, .grid:not(.is-reorder).grid-cols-4 .restore-cb, .grid:not(.is-reorder).grid-cols-4 .news-cb { width: 16px; height: 16px; top: 5px; }
+				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 11px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 9px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; margin-top:4px;} .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
+				.grid:not(.is-reorder).grid-cols-4 .bulk-cb, .grid:not(.is-reorder).grid-cols-4 .news-cb { width: 16px; height: 16px; top: 5px; }
 
 				.reorder-header-bar { flex-direction: column; align-items: stretch; gap: 10px; }
 				.reorder-toolbar { justify-content: space-between; }
@@ -2143,7 +2141,10 @@
 			let list = people.map((p, idx) => Object.assign({}, p, { _realIdx: idx }))
 				.filter(p => ((p.name||"")+" "+(p.prefix||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr").includes(q));
 
-			if(mode === "aktif") list = list.filter(p => !p.status || p.status === "aktif");
+			// Beklenmeyen/gecersiz bir status degeri (ör. Firebase Console'dan elle girilmis bir
+			// yazim hatasi) kaydi HICBIR sekmede gostermeyip "kayip" gibi gorunmesine yol acmasin diye,
+			// "pasif"/"silindi" DISINDAKI her sey aktif sekmesinde gorunur.
+			if(mode === "aktif") list = list.filter(p => p.status !== "pasif" && p.status !== "silindi");
 			else if(mode === "pasif") list = list.filter(p => p.status === "pasif");
 			else if(mode === "silindi") list = list.filter(p => p.status === "silindi");
 
@@ -3004,8 +3005,17 @@ function layoutDay(evs){
 		let c=0; while(c<colEnds.length && colEnds[c]>it.s) c++;
 		colEnds[c]=it.e; it.col=c;
 	});
-	const total=Math.max(1,colEnds.length);
-	items.forEach(function(it){ it.total=total; });
+	// Sutun sayisi (colEnds.length) gunun GENELINDEKI en yuksek cakismayi verir; bunu tum
+	// etkinliklere uygulamak, gunun ayri/cakismayan bolumlerindeki etkinlikleri de gereksiz
+	// yere dar gosterirdi. Bunun yerine her etkinlige, ait oldugu cakisma kumesindeki
+	// (zincirleme kesisen etkinlikler grubu) gercek sutun sayisini atiyoruz.
+	let clusterStart=0, clusterMaxEnd=-Infinity, clusterMaxCol=0;
+	function closeCluster(from,to){ const width=clusterMaxCol+1; for(let i=from;i<to;i++) items[i].total=width; }
+	items.forEach(function(it,i){
+		if(i>0 && it.s>=clusterMaxEnd){ closeCluster(clusterStart,i); clusterStart=i; clusterMaxCol=0; }
+		clusterMaxEnd=Math.max(clusterMaxEnd,it.e); clusterMaxCol=Math.max(clusterMaxCol,it.col);
+	});
+	closeCluster(clusterStart,items.length);
 	return items;
 }
 
