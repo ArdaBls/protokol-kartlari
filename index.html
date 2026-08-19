@@ -553,6 +553,7 @@
 			.foot-link:hover{ color:var(--brass-text); }
 			.foot-sep{ color:#cfc6b2; }
 			.foot-note{ margin:0; font-size:11px; line-height:1.6; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto; }
+			.foot-version{ margin:6px 0 0; font-size:11px; color:var(--muted); }
 			/* Kullanım Şartları / Gizlilik Politikası penceresi */
 			.legal-tabs{ display:flex; gap:6px; margin-bottom:12px; }
 			.legal-tabs .btn{ flex:1; font-size:13px; padding:8px 10px; }
@@ -776,6 +777,7 @@
 				<button type="button" class="foot-link" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
 			</p>
 			<p class="foot-note">Bu uygulamanın kaynak kodu, arayüz tasarımı ve içeriği telif hakkıyla korunmaktadır; hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz veya dağıtılamaz.</p>
+			<p class="foot-version">Sürüm <span id="footVersion"></span></p>
 		</footer>
 
 		<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()">🗓️ <span>Takvim</span></button>
@@ -1064,28 +1066,61 @@
 			<div class="modal" style="max-width:600px;">
 				<button class="close-x" onclick="closeNewsModal()">✕</button>
 				<h2 style="color:var(--news);">Haber Metni Çıktısı</h2>
-				<p class="hint">Seçtiğiniz kişilerin protokol sırası ve unvanlarına göre otomatik oluşturulan metin:</p>
 
-				<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
-				<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:#fff; box-sizing:border-box;"></select>
-
-				<div id="newsPlaceholderFields"></div>
-
-				<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
-				<input type="text" id="newsLocationInput" value="Törene" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">
-
-				<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:6px;">Katılımcı Grubu</label>
-				<div id="newsCategoryGroup" style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:14px;">
-					<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="öğrenci" checked onchange="generateNewsText()"> Öğrenci</label>
-					<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="akademisyen" onchange="generateNewsText()"> Akademisyen</label>
-					<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="idari personel" onchange="generateNewsText()"> İdari Personel</label>
-					<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="vatandaş" checked onchange="generateNewsText()"> Vatandaş</label>
-					<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="davetli" onchange="generateNewsText()"> Davetli</label>
+				<!-- Iki mod: mevcut sablon akisi (varsayilan) / yapay zekaya hazir komut olusturma. Uygulama hicbir AI servisine baglanmaz. -->
+				<div style="display:flex; gap:8px; margin-bottom:14px;">
+					<button type="button" id="newsModeTemplateBtn" onclick="setNewsOutputMode('template')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--news); color:#fff; font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; cursor:pointer;">Şablonla Oluştur</button>
+					<button type="button" id="newsModePromptBtn" onclick="setNewsOutputMode('prompt')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:#fff; color:var(--news); font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; cursor:pointer;">Yapay Zekaya Hazırla</button>
 				</div>
 
-				<textarea id="newsOutputText" rows="6" style="width:100%; padding:14px; border-radius:8px; border:1px solid #ccc; font-family:'Roboto', sans-serif; font-size:14px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical;"></textarea>
-				<div class="modal-actions" style="margin-top:0;">
-					<button class="btn btn-news" onclick="copyNewsText()" style="width:100%;">Panoya Kopyala</button>
+				<div id="newsTemplateModePanel">
+					<p class="hint">Seçtiğiniz kişilerin protokol sırası ve unvanlarına göre otomatik oluşturulan metin:</p>
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
+					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:#fff; box-sizing:border-box;"></select>
+
+					<div id="newsPlaceholderFields"></div>
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
+					<input type="text" id="newsLocationInput" value="Törene" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:6px;">Katılımcı Grubu</label>
+					<div id="newsCategoryGroup" style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:14px;">
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="öğrenci" checked onchange="generateNewsText()"> Öğrenci</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="akademisyen" onchange="generateNewsText()"> Akademisyen</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="idari personel" onchange="generateNewsText()"> İdari Personel</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="vatandaş" checked onchange="generateNewsText()"> Vatandaş</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="davetli" onchange="generateNewsText()"> Davetli</label>
+					</div>
+
+					<textarea id="newsOutputText" rows="6" style="width:100%; padding:14px; border-radius:8px; border:1px solid #ccc; font-family:'Roboto', sans-serif; font-size:14px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical;"></textarea>
+					<div class="modal-actions" style="margin-top:0;">
+						<button class="btn btn-news" onclick="copyNewsText()" style="width:100%;">Panoya Kopyala</button>
+					</div>
+				</div>
+
+				<div id="newsPromptPanel" style="display:none;">
+					<p class="hint">Yapay zekaya yapıştıracağınız, kurallar ve bağlam içeren hazır bir komut oluşturulur. Uygulama bu metni hiçbir yapay zeka servisine göndermez.</p>
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
+					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:#fff; box-sizing:border-box;">
+						<option value="mezuniyet">Mezuniyet Töreni</option>
+						<option value="genel" selected>Q1 / Genel Etkinlik (Taslak Var)</option>
+						<option value="diger">Diğer</option>
+					</select>
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Ham Notlarınız</label>
+					<textarea id="newsRawInput" rows="6" placeholder="Konuşma metni, katılımcı listesi, etkinlik açıklaması vb. buraya yapıştırın..." style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box; resize:vertical;"></textarea>
+
+					<div class="modal-actions" style="margin-top:0; margin-bottom:12px;">
+						<button class="btn btn-news" onclick="buildNewsPrompt()" style="width:100%;">Komut Oluştur</button>
+					</div>
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Oluşturulan Komut</label>
+					<textarea id="newsPromptOutput" rows="8" readonly style="width:100%; padding:14px; border-radius:8px; border:1px solid #ccc; font-family:'Roboto', sans-serif; font-size:13px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical; background:#fafaf8;"></textarea>
+					<div class="modal-actions" style="margin-top:0;">
+						<button class="btn btn-news" onclick="copyNewsPrompt()" style="width:100%;">Panoya Kopyala</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -1835,6 +1870,16 @@
 				const el = document.getElementById("footYear");
 				if (el) el.textContent = String(new Date().getFullYear());
 			})();
+			// Surum numarasi elle iki yerde (sw.js + burada) tekrarlanip birbirinden sasmasin diye,
+			// sw.js dosyasindaki CACHE_NAME degerinden calisma zamaninda okunur.
+			(function setFooterVersion(){
+				const el = document.getElementById("footVersion");
+				if (!el) return;
+				fetch("sw.js").then(function(r){ return r.ok ? r.text() : ""; }).then(function(txt){
+					const m = txt.match(/CACHE_NAME\s*=\s*"[^"]*?(v[\d]+(?:\.[\d]+)*)"/);
+					if (m) el.textContent = m[1];
+				}).catch(function(){});
+			})();
 
 			/* ================= İÇERİK KORUMA (caydırıcı katman) ================= */
 			// DÜRÜST NOT: Tarayıcıya inen HTML/CSS/JS teknik olarak tamamen gizlenemez.
@@ -1968,6 +2013,35 @@
 				return name + "'" + (endsWithVowel ? "n" : "") + sVowel + "n";
 			}
 
+			// Yonelme hali (-a/-e): duz sozcuklerde 'y' kaynastirma; iyelik ekiyle biten tamlamalarda (…Başkanlığı, …Merkezi) 'n' kaynastirma.
+			function turkishDativeSuffix(word){
+				const s=String(word||"").trim(); if(!s) return "";
+				const words=s.split(/\s+/); const last=words[words.length-1];
+				const lower=function(ch){ if(ch==="İ") return "i"; if(ch==="I") return "ı"; return ch.toLocaleLowerCase("tr-TR"); };
+				const vowels="aeıioöuü"; let lastVowel="";
+				for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } }
+				const back="aıou".indexOf(lastVowel)>-1;
+				const lastCh=lower(last[last.length-1]); const endsWithVowel=vowels.indexOf(lastCh)>-1;
+				const needsN = words.length>1 && "ıiuü".indexOf(lastCh)>-1;
+				const ek=back?"a":"e";
+				if(!endsWithVowel) return s+"'"+ek;
+				return s+"'"+(needsN?"n":"y")+ek;
+			}
+			// Belirtme hali (-ı/-i/-u/-ü): duz sozcuklerde 'y' kaynastirma; iyelik ekiyle biten tamlamalarda 'n' kaynastirma.
+			function turkishAccusativeSuffix(word){
+				const s=String(word||"").trim(); if(!s) return "";
+				const words=s.split(/\s+/); const last=words[words.length-1];
+				const lower=function(ch){ if(ch==="İ") return "i"; if(ch==="I") return "ı"; return ch.toLocaleLowerCase("tr-TR"); };
+				const vowels="aeıioöuü"; let lastVowel="";
+				for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } }
+				let ek="ı";
+				if(lastVowel){ if("aı".indexOf(lastVowel)>-1) ek="ı"; else if("ei".indexOf(lastVowel)>-1) ek="i"; else if("ou".indexOf(lastVowel)>-1) ek="u"; else if("öü".indexOf(lastVowel)>-1) ek="ü"; }
+				const lastCh=lower(last[last.length-1]); const endsWithVowel=vowels.indexOf(lastCh)>-1;
+				const needsN = words.length>1 && "ıiuü".indexOf(lastCh)>-1;
+				if(!endsWithVowel) return s+"'"+ek;
+				return s+"'"+(needsN?"n":"y")+ek;
+			}
+
 			function generateNewsText() {
 				// Kaynak ya takvimdeki etkinliğin katılımcı listesi, ya da ekrandan tek tek seçilen kişiler.
 				let selectedPeople;
@@ -2005,20 +2079,75 @@
 				// Cümle iskeleti koda gömülü değil, DEFAULT_NEWS_TEMPLATES listesinden geliyor (artık admin panelinden düzenlenmiyor, sabit).
 				const tpl = currentTemplate();
 				const etkEl = document.getElementById("newsEtkinlikInput"); const brmEl = document.getElementById("newsBirimInput");
+				const aciklamaEl = document.getElementById("newsAciklamaInput"); const evSahibiEl = document.getElementById("newsEvSahibiInput");
+				const yeniGorevliEl = document.getElementById("newsYeniGorevliInput"); const eskiGorevliEl = document.getElementById("newsEskiGorevliInput"); const gorevEl = document.getElementById("newsGorevInput");
+				const birim = (brmEl ? brmEl.value.trim() : "") || (newsEventContext ? newsEventContext.birim : "") || "";
+				const aciklama = aciklamaEl ? aciklamaEl.value.trim() : ""; const evSahibi = evSahibiEl ? evSahibiEl.value.trim() : "";
+				const yeniGorevli = yeniGorevliEl ? yeniGorevliEl.value.trim() : ""; const eskiGorevli = eskiGorevliEl ? eskiGorevliEl.value.trim() : ""; const gorev = gorevEl ? gorevEl.value.trim() : "";
 				const ctx = {
 					kisiler: peoplePart, kisilerDuz: kisilerDuz, ilkKisi: ilkKisi, ilkKisiIn: turkishGenitiveSuffix(ilkKisi),
-			digerKisiler: textArray.slice(1).join(", "),
+					digerKisiler: textArray.slice(1).join(", "),
 					yer: yer, gruplar: categoryPart,
 					etkinlik: (etkEl ? etkEl.value.trim() : "") || (newsEventContext ? newsEventContext.etkinlik : "") || "",
-					birim: (brmEl ? brmEl.value.trim() : "") || (newsEventContext ? newsEventContext.birim : "") || "",
-					tarih: newsEventContext ? newsEventContext.tarih : ""
+					birim: birim, birimIn: birim ? turkishGenitiveSuffix(birim) : "",
+					tarih: newsEventContext ? newsEventContext.tarih : "",
+					aciklama: aciklama, evSahibi: evSahibi,
+					yeniGorevli: yeniGorevli, yeniGorevliIn: yeniGorevli ? turkishGenitiveSuffix(yeniGorevli) : "", yeniGorevliDat: yeniGorevli ? turkishDativeSuffix(yeniGorevli) : "",
+					eskiGorevli: eskiGorevli, eskiGorevliIn: eskiGorevli ? turkishGenitiveSuffix(eskiGorevli) : "", eskiGorevliDat: eskiGorevli ? turkishDativeSuffix(eskiGorevli) : "", eskiGorevliAcc: eskiGorevli ? turkishAccusativeSuffix(eskiGorevli) : "",
+					gorev: gorev, gorevDat: gorev ? turkishDativeSuffix(gorev) : ""
 				};
-				document.getElementById("newsOutputText").value = applyTemplate(tpl.metin, ctx);
+				document.getElementById("newsOutputText").value = tpl.paragraphs ? applyRichTemplate(tpl, ctx) : applyTemplate(tpl.metin, ctx);
 				document.getElementById("newsModalBg").classList.add("open");
 			}
 
-			function closeNewsModal() { document.getElementById("newsModalBg").classList.remove("open"); newsPeopleOverride = null; newsEventContext = null; }
+			function closeNewsModal() { document.getElementById("newsModalBg").classList.remove("open"); newsPeopleOverride = null; newsEventContext = null; setNewsOutputMode("template"); const rawEl=document.getElementById("newsRawInput"); if(rawEl) rawEl.value=""; const poEl=document.getElementById("newsPromptOutput"); if(poEl) poEl.value=""; }
 			function copyNewsText() { document.getElementById("newsOutputText").select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success"); }
+
+			// Yapay zekaya hazirlama modu: uygulama HICBIR AI servisine baglanmaz, sadece kopyalanabilir bir komut metni uretir.
+			const NEWS_PROMPT_COMMON_RULES = [
+				"Yalnızca aşağıda verilen bilgileri kullan; belirtilmeyen hiçbir ayrıntıyı (kişi, tarih, sayı, konu vb.) uydurma veya varsayma.",
+				"Bir bilgi verilmemişse o konudan hiç bahsetme; genel geçer/klişe ifadelerle doldurma yapma.",
+				"Resmî kurum haberi diline uygun, sade ve nesnel bir üslup kullan.",
+				"Kişi isim ve unvanlarını verildiği şekliyle birebir koru."
+			];
+			const NEWS_PROMPT_RULES = {
+				mezuniyet: "Bu bir mezuniyet töreni haberi. Konuşma yapan kişilerin isim/unvanlarını ve varsa alıntılanan sözlerini olduğu gibi koru; uydurma alıntı ekleme. Varsa tören sırasını (konuşmalar, diploma töreni vb.) kronolojik anlat.",
+				genel: "Bu, taslak hâlinde bir haber metnidir. Verilen taslağın anlamını ve içeriğini koruyarak resmî/kurumsal haber diline uygun şekilde yeniden düzenle; taslakta olmayan hiçbir bilgiyi ekleme.",
+				diger: "Verilen notlardan resmî/kurumsal üslupta bir haber metni oluştur."
+			};
+			function setNewsOutputMode(mode) {
+				const tplBtn=document.getElementById("newsModeTemplateBtn"); const promptBtn=document.getElementById("newsModePromptBtn");
+				const tplPanel=document.getElementById("newsTemplateModePanel"); const promptPanel=document.getElementById("newsPromptPanel");
+				const isPrompt = mode === "prompt";
+				if(tplPanel) tplPanel.style.display = isPrompt ? "none" : "";
+				if(promptPanel) promptPanel.style.display = isPrompt ? "" : "none";
+				if(tplBtn){ tplBtn.style.background = isPrompt ? "#fff" : "var(--news)"; tplBtn.style.color = isPrompt ? "var(--news)" : "#fff"; }
+				if(promptBtn){ promptBtn.style.background = isPrompt ? "var(--news)" : "#fff"; promptBtn.style.color = isPrompt ? "#fff" : "var(--news)"; }
+			}
+			// Ham notlardan, kurallar + baglam iceren, kopyalanabilir bir komut metni uretir. AG CAGRISI YAPMAZ.
+			function buildNewsPrompt(){
+				const catSel=document.getElementById("newsPromptCategorySelect"); const cat=catSel?catSel.value:"genel";
+				const rawEl=document.getElementById("newsRawInput"); const raw=rawEl?rawEl.value:"";
+				if(!raw.trim()){ showToast("Önce ham notlarınızı yapıştırın.", "error"); return; }
+				const promptLines=["Aşağıdaki bilgilerden, üniversitemiz basın ofisi için resmî bir haber metni oluştur.", "", "KURALLAR:"];
+				NEWS_PROMPT_COMMON_RULES.forEach(function(r){ promptLines.push("- " + r); });
+				const catRule=NEWS_PROMPT_RULES[cat]; if(catRule) promptLines.push("- " + catRule);
+				promptLines.push(""); promptLines.push("BAĞLAM:");
+				const etkinlik=(newsEventContext&&newsEventContext.etkinlik)||""; const yer=(newsEventContext&&newsEventContext.yer)||""; const tarih=(newsEventContext&&newsEventContext.tarih)||"";
+				if(etkinlik) promptLines.push("- Etkinlik: " + etkinlik);
+				if(yer) promptLines.push("- Yer: " + yer);
+				if(tarih) promptLines.push("- Tarih: " + tarih);
+				let selectedPeople=[];
+				if(newsPeopleOverride && newsPeopleOverride.length) selectedPeople=newsPeopleOverride.slice();
+				else if(newsSelection.length) selectedPeople=newsSelection.map(function(idx){ return people[idx]; }).filter(Boolean);
+				if(selectedPeople.length){
+					const names=selectedPeople.map(function(p){ let str=p.title?p.title.trim()+" ":""; if(p.prefix) str+=p.prefix.trim()+" "; str+=p.name?p.name.trim():""; return str.trim(); });
+					promptLines.push("- Katılımcılar: " + names.join(", "));
+				}
+				promptLines.push(""); promptLines.push("HAM NOTLAR:"); promptLines.push(raw.trim());
+				document.getElementById("newsPromptOutput").value = promptLines.join("\n");
+			}
+			function copyNewsPrompt() { const el=document.getElementById("newsPromptOutput"); if(!el.value.trim()){ showToast("Önce komut oluşturun.", "error"); return; } el.select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success"); }
 
 			async function restoreSingle(idx) {
 				if (!requireEdit()) return;
@@ -2657,6 +2786,7 @@ const EVENT_TYPES = [
 	{ key:"basin",     ad:"Basın Toplantısı",     renk:"#0369a1", bg:"#e0f2fe" },
 	{ key:"sergi",     ad:"Sergi / Kültür-Sanat", renk:"#0f766e", bg:"#ccfbf1" },
 	{ key:"spor",      ad:"Spor Etkinliği",       renk:"#15803d", bg:"#dcfce7" },
+	{ key:"gorevdegisimi", ad:"Görev Değişimi",  renk:"#4338ca", bg:"#e0e7ff" },
 	{ key:"diger",     ad:"Diğer",                renk:"#57534e", bg:"#f1efec" }
 ];
 const EVENT_STATUS = [
@@ -3494,16 +3624,63 @@ const DEFAULT_NEWS_TEMPLATES = [
 	{ id:"serbest",   ad:"Serbest / Genel",        tur:"diger",     metin:"{yer} {kisiler}{gruplar} katıldı." },
 	{ id:"acilis",    ad:"Açılış Töreni",          tur:"acilis",    metin:"{yer} düzenlenen {etkinlik} açılış törenine {kisiler}{gruplar} katıldı." },
 	{ id:"konferans", ad:"Konferans / Panel",      tur:"konferans", metin:"{yer} gerçekleştirilen “{etkinlik}” başlıklı programa {kisiler}{gruplar} katıldı." },
-	{ id:"ziyaret",   ad:"Protokol Ziyareti",      tur:"ziyaret",   metin:"{yer} gerçekleştirilen ziyarette {kisiler} hazır bulundu." },
+	{ id:"ziyaret", ad:"Protokol Ziyareti", tur:"ziyaret", paragraphs:[
+		[
+			{ text:"{yer} gerçekleştirilen ziyarette {kisiler} hazır bulundu." },
+			{ text:"{kisiler}, {yer} bir ziyaret gerçekleştirdi." },
+			{ text:"{ilkKisiIn} başkanlığındaki heyet {yer} bir araya geldi.", condition:function(ctx){ return !!ctx.digerKisiler; } }
+		],
+		[
+			{ text:"Ziyarette {aciklama} konusu ele alındı.", condition:function(ctx){ return !!ctx.aciklama; } },
+			{ text:"Görüşmede {aciklama} gündeme geldi.", condition:function(ctx){ return !!ctx.aciklama; } },
+			{ text:"Taraflar, {aciklama} hakkında görüş alışverişinde bulundu.", condition:function(ctx){ return !!ctx.aciklama; } }
+		],
+		[
+			{ text:"Ziyareti {evSahibi} kabul etti.", condition:function(ctx){ return !!ctx.evSahibi; } },
+			{ text:"Heyeti makamında kabul eden {evSahibi}, misafirlerine ilgisinden dolayı teşekkür etti.", condition:function(ctx){ return !!ctx.evSahibi; } },
+			{ text:"{evSahibi}, ziyaretten duyduğu memnuniyeti dile getirdi.", condition:function(ctx){ return !!ctx.evSahibi; } }
+		]
+	] },
 	{ id:"imza",      ad:"İmza Töreni",            tur:"imza",      metin:"{yer} düzenlenen imza töreninde {kisiler} bir araya geldi." },
 	{ id:"mezuniyet", ad:"Mezuniyet Töreni",       tur:"mezuniyet", metin:"{yer} düzenlenen {etkinlik} mezuniyet törenine {kisiler}{gruplar} katıldı." },
 	{ id:"odul",      ad:"Ödül Töreni",            tur:"odul",      metin:"{yer} düzenlenen ödül törenine {kisiler}{gruplar} katıldı." },
 	{ id:"basin",     ad:"Basın Toplantısı",       tur:"basin",     metin:"{yer} düzenlenen basın toplantısına {kisiler} katıldı." },
-	{ id:"altyazi",   ad:"Fotoğraf Alt Yazısı",    tur:"",          metin:"Fotoğrafta soldan sağa; {kisilerDuz} yer alıyor." }
+	{ id:"altyazi",   ad:"Fotoğraf Alt Yazısı",    tur:"",          metin:"Fotoğrafta soldan sağa; {kisilerDuz} yer alıyor." },
+	{ id:"gorevdegisimi", ad:"Görev Değişimi", tur:"gorevdegisimi", paragraphs:[
+		[
+			// NOT: birim ve gorev genelde AYNI/orustesen degerler olabilir (ör. "BAPKOB" hem birim hem gorev adi).
+			// Bu yuzden hicbir varyant ikisini AYNI cumlede birlestirmez; tekrar riski boylece tamamen ortadan kalkar.
+			{ text:"{yeniGorevli}, {gorevDat} atandı.", condition:function(ctx){ return !!ctx.gorev; } },
+			{ text:"{yeniGorevli}, {gorevDat} getirildi.", condition:function(ctx){ return !!ctx.gorev; } },
+			{ text:"{birimIn} kadrosuna katılan {yeniGorevli}, yeni görevine başladı.", condition:function(ctx){ return !!ctx.birim; } },
+			{ text:"{yeniGorevli} yeni görevine başladı." }
+		],
+		[
+			{ text:"{yeniGorevliIn} yeni görevinde başarılı olması temenni edildi." },
+			{ text:"{yeniGorevli}, yeni görevinde üniversitemize katkılar sunmaya devam edecek." },
+			{ text:"{yeniGorevliDat} yeni görevinde başarılar dilendi." }
+		],
+		[
+			{ text:"Önceki dönemde bu görevi yürüten {eskiGorevliDat} yeni görevinde başarılar dilendi.", condition:function(ctx){ return !!ctx.eskiGorevli; } },
+			{ text:"{eskiGorevliIn} ardından bu göreve {yeniGorevli} atandı.", condition:function(ctx){ return !!ctx.eskiGorevli; } },
+			{ text:"{birim} bünyesinde uzun süre görev yapan {eskiGorevliAcc} uğurlandı.", condition:function(ctx){ return !!ctx.eskiGorevli && !!ctx.birim; } }
+		]
+	] }
 ];
 let newsTemplates = DEFAULT_NEWS_TEMPLATES.slice();
 let newsPeopleOverride = null;   // takvimden üretilirken etkinliğin katılımcıları
 let newsEventContext = null;     // { etkinlik, yer, tarih, birim }
+
+// Sablon metninde {ph} (veya turetilmis {ph}In/{ph}Dat/{ph}Acc hali) gecen her alan icin otomatik giris kutusu uretir (tek genel mekanizma).
+const NEWS_PLACEHOLDER_FIELDS = [
+	{ ph:"etkinlik",    label:"Etkinlik Adı" },
+	{ ph:"birim",       label:"Birim" },
+	{ ph:"aciklama",    label:"Görüşme Konusu / Açıklama (opsiyonel)" },
+	{ ph:"evSahibi",    label:"Ev Sahibi (opsiyonel)" },
+	{ ph:"yeniGorevli", label:"Yeni Görevli" },
+	{ ph:"eskiGorevli", label:"Önceki Görevli (varsa)" },
+	{ ph:"gorev",       label:"Görev / Unvan" }
+];
 
 function fillNewsTemplateSelect(keepId){
 	const sel=document.getElementById("newsTemplateSelect"); if(!sel) return;
@@ -3519,22 +3696,67 @@ function currentTemplate(){
 function onNewsTemplateChange(){ renderNewsPlaceholderFields(); generateNewsText(); }
 
 // Seçilen şablon {etkinlik} veya {birim} kullanıyorsa, o alanlar için kutu gösterilir.
+function newsPlaceholderInputId(ph){ return "news" + ph.charAt(0).toUpperCase() + ph.slice(1) + "Input"; }
 function renderNewsPlaceholderFields(){
 	const wrap=document.getElementById("newsPlaceholderFields"); if(!wrap) return;
-	const m=currentTemplate().metin||"";
+	const allText=templateAllText(currentTemplate());
+	const tokens=(allText.match(/\{(\w+)\}/g)||[]).map(function(t){ return t.slice(1,-1); });
 	let html="";
-	if(m.indexOf("{etkinlik}")>-1) html+='<label style="font-family:\'Roboto\',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik Adı</label><input type="text" id="newsEtkinlikInput" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:\'Roboto\',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">';
-	if(m.indexOf("{birim}")>-1) html+='<label style="font-family:\'Roboto\',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Birim</label><input type="text" id="newsBirimInput" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:\'Roboto\',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">';
+	NEWS_PLACEHOLDER_FIELDS.forEach(function(f){
+		const used=tokens.some(function(t){ return t===f.ph || t.indexOf(f.ph)===0; }); if(!used) return;
+		html+=`<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">${f.label}</label><input type="text" id="${newsPlaceholderInputId(f.ph)}" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">`;
+	});
 	wrap.innerHTML=html;
 	if(newsEventContext){
-		const a=document.getElementById("newsEtkinlikInput"); if(a) a.value=newsEventContext.etkinlik||"";
-		const b=document.getElementById("newsBirimInput"); if(b) b.value=newsEventContext.birim||"";
+		const ctxMap={ etkinlik:newsEventContext.etkinlik||"", birim:newsEventContext.birim||"", aciklama:newsEventContext.not||"" };
+		Object.keys(ctxMap).forEach(function(ph){ const el=document.getElementById(newsPlaceholderInputId(ph)); if(el) el.value=ctxMap[ph]; });
 	}
 }
 function applyTemplate(tpl, ctx){
 	return String(tpl||"").replace(/\{(\w+)\}/g, function(_,k){
 		return (ctx[k]!==undefined && ctx[k]!==null) ? String(ctx[k]) : "";
 	}).replace(/[ \t]{2,}/g," ").replace(/ +([,.;:])/g,"$1").trim();
+}
+
+// Varyant secimini her tus vurusunda rastgele degistirmemek icin basit deterministik string hash.
+function strHash(str){
+	let h = 0; const s = String(str||"");
+	for(let i=0;i<s.length;i++){ h = ((h<<5)-h+s.charCodeAt(i))|0; }
+	return Math.abs(h);
+}
+// "variants" icindeki {text,condition} seceneklerinden condition(ctx) gecenleri filtreler, aralarindan seedStr'e
+// gore DETERMINISTIK biri secilir. Hicbiri gecmezse null doner (paragraf tamamen atlanir; AI'nin bilinmeyen
+// ayrintiyi uydurmasina karsilik gelen sorunu, kodun kendisinin asla uydurmamasiyla cozer).
+function pickVariant(variants, ctx, seedStr){
+	const usable = (variants||[]).filter(function(v){ return !v.condition || v.condition(ctx); });
+	if(!usable.length) return null;
+	return usable[strHash(seedStr) % usable.length].text;
+}
+// "X, Y ve Z" bicimli Turkce liste birlestirici.
+function turkishList(arr){
+	const items=(arr||[]).filter(Boolean);
+	if(items.length===0) return "";
+	if(items.length===1) return items[0];
+	return items.slice(0,-1).join(", ") + " ve " + items[items.length-1];
+}
+// Bir sablonun (eski "metin" ya da yeni "paragraphs" bicimi) icerdigi TUM {xxx} yer tutucularini tek noktadan
+// taramak icin: renderNewsPlaceholderFields() hangi giris kutularini gosterecegini boyle bulur.
+function templateAllText(tpl){
+	if(tpl.metin) return tpl.metin;
+	if(!Array.isArray(tpl.paragraphs)) return "";
+	let all="";
+	tpl.paragraphs.forEach(function(group){ (group||[]).forEach(function(v){ all += " " + (v.text||""); }); });
+	return all;
+}
+// Zengin (coklu paragraf, kosullu) sablonlari render eder; "paragraphs" yoksa eski applyTemplate() yoluna duser.
+function applyRichTemplate(tpl, ctx){
+	if(!Array.isArray(tpl.paragraphs)) return applyTemplate(tpl.metin, ctx);
+	const paras = tpl.paragraphs.map(function(group, gi){
+		const seed = (ctx.ilkKisi||"") + "|" + (ctx.yer||"") + "|" + gi;
+		const text = pickVariant(group, ctx, seed);
+		return text ? applyTemplate(text, ctx) : "";
+	}).filter(Boolean);
+	return paras.join("\n\n");
 }
 
 // "Atatürk Kongre Merkezi" + bulunma hâli = "Atatürk Kongre Merkezi'nde" (düz "'de" yanlış olur).
@@ -3562,7 +3784,7 @@ function generateNewsFromEvent(){
 	const att=Array.isArray(e.katilimcilar)?e.katilimcilar:[];
 	if(!att.length){ showToast("Bu etkinliğe katılımcı eklenmemiş.", "error"); return; }
 	newsPeopleOverride=att.slice();
-	newsEventContext={ etkinlik:e.ad||"", yer:e.yer||"", tarih:fmtTrDate(e.tarih), birim:e.birim||"" };
+	newsEventContext={ etkinlik:e.ad||"", yer:e.yer||"", tarih:fmtTrDate(e.tarih), birim:e.birim||"", not:e.not||"" };
 	// Etkinlik türüne uyan şablonu otomatik seç
 	let idx=newsTemplates.findIndex(function(t){ return t.tur===e.tur; });
 	if(idx<0) idx=0;
