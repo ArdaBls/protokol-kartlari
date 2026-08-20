@@ -435,6 +435,7 @@
 			.cal-ev-meta{ font-size:12px; color:var(--muted); margin-top:2px; line-height:1.45; }
 			.cal-tag{ display:inline-block; font-size:10px; font-weight:700; padding:1.5px 8px; border-radius:20px; color:#fff; margin-right:5px; }
 			.cal-tag.ghost{ background:var(--surface-hover); color:var(--muted); }
+			.cal-detail-row .cal-tag{ font-size:13px; padding:3px 11px; }
 			.cal-empty{ text-align:center; color:var(--muted); font-size:13px; padding:56px 16px; }
 
 			/* ---- Yan detay paneli ---- */
@@ -2778,7 +2779,9 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 // Dizi indeksi kullanmıyoruz: iki kişi aynı anda etkinlik eklerse birbirini ezmesin diye.
 const EVENT_TYPES = [
 	{ key:"acilis",    ad:"Açılış Töreni",        renk:"var(--today)", bg:"#ffedd5" },
-	{ key:"konferans", ad:"Konferans / Panel",    renk:"#1d4ed8", bg:"#dbeafe" },
+	{ key:"konferans", ad:"Konferans",              renk:"#1d4ed8", bg:"#dbeafe" },
+	{ key:"panel",     ad:"Panel",                  renk:"#a21caf", bg:"#fae8ff" },
+	{ key:"calistay",  ad:"Çalıştay",                renk:"#65a30d", bg:"#ecfccb" },
 	{ key:"ziyaret",   ad:"Protokol Ziyareti",    renk:"#a16207", bg:"#fef3c7" },
 	{ key:"imza",      ad:"İmza Töreni",          renk:"#7c3aed", bg:"#ede9fe" },
 	{ key:"mezuniyet", ad:"Mezuniyet Töreni",     renk:"#be123c", bg:"#ffe4e6" },
@@ -3623,7 +3626,9 @@ async function deleteEvent(){
 const DEFAULT_NEWS_TEMPLATES = [
 	{ id:"serbest",   ad:"Serbest / Genel",        tur:"diger",     metin:"{yer} {kisiler}{gruplar} katıldı." },
 	{ id:"acilis",    ad:"Açılış Töreni",          tur:"acilis",    metin:"{yer} düzenlenen {etkinlik} açılış törenine {kisiler}{gruplar} katıldı." },
-	{ id:"konferans", ad:"Konferans / Panel",      tur:"konferans", metin:"{yer} gerçekleştirilen “{etkinlik}” başlıklı programa {kisiler}{gruplar} katıldı." },
+	{ id:"konferans", ad:"Konferans",              tur:"konferans", metin:"{yer} gerçekleştirilen “{etkinlik}” başlıklı konferansa {kisiler}{gruplar} katıldı." },
+	{ id:"panel",     ad:"Panel",                  tur:"panel",     metin:"{yer} gerçekleştirilen “{etkinlik}” başlıklı panele {kisiler}{gruplar} katıldı." },
+	{ id:"calistay",  ad:"Çalıştay",                tur:"calistay",  metin:"{yer} gerçekleştirilen “{etkinlik}” başlıklı çalıştaya {kisiler}{gruplar} katıldı." },
 	{ id:"ziyaret", ad:"Protokol Ziyareti", tur:"ziyaret", paragraphs:[
 		[
 			{ text:"{yer} gerçekleştirilen ziyarette {kisiler} hazır bulundu." },
