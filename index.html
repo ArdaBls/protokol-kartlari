@@ -389,12 +389,20 @@
 			.cal-block.compact{ flex-direction:row; align-items:center; gap:5px; padding:1px 5px; }
 			.cal-block.compact .bt{ font-size:11px; }
 			.cal-block.compact .bh{ font-size:9px; }
+			/* ---- Kilit ikonu: tiklaninca suruklemeyi engeller/acar ---- */
+			.cal-lock-ico{ position:absolute; top:2px; right:2px; z-index:4; font-size:10px; line-height:1; padding:1px 3px; border-radius:4px; background:rgba(255,255,255,.65); cursor:pointer; opacity:.5; }
+			.cal-lock-ico:hover{ opacity:1; }
+			.cal-lock-ico.is-locked{ opacity:.95; background:rgba(255,255,255,.85); }
+			/* Kisa/kompakt bloklarda (ay gorunumu + 1 saatlik hafta bloklari) koseye degil kenara. */
+			.cal-block.compact .cal-lock-ico{ position:static; margin-left:auto; padding:0 0 0 4px; background:none; flex-shrink:0; }
 			.cal-block.past{ border-style:dashed; border-left-style:solid; opacity:.75; }
 			.cal-block.done .bt{ text-decoration:line-through; opacity:.7; }
 			.cal-block.cancelled .bt{ text-decoration:line-through; }
 			.cal-block.dragging{ opacity:.4; }
 			.cal-allday-chip{ display:flex; align-items:center; gap:5px; border-radius:5px; padding:2.5px 7px; font-size:11px; font-weight:600; cursor:pointer; border:none; border-left:3px solid; text-align:left; font-family:inherit; overflow:hidden; }
 			.cal-allday-chip .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+			.cal-allday-chip .cal-lock-ico{ position:static; margin-left:auto; padding:0; background:none; flex-shrink:0; opacity:.5; }
+			.cal-allday-chip .cal-lock-ico.is-locked{ opacity:1; }
 
 			/* ---- Ay görünümü ---- */
 			.cal-m{ display:flex; flex-direction:column; height:100%; min-height:0; }
@@ -695,8 +703,8 @@
 
 		<div class="list-switch-wrap">
 			<div class="list-switch" id="listSwitch">
-				<button data-list="il" class="active">İl Protokol Sırası</button>
-				<button data-list="universite">Üniversite Protokol Sırası</button>
+				<button data-list="il">İl Protokol Sırası</button>
+				<button data-list="universite" class="active">Üniversite Protokol Sırası</button>
 			</div>
 		</div>
 
@@ -859,6 +867,21 @@
 				<div class="peek-row">
 					<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Metni Üret</button>
 					<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
+				</div>
+				<div class="peek-row">
+					<button class="btn btn-danger-outline edit-only" onclick="deleteEvent()">Sil</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Etkinlik Silme Onay Modali (peek panel + duzenleme formu ortak kullanir) -->
+		<div class="modal-bg" id="eventDeleteConfirmModalBg" style="z-index:97;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Etkinliği Sil</h2>
+				<p class="hint" id="eventDeleteConfirmText" style="margin-bottom:20px;">Bu etkinlik takvimden silinecek. Emin misiniz?</p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeEventDeleteConfirm()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeEventDelete()">Evet, Sil</button>
 				</div>
 			</div>
 		</div>
@@ -1447,10 +1470,11 @@
 
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
 			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi' };
-			// localStorage'dan gelen değer doğrulanmazsa LIST_PATHS[key] undefined olur ve
-			// database.ref(undefined) VERİTABANI KÖKÜNE işaret eder — tüm veri (users, logs dâhil) ezilebilirdi.
-			const storedListKey = localStorage.getItem('omuProtokolListKey');
-			let currentListKey = LIST_PATHS[storedListKey] ? storedListKey : 'il';
+			// Site açılışında sekme HER ZAMAN Üniversite ile açılır (kullanıcı talebi). Daha önce burada
+			// localStorage'da kayıtlı son sekme (ör. 'il') okunup başlangıç değeri yapılıyordu; artık
+			// açılışta okunmuyor — switchList() elle sekme değişiminde localStorage'a yazmaya devam
+			// ediyor (bkz. aşağı), sadece açılışta bir daha okunmuyor.
+			let currentListKey = 'universite';
 			let activeListenerRef = null; let activeListenerCallback = null;
 
 			// Üniversite Protokol Sırası'na özel fakülte/enstitü/yüksekokul/koordinatörlük listesi.
@@ -2821,6 +2845,10 @@ let calPeekedId = null;
 let calEditingId = null;
 let calAttendees = [];           // etkinlik formunda seçili katılımcılar
 let calDragId = null;
+let eventDeleteTargetId = null;   // peek + duzenleme formu ortak silme onay modalinin hedef id'si
+let undoStack = [];               // { type:'move'|'edit'|'create'|'delete', id, before, after, ts }
+let undoCount = 0;                // bu oturumda kacinci Ctrl+Z geri almasi yapildigi (log metnine yazilir)
+const UNDO_STACK_LIMIT = 20;
 
 function evType(k){ for(var i=0;i<EVENT_TYPES.length;i++) if(EVENT_TYPES[i].key===k) return EVENT_TYPES[i]; return EVENT_TYPES[EVENT_TYPES.length-1]; }
 function evStatus(k){ for(var i=0;i<EVENT_STATUS.length;i++) if(EVENT_STATUS[i].key===k) return EVENT_STATUS[i]; return EVENT_STATUS[0]; }
@@ -3124,6 +3152,27 @@ function calBlockClasses(ev, dayDate){
 	if(dayDate && dayDate<todayDate()) c+=" past";
 	return c;
 }
+// Kilit ikonu: hafta/gun, ay ve tum-gun seridi render'larinda ortak kullanilir. NOT: .cal-block
+// ve .cal-allday-chip birer <button>'dir; <button> icine <button> KONULAMAZ (tarayici DOM'u
+// bozar). Bu yuzden ikon <span>'dir; tiklama event.stopPropagation() ile ustteki butonun
+// onclick'ine (openEventPeek / drag) sizmaz.
+function lockIconHtml(ev){
+	const locked=!!ev.locked;
+	const title=locked?"Kilitli · sürüklenemez (açmak için tıkla)":"Kilitle (sürüklenmesini engelle)";
+	return '<span class="cal-lock-ico'+(locked?" is-locked":"")+'" title="'+title+'" onclick="event.stopPropagation(); toggleEventLock(\''+ev._id+'\')">'+(locked?"🔒":"🔓")+'</span>';
+}
+async function toggleEventLock(id){
+	if(!requireEdit()) return;
+	const e=calEvents[id]; if(!e) return;
+	const wasLocked=!!e.locked;
+	const patch=Object.assign({}, e, { locked: !wasLocked });
+	const label=evLogName(e.ad)+" etkinliği "+(wasLocked?"kilidi açıldı":"kilitlendi");
+	const res=await persistEvent(id, patch, label);
+	if(!res) return;
+	calEvents[id]=patch;
+	renderCalendar();
+	showToast(wasLocked?"Kilit açıldı, etkinlik artık sürüklenebilir.":"Etkinlik kilitlendi, artık sürüklenemez.", "success");
+}
 // Aynı saate denk gelen etkinlikler yan yana dizilir.
 function layoutDay(evs){
 	const items=evs.map(function(e){
@@ -3175,7 +3224,7 @@ function renderWeekView(body){
 		allday+='<div class="cal-allday-col" data-date="'+k+'" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,\''+k+'\')">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';" onclick="openEventPeek(\''+e._id+'\')"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span></button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';" onclick="openEventPeek(\''+e._id+'\')"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -3205,7 +3254,7 @@ function renderWeekView(body){
 			const compact=hgt<34?" compact":"";
 			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" '+
 				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
-				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span></button>';
+				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+lockIconHtml(e)+'</button>';
 		});
 		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;" '+
 			'ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,\''+k+'\')" onclick="calGridClick(event,\''+k+'\')">'+inner+'</div>';
@@ -3258,7 +3307,7 @@ function renderMonthView(body){
 		let chips=shown.map(function(e){
 			const ty=evType(e.tur);
 			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" style="position:relative; '+calBlockStyle(e)+'" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
-				(e.saat?'<span class="bh">'+escapeHtml(e.saat)+'</span>':'')+'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span></button>';
+				(e.saat?'<span class="bh">'+escapeHtml(e.saat)+'</span>':'')+'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 		}).join("");
 		if(evs.length>shown.length) chips+='<button type="button" class="cal-more" onclick="event.stopPropagation(); calGoToDayWeek(\''+k+'\')">+'+(evs.length-shown.length)+' tane daha</button>';
 		cells+='<div class="'+cls+'" data-date="'+k+'" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,\''+k+'\')">'+
@@ -3297,6 +3346,7 @@ function renderListView(body){
 /* --- Sürükleyerek başka güne taşıma --- */
 function calDragStart(e, id){
 	if(!canEditData()){ e.preventDefault(); return; }
+	if(calEvents[id] && calEvents[id].locked){ e.preventDefault(); showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error"); return; }
 	calDragId=id; e.dataTransfer.effectAllowed="move";
 	try{ e.dataTransfer.setData("text/plain", id); }catch(err){}
 	e.currentTarget.classList.add("dragging");
@@ -3308,7 +3358,11 @@ async function calDrop(e, dateKey){
 	e.preventDefault(); e.currentTarget.classList.remove("drop-target");
 	const id=calDragId; calDragId=null;
 	if(!id || !calEvents[id] || !requireEdit()) return;
+	// calDragStart zaten kilitliyse suruklemeyi baslatmiyor; bu, surukleme basladiktan HEMEN
+	// sonra baskasi kilitlerse diye ikinci bir savunma hatti.
+	if(calEvents[id].locked){ showToast("Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.", "error"); return; }
 	const ev=calEvents[id];
+	const before=Object.assign({}, ev);
 	const patch={ tarih: dateKey };
 	// Hafta görünümünde saat ızgarasına bırakıldıysa saat de güncellenir (yarım saate yuvarlanır).
 	if(calView==="week" && e.currentTarget.classList.contains("cal-daycol") && hmToMin(ev.saat)!==null){
@@ -3324,7 +3378,8 @@ async function calDrop(e, dateKey){
 	if(ev.tarih===patch.tarih && patch.saat===undefined) return;
 	const moved=Object.assign({}, ev, patch);
 	const moveChanges=describeEventChanges(ev, moved);
-	await persistEvent(id, moved, evLogName(ev.ad)+" etkinliği takvimde taşındı ("+fmtTrDate(dateKey)+")"+(moveChanges.length?" · "+moveChanges.join(" · "):""));
+	const res=await persistEvent(id, moved, evLogName(ev.ad)+" etkinliği takvimde taşındı ("+fmtTrDate(dateKey)+")"+(moveChanges.length?" · "+moveChanges.join(" · "):""));
+	if(res){ calEvents[id]=moved; pushUndo({ type:"move", id:id, before:before, after:Object.assign({},moved) }); renderCalendar(); }
 }
 
 /* --- Etkinlik detay paneli (sağdan açılan peek) --- */
@@ -3373,6 +3428,7 @@ function editPeekedEvent(){ if(calPeekedId) openEventModal(calPeekedId); }
 async function eventQuickStamp(){
 	if(!requireEdit() || !calPeekedId) return;
 	const e=calEvents[calPeekedId]; if(!e){ showToast("Etkinlik bulunamadı.", "error"); return; }
+	const before=Object.assign({}, e);
 	const nw=new Date(); const hm=pad2(nw.getHours())+":"+pad2(nw.getMinutes());
 	const patch=Object.assign({}, e);
 	let label, toast;
@@ -3396,6 +3452,7 @@ async function eventQuickStamp(){
 	const ok=await persistEvent(calPeekedId, patch, evLogName(label)+(stampChanges.length?" · "+stampChanges.join(" · "):""));
 	if(!ok) return;
 	calEvents[calPeekedId]=patch;
+	pushUndo({ type:"edit", id:calPeekedId, before:before, after:Object.assign({},patch) });
 	openEventPeek(calPeekedId);
 	renderCalendar();
 	showToast(toast, "success");
@@ -3538,19 +3595,28 @@ function describeEventCreation(e){
 	return out;
 }
 
+// logs/etkinlik altına ortak bicimde log satiri ekler; persistEvent, executeEventDelete ve
+// Ctrl+Z geri alma akislari bunu paylasir (onceden ayni kod birden fazla yerde tekrarlaniyordu).
+function logEventAction(action, target){
+	if(!currentUser || !database) return;
+	database.ref("logs/etkinlik").push({
+		by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
+		email: currentUser.email, action: action || "Etkinlik güncellendi",
+		target: target || "", timestamp: Date.now()
+	}).catch(function(err){ console.error("Etkinlik log kaydı yazılamadı:", err); });
+}
+// DONUS DEGERI: basarida {ok:true, id:...} (create'te yeni push-key, update'te girilen id'nin
+// aynisi - Ctrl+Z "olusturma" geri almasi icin hangi kaydin silinecegini bilmemiz gerekiyor),
+// basarisizlikta false. {ok:true,...} bir NESNE oldugundan "truthy"dir; bu yuzden eski
+// `if(!ok) return;` tarzi kontroller (eventQuickStamp, saveEvent) KIRILMADAN calismaya devam eder.
 async function persistEvent(id, obj, logLabel){
 	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return false; }
 	try{
+		let finalId=id;
 		if(id) await database.ref("etkinlikler/"+id).set(obj);
-		else { const ref=await database.ref("etkinlikler").push(obj); id=ref.key; }
-		if(currentUser){
-			database.ref("logs/etkinlik").push({
-				by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
-				email: currentUser.email, action: logLabel || "Etkinlik güncellendi",
-				target: obj.ad || "", timestamp: Date.now()
-			}).catch(function(err){ console.error("Etkinlik log kaydı yazılamadı:", err); });
-		}
-		return true;
+		else { const ref=await database.ref("etkinlikler").push(obj); finalId=ref.key; }
+		logEventAction(logLabel, obj.ad);
+		return { ok:true, id:finalId };
 	}catch(err){
 		console.error("Etkinlik kaydedilemedi:", err);
 		const reason = (err && (err.code || err.message)) ? (" (" + (err.code || err.message) + ")") : "";
@@ -3579,8 +3645,10 @@ async function saveEvent(){
 		not: document.getElementById("ev_not").value.trim()
 	};
 	const eski = calEditingId ? calEvents[calEditingId] : null;
-	if(eski){ obj.olusturan=eski.olusturan||""; obj.olusturmaTs=eski.olusturmaTs||Date.now(); }
-	else { obj.olusturan=(currentUser? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""); obj.olusturmaTs=Date.now(); }
+	// "locked" burada elle tasinmazsa formdan HERHANGI bir alan degistirilip kaydedildiginde
+	// sessizce kaybolur (persistEvent .set() ile TAM UZERINE yaziyor, .update() degil).
+	if(eski){ obj.olusturan=eski.olusturan||""; obj.olusturmaTs=eski.olusturmaTs||Date.now(); obj.locked=!!eski.locked; }
+	else { obj.olusturan=(currentUser? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""); obj.olusturmaTs=Date.now(); obj.locked=false; }
 	obj.guncellemeTs=Date.now();
 	// Kayıt üzerine yazılır; log ise her seferinde yeni satır olarak eklenir ve hangi alanın
 	// ne olduğu tek tek yazılır.
@@ -3594,31 +3662,137 @@ async function saveEvent(){
 	} else {
 		label = adSafe+" etkinliği takvime eklendi ("+fmtTrDate(tarih)+(saat?", "+saat:"")+") · "+describeEventCreation(obj).join(" · ");
 	}
-	const ok=await persistEvent(calEditingId, obj, label);
-	if(!ok) return;
+	const res=await persistEvent(calEditingId, obj, label);
+	if(!res) return;
+	// Ctrl+Z yigina eklenir: duzenlemede onceki hal saklanir, olusturmada yeni push-key kullanilir.
+	if(calEditingId){ calEvents[calEditingId]=obj; pushUndo({ type:"edit", id:calEditingId, before:Object.assign({},eski), after:Object.assign({},obj) }); }
+	else { calEvents[res.id]=obj; pushUndo({ type:"create", id:res.id, before:null, after:Object.assign({},obj) }); }
 	closeEventModal(); showToast("Etkinlik kaydedildi.", "success");
 }
 
-async function deleteEvent(){
-	if(!requireEdit() || !calEditingId) return;
+// Peek panelinden VE duzenleme formundan (ev_deleteBtn) ORTAK cagrilir: calEditingId modal
+// acikken, calPeekedId ise sadece peek paneli acikken (modal kapaliyken) dolu olur.
+function deleteEvent(){
+	const targetId=calEditingId||calPeekedId;
+	if(!requireEdit() || !targetId || !calEvents[targetId]) return;
+	openEventDeleteConfirm(targetId);
+}
+function openEventDeleteConfirm(id){
+	eventDeleteTargetId=id;
+	const e=calEvents[id];
+	document.getElementById("eventDeleteConfirmText").textContent=
+		'"'+((e&&e.ad)||"Etkinlik")+'" etkinliği takvimden silinecek. Emin misiniz?';
+	document.getElementById("eventDeleteConfirmModalBg").classList.add("open");
+}
+function closeEventDeleteConfirm(){
+	document.getElementById("eventDeleteConfirmModalBg").classList.remove("open");
+	eventDeleteTargetId=null;
+}
+async function executeEventDelete(){
+	if(!requireEdit() || !eventDeleteTargetId) return;
 	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return; }
-	const e=calEvents[calEditingId]; const ad=e?(e.ad||"Etkinlik"):"Etkinlik";
-	if(!confirm('"'+ad+'" etkinliği takvimden silinecek. Emin misin?')) return;
+	const id=eventDeleteTargetId;
+	const e=calEvents[id];
+	if(!e){ closeEventDeleteConfirm(); return; }
+	const ad=e.ad||"Etkinlik";
 	try{
-		await database.ref("etkinlikler/"+calEditingId).remove();
-		if(currentUser){
-			database.ref("logs/etkinlik").push({
-				by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
-				email: currentUser.email, action: evLogName(ad)+" etkinliği takvimden silindi"+(e&&e.tarih?" · "+EVENT_LOG_LABELS.tarih+": "+fmtTrDate(e.tarih):"")+(e&&e.yer?" · "+EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer):""), target: ad, timestamp: Date.now()
-			}).catch(function(){});
-		}
-		closeEventModal(); closeEventPeek(); showToast("Etkinlik silindi.", "warn");
+		const before=Object.assign({}, e);   // Ctrl+Z icin tam kopya
+		await database.ref("etkinlikler/"+id).remove();
+		delete calEvents[id];
+		logEventAction(evLogName(ad)+" etkinliği takvimden silindi"+(e.tarih?" · "+EVENT_LOG_LABELS.tarih+": "+fmtTrDate(e.tarih):"")+(e.yer?" · "+EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer):""), ad);
+		pushUndo({ type:"delete", id:id, before:before, after:null });
+		closeEventDeleteConfirm(); closeEventModal(); closeEventPeek();
+		renderCalendar();
+		showToast("Etkinlik silindi. (Ctrl+Z ile geri alınabilir)", "warn");
 	}catch(err){
 		console.error("Etkinlik silinemedi:", err);
 		const reason = (err && (err.code || err.message)) ? (" (" + (err.code || err.message) + ")") : "";
 		showToast("Etkinlik silinemedi" + reason + ".", "error");
 	}
 }
+
+/* --- CTRL+Z: son takvim islemini geri alma --- */
+function pushUndo(entry){
+	entry.ts=Date.now();
+	undoStack.push(entry);
+	if(undoStack.length>UNDO_STACK_LIMIT) undoStack.shift();
+}
+
+// Geri alma uygulanmadan HEMEN ONCE kaydin hala bekledigimiz durumda olup olmadigini alan alan
+// karsilastirir. guncellemeTs'e GUVENILMEZ: calDrop bu alani hic guncellemiyor.
+function eventStatesDiffer(a, b){
+	a=a||{}; b=b||{};
+	const keys=["ad","tur","durum","tarih","saat","bitisSaat","yer","birim","planlayan","gorevli","arsiv","not","locked"];
+	for(let i=0;i<keys.length;i++){
+		const k=keys[i];
+		const av=(a[k]===undefined||a[k]===null)?"":a[k];
+		const bv=(b[k]===undefined||b[k]===null)?"":b[k];
+		if(String(av)!==String(bv)) return true;
+	}
+	return evAttNames(a.katilimcilar).join("|")!==evAttNames(b.katilimcilar).join("|");
+}
+
+async function undoLastCalendarAction(){
+	if(!undoStack.length){ showToast("Geri alınacak bir işlem yok.", "warn"); return; }
+	if(!requireEdit()) return;
+	const entry=undoStack.pop();
+	const current=calEvents[entry.id];
+	const adName=evLogName((entry.before&&entry.before.ad)||(entry.after&&entry.after.ad));
+
+	if(entry.type==="delete"){
+		if(current){ showToast('"'+adName+'" bu arada zaten geri gelmiş görünüyor, geri alma iptal edildi.', "error"); return; }
+	} else if(!current || eventStatesDiffer(current, entry.after)){
+		showToast('"'+adName+'" bu arada başka biri tarafından değiştirilmiş, geri alma iptal edildi.', "error");
+		return;
+	}
+
+	undoCount++;
+	let ok=false;
+	if(entry.type==="create"){
+		try{
+			await database.ref("etkinlikler/"+entry.id).remove();
+			delete calEvents[entry.id];
+			logEventAction(adName+" etkinliğinin eklenmesi geri alındı (Ctrl+Z, oturumda #"+undoCount+")", adName);
+			ok=true;
+		}catch(err){ console.error("Geri alma başarısız:", err); showToast("Geri alma başarısız oldu.", "error"); }
+	} else if(entry.type==="delete"){
+		const createSummary=describeEventCreation(entry.before);
+		const label=adName+" etkinliğinin silinmesi geri alındı (Ctrl+Z, oturumda #"+undoCount+")"+(createSummary.length?" · "+createSummary.join(" · "):"");
+		const res=await persistEvent(entry.id, entry.before, label);
+		if(res) calEvents[entry.id]=entry.before;
+		ok=!!res;
+	} else {
+		const changes=describeEventChanges(entry.after, entry.before);
+		const label=adName+" etkinliğinin "+(entry.type==="move"?"taşınması":"düzenlemesi")+" geri alındı (Ctrl+Z, oturumda #"+undoCount+")"+(changes.length?" · "+changes.join(" · "):"");
+		const res=await persistEvent(entry.id, entry.before, label);
+		if(res) calEvents[entry.id]=entry.before;
+		ok=!!res;
+	}
+
+	if(ok){
+		showToast("Geri alındı. (Ctrl+Z, oturumda #"+undoCount+")", "success");
+		renderCalendar();
+	} else {
+		undoCount--;
+		undoStack.push(entry); // gecici hata (ag vb.): tekrar denenebilsin diye yigina geri konur
+	}
+}
+
+// Kopya-koruma dinleyicisinden (COPY_GUARD_ENABLED blogu) BILEREK ayri tutulur: o katman farkli
+// bir amaca (telif caydiriciligi) hizmet ediyor. Takvim kapaliyken devreye girmez; form
+// alanlarinda (input/textarea/select/contenteditable) tarayicinin kendi metin-undo'sunu
+// bozmaz. Ctrl+Shift+Z (yaygin "redo" kisayolu) bilerek YOK SAYILIR.
+document.addEventListener("keydown", function(e){
+	const k=(e.key||"").toLowerCase();
+	if(!(e.ctrlKey||e.metaKey) || k!=="z" || e.shiftKey) return;
+	if(e.repeat) return;
+	const el=e.target;
+	if(el && el.closest && el.closest("input, textarea, select, [contenteditable='true']")) return;
+	const overlay=document.getElementById("calendarOverlay");
+	if(!overlay || !overlay.classList.contains("open")) return;
+	e.preventDefault();
+	undoLastCalendarAction();
+});
 
 /* ================= HABER ŞABLONLARI ================= */
 // Şablonlar artık admin panelinden düzenlenmiyor; sabit (aşağıdaki) varsayılan liste kullanılır.
