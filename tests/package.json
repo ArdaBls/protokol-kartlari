@@ -1,0 +1,8 @@
+{
+	"name": "protokol-kartlari-tests",
+	"private": true,
+	"description": "Playwright regresyon testleri. Sitenin kendisi (index.html) hicbir build adimi gerektirmez - bu klasor sadece test altyapisidir, GitHub Actions'ta 'Regresyon Testi' workflow'u tarafindan kullanilir.",
+	"devDependencies": {
+		"playwright": "1.56.0"
+	}
+}

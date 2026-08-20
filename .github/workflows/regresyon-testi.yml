@@ -1,0 +1,52 @@
+# Admin panelindeki "Testi Çalıştır" butonu bu workflow'un sayfasını açar; buradaki
+# "Run workflow" tıklandığında tetiklenir (workflow_dispatch). Otomatik push/PR
+# tetikleyicisi BİLEREK yok — sadece admin panelinden bilinçli tetikleme istendi.
+name: Regresyon Testi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Playwright ve Chromium kur
+        working-directory: tests
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Regresyon testlerini çalıştır
+        working-directory: tests
+        run: |
+          overall=0
+          for f in smoke-test.js notes-fix-test.js news-template-test.js news-rich-template-test.js calendar-lock-undo-test.js admin-test-panel-test.js; do
+            echo "::group::$f"
+            node "$f" || overall=1
+            echo "::endgroup::"
+          done
+          if [ "$overall" -ne 0 ]; then
+            echo "::error::Bir veya daha fazla test basarisiz oldu - yukaridaki gruplarda 'ALL_TESTS_PASSED: false' ve 'BASARISIZ ALANLAR' satirlarina bak."
+          fi
+          exit $overall
+
+      - name: Ekran görüntüsünü sakla (varsa)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshot
+          path: tests/smoke-screenshot.png
+          if-no-files-found: ignore
+          retention-days: 14
