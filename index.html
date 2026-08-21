@@ -15,7 +15,7 @@
 <html lang="tr">
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 		<title>OMÜ Protokol Kartları</title>
 		<link rel="manifest" href="manifest.json">
 		<meta name="theme-color" content="#16233d">
@@ -395,6 +395,8 @@
 			/* ---- Kilit ikonu: tiklaninca suruklemeyi engeller/acar ---- */
 			.cal-lock-ico{ position:absolute; bottom:2px; right:2px; z-index:4; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; padding:0; border-radius:4px; background:rgba(255,255,255,.7); cursor:pointer; opacity:.55; }
 			.cal-lock-ico:hover{ opacity:1; }
+			/* Dokunmatikte hover yok: taban opaklik yukseltilir, dokunma alani buyutulur. */
+			@media (pointer: coarse){ .cal-lock-ico{ opacity:.8; } .cal-lock-ico::after{ content:""; position:absolute; inset:-10px; } }
 			/* Kilitliyken sadece 🔒/🔓 sekline guvenmiyoruz: kirmizi halka + belirgin
 			   arka plan ikinci bir gorsel kanal olarak durumu acikca ayirt ettiriyor. */
 			.cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
@@ -425,8 +427,14 @@
 			.cal-mdayhead{ display:flex; align-items:center; justify-content:space-between; height:21px; flex-shrink:0; }
 			.cal-mdaynum{ font-size:12px; font-weight:600; color:var(--ink); padding:0 3px; }
 			.cal-mday.today .cal-mdaynum{ background:var(--today); color:#fff; border-radius:50%; width:21px; height:21px; display:flex; align-items:center; justify-content:center; font-size:12px; }
-			.cal-mdayadd{ opacity:0; background:none; border:none; color:var(--muted); font-size:15px; line-height:1; cursor:pointer; padding:0 3px; border-radius:4px; }
-			.cal-mday:hover .cal-mdayadd{ opacity:1; }
+			/* Dokunmatik cihazda :hover hic tetiklenmez; opacity:0 kalirsa buton KALICI
+			   olarak gorunmez olur ve ay gorunumunden gune etkinlik eklenemez. Bu yuzden
+			   taban gorunur, gizleme yalnizca gercek fareli cihazlara uygulanir. */
+			.cal-mdayadd{ opacity:.5; background:none; border:none; color:var(--muted); font-size:15px; line-height:1; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; padding:0; border-radius:4px; flex-shrink:0; }
+			@media (hover: hover) and (pointer: fine){
+				.cal-mdayadd{ opacity:0; }
+				.cal-mday:hover .cal-mdayadd{ opacity:1; }
+			}
 			.cal-mdayadd:hover{ background:var(--surface-hover); color:var(--navy); }
 			body.is-readonly .cal-mdayadd{ display:none; }
 			.cal-more{ font-size:11px; color:var(--muted); font-weight:600; padding:1px 5px; cursor:pointer; background:none; border:none; text-align:left; font-family:inherit; }
@@ -435,10 +443,10 @@
 			/* ---- Yıl görünümü ---- */
 			.cal-year-grid{ max-width:1040px; margin:0 auto; width:100%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; align-content:start; }
 			.cal-year-month{ border:1px solid var(--divider); border-radius:10px; padding:10px; }
-			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; }
+			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; grid-template-columns:repeat(7,minmax(0,1fr)); }
 			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
 			.cal-year-month-title:hover{ text-decoration:underline; }
-			.cal-year-day{ position:relative; height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; border:none; background:none; border-radius:5px; cursor:pointer; color:var(--ink); font-family:inherit; padding:0; }
+			.cal-year-day{ position:relative; min-width:0; height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; border:none; background:none; border-radius:5px; cursor:pointer; color:var(--ink); font-family:inherit; padding:0; }
 			.cal-year-day:hover{ background:var(--surface-hover-2); }
 			.cal-year-day.today{ background:var(--today); color:#fff; font-weight:700; }
 			.cal-year-day.empty{ visibility:hidden; cursor:default; }
@@ -599,7 +607,6 @@
 			/* --- MOBİL UYUMLULUK --- */
 			@media (max-width: 600px) {
 				header { padding-bottom: 16px; }
-				h1 { padding-right: 0; }
 				.header-auth .btn-auth, .header-auth .user-chip { font-size: 12px; padding: 6px 9px; }
 
 				.controlbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px; }
@@ -706,6 +713,106 @@
 				Sadece overflow:hidden mobilde (özellikle iOS Safari) dokunmatik kaydırmayı engellemeye yetmiyor;
 				position:fixed ise body'yi akıştan tamamen çıkarıp gerçekten kilitliyor. */
 			body.scroll-locked{ position:fixed; left:0; right:0; overflow:hidden; }
+
+			/* =====================================================================
+			   MOBIL DUZELTMELERI
+			   Asagidaki kurallar, gercek cihaz genisliklerinde (320/360/375/414/768)
+			   olculerek tespit edilen somut kirilmalari giderir. Her blok, neyi
+			   duzelttigini acikca soyler ki ileride yanlislikla kaldirilmasin.
+			   ===================================================================== */
+
+			/* Admin paneli sekmeleri: dort Turkce etiket <=360px'te satira sigmiyor ve
+			   "Test" sekmesi ekranin disinda kaliyordu (ulasilamaz). 2x2 izgara cozer. */
+			.field-row .field.f-prefix{ flex:0 0 140px; }
+			.admin-tabs{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+			.admin-tabs .btn{ padding:10px 6px; font-size:13px; min-width:0; }
+			@media (min-width: 560px){ .admin-tabs{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+
+			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */
+			header{ padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
+			.calendar-fab, .faculty-fab{ bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+
+			/* Kart "kalkma" efekti dokunmatikte YAPISKAN kalir (dokunulan kart kalkik durur).
+			   Bu yuzden yalnizca gercek fareli cihazlarda uygulanir. */
+			@media (hover: none){
+				.card:hover{ transform:none; }
+				.card.bulk-mode:hover{ transform:none; }
+			}
+
+			@media (max-width: 900px){
+				/* iOS Safari, font-size < 16px olan bir alana odaklaninca sayfayi otomatik
+				   yakinlastirir ve GERI UZAKLASTIRMAZ. Etkinlik formunda 12+ alan var; her
+				   dokunusta sayfa ziplayip yakinlasmis kaliyordu. Haber modalindaki alanlar
+				   satir ici style kullandigi icin !important gerekiyor. */
+				input, select, textarea, .af-input, .ev-att-search, .cal-jump{ font-size:16px !important; }
+			}
+
+			@media (max-width: 760px){
+				/* YIL GORUNUMU: 4 sutun mobilde her ay kartini ~36px tasitiyor, aylar
+				   ust uste biniyor ve gun hucreleri 11px genislige dusuyordu (dokunulamaz). */
+				.cal-year-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px 12px 60px; }
+				.cal-year-month .cal-mini-grid{ grid-auto-rows:32px; }
+				.cal-year-day{ height:32px; font-size:12px; }
+			}
+			@media (max-width: 430px){
+				.cal-year-grid{ grid-template-columns:minmax(0,1fr); }
+			}
+
+			@media (max-width: 700px){
+				/* AY GORUNUMU: dar hucrede etkinlik adi harf harf sariyor ("B / O / T")
+				   ve hicbir etkinlik okunamiyordu. Tek satir + ucu uc nokta olmali. */
+				.cal-block.compact .bt{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1; }
+				/* 16px kilit ikonu, 44px genisligindeki cipin ucte birini yiyordu ve yeni
+				   etkinlikler artik VARSAYILAN kilitli geldigi icin neredeyse her cipte
+				   cikip basligi "B.." gibi okunamaz hale getiriyordu. Kilidin tek amaci
+				   yanlislikla SURUKLEMEYI engellemek; HTML5 surukle-birak ise dokunmatik
+				   cihazlarda zaten hic calismiyor. Bu yuzden yogun ay gorunumunde mobilde
+				   tamamen gizlenir -- kilit gun/hafta gorunumunden ve detay panelinden
+				   gorulup degistirilmeye devam eder. */
+				.cal-mday .cal-block.compact .cal-lock-ico{ display:none; }
+				/* Takvim ust barindaki "<" ve ">" oklarinin dokunma alanlari (::after inset:-8px)
+				   5px'lik bosluk yuzunden CAKISIYORDU: "onceki ay" okunun sag kenarina basmak
+				   "sonraki ay"i tetikliyordu. Butonlar buyutulup genisletici kaldirilir. */
+				.cal-topbar{ gap:10px; }
+				.cal-iconbtn{ width:38px; height:38px; }
+				.cal-iconbtn::after{ inset:0; }
+				/* Bos esnek bosluk 320px'te tek basina bir satir kaplayip ust bari 5 satira cikariyordu. */
+				.cal-spacer{ display:none; }
+			}
+
+			@media (max-width: 600px){
+				/* KRITIK: .header-auth position:absolute oldugu icin akistan cikmis; giris
+				   yapmis kullanicida "Ad Soyad · Admin" rozeti ve "Cikis" butonu dogrudan
+				   "OMU BASIN" ve "Protokol Kartlari" basliklarinin UZERINE biniyordu.
+				   Mobilde akisa geri alinir. */
+				.header-auth{ position:static; align-items:flex-start; margin:0 0 12px; }
+				.header-auth .ha-row1, .header-auth .ha-row2{ justify-content:flex-start; }
+			}
+
+			@media (max-width: 480px){
+				/* "Unvan On Eki" sabit 140px aldigi icin 320px'te "Isim Soyisim" alanina
+				   yalnizca 94px kaliyordu. Dar ekranda alt alta gecerler. */
+				.field-row{ flex-wrap:wrap; }
+				.field-row .field{ min-width:0; }
+				/* Dar ekranda on ek tam genislik alip alt satira gecer; boylece
+				   "Isim Soyisim" alani 94px yerine tam genislikte olur. */
+				.field-row .field.f-prefix{ flex:1 1 100%; }
+			}
+			@media (max-width: 400px){
+				/* min-width:140px yuzunden siralama modu 320px'te tek sutuna dusuyordu. */
+				.reorder-row{ min-width:0; }
+			}
+
+			/* Dokunmatik cihazlarda kucuk ikonlarin gorsel boyutu degistirilmeden
+			   dokunma alani buyutulur (dosyada .cal-iconbtn icin zaten kullanilan teknik). */
+			@media (pointer: coarse){
+				.cal-ev-edit-ico, .clear-btn, .fsheet-close, .af-close, .close-x{ position:relative; }
+				.cal-ev-edit-ico::after, .clear-btn::after, .fsheet-close::after,
+				.af-close::after, .close-x::after{ content:""; position:absolute; inset:-10px; }
+				.cal-ev-edit-ico{ opacity:.75; }
+				.cal-viewbtn{ padding:9px 11px; }
+				.foot-link{ padding:8px 4px; }
+			}
 		</style>
 	</head>
 	<body class="is-readonly">
@@ -966,7 +1073,7 @@
 				<p class="hint" id="modalHint">Bilgileri doldur, fotoğraf otomatik kareye sığdırılır.</p>
 				<form id="personForm" onsubmit="return false;" onkeydown="handleFormKeydown(event)">
 					<div class="field-row">
-						<div class="field" style="flex: 0 0 140px;">
+						<div class="field f-prefix">
 							<label>Unvan Ön Eki</label>
 							<select id="f_prefix">
 								<option value="">(Yok)</option>
@@ -1232,11 +1339,11 @@
 			<div class="modal" style="max-width:640px;">
 				<button class="close-x" onclick="closeAdminPanel()">✕</button>
 				<h2>Admin Paneli</h2>
-				<div style="display:flex; gap:8px; margin-bottom:14px;">
-					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')" style="flex:1;">Kullanıcılar</button>
-					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')" style="flex:1;">Geçmiş</button>
-					<button class="btn btn-ghost" id="adminTabBackupBtn" onclick="switchAdminTab('backup')" style="flex:1;">Yedekleme</button>
-					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')" style="flex:1;">Test</button>
+				<div class="admin-tabs">
+					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')">Kullanıcılar</button>
+					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')">Geçmiş</button>
+					<button class="btn btn-ghost" id="adminTabBackupBtn" onclick="switchAdminTab('backup')">Yedekleme</button>
+					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')">Test</button>
 				</div>
 				<div id="adminUsersView">
 					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
@@ -1668,6 +1775,10 @@
 			let people = [];
 			let mode = "aktif"; 
 			let editIndex = null;
+			// Duzenleme modali acildiginda hedef kaydin kimlik imzasi (ad+unvan). Kisiler dizi
+			// INDEKSIYLE tutuldugu icin, baska bir editor arada kayit silerse indeksler kayar ve
+			// kaydetme yanlis kisinin uzerine yazardi; bu imza ile o durum yakalanir.
+			let editIdentity = null;
 			let singlePermDeleteIdx = null; 
 			let sortableInstances = [];
 			let openedRanks = new Set(); 
@@ -2284,7 +2395,7 @@
 				const hasRank = p.rank !== undefined && p.rank !== null && p.rank !== "";
 				const destLabel = restoredStatus === "pasif" ? "arşive (pasif)" : "aktif listeye";
 				const label = (p.name || "Kayıt") + " kişisi yeniden " + destLabel + " katıldı" + (hasRank ? (", " + p.rank + ". sıraya") : "");
-				await saveData(label, p.name); showToast(restoredStatus === "pasif" ? "Kayıt arşive (pasif) geri alındı." : "Kayıt aktif klasörüne geri alındı."); render();
+				const rOk = await saveData(label, p.name); render(); if (!rOk) return; showToast(restoredStatus === "pasif" ? "Kayıt arşive (pasif) geri alındı." : "Kayıt aktif klasörüne geri alındı.");
 			}
 
 			function openSinglePermDelete(idx) { singlePermDeleteIdx = idx; closeModal(); document.getElementById("singlePermDeleteModalBg").classList.add("open"); }
@@ -2296,7 +2407,7 @@
 					people.splice(singlePermDeleteIdx, 1);
 					// Dizi yeniden indekslendi: "Rektörlük / Merkez" seçimi indeks tuttuğu için artık başka kişiyi işaret eder.
 					selectedCentralAdminIdx.clear();
-					await saveData(name + " kişisi kalıcı olarak silindi", name); closeSinglePermDelete(); showToast("Kayıt kalıcı olarak yok edildi.", "warn"); render();
+					const spOk = await saveData(name + " kişisi kalıcı olarak silindi", name); closeSinglePermDelete(); render(); if (!spOk) return; showToast("Kayıt kalıcı olarak yok edildi.", "warn");
 				}
 			}
 
@@ -2307,7 +2418,7 @@
 				const removedCount = people.filter(function(p) { return p.status === "silindi"; }).length;
 				people = people.filter(p => p.status !== "silindi");
 				selectedCentralAdminIdx.clear();
-				await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)"); closeEmptyTrashModal(); showToast("Çöp kutusu tamamen boşaltıldı.", "warn"); render();
+				const etOk = await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)"); closeEmptyTrashModal(); render(); if (!etOk) return; showToast("Çöp kutusu tamamen boşaltıldı.", "warn");
 			}
 
 			async function sortRankGroupByName(evt, key) {
@@ -2324,7 +2435,8 @@
 
 				groupPeople.forEach((o, i) => { people[o.idx].order = i + 1; });
 				const groupLabel = key === "__none__" ? "Sırasız" : ("Sıra " + key);
-				await saveData(groupLabel + " grubu (" + groupPeople.length + " kişi) isme göre A-Z sıralandı");
+				const srtOk = await saveData(groupLabel + " grubu (" + groupPeople.length + " kişi) isme göre A-Z sıralandı");
+				if (!srtOk) { render(); return; }
 				showToast("İsim sırasına göre düzenlendi.", "success");
 				render();
 			}
@@ -2477,7 +2589,9 @@
 					const draggedIdx = Number(evt.item.dataset.realIdx);
 					const draggedName = (people[draggedIdx] && people[draggedIdx].name) ? people[draggedIdx].name : "Kayıt";
 					const rankKey = subgrid.dataset.rankKey === "__none__" ? "Sırasız" : ("Sıra " + subgrid.dataset.rankKey);
-					await saveData(draggedName + " kişisi " + rankKey + " içinde " + (evt.newIndex + 1) + ". konuma sürüklendi", draggedName);
+					// Surukleme kaydedilemezse ekrandaki yeni dizilim yaniltici olur; liste geri cizilir.
+					const dragOk = await saveData(draggedName + " kişisi " + rankKey + " içinde " + (evt.newIndex + 1) + ". konuma sürüklendi", draggedName);
+					if (!dragOk) render();
 					}
 				}); sortableInstances.push(inst);
 				});
@@ -2621,7 +2735,7 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
-			editIndex = idx; resetForm();
+			editIndex = idx; editIdentity = String(p.name || "") + "|" + String(p.title || ""); resetForm();
 			document.getElementById("f_prefix").value = p.prefix || ""; document.getElementById("f_name").value = p.name || ""; document.getElementById("f_title").value = p.title || "";
 			document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
 			document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
@@ -2743,12 +2857,24 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				// İki editör aynı anda kişi eklerse ikisi de people.length-1 ile AYNI indekse yazıp birbirini siliyordu.
 				// Yazmadan hemen önce sunucudaki güncel liste okunarak bu pencere daraltılır.
 				if (database && LIST_PATHS[currentListKey]) {
-					try { const fresh = await database.ref(LIST_PATHS[currentListKey]).once("value"); people = normalizePeopleSnapshot(fresh.val()); } catch (err) {}
+					// Bu okuma, yeni kisi eklemede eszamanli yazma korumasinin TAMAMI. Sessizce
+					// basarisiz olursa koruma da sessizce yok olur; en azindan konsola yazilir.
+					try { const fresh = await database.ref(LIST_PATHS[currentListKey]).once("value"); people = normalizePeopleSnapshot(fresh.val()); }
+					catch (err) { console.warn("Güncel liste okunamadı, yerel listeye göre kaydediliyor:", err); showToast("Sunucudaki güncel liste okunamadı; kayıt yerel listeye göre yapılıyor.", "warn"); }
 				}
 				people.push(record); targetIdx = people.length - 1;
 				const newRank = (record.rank !== "" && record.rank !== undefined && record.rank !== null) ? Number(record.rank) : null;
 				actionLabel = name + " kişisi eklendi" + (newRank !== null ? ", " + newRank + ". sıra" : "");
 			} else {
+				// Modal acildigindan beri indeksin hala AYNI kisiyi gosterdigi dogrulanir.
+				// Eslesmiyorsa (baska bir editor kayit silmis/eklemis) yazma iptal edilir --
+				// aksi halde bambaska birinin adi/unvani/fotografi sessizce ezilirdi.
+				const curP = people[editIndex];
+				const curIdentity = curP ? (String(curP.name || "") + "|" + String(curP.title || "")) : null;
+				if (!curP || (editIdentity !== null && curIdentity !== editIdentity)) {
+					showToast("Liste başka bir kullanıcı tarafından değiştirildi, kayıt yapılmadı. Lütfen tekrar deneyin.", "error");
+					closeModal(); render(); return;
+				}
 				oldRecord = Object.assign({}, people[editIndex]);
 				people[editIndex] = Object.assign({}, people[editIndex], record);
 				targetIdx = editIndex;
@@ -2778,11 +2904,18 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			async function executeDelete() {
 				if (!requireEdit()) return;
 				if(editIndex === null) return;
-				const name = (people[editIndex] && people[editIndex].name) ? people[editIndex].name : "Kayıt";
-				people[editIndex].prevStatus = people[editIndex].status || "aktif";
-				people[editIndex].status = "silindi";
-				await saveData(name + " kişisi çöpe atıldı", name);
-				document.getElementById("confirmModalBg").classList.remove("open"); showToast("Kayıt çöpe atıldı.", "warn");
+				// Bir onceki satir people[editIndex]'in yok olabilecegini kabul ediyordu ama
+				// devami korumasizdi: uzaktan silinen bir kayitta TypeError firlatip sessizce
+				// duruyordu (modal acik kalir, kullanici sildigini sanirdi).
+				const delP = people[editIndex];
+				if (!delP) { showToast("Kayıt bulunamadı, liste yenilendi.", "error"); document.getElementById("confirmModalBg").classList.remove("open"); closeModal(); render(); return; }
+				const name = delP.name || "Kayıt";
+				delP.prevStatus = delP.status || "aktif";
+				delP.status = "silindi";
+				const delOk = await saveData(name + " kişisi çöpe atıldı", name);
+				document.getElementById("confirmModalBg").classList.remove("open");
+				if (!delOk) { render(); return; }
+				showToast("Kayıt çöpe atıldı.", "warn");
 			}
 
 			function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], {type: mimeType}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url); }
@@ -2871,7 +3004,12 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 								tarih: String(item.tarih), saat: item.saat ? String(item.saat) : "", bitisSaat: item.bitisSaat ? String(item.bitisSaat) : "",
 								yer: item.yer ? String(item.yer) : "", birim: item.birim ? String(item.birim) : "",
 								planlayan: item.planlayan ? String(item.planlayan) : "", gorevli: item.gorevli ? String(item.gorevli) : "",
-								katilimcilar: Array.isArray(item.katilimcilar) ? item.katilimcilar : [],
+								// katilimcilar dizisi de digerleri gibi normalize edilir; ham nesne gecirmek
+								// bozuk yedeklerde beklenmedik alanlari veritabanina tasiyordu.
+								katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter(function(a){ return a && typeof a === "object"; }).map(function(a){ return { prefix: String(a.prefix || ""), name: String(a.name || ""), title: String(a.title || "") }; }),
+								// "locked" burada yazilmazsa yedekten geri yuklemede TUM etkinliklerin
+								// kilidi sessizce acilir (yanlislikla surukleme korumasi kaybolur).
+								locked: !!item.locked,
 								arsiv: item.arsiv ? String(item.arsiv) : "", not: item.not ? String(item.not) : "",
 								olusturan: item.olusturan ? String(item.olusturan) : "", olusturmaTs: item.olusturmaTs || Date.now(), guncellemeTs: Date.now()
 							};
@@ -3643,11 +3781,15 @@ async function eventQuickStamp(){
 	}
 	patch.guncellemeTs=Date.now();
 	const stampChanges=describeEventChanges(e, patch);
-	const ok=await persistEvent(calPeekedId, patch, evLogName(label)+(stampChanges.length?" · "+stampChanges.join(" · "):""));
+	// calPeekedId GLOBAL: await suresince panel kapatilirsa null olur ve asagida
+	// calEvents[null] adinda HAYALET bir kayit olusurdu (takvimde cift gorunum +
+	// Ctrl+Z'de veritabanina kopya ekleme). Id await'ten ONCE sabitlenir.
+	const peekId = calPeekedId;
+	const ok=await persistEvent(peekId, patch, evLogName(label)+(stampChanges.length?" · "+stampChanges.join(" · "):""));
 	if(!ok) return;
-	calEvents[calPeekedId]=patch;
-	pushUndo({ type:"edit", id:calPeekedId, before:before, after:Object.assign({},patch) });
-	openEventPeek(calPeekedId);
+	calEvents[peekId]=patch;
+	pushUndo({ type:"edit", id:peekId, before:before, after:Object.assign({},patch) });
+	openEventPeek(peekId);
 	renderCalendar();
 	showToast(toast, "success");
 }
@@ -3852,6 +3994,9 @@ function logEventAction(action, target){
 // basarisizlikta false. {ok:true,...} bir NESNE oldugundan "truthy"dir; bu yuzden eski
 // `if(!ok) return;` tarzi kontroller (eventQuickStamp, saveEvent) KIRILMADAN calismaya devam eder.
 async function persistEvent(id, obj, logLabel){
+	// id "undefined"/null gelirse asagisi sessizce push() ile YENI kayit olusturur;
+	// bu, guncelleme sanilan bir islemin kopya uretmesi demektir. Acikca reddedilir.
+	if(id !== null && id !== undefined && typeof id !== "string"){ showToast("Geçersiz etkinlik kimliği.", "error"); return false; }
 	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return false; }
 	try{
 		let finalId=id;
@@ -3886,6 +4031,13 @@ async function saveEvent(){
 		katilimcilar: calAttendees.slice(), arsiv: safeLinkUrl(document.getElementById("ev_arsiv").value),
 		not: document.getElementById("ev_not").value.trim()
 	};
+	// Duzenleme modali acikken baska bir kullanici bu etkinligi silmis olabilir; o durumda
+	// asagidaki "yeni kayit" dali calisip SILINEN etkinligi geri diriltiyordu (olusturan/
+	// olusturmaTs alanlari da yanlis kisiye gecerek log ile veri celisir hale geliyordu).
+	if(calEditingId && !calEvents[calEditingId]){
+		showToast("Bu etkinlik başka bir kullanıcı tarafından silinmiş.", "error");
+		closeEventModal(); return;
+	}
 	const eski = calEditingId ? calEvents[calEditingId] : null;
 	// "locked" burada elle tasinmazsa formdan HERHANGI bir alan degistirilip kaydedildiginde
 	// sessizce kaybolur (persistEvent .set() ile TAM UZERINE yaziyor, .update() degil).
@@ -3906,10 +4058,14 @@ async function saveEvent(){
 	} else {
 		label = adSafe+" etkinliği takvime eklendi ("+fmtTrDate(tarih)+(saat?", "+saat:"")+") · "+describeEventCreation(obj).join(" · ");
 	}
-	const res=await persistEvent(calEditingId, obj, label);
+	// calEditingId GLOBAL: await suresince kullanici "Vazgec"/"X" derse null olur ve
+	// asagidaki dal yanlis calisip undo yigina "create" yazardi -> sonraki Ctrl+Z
+	// sadece duzenlenen etkinligi SILERDI. Bu yuzden id await'ten ONCE sabitlenir.
+	const editingId = calEditingId;
+	const res=await persistEvent(editingId, obj, label);
 	if(!res) return;
 	// Ctrl+Z yigina eklenir: duzenlemede onceki hal saklanir, olusturmada yeni push-key kullanilir.
-	if(calEditingId){ calEvents[calEditingId]=obj; pushUndo({ type:"edit", id:calEditingId, before:Object.assign({},eski), after:Object.assign({},obj) }); }
+	if(editingId){ calEvents[editingId]=obj; pushUndo({ type:"edit", id:editingId, before:Object.assign({},eski), after:Object.assign({},obj) }); }
 	else { calEvents[res.id]=obj; pushUndo({ type:"create", id:res.id, before:null, after:Object.assign({},obj) }); }
 	closeEventModal(); showToast("Etkinlik kaydedildi.", "success");
 }
