@@ -1,6 +1,6 @@
 # Protokol Kartları
 
-Ondokuz Mayıs Üniversitesi Basın ve Halkla İlişkiler için etkinlik öncesi/sonrası protokoldeki kişileri hızlı tanıma kartları ve etkinlik takvimi uygulaması.
+Basın ve Halkla İlişkiler için etkinlik öncesi/sonrası protokoldeki kişileri hızlı tanıma kartları ve etkinlik takvimi uygulaması.
 
 **Canlı site:** https://ardabls.github.io/protokol-kartlari/
 
