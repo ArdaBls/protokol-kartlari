@@ -432,6 +432,19 @@
 			.cal-more{ font-size:11px; color:var(--muted); font-weight:600; padding:1px 5px; cursor:pointer; background:none; border:none; text-align:left; font-family:inherit; }
 			.cal-more:hover{ color:var(--navy); }
 
+			/* ---- Yıl görünümü ---- */
+			.cal-year-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; align-content:start; }
+			.cal-year-month{ border:1px solid var(--divider); border-radius:10px; padding:10px; }
+			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; }
+			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
+			.cal-year-month-title:hover{ text-decoration:underline; }
+			.cal-year-day{ position:relative; height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; border:none; background:none; border-radius:5px; cursor:pointer; color:var(--ink); font-family:inherit; padding:0; }
+			.cal-year-day:hover{ background:var(--surface-hover-2); }
+			.cal-year-day.today{ background:var(--today); color:#fff; font-weight:700; }
+			.cal-year-day.empty{ visibility:hidden; cursor:default; }
+			.cal-year-dot{ position:absolute; bottom:1px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; }
+			.cal-year-day.today .cal-year-dot{ background:#fff; }
+
 			/* ---- Liste görünümü ---- */
 			.cal-list{ max-width:780px; margin:0 auto; width:100%; display:flex; flex-direction:column; padding:18px 16px 60px; }
 			.cal-list-wrap{ flex:1; min-height:0; overflow-y:auto; }
@@ -444,13 +457,16 @@
 			.cal-ev-dot{ flex-shrink:0; width:9px; height:9px; border-radius:3px; margin-top:4px; }
 			.cal-ev-time{ flex-shrink:0; width:44px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--muted); padding-top:2px; }
 			.cal-ev-main{ min-width:0; flex:1; }
-			.cal-ev-name{ font-size:14px; font-weight:600; color:var(--ink); }
+			.cal-ev-name{ display:block; font-size:14px; font-weight:600; color:var(--ink); }
 			.cal-ev-name.done{ color:var(--muted); text-decoration:line-through; }
-			.cal-ev-meta{ font-size:12px; color:var(--muted); margin-top:2px; line-height:1.45; }
+			.cal-ev-meta{ display:block; font-size:12px; color:var(--muted); margin-top:2px; line-height:1.45; }
 			.cal-tag{ display:inline-block; font-size:10px; font-weight:700; padding:1.5px 8px; border-radius:20px; color:#fff; margin-right:5px; }
 			.cal-tag.ghost{ background:var(--surface-hover); color:var(--muted); }
 			.cal-detail-row .cal-tag{ font-size:13px; padding:3px 11px; }
+			.cal-ev-meta .cal-tag{ font-size:13px; padding:3px 11px; }
 			.cal-empty{ text-align:center; color:var(--muted); font-size:13px; padding:56px 16px; }
+			.cal-ev-edit-ico{ flex-shrink:0; align-self:center; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:14px; color:var(--muted); opacity:.4; transition:opacity .15s, background-color .15s; }
+			.cal-ev-edit-ico:hover{ opacity:1; background:var(--surface-hover-2); }
 
 			/* ---- Yan detay paneli ---- */
 			.cal-peek-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.28); z-index:91; display:none; }
@@ -850,6 +866,7 @@
 							<button type="button" class="cal-viewbtn" data-view="day" onclick="calSetView('day')">Gün</button>
 							<button type="button" class="cal-viewbtn active" data-view="week" onclick="calSetView('week')">Hafta</button>
 							<button type="button" class="cal-viewbtn" data-view="month" onclick="calSetView('month')">Ay</button>
+							<button type="button" class="cal-viewbtn" data-view="year" onclick="calSetView('year')">Yıl</button>
 							<button type="button" class="cal-viewbtn" data-view="list" onclick="calSetView('list')">Liste</button>
 						</div>
 						<button type="button" class="cal-addbtn" onclick="openEventModal(null)"><span class="ab-full">+ Etkinlik</span><span class="ab-short">+</span></button>
@@ -3131,6 +3148,7 @@ function calShift(dir){
 	if(calView==="day") calAnchor=addDays(calAnchor, dir);
 	else if(calView==="week") calAnchor=addDays(calAnchor, dir*calDayCount());
 	else if(calView==="month") calAnchor=new Date(calAnchor.getFullYear(), calAnchor.getMonth()+dir, 1);
+	else if(calView==="year") calAnchor=new Date(calAnchor.getFullYear()+dir, calAnchor.getMonth(), calAnchor.getDate());
 	else calAnchor=addDays(calAnchor, dir*30);
 	calMiniAnchor=new Date(calAnchor.getFullYear(), calAnchor.getMonth(), 1);
 	renderCalendar();
@@ -3154,6 +3172,7 @@ function renderCalendar(){
 	const body=document.getElementById("calMainBody"); if(!body) return;
 	if(calView==="week" || calView==="day") renderWeekView(body);
 	else if(calView==="month") renderMonthView(body);
+	else if(calView==="year") renderYearView(body);
 	else renderListView(body);
 }
 
@@ -3173,6 +3192,8 @@ function renderCalTopbar(){
 		lab.innerHTML=txt;
 	} else if(calView==="month"){
 		lab.innerHTML=CAL_MONTHS[calAnchor.getMonth()]+' <span class="yr">'+calAnchor.getFullYear()+'</span>';
+	} else if(calView==="year"){
+		lab.innerHTML=String(calAnchor.getFullYear());
 	} else {
 		lab.innerHTML='Yaklaşan Etkinlikler';
 	}
@@ -3202,17 +3223,39 @@ function renderCalMini(){
 }
 
 /* --- Sol ray: tür ve durum süzgeçleri --- */
+// Sol taraftaki etkinlik türü/durum sayaçları artık TÜM ZAMANLARIN toplamı değil, o an
+// baktığımız görünümün (gün/hafta/ay/yıl) tarih aralığıyla sınırlı. "Liste"nin kendi bir
+// tarih aralığı yoktur (bugünden ileriye açık uçludur), o yüzden listenin kendisinin de
+// kullandığı aynı aralık (dün ve sonrası) kullanılır.
+function calLegendRangeDates(){
+	if(calView==="day"){ const d0=new Date(calAnchor.getFullYear(),calAnchor.getMonth(),calAnchor.getDate()); return [d0,d0]; }
+	if(calView==="week"){
+		const dn=calDayCount();
+		const s=(dn===7)?startOfWeek(calAnchor):new Date(calAnchor.getFullYear(),calAnchor.getMonth(),calAnchor.getDate());
+		return [s, addDays(s,dn-1)];
+	}
+	if(calView==="month") return [new Date(calAnchor.getFullYear(),calAnchor.getMonth(),1), new Date(calAnchor.getFullYear(),calAnchor.getMonth()+1,0)];
+	if(calView==="year") return [new Date(calAnchor.getFullYear(),0,1), new Date(calAnchor.getFullYear(),11,31)];
+	return null;
+}
+function calLegendRangeEvents(){
+	const range=calLegendRangeDates();
+	const list=calEventList();
+	if(!range){ const today=todayDate(); return list.filter(function(e){ const d=parseKey(e.tarih); return d && d>=addDays(today,-1); }); }
+	return list.filter(function(e){ const d=parseKey(e.tarih); return d && d>=range[0] && d<=range[1]; });
+}
 function renderCalLegend(){
 	const t=document.getElementById("calTypeLegend"), s=document.getElementById("calStatusLegend");
 	if(!t||!s) return;
-	const counts={}; calEventList().forEach(function(e){ counts[e.tur||"diger"]=(counts[e.tur||"diger"]||0)+1; });
+	const rangeEvents=calLegendRangeEvents();
+	const counts={}; rangeEvents.forEach(function(e){ counts[e.tur||"diger"]=(counts[e.tur||"diger"]||0)+1; });
 	t.innerHTML=EVENT_TYPES.map(function(ty){
 		const off=calHiddenTypes.has(ty.key);
 		return '<label class="cal-legend-item'+(off?" off":"")+'"><input type="checkbox" data-type="'+ty.key+'" '+(off?"":"checked")+'>'+
 			'<span class="cal-legend-swatch" style="background:'+ty.renk+';"></span><span>'+escapeHtml(ty.ad)+'</span>'+
 			'<span class="cal-legend-count">'+(counts[ty.key]||0)+'</span></label>';
 	}).join("");
-	const sc={}; calEventList().forEach(function(e){ sc[e.durum||"planlandi"]=(sc[e.durum||"planlandi"]||0)+1; });
+	const sc={}; rangeEvents.forEach(function(e){ sc[e.durum||"planlandi"]=(sc[e.durum||"planlandi"]||0)+1; });
 	s.innerHTML=EVENT_STATUS.map(function(st){
 		const off=calHiddenStatus.has(st.key);
 		return '<label class="cal-legend-item'+(off?" off":"")+'"><input type="checkbox" data-status="'+st.key+'" '+(off?"":"checked")+'>'+
@@ -3411,6 +3454,31 @@ function renderMonthView(body){
 }
 function calGoToDayWeek(k){ const d=parseKey(k); if(!d) return; calAnchor=d; calSetView("day"); }
 
+/* --- Yıl görünümü: 12 aylık mini-takvim ızgarası, etkinlik olan güne renkli nokta --- */
+function renderYearView(body){
+	const year=calAnchor.getFullYear();
+	const today=todayDate();
+	let html='<div class="cal-year-grid">';
+	for(let m=0;m<12;m++){
+		const start=startOfWeek(new Date(year,m,1));
+		let cells='';
+		for(let i=0;i<42;i++){
+			const d=addDays(start,i);
+			if(d.getMonth()!==m){ cells+='<span class="cal-year-day empty">'+d.getDate()+'</span>'; continue; }
+			const k=dKey(d);
+			const evs=calEventsOn(k);
+			const dot=evs.length ? '<span class="cal-year-dot" style="background:'+evType(evs[0].tur).renk+';"></span>' : '';
+			const title=fmtTrDate(k)+(evs.length?(' · '+evs.length+' etkinlik'):'');
+			cells+='<button type="button" class="cal-year-day'+(isSameDay(d,today)?" today":"")+'" onclick="calGoToDay(\''+k+'\')" title="'+escapeHtml(title)+'">'+d.getDate()+dot+'</button>';
+		}
+		html+='<div class="cal-year-month"><button type="button" class="cal-year-month-title" onclick="calGoToMonth('+year+','+m+')">'+CAL_MONTHS[m]+'</button>'+
+			'<div class="cal-mini-grid">'+CAL_DOW_MINI.map(function(d){ return '<span class="cal-mini-dow">'+d+'</span>'; }).join("")+cells+'</div></div>';
+	}
+	html+='</div>';
+	body.innerHTML=html;
+}
+function calGoToMonth(y,m){ calAnchor=new Date(y,m,1); calMiniAnchor=new Date(y,m,1); calSetView("month"); }
+
 /* --- Liste görünümü --- */
 function renderListView(body){
 	const today=todayDate();
@@ -3430,7 +3498,9 @@ function renderListView(body){
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
 			'<span class="cal-ev-time">'+escapeHtml(e.saat||"—")+'</span>'+
 			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal")?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
-			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span></button>';
+			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span>'+
+			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" onclick="event.stopPropagation(); openEventModal(\''+e._id+'\')">✎</span>' : '')+
+			'</button>';
 	});
 	body.innerHTML='<div class="cal-list-wrap">'+html+'</div></div>';
 }
