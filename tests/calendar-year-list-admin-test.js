@@ -3,13 +3,14 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const ROOT = __dirname;
-const PORT = 8965;
+const SITE_ROOT = path.join(__dirname, '..'); // index.html repo kokunde, tests/ altinda degil - ROOT sadece mock dosyalari icin
+const PORT = 8967;
 
 function serve() {
 	const server = http.createServer((req, res) => {
 		let p = decodeURIComponent(req.url.split('?')[0]);
 		if (p === '/') p = '/index.html';
-		const fp = path.join(ROOT, p);
+		const fp = path.join(SITE_ROOT, p);
 		fs.readFile(fp, (err, data) => {
 			if (err) { res.writeHead(404); res.end('not found'); return; }
 			res.writeHead(200, { 'Content-Type': path.extname(fp) === '.html' ? 'text/html' : 'text/plain' });

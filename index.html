@@ -393,13 +393,13 @@
 			.cal-block.compact .bt{ font-size:11px; }
 			.cal-block.compact .bh{ font-size:9px; }
 			/* ---- Kilit ikonu: tiklaninca suruklemeyi engeller/acar ---- */
-			.cal-lock-ico{ position:absolute; bottom:2px; right:2px; z-index:4; font-size:12px; line-height:1; padding:1px 4px; border-radius:4px; background:rgba(255,255,255,.7); cursor:pointer; opacity:.55; }
+			.cal-lock-ico{ position:absolute; bottom:2px; right:2px; z-index:4; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; padding:0; border-radius:4px; background:rgba(255,255,255,.7); cursor:pointer; opacity:.55; }
 			.cal-lock-ico:hover{ opacity:1; }
 			/* Kilitliyken sadece 🔒/🔓 sekline guvenmiyoruz: kirmizi halka + belirgin
 			   arka plan ikinci bir gorsel kanal olarak durumu acikca ayirt ettiriyor. */
 			.cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
 			/* Kisa/kompakt bloklarda (ay gorunumu + 1 saatlik hafta bloklari) koseye degil kenara. */
-			.cal-block.compact .cal-lock-ico{ position:static; margin-left:auto; padding:0 3px; background:none; flex-shrink:0; border-radius:3px; }
+			.cal-block.compact .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; border-radius:3px; }
 			.cal-block.compact .cal-lock-ico.is-locked{ background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
 			.cal-block.past{ border-style:dashed; border-left-style:solid; opacity:.75; }
 			.cal-block.done .bt{ text-decoration:line-through; opacity:.7; }
@@ -407,7 +407,7 @@
 			.cal-block.dragging{ opacity:.4; }
 			.cal-allday-chip{ display:flex; align-items:center; gap:5px; border-radius:5px; padding:2.5px 7px; font-size:11px; font-weight:600; cursor:pointer; border:none; border-left:3px solid; text-align:left; font-family:inherit; overflow:hidden; }
 			.cal-allday-chip .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-			.cal-allday-chip .cal-lock-ico{ position:static; margin-left:auto; padding:0 3px; background:none; flex-shrink:0; opacity:.55; border-radius:3px; }
+			.cal-allday-chip .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; opacity:.55; border-radius:3px; }
 			.cal-allday-chip .cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
 
 			/* ---- Ay görünümü ---- */
@@ -682,6 +682,8 @@
 				.admin-user-row .au-email{ font-size:12px; color:var(--muted); }
 				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:'Roboto',sans-serif; background:#fff; cursor:pointer; }
 				.admin-user-row select:disabled{ background:#f0eee7; color:var(--muted); cursor:not-allowed; }
+				.au-basin-toggle{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; white-space:nowrap; user-select:none; }
+				.au-basin-toggle input{ cursor:pointer; }
 				.admin-user-empty{ text-align:center; color:var(--muted); font-size:13px; padding:20px; }
 				.admin-log-row{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; background:var(--card); border:1px solid var(--border-soft); border-radius:8px; font-size:13px; }
 				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; }
@@ -935,9 +937,11 @@
 					</div>
 					<div class="field"><label>Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
 					<div class="field"><label>Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
-					<div class="field-row">
-						<div class="field"><label>Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
-						<div class="field"><label>Basın Görevlisi</label><input type="text" id="ev_gorevli" placeholder="Fotoğrafçı / muhabir"></div>
+					<div class="field"><label>Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
+					<div class="field">
+						<label>Basın Görevlisi <span style="font-weight:400; color:var(--muted); font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>
+						<input type="text" class="ev-att-search" id="ev_gorevliSearch" placeholder="İsim ara…" oninput="renderPressStaffPicker()">
+						<div class="ev-attendee-box" id="ev_gorevliBox"></div>
 					</div>
 					<div class="field">
 						<label>Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
@@ -1235,7 +1239,7 @@
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')" style="flex:1;">Test</button>
 				</div>
 				<div id="adminUsersView">
-					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir.</p>
+					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "📷 Basın" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
 					<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
 				</div>
 				<div id="adminLogsView" style="display:none;">
@@ -1523,9 +1527,10 @@
 								'<option value="editor"' + (role==="editor"?' selected':'') + '>Editör</option>' +
 								'<option value="admin"' + (role==="admin"?' selected':'') + '>Admin</option>' +
 							'</select>';
+						const basinHtml = '<label class="au-basin-toggle" title="İşaretlenirse bu kişi, etkinlik formundaki Basın Görevlisi seçicisinde görünür."><input type="checkbox" ' + (u.basinGorevlisi ? "checked" : "") + ' onchange="toggleUserBasinGorevlisi(\'' + uid + '\', this.checked)">📷 Basın</label>';
 						return '<div class="admin-user-row">' +
 							'<div class="au-info"><span class="au-name">' + escapeHtml(fullName) + (isSelf ? ' <span style="color:var(--brass-text); font-weight:600;">(Siz)</span>' : '') + '</span><span class="au-email">' + escapeHtml(u.email || "") + '</span></div>' +
-							selectHtml +
+							'<div style="display:flex; align-items:center; gap:10px;">' + basinHtml + selectHtml + '</div>' +
 						'</div>';
 					}).join("");
 				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Kullanıcılar yüklenemedi.</p>'; });
@@ -1537,6 +1542,30 @@
 				if (currentUser && uid === currentUser.uid) { showToast("Kendi yetkinizi değiştiremezsiniz.", "error"); return; }
 				try { await database.ref("users/" + uid + "/role").set(newRole); showToast("Yetki güncellendi.", "success"); loadAdminUsers(); }
 				catch (err) { showToast("Yetki güncellenemedi.", "error"); }
+			}
+
+			// "basinGorevlisi" ROLDEN bagimsiz bir bayraktir: editor/admin olmayan biri bile
+			// basin gorevlisi isaretlenebilir. setUserRole fonksiyonunun aksine BURADA kendi
+			// kendini isaretlemeyi ENGELLEMIYORUZ (kullanici istegi: admin kendini de isaretleyebilsin).
+			// basinGorevlileri/{uid} ayri bir yol: tum users dugumunu (e-posta, rol, vb.)
+			// editorlere acmadan, sadece "kimler basin gorevlisi" listesini herkese okutmak icin.
+			async function toggleUserBasinGorevlisi(uid, checked) {
+				if (!requireAdmin()) return;
+				try {
+					await database.ref("users/" + uid + "/basinGorevlisi").set(checked);
+					if (checked) {
+						const snap = await database.ref("users/" + uid).once("value");
+						const u = snap.val() || {};
+						const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || "(isim yok)";
+						await database.ref("basinGorevlileri/" + uid).set(fullName);
+					} else {
+						await database.ref("basinGorevlileri/" + uid).remove();
+					}
+					showToast(checked ? "Basın görevlisi olarak işaretlendi." : "Basın görevlisi işareti kaldırıldı.", "success");
+				} catch (err) {
+					showToast("İşlem gerçekleştirilemedi.", "error");
+					loadAdminUsers();
+				}
 			}
 
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
@@ -2921,6 +2950,9 @@ let calHiddenStatus = new Set();
 let calPeekedId = null;
 let calEditingId = null;
 let calAttendees = [];           // etkinlik formunda seçili katılımcılar
+let calPressStaff = [];          // etkinlik formunda seçili basın görevlileri (isim dizisi)
+let pressOfficerPool = [];       // admin tarafından "basın görevlisi" işaretlenmiş kullanıcılar: {uid,name}
+let gorevliLoadToken = 0;        // ardışık modal açılışlarında eski bir yüklemenin geç gelip güncel seçimi ezmesini önler
 let calDragId = null;
 let eventDeleteTargetId = null;   // peek + duzenleme formu ortak silme onay modalinin hedef id'si
 let undoStack = [];               // { type:'move'|'edit'|'create'|'delete', id, before, after, ts }
@@ -3649,7 +3681,18 @@ function openEventModal(id, presetDate, presetTime){
 	document.getElementById("ev_yer").value = e ? (e.yer||"") : "";
 	document.getElementById("ev_birim").value = e ? (e.birim||"") : "";
 	document.getElementById("ev_planlayan").value = e ? (e.planlayan||"") : "";
-	document.getElementById("ev_gorevli").value = e ? (e.gorevli||"") : ((currentUser && (currentUser.firstName||"")) ? ((currentUser.firstName+" "+(currentUser.lastName||"")).trim()) : "");
+	calPressStaff = e ? parseGorevliString(e.gorevli) : [];
+	document.getElementById("ev_gorevliSearch").value="";
+	renderPressStaffPicker();
+	const gorevliToken = ++gorevliLoadToken;
+	loadPressOfficerPool().then(function(){
+		if(gorevliToken!==gorevliLoadToken) return; // bu arada baska bir etkinlik modali acildi, bu sonuc artik gecersiz
+		if(!e && !calPressStaff.length && currentUser){
+			const selfName=((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim();
+			if(pressOfficerPool.some(function(p){ return p.name===selfName; })) calPressStaff=[selfName];
+		}
+		renderPressStaffPicker();
+	});
 	document.getElementById("ev_arsiv").value = e ? (e.arsiv||"") : "";
 	document.getElementById("ev_not").value = e ? (e.not||"") : "";
 	calAttendees = (e && Array.isArray(e.katilimcilar)) ? e.katilimcilar.map(function(a){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"" }; }) : [];
@@ -3703,6 +3746,43 @@ document.addEventListener("change", function(e){
 	} else {
 		calAttendees=calAttendees.filter(function(a){ return (a.name||"")+"|"+(a.title||"")!==key; });
 	}
+});
+
+// "Basın Görevlisi" seçici: admin tarafından işaretlenmiş kullanıcılar arasından
+// çoklu seçim yapılır; kaydederken isimler virgülle birleştirilip alfabetik sıraya
+// dizilir (eski tek-isimli kayıtlarla da geriye dönük uyumlu, çünkü tek isim de
+// virgülle ayrılmış 1 elemanlı bir liste olarak aynı şekilde işlenir).
+function parseGorevliString(s){ return String(s||"").split(",").map(function(x){ return x.trim(); }).filter(Boolean); }
+function loadPressOfficerPool(){
+	if(!database) return Promise.resolve();
+	return database.ref("basinGorevlileri").once("value").then(function(snap){
+		const obj=snap.val()||{};
+		pressOfficerPool=Object.keys(obj).map(function(uid){ return { uid:uid, name:String(obj[uid]||"").trim() }; }).filter(function(p){ return p.name; });
+		pressOfficerPool.sort(function(a,b){ return a.name.localeCompare(b.name,"tr"); });
+	}).catch(function(){ /* sessizce yut: secici bos gelir ama modal calismaya devam eder */ });
+}
+function renderPressStaffPicker(){
+	const box=document.getElementById("ev_gorevliBox"); if(!box) return;
+	const q=(document.getElementById("ev_gorevliSearch").value||"").trim().toLocaleLowerCase("tr");
+	const filtered=pressOfficerPool.filter(function(p){ return p.name.toLocaleLowerCase("tr").includes(q); });
+	let html="";
+	// Seçili olup listede (arama sonucunda) görünmeyenleri de üstte göster ki kaldırılabilsin.
+	calPressStaff.forEach(function(name){
+		if(filtered.some(function(p){ return p.name===name; })) return;
+		html+='<label class="ev-att-item"><input type="checkbox" class="ev-gorevli-cb" data-name="'+escapeHtml(name)+'" checked><span><b>'+escapeHtml(name)+'</b></span></label>';
+	});
+	html+=filtered.map(function(p){
+		return '<label class="ev-att-item"><input type="checkbox" class="ev-gorevli-cb" data-name="'+escapeHtml(p.name)+'" '+(calPressStaff.indexOf(p.name)!==-1?"checked":"")+'><span><b>'+escapeHtml(p.name)+'</b></span></label>';
+	}).join("");
+	if(!html) html='<p class="hint" style="margin:6px;">'+(pressOfficerPool.length?"Eşleşen kişi yok.":"Henüz admin tarafından işaretlenmiş basın görevlisi yok.")+'</p>';
+	box.innerHTML=html;
+}
+document.addEventListener("change", function(e){
+	const cb=e.target;
+	if(!cb.classList || !cb.classList.contains("ev-gorevli-cb")) return;
+	const name=cb.dataset.name||"";
+	if(cb.checked){ if(calPressStaff.indexOf(name)===-1) calPressStaff.push(name); }
+	else { calPressStaff=calPressStaff.filter(function(n){ return n!==name; }); }
 });
 
 /* --- Etkinlik log detayları --- */
@@ -3802,7 +3882,7 @@ async function saveEvent(){
 		ad: ad, tur: document.getElementById("ev_tur").value, durum: document.getElementById("ev_durum").value,
 		tarih: tarih, saat: saat||"", bitisSaat: bitis||"",
 		yer: document.getElementById("ev_yer").value.trim(), birim: document.getElementById("ev_birim").value.trim(),
-		planlayan: document.getElementById("ev_planlayan").value.trim(), gorevli: document.getElementById("ev_gorevli").value.trim(),
+		planlayan: document.getElementById("ev_planlayan").value.trim(), gorevli: calPressStaff.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
 		katilimcilar: calAttendees.slice(), arsiv: safeLinkUrl(document.getElementById("ev_arsiv").value),
 		not: document.getElementById("ev_not").value.trim()
 	};
@@ -3810,7 +3890,9 @@ async function saveEvent(){
 	// "locked" burada elle tasinmazsa formdan HERHANGI bir alan degistirilip kaydedildiginde
 	// sessizce kaybolur (persistEvent .set() ile TAM UZERINE yaziyor, .update() degil).
 	if(eski){ obj.olusturan=eski.olusturan||""; obj.olusturmaTs=eski.olusturmaTs||Date.now(); obj.locked=!!eski.locked; }
-	else { obj.olusturan=(currentUser? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""); obj.olusturmaTs=Date.now(); obj.locked=false; }
+	// Yeni eklenen etkinlik varsayilan olarak KILITLI gelir: yanlislikla surukleyip
+	// tasima riskini sifirlar, gerekirse kilit ikonuyla tek tikla acilabilir.
+	else { obj.olusturan=(currentUser? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""); obj.olusturmaTs=Date.now(); obj.locked=true; }
 	obj.guncellemeTs=Date.now();
 	// Kayıt üzerine yazılır; log ise her seferinde yeni satır olarak eklenir ve hangi alanın
 	// ne olduğu tek tek yazılır.
