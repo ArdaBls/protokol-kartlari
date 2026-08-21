@@ -2858,13 +2858,19 @@ const EVENT_TYPES = [
 	{ key:"panel",     ad:"Panel",                  renk:"#a21caf", bg:"#fae8ff" },
 	{ key:"calistay",  ad:"Çalıştay",                renk:"#65a30d", bg:"#ecfccb" },
 	{ key:"ziyaret",   ad:"Protokol Ziyareti",    renk:"#a16207", bg:"#fef3c7" },
-	{ key:"imza",      ad:"İmza Töreni",          renk:"#7c3aed", bg:"#ede9fe" },
+	{ key:"imza",      ad:"Protokol İmza Töreni",          renk:"#7c3aed", bg:"#ede9fe" },
 	{ key:"mezuniyet", ad:"Mezuniyet Töreni",     renk:"#be123c", bg:"#ffe4e6" },
 	{ key:"odul",      ad:"Ödül Töreni",          renk:"#b45309", bg:"#fef0c7" },
 	{ key:"basin",     ad:"Basın Toplantısı",     renk:"#0369a1", bg:"#e0f2fe" },
 	{ key:"sergi",     ad:"Sergi / Kültür-Sanat", renk:"#0f766e", bg:"#ccfbf1" },
 	{ key:"spor",      ad:"Spor Etkinliği",       renk:"#15803d", bg:"#dcfce7" },
 	{ key:"gorevdegisimi", ad:"Görev Değişimi",  renk:"#4338ca", bg:"#e0e7ff" },
+	{ key:"akademikbasari", ad:"Akademik Başarı",       renk:"#047857", bg:"#d1fae5" },
+	{ key:"kariyer",        ad:"Kariyer Etkinliği",     renk:"#0e7490", bg:"#cffafe" },
+	{ key:"topluluk",       ad:"Öğrenci Toplulukları",  renk:"#be185d", bg:"#fce7f3" },
+	{ key:"saglik",         ad:"Sağlık Etkinliği",      renk:"#b91c1c", bg:"#fee2e2" },
+	{ key:"uluslararasi",   ad:"Uluslararası Etkinlik", renk:"#334155", bg:"#f1f5f9" },
+	{ key:"yesiluniversite",ad:"Yeşil Üniversite",      renk:"#166534", bg:"#dcfce7" },
 	{ key:"diger",     ad:"Diğer",                renk:"#57534e", bg:"#f1efec" }
 ];
 const EVENT_STATUS = [
@@ -3871,7 +3877,7 @@ const DEFAULT_NEWS_TEMPLATES = [
 			{ text:"{evSahibi}, ziyaretten duyduğu memnuniyeti dile getirdi.", condition:function(ctx){ return !!ctx.evSahibi; } }
 		]
 	] },
-	{ id:"imza",      ad:"İmza Töreni",            tur:"imza",      metin:"{yer} düzenlenen imza töreninde {kisiler} bir araya geldi." },
+	{ id:"imza",      ad:"Protokol İmza Töreni",            tur:"imza",      metin:"{yer} düzenlenen protokol imza töreninde {kisiler} bir araya geldi." },
 	{ id:"mezuniyet", ad:"Mezuniyet Töreni",       tur:"mezuniyet", metin:"{yer} düzenlenen {etkinlik} mezuniyet törenine {kisiler}{gruplar} katıldı." },
 	{ id:"odul",      ad:"Ödül Töreni",            tur:"odul",      metin:"{yer} düzenlenen ödül törenine {kisiler}{gruplar} katıldı." },
 	{ id:"basin",     ad:"Basın Toplantısı",       tur:"basin",     metin:"{yer} düzenlenen basın toplantısına {kisiler} katıldı." },
