@@ -22,7 +22,7 @@ function serve() {
 
 (async () => {
 	const server = await serve();
-	const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', headless: true, args: ['--no-sandbox'] });
+	const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 	const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 	const pageErrors = [];
 	page.on('pageerror', (e) => pageErrors.push(e.message));
