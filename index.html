@@ -1239,7 +1239,7 @@
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')" style="flex:1;">Test</button>
 				</div>
 				<div id="adminUsersView">
-					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "📷 Basın" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
+					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
 					<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
 				</div>
 				<div id="adminLogsView" style="display:none;">
@@ -1527,7 +1527,7 @@
 								'<option value="editor"' + (role==="editor"?' selected':'') + '>Editör</option>' +
 								'<option value="admin"' + (role==="admin"?' selected':'') + '>Admin</option>' +
 							'</select>';
-						const basinHtml = '<label class="au-basin-toggle" title="İşaretlenirse bu kişi, etkinlik formundaki Basın Görevlisi seçicisinde görünür."><input type="checkbox" ' + (u.basinGorevlisi ? "checked" : "") + ' onchange="toggleUserBasinGorevlisi(\'' + uid + '\', this.checked)">📷 Basın</label>';
+						const basinHtml = '<label class="au-basin-toggle" title="İşaretlenirse bu kişi, etkinlik formundaki Basın Görevlisi seçicisinde görünür."><input type="checkbox" ' + (u.basinGorevlisi ? "checked" : "") + ' onchange="toggleUserBasinGorevlisi(\'' + uid + '\', this.checked)">Basın Görevlisi</label>';
 						return '<div class="admin-user-row">' +
 							'<div class="au-info"><span class="au-name">' + escapeHtml(fullName) + (isSelf ? ' <span style="color:var(--brass-text); font-weight:600;">(Siz)</span>' : '') + '</span><span class="au-email">' + escapeHtml(u.email || "") + '</span></div>' +
 							'<div style="display:flex; align-items:center; gap:10px;">' + basinHtml + selectHtml + '</div>' +
