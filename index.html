@@ -277,6 +277,9 @@
 			.cal-next-name{ font-size:12px; font-weight:600; color:var(--ink); line-height:1.3; }
 			.cal-next-meta{ font-size:11px; color:var(--muted); }
 			.cal-rail-empty{ font-size:12px; color:var(--muted); text-align:center; padding:6px 0; }
+			.cal-now-heading{ color:var(--today); }
+			.cal-next-item-now{ background:#ffedd5; border-radius:8px; padding:6px 8px; margin:0 0 2px; }
+			.cal-now-dot{ width:8px; height:8px; border-radius:50%; background:var(--today); box-shadow:0 0 0 3px rgba(194,65,12,.18); flex-shrink:0; margin-top:4px; }
 
 			/* ---- Tam ekran kabuk ---- */
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
@@ -2966,19 +2969,51 @@ function renderCalendarRail(){
 	const countEl=document.getElementById("calRailCount"); const nextEl=document.getElementById("calRailNext");
 	if(!countEl||!nextEl) return;
 	const t=todayDate(); const weekEnd=addDays(t,7);
+	const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
 	const all=calEventList().filter(function(e){ return (e.durum||"")!=="iptal"; });
-	const upcoming=all.filter(function(e){ const d=parseKey(e.tarih); return d && d>=t; });
-	const thisWeek=upcoming.filter(function(e){ const d=parseKey(e.tarih); return d<weekEnd; });
+	// Bir etkinliğin "şimdi mi / ilerde mi / bitti mi" durumunu saat bilgisiyle hesaplar.
+	// Eski mantık sadece tarihe bakıyordu, bugün saati geçmiş etkinlikler de "Sıradaki"de kalıyordu.
+	function calEventTimeState(e){
+		const d=parseKey(e.tarih); if(!d) return "past";
+		if(d<t) return "past";
+		if(d>t) return "future";
+		const sMin=hmToMin(e.saat);
+		if(sMin===null) return "future"; // saat belirtilmemiş (tüm gün) - eskisi gibi davran
+		if(nowMin<sMin) return "future"; // henüz başlamadı
+		const eMin=hmToMin(e.bitisSaat);
+		if(eMin===null) return "now"; // başladı, bitiş saati girilmemiş -> hâlâ sürüyor kabul edilir
+		return nowMin<eMin ? "now" : "past"; // bitiş saati geçtiyse artık gösterme
+	}
+	const nowItems=[], futureItems=[];
+	all.forEach(function(e){
+		const st=calEventTimeState(e);
+		if(st==="now") nowItems.push(e); else if(st==="future") futureItems.push(e);
+	});
+	const thisWeek=nowItems.concat(futureItems).filter(function(e){ const d=parseKey(e.tarih); return d<weekEnd; });
 	countEl.innerHTML='<b>'+thisWeek.length+'</b> etkinlik · 7 gün';
-	const next=upcoming.slice(0,4);
-	if(!next.length){ nextEl.innerHTML='<h4>Sıradaki</h4><div class="cal-rail-empty">📭 Planlanmış etkinlik yok.</div>'; return; }
-	nextEl.innerHTML='<h4>Sıradaki</h4>'+next.map(function(e){
+	const next=futureItems.slice(0,4);
+	function renderNextItem(e, first){
 		const d=parseKey(e.tarih); const ty=evType(e.tur);
-		return '<div class="cal-next-item" onclick="openCalendarAt(\''+escapeHtml(e.tarih)+'\',\''+escapeHtml(e._id)+'\')">'+
+		return '<div class="cal-next-item"'+(first?' style="border-top:none;"':'')+' onclick="openCalendarAt(\''+escapeHtml(e.tarih)+'\',\''+escapeHtml(e._id)+'\')">'+
 			'<span class="cal-next-date"><span class="d">'+d.getDate()+'</span><span class="m">'+CAL_MONTHS[d.getMonth()].slice(0,3)+'</span></span>'+
 			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-next-meta" style="display:block;">'+(e.saat?escapeHtml(e.saat)+' · ':'')+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
-	}).join("");
+	}
+	function renderNowItem(e, first){
+		const ty=evType(e.tur);
+		const saatTxt=e.saat?(escapeHtml(e.saat)+(e.bitisSaat?'–'+escapeHtml(e.bitisSaat):'')+' · '):'';
+		return '<div class="cal-next-item cal-next-item-now"'+(first?' style="border-top:none;"':'')+' onclick="openCalendarAt(\''+escapeHtml(e.tarih)+'\',\''+escapeHtml(e._id)+'\')">'+
+			'<span class="cal-now-dot" aria-hidden="true"></span>'+
+			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
+			'<span class="cal-next-meta" style="display:block;">'+saatTxt+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
+	}
+	let html="";
+	if(nowItems.length){
+		html+='<h4 class="cal-now-heading">Şimdi</h4>'+nowItems.map(function(e,i){ return renderNowItem(e, i===0); }).join("");
+	}
+	html+='<h4'+(nowItems.length?' style="margin-top:10px;"':'')+'>Sıradaki</h4>';
+	html+= next.length ? next.map(function(e,i){ return renderNextItem(e, i===0); }).join("") : '<div class="cal-rail-empty">📭 Planlanmış etkinlik yok.</div>';
+	nextEl.innerHTML=html;
 }
 
 /* --- Takvimi aç / kapat (küçük karttan tam ekrana büyüyen geçiş) --- */
@@ -3469,7 +3504,7 @@ function openEventPeek(id){
 	if(qb){
 		if(!e.saat) qb.textContent="▶  Şimdi Başlat";
 		else if(!e.bitisSaat) qb.textContent="■  Şimdi Bitir";
-		else qb.textContent="■  Bitişi Şimdiye Al";
+		else qb.textContent="Bitişi Şimdiye Al";
 	}
 	document.getElementById("calPeek").classList.add("open");
 	document.getElementById("calPeekBackdrop").classList.add("open");
