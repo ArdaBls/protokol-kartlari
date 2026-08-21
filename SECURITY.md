@@ -8,8 +8,6 @@ Lütfen **herkese açık bir GitHub Issue açmayın** — bu, sorunu kötü niye
 
 Bunun yerine bu reponun **Security** sekmesinden **"Report a vulnerability"** (özel/gizli bildirim) seçeneğini kullanın. Bu, bildirimi yalnızca repo sahibinin görebileceği şekilde gönderir.
 
-*(Not: Bu özelliğin aktif olması için repo ayarlarından bir kereliğine "Private vulnerability reporting" açılmalı — Settings → Security.)*
-
 Bildiriminizde mümkünse şunları ekleyin:
 
 - Sorunun kısa açıklaması ve etkisi (örn. yetkisiz veri okuma/yazma, kimlik doğrulama atlatma).
