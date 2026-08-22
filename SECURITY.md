@@ -1,6 +1,6 @@
 # Güvenlik Politikası
 
-Bu proje, Basın ve Halkla İlişkiler için Firebase Realtime Database ve Firebase Auth kullanan bir web uygulamasıdır. Repo herkese açık olduğu için kaynak kod (ve Firebase istemci yapılandırması) herkes tarafından görülebilir — bu Firebase uygulamaları için normaldir, gerçek güvenlik sınırı veritabanı kurallarıdır (bkz. `docs/firebase-database-rules.json`).
+Bu proje, Basın ve Halkla İlişkiler için Firebase Realtime Database ve Firebase Auth kullanan bir web uygulamasıdır. Repo herkese açık olduğu için kaynak kod (ve Firebase istemci yapılandırması) herkes tarafından görülebilir — bu Firebase uygulamaları için normaldir.
 
 ## Bir güvenlik açığı bulursanız
 
