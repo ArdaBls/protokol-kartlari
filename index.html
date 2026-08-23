@@ -603,6 +603,11 @@
 			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
 			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
 			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:#fff; }
+			/* iOS Safari, dolu bir metin kutusuna kendi native "temizle" X'ini ekleyebiliyor;
+			   bu, bizim ozel .clear-btn X'imizle CAKISIP yanlis hizali gorunmesine yol aciyordu
+			   (masaustu Chrome'da bu sorun hic gorunmuyor cunku Chrome boyle bir seyi yapmiyor).
+			   -webkit-appearance:none Safari'nin kendi dekorasyonunu kapatir, tek X kalir. */
+			.field input[type=text], #search{ -webkit-appearance:none; appearance:none; }
 			/* min-width:0 SART: flex ogeleri varsayilan olarak min-width:auto tasir, yani icindeki
 			   <select>in en uzun secenegi (orn. "Dr. Ogr. Uyesi") kadar kuculmeyi REDDEDER --
 			   bu da satiri, modal'i ve sonunda TUM SAYFAYI mobilde yatayda tasiriyordu. */
@@ -1129,7 +1134,7 @@
 						<div class="field" style="flex: 1;">
 							<label>İsim Soyisim</label>
 							<div class="input-wrap">
-								<input type="text" id="f_name" required onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_name')">
+								<input type="text" id="f_name" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_name')">
 								<button type="button" class="clear-btn" id="clear_f_name" onclick="clearFieldInput('f_name')">✕</button>
 							</div>
 						</div>
@@ -1137,14 +1142,14 @@
 					<div class="field">
 						<label>Mesleki / Görev Unvanı (Örn: Rektör)</label>
 						<div class="input-wrap">
-							<input type="text" id="f_title" required onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_title')">
+							<input type="text" id="f_title" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_title')">
 							<button type="button" class="clear-btn" id="clear_f_title" onclick="clearFieldInput('f_title')">✕</button>
 						</div>
 					</div>
 					<div class="field">
 						<label>Birim / Kurum</label>
 						<div class="input-wrap">
-							<input type="text" id="f_unit" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_unit')">
+							<input type="text" id="f_unit" autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_unit')">
 							<button type="button" class="clear-btn" id="clear_f_unit" onclick="clearFieldInput('f_unit')">✕</button>
 						</div>
 					</div>
@@ -1216,7 +1221,7 @@
 						<button class="btn btn-danger" type="button" style="flex:1; padding:8px;" onclick="openSinglePermDelete(editIndex)">Kalıcı Sil</button>
 					</div>
 					<div id="successorTriggerWrap" style="display:none; margin-top:10px;">
-						<button class="btn btn-ghost" type="button" style="width:100%;" onclick="openSuccessorPanel()">→ Yerine Yeni Kişi Ata</button>
+						<button class="btn btn-ghost" type="button" style="width:100%;" onclick="openSuccessorPanel()">Yerine Yeni Kişi Ata</button>
 					</div>
 					</form>
 			</div>
@@ -1245,15 +1250,15 @@
 				</div>
 				<div class="field">
 					<label>İsim Soyisim</label>
-					<input type="text" id="sf_name" required>
+					<input type="text" id="sf_name" required autocomplete="off">
 				</div>
 				<div class="field">
 					<label>Mesleki / Görev Unvanı</label>
-					<input type="text" id="sf_title">
+					<input type="text" id="sf_title" autocomplete="off">
 				</div>
 				<div class="field">
 					<label>Birim / Kurum</label>
-					<input type="text" id="sf_unit">
+					<input type="text" id="sf_unit" autocomplete="off">
 				</div>
 				<div class="field">
 					<label>Protokol Sırası (Ana Kat)</label>
