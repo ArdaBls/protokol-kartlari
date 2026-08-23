@@ -597,11 +597,16 @@
 			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
 			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
 			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; }
-			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; }
+			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
+			   metni dar ekranda bu alana kadar uzayip X'in ALTINA/UZERINE biniyordu. */
+			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
 			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
 			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
 			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:#fff; }
-			.field-row{ display:flex; gap:10px; } .field-row .field{ flex:1; }
+			/* min-width:0 SART: flex ogeleri varsayilan olarak min-width:auto tasir, yani icindeki
+			   <select>in en uzun secenegi (orn. "Dr. Ogr. Uyesi") kadar kuculmeyi REDDEDER --
+			   bu da satiri, modal'i ve sonunda TUM SAYFAYI mobilde yatayda tasiriyordu. */
+			.field-row{ display:flex; gap:10px; } .field-row .field{ flex:1; min-width:0; }
 			.photo-input-row{ display:flex; align-items:center; gap:10px; } .photo-preview{ width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; border:1px solid var(--border); }
 			.modal-actions{ display:flex; gap:10px; margin-top:18px; } .modal-actions .btn{ flex:1; text-align:center; }
 			.close-x{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:var(--muted); cursor:pointer; }
@@ -748,6 +753,11 @@
 				Sadece overflow:hidden mobilde (özellikle iOS Safari) dokunmatik kaydırmayı engellemeye yetmiyor;
 				position:fixed ise body'yi akıştan tamamen çıkarıp gerçekten kilitliyor. */
 			body.scroll-locked{ position:fixed; left:0; right:0; overflow:hidden; }
+			/* Sol-alt takvim ve sag-alt fakulte filtrele dugmeleri z-index:70 ile HER acik
+			   panelin (z-index<=55) UZERINDE duruyordu; duzenleme formunun alt kismini
+			   (Kaydet, "Yerine Yeni Kisi Ata" vb.) kapatiyordu. Herhangi bir panel acikken
+			   (scroll-locked ile ayni kosul) bu iki buton gizlenir. */
+			body.scroll-locked .calendar-fab, body.scroll-locked .faculty-fab{ display:none !important; }
 
 			/* =====================================================================
 			   MOBIL DUZELTMELERI
