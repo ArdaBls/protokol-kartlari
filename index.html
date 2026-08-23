@@ -856,9 +856,13 @@
 			}
 
 			/* Dokunmatik cihazlarda kucuk ikonlarin gorsel boyutu degistirilmeden
-			   dokunma alani buyutulur (dosyada .cal-iconbtn icin zaten kullanilan teknik). */
+			   dokunma alani buyutulur (dosyada .cal-iconbtn icin zaten kullanilan teknik).
+			   ONEMLI: .clear-btn/.close-x/.af-close zaten kendi kurallarinda position:absolute
+			   ile konumlaniyor -- burada hepsine kosulsuz position:relative vermek (eski hali)
+			   bu absolute'u eziyordu, iPhone'da (pointer:coarse) X butonlari yanlis yere kayiyordu.
+			   Sadece position tanimi OLMAYAN iki elemana relative eklenir. */
 			@media (pointer: coarse){
-				.cal-ev-edit-ico, .clear-btn, .fsheet-close, .af-close, .close-x{ position:relative; }
+				.cal-ev-edit-ico, .fsheet-close{ position:relative; }
 				.cal-ev-edit-ico::after, .clear-btn::after, .fsheet-close::after,
 				.af-close::after, .close-x::after{ content:""; position:absolute; inset:-10px; }
 				.cal-ev-edit-ico{ opacity:.75; }
