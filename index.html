@@ -746,7 +746,7 @@
 			.field-row .field.f-prefix{ flex:0 0 140px; }
 			.admin-tabs{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
 			.admin-tabs .btn{ padding:10px 6px; font-size:13px; min-width:0; }
-			@media (min-width: 560px){ .admin-tabs{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+			@media (min-width: 560px){ .admin-tabs{ grid-template-columns:repeat(5,minmax(0,1fr)); } }
 
 			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */
 			header{ padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
@@ -1417,6 +1417,7 @@
 					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')">Geçmiş</button>
 					<button class="btn btn-ghost" id="adminTabBackupBtn" onclick="switchAdminTab('backup')">Yedekleme</button>
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')">Test</button>
+					<button class="btn btn-ghost" id="adminTabDebugBtn" onclick="switchAdminTab('debug')">Debug</button>
 				</div>
 				<div id="adminUsersView">
 					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
@@ -1442,6 +1443,19 @@
 						<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
 					</div>
 					<div id="adminTestResult" class="hint">Yükleniyor…</div>
+				</div>
+				<div id="adminDebugView" style="display:none;">
+					<p class="hint">Bu araçlar test/deneme amaçlıdır. Yaptıkları değişiklikler GERÇEK protokol verisini etkiler, ama kaydı normal değişiklik geçmişine değil, buradaki ayrı <b>Debug Günlüğü</b>'ne yazılır — asıl geçmişi kirletmez, istediğinde aşağıdan temizleyebilirsin.</p>
+					<p class="hint" style="margin-top:-8px;">Şu an aktif liste: <b id="debugActiveListLabel">—</b></p>
+					<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+						<button type="button" class="btn btn-primary" onclick="debugVerifyAllCurrent()">Aktif Listedeki Tüm Kayıtları "Güncel" Yap</button>
+						<button type="button" class="btn btn-ghost" onclick="debugResetVerificationAllCurrent()">Aktif Listedeki Tüm Kayıtların Doğrulamasını Sıfırla</button>
+					</div>
+					<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+						<span class="hint" style="margin:0;">Debug Günlüğü (son 50)</span>
+						<button type="button" class="btn btn-danger-outline" style="padding:5px 10px; font-size:12px;" onclick="clearDebugLog()">Günlüğü Temizle</button>
+					</div>
+					<div id="adminDebugLogList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
 				</div>
 			</div>
 		</div>
@@ -1599,6 +1613,7 @@
 				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
 				document.getElementById("adminEventsBackupView").style.display = (tab === "backup") ? "block" : "none";
 				document.getElementById("adminTestView").style.display = (tab === "test") ? "block" : "none";
+				document.getElementById("adminDebugView").style.display = (tab === "debug") ? "block" : "none";
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
@@ -1607,7 +1622,9 @@
 				document.getElementById("adminTabBackupBtn").classList.toggle("btn-ghost", tab !== "backup");
 				document.getElementById("adminTabTestBtn").classList.toggle("btn-primary", tab === "test");
 				document.getElementById("adminTabTestBtn").classList.toggle("btn-ghost", tab !== "test");
-				if (tab === "users") loadAdminUsers(); else if (tab === "backup") { document.getElementById("adminEventsBackupInfo").textContent = "Takvimde şu an " + Object.keys(calEvents).length + " etkinlik kayıtlı."; } else if (tab === "test") loadAdminTestPanel(); else loadAdminLogs();
+				document.getElementById("adminTabDebugBtn").classList.toggle("btn-primary", tab === "debug");
+				document.getElementById("adminTabDebugBtn").classList.toggle("btn-ghost", tab !== "debug");
+				if (tab === "users") loadAdminUsers(); else if (tab === "backup") { document.getElementById("adminEventsBackupInfo").textContent = "Takvimde şu an " + Object.keys(calEvents).length + " etkinlik kayıtlı."; } else if (tab === "test") loadAdminTestPanel(); else if (tab === "debug") loadAdminDebugPanel(); else loadAdminLogs();
 }
 
 			// GitHub Actions ile regresyon testi: repo/workflow adi tek yerden - baska bir repoya
@@ -2049,6 +2066,68 @@
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
 				database.ref("logs/" + currentListKey).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
+			}
+
+			// ---- Debug sistemi: log/logs/{il,universite,etkinlik} ile KARIŞMASIN diye ayrı bir
+			// dal (logs/debug) kullanılır. Böylece admin panelindeki test butonlarını denerken
+			// gerçek değişiklik geçmişi kirlenmez ve debug günlüğü ayrıca, tek tuşla temizlenebilir.
+			function logDebugAction(actionLabel, targetName) {
+				if (!database || !currentUser) return;
+				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
+				database.ref("logs/debug").push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
+			}
+			// NOT: aşağıdaki iki fonksiyon BİLEREK saveData()/savePerson() kullanmıyor -- onlar
+			// gerçek logs/{currentListKey} dalına yazar. Debug butonları veriyi gerçekten
+			// değiştirir (test amaçlı olsa da), sadece logu ayrı tutulur.
+			async function debugVerifyAllCurrent() {
+				if (!requireAdmin()) return;
+				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); return; }
+				if (!confirm(LIST_LABELS[currentListKey] + " listesindeki TÜM kayıtlar \"Güncel\" doğrulanmış olarak işaretlenecek. Bu GERÇEK veriyi değiştirir. Devam edilsin mi?")) return;
+				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
+				const now = Date.now();
+				people.forEach(function(p){ p.dogrulamaKaynak = "manuel"; p.sonDogrulamaTs = now; p.dogrulayan = who; });
+				try {
+					await database.ref(LIST_PATHS[currentListKey]).set(people);
+					logDebugAction("Tüm kayıtlar \"Güncel\" olarak işaretlendi (" + people.length + " kayıt)", LIST_LABELS[currentListKey]);
+					showToast("Tüm kayıtlar güncel olarak işaretlendi.", "success");
+					render();
+				} catch (err) { showToast("Kaydedilemedi.", "error"); }
+			}
+			async function debugResetVerificationAllCurrent() {
+				if (!requireAdmin()) return;
+				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); return; }
+				if (!confirm(LIST_LABELS[currentListKey] + " listesindeki TÜM kayıtların doğrulama bilgisi silinip \"Hiç Doğrulanmadı\" yapılacak. Bu GERÇEK veriyi değiştirir. Devam edilsin mi?")) return;
+				people.forEach(function(p){ delete p.dogrulamaKaynak; delete p.sonDogrulamaTs; delete p.dogrulayan; });
+				try {
+					await database.ref(LIST_PATHS[currentListKey]).set(people);
+					logDebugAction("Tüm kayıtların doğrulaması sıfırlandı (" + people.length + " kayıt)", LIST_LABELS[currentListKey]);
+					showToast("Doğrulama bilgisi sıfırlandı.", "warn");
+					render();
+				} catch (err) { showToast("Kaydedilemedi.", "error"); }
+			}
+			function loadAdminDebugPanel() {
+				if (!requireAdmin()) return;
+				const label = document.getElementById("debugActiveListLabel"); if (label) label.textContent = LIST_LABELS[currentListKey] || currentListKey;
+				const listEl = document.getElementById("adminDebugLogList");
+				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				if (!database) { listEl.innerHTML = '<p class="admin-user-empty">Veritabanı bağlı değil.</p>'; return; }
+				database.ref("logs/debug").limitToLast(50).once("value").then(function(snap) {
+					const obj = snap.val() || {};
+					const entries = Object.values(obj).sort(function(a, b) { return (b.timestamp||0) - (a.timestamp||0); });
+					if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Debug günlüğü boş.</p>'; return; }
+					listEl.innerHTML = entries.map(function(e) {
+						const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
+						const targetHtml = e.target ? ('<span class="al-target">' + escapeHtml(e.target) + '</span> ') : "";
+						return '<div class="admin-log-row"><div class="al-top"><span class="al-by">' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + targetHtml + escapeHtml(e.action || "") + '</div></div>';
+					}).join("");
+				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Günlük yüklenemedi.</p>'; });
+			}
+			async function clearDebugLog() {
+				if (!requireAdmin()) return;
+				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return; }
+				if (!confirm("Debug günlüğündeki TÜM kayıtlar kalıcı olarak silinecek (asıl değişiklik geçmişi etkilenmez). Devam edilsin mi?")) return;
+				try { await database.ref("logs/debug").remove(); showToast("Debug günlüğü temizlendi.", "warn"); loadAdminDebugPanel(); }
+				catch (err) { showToast("Günlük temizlenemedi.", "error"); }
 			}
 
 			async function saveData(actionLabel, targetName) {
