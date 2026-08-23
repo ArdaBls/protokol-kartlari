@@ -217,6 +217,14 @@
 			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:normal; line-height:1.3; }
 			.rank-reference .rr-info .rr-n{ color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
+			/* Görevden alma / yerine yeni kişi atama paneli: mevcut düzenleme ekranının SAĞINDA
+			   açılır (rank-reference ile aynı yerleşim mantığı), dar ekranda gösterilmez. */
+			.successor-panel{ display:none; }
+			@media (min-width: 900px) {
+			.successor-panel.open{ display:flex; flex-direction:column; position:relative; align-self:stretch; width:260px; max-height:697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow-y:auto; flex-shrink:0; }
+			}
+			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
+
 			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
 			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
 			.faculty-multiselect .fm-group{ margin-top:6px; }
@@ -1178,11 +1186,61 @@
 						<button class="btn btn-danger-outline" type="button" style="flex:1; padding:8px;" onclick="openConfirmModal()">Çöpe At</button>
 						<button class="btn btn-danger" type="button" style="flex:1; padding:8px;" onclick="openSinglePermDelete(editIndex)">Kalıcı Sil</button>
 					</div>
+					<div id="successorTriggerWrap" style="display:none; margin-top:10px;">
+						<button class="btn btn-ghost" type="button" style="width:100%;" onclick="openSuccessorPanel()">→ Yerine Yeni Kişi Ata</button>
+					</div>
 					</form>
 			</div>
 			<div class="rank-reference" id="rankReference">
 				<div class="rr-title">Protokol Sırası (Referans)</div>
 				<div class="rr-list" id="rankReferenceList"></div>
+			</div>
+			<div class="successor-panel" id="successorPanel">
+				<button class="close-x" onclick="closeSuccessorPanel()">✕</button>
+				<h3>Yerine Atanan Kişi</h3>
+				<p class="hint">Unvan, birim ve sıra bilgisi soldaki kayıttan dolduruldu — isim ve fotoğraf boş, yeni kişi için doldurun.</p>
+				<div class="field">
+					<label>Unvan Ön Eki</label>
+					<select id="sf_prefix">
+						<option value="">(Yok)</option>
+						<option value="Prof. Dr.">Prof. Dr.</option>
+						<option value="Doç. Dr.">Doç. Dr.</option>
+						<option value="Dr. Öğr. Üyesi">Dr. Öğr. Üyesi</option>
+						<option value="Dr.">Dr.</option>
+						<option value="Av.">Av.</option>
+						<option value="Öğr. Gör.">Öğr. Gör.</option>
+						<option value="Arş. Gör.">Arş. Gör.</option>
+						<option value="Uzm.">Uzm.</option>
+					</select>
+				</div>
+				<div class="field">
+					<label>İsim Soyisim</label>
+					<input type="text" id="sf_name" required>
+				</div>
+				<div class="field">
+					<label>Mesleki / Görev Unvanı</label>
+					<input type="text" id="sf_title">
+				</div>
+				<div class="field">
+					<label>Birim / Kurum</label>
+					<input type="text" id="sf_unit">
+				</div>
+				<div class="field">
+					<label>Protokol Sırası (Ana Kat)</label>
+					<input type="text" inputmode="numeric" id="sf_rank" placeholder="?">
+				</div>
+				<div class="field">
+					<label>Başlangıç Tarihi</label>
+					<input type="date" id="sf_start">
+				</div>
+				<div class="field">
+					<label>Not (opsiyonel)</label>
+					<textarea id="sf_note" rows="2" style="resize:vertical;"></textarea>
+				</div>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" type="button" onclick="closeSuccessorPanel()">Vazgeç</button>
+					<button class="btn btn-primary" type="button" onclick="saveSuccessor()">Kaydet</button>
+				</div>
 			</div>
 		</div>
 
@@ -2772,7 +2830,7 @@ function renderFacultyPickerField(selected) {
 				if (e.target.classList.contains("fm-cb")) syncUnitFromFaculties();
 			});
 
-function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
+function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
@@ -2783,11 +2841,81 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
 			if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
 			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
-			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
+			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; document.getElementById("successorTriggerWrap").style.display = "block"; renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
 			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
-			function closeModal(){ document.getElementById("modalBg").classList.remove("open"); }
+			function closeModal(){ document.getElementById("modalBg").classList.remove("open"); closeSuccessorPanel(); }
+
+			// ---- Görevden alma / yerine yeni kişi atama paneli ----
+			// Soldaki (mevcut) düzenleme ekranı açıkken sağda ikinci, küçük bir "yeni kişi ekle"
+			// paneli açılır; unvan/birim/sıra soldaki kayıttan kopyalanır, isim ve fotoğraf boş
+			// bırakılır. Kaydedilince YENİ bir kişi kaydı oluşturur, soldaki kaydı değiştirmez.
+			let successorEditingIndex = null;
+			function openSuccessorPanel(){
+				if (!requireEdit()) return;
+				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
+				if (window.innerWidth < 900) { showToast("Bu özellik daha geniş bir ekranda kullanılabilir.", "error"); return; }
+				successorEditingIndex = editIndex;
+				const old = people[editIndex];
+				document.getElementById("sf_prefix").value = old.prefix || "";
+				document.getElementById("sf_name").value = "";
+				document.getElementById("sf_title").value = old.title || "";
+				document.getElementById("sf_unit").value = old.unit || "";
+				document.getElementById("sf_rank").value = (old.rank !== undefined && old.rank !== null && old.rank !== "") ? old.rank : "";
+				document.getElementById("sf_start").value = document.getElementById("f_end").value || "";
+				document.getElementById("sf_note").value = "";
+				document.getElementById("successorPanel").classList.add("open");
+			}
+			function closeSuccessorPanel(){
+				const panel = document.getElementById("successorPanel");
+				if (panel) panel.classList.remove("open");
+				successorEditingIndex = null;
+			}
+			// Soldaki "Bitiş Tarihi" değiştikçe sağdaki "Başlangıç Tarihi"ni aynı güne çeker.
+			// TEK YÖNLÜ: sağdakini elle değiştirmek soldakini etkilemez; ama sol tekrar
+			// değişirse sağı yine ezer (kullanıcı isteğiyle bilinçli olarak böyle).
+			document.getElementById("f_end").addEventListener("input", function(){
+				if (document.getElementById("successorPanel").classList.contains("open")) {
+					document.getElementById("sf_start").value = this.value;
+				}
+			});
+			async function saveSuccessor(){
+				if (!requireEdit()) return;
+				if (successorEditingIndex === null) { showToast("Kaynak kayıt bulunamadı.", "error"); closeSuccessorPanel(); return; }
+				const name = document.getElementById("sf_name").value.trim();
+				const title = document.getElementById("sf_title").value.trim();
+				if (!name || !title) { showToast("Yeni kişi için isim ve unvan zorunlu!", "error"); return; }
+				const rankRaw = document.getElementById("sf_rank").value.trim();
+				if (rankRaw !== "" && !/^\d+$/.test(rankRaw)) { showToast("Protokol sırası sadece rakam olmalı.", "error"); return; }
+				// Diğer editörler arada kayıt eklemiş/silmiş olabilir; yazmadan hemen önce güncel liste okunur.
+				if (database && LIST_PATHS[currentListKey]) {
+					try { const fresh = await database.ref(LIST_PATHS[currentListKey]).once("value"); people = normalizePeopleSnapshot(fresh.val()); }
+					catch (err) { console.warn("Güncel liste okunamadı, yerel listeye göre kaydediliyor:", err); }
+				}
+				const oldP = people[successorEditingIndex];
+				const oldIdentity = oldP ? (String(oldP.name || "") + "|" + String(oldP.title || "")) : null;
+				if (!oldP || (editIdentity !== null && oldIdentity !== editIdentity)) {
+					showToast("Kaynak kayıt başka bir kullanıcı tarafından değiştirildi, işlem iptal edildi.", "error");
+					closeSuccessorPanel(); return;
+				}
+				const record = {
+					prefix: document.getElementById("sf_prefix").value, name: name, title: title,
+					unit: document.getElementById("sf_unit").value.trim(), status: "aktif",
+					rank: rankRaw === "" ? "" : Number(rankRaw), photo: "",
+					start: document.getElementById("sf_start").value, end: "",
+					note: document.getElementById("sf_note").value.trim()
+				};
+				if (currentListKey === "universite" && Array.isArray(oldP.faculties)) record.faculties = oldP.faculties.slice();
+				people.push(record);
+				const newIdx = people.length - 1;
+				const actionLabel = name + " kişisi, " + (oldP.name || "eski kayıt") + " yerine atandı" + (record.rank !== "" ? ", " + record.rank + ". sıra" : "");
+				const saved = await savePerson(newIdx, actionLabel, name);
+				if (!saved) { people.pop(); return; }
+				showToast("Yeni kişi eklendi: " + name);
+				closeSuccessorPanel();
+				render();
+			}
 			document.getElementById("f_status").addEventListener("change", function(e){ document.getElementById("endDateField").style.display = e.target.value === "pasif" ? "block" : "none"; });
 
 			function previewPhoto(e){
