@@ -217,11 +217,15 @@
 			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:normal; line-height:1.3; }
 			.rank-reference .rr-info .rr-n{ color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-			/* Görevden alma / yerine yeni kişi atama paneli: mevcut düzenleme ekranının SAĞINDA
-			   açılır (rank-reference ile aynı yerleşim mantığı), dar ekranda gösterilmez. */
+			/* Görevden alma / yerine yeni kişi atama paneli. Genişte (>=900px) mevcut düzenleme
+			   ekranının SAĞINDA küçük bir kart olarak durur. Dar ekranda (mobil/tablet) aynı
+			   panel kendi tam ekran katmanına döner -- iki farklı yerleşim, TEK ortak DOM/JS. */
 			.successor-panel{ display:none; }
+			.successor-panel.open{ display:flex; position:fixed; inset:0; z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; }
+			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
-			.successor-panel.open{ display:flex; flex-direction:column; position:relative; align-self:stretch; width:260px; max-height:697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow-y:auto; flex-shrink:0; }
+			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
+			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; height:100%; max-height:697.5px; overflow-y:auto; padding:16px; }
 			}
 			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
 
@@ -1196,9 +1200,10 @@
 				<div class="rr-list" id="rankReferenceList"></div>
 			</div>
 			<div class="successor-panel" id="successorPanel">
+			<div class="successor-panel-inner">
 				<button class="close-x" onclick="closeSuccessorPanel()">✕</button>
 				<h3>Yerine Atanan Kişi</h3>
-				<p class="hint">Unvan, birim ve sıra bilgisi soldaki kayıttan dolduruldu — isim ve fotoğraf boş, yeni kişi için doldurun.</p>
+				<p class="hint">Unvan, birim ve sıra bilgisi soldaki kayıttan dolduruldu — isim ve fotoğraf boş, yeni kişi için doldurun. Soldaki kayıt otomatik "Pasif" işaretlendi.</p>
 				<div class="field">
 					<label>Unvan Ön Eki</label>
 					<select id="sf_prefix">
@@ -1234,6 +1239,17 @@
 					<input type="date" id="sf_start">
 				</div>
 				<div class="field">
+					<label>Fotoğraf Bağlantısı (URL)</label>
+					<div class="input-wrap">
+						<input type="text" id="sf_photo_url" placeholder="https://... (önerilen)" oninput="updateSuccessorPhotoPreviewFromUrl()">
+					</div>
+					<label style="margin-top:8px;">Veya Cihazdan Yükle (Sıkıştırılır)</label>
+					<div class="photo-input-row">
+						<img id="sf_photoPreview" class="photo-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Önizleme" style="display:none;">
+						<input type="file" id="sf_photo" accept="image/*" onchange="previewSuccessorPhoto(event)">
+					</div>
+				</div>
+				<div class="field">
 					<label>Not (opsiyonel)</label>
 					<textarea id="sf_note" rows="2" style="resize:vertical;"></textarea>
 				</div>
@@ -1241,6 +1257,7 @@
 					<button class="btn btn-ghost" type="button" onclick="closeSuccessorPanel()">Vazgeç</button>
 					<button class="btn btn-primary" type="button" onclick="saveSuccessor()">Kaydet</button>
 				</div>
+			</div>
 			</div>
 		</div>
 
@@ -2126,7 +2143,18 @@
 				if (!requireAdmin()) return;
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return; }
 				if (!confirm("Debug günlüğündeki TÜM kayıtlar kalıcı olarak silinecek (asıl değişiklik geçmişi etkilenmez). Devam edilsin mi?")) return;
-				try { await database.ref("logs/debug").remove(); showToast("Debug günlüğü temizlendi.", "warn"); loadAdminDebugPanel(); }
+				try {
+					// logs/debug DUGUMUNUN KENDISINDE .write kurali yok, sadece HER BIR logId
+					// yaprağinda var -- bu yuzden tek seferde remove() PERMISSION_DENIED veriyordu.
+					// Her kaydi TEK TEK silmek, mevcut kurallarla (yeni Firebase kurali gerekmeden) calisir.
+					const snap = await database.ref("logs/debug").once("value");
+					const obj = snap.val() || {};
+					const keys = Object.keys(obj);
+					if (!keys.length) { showToast("Debug günlüğü zaten boş.", "success"); loadAdminDebugPanel(); return; }
+					await Promise.all(keys.map(function(k) { return database.ref("logs/debug/" + k).remove(); }));
+					showToast("Debug günlüğü temizlendi (" + keys.length + " kayıt).", "warn");
+					loadAdminDebugPanel();
+				}
 				catch (err) { showToast("Günlük temizlenemedi.", "error"); }
 			}
 
@@ -2934,7 +2962,6 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			function openSuccessorPanel(){
 				if (!requireEdit()) return;
 				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
-				if (window.innerWidth < 900) { showToast("Bu özellik daha geniş bir ekranda kullanılabilir.", "error"); return; }
 				successorEditingIndex = editIndex;
 				const old = people[editIndex];
 				document.getElementById("sf_prefix").value = old.prefix || "";
@@ -2944,12 +2971,31 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				document.getElementById("sf_rank").value = (old.rank !== undefined && old.rank !== null && old.rank !== "") ? old.rank : "";
 				document.getElementById("sf_start").value = document.getElementById("f_end").value || "";
 				document.getElementById("sf_note").value = "";
+				document.getElementById("sf_photo_url").value = ""; document.getElementById("sf_photoPreview").style.display = "none"; document.getElementById("sf_photoPreview").dataset.value = "";
+				// Bu paneli acmanin butun amaci yerine gecme: soldaki kayit otomatik "Pasif"e
+				// alinir (elle de degistirilebilir), boylece bitis tarihi girmeyi unutmak zorlasir.
+				document.getElementById("f_status").value = "pasif";
+				document.getElementById("endDateField").style.display = "block";
 				document.getElementById("successorPanel").classList.add("open");
 			}
 			function closeSuccessorPanel(){
 				const panel = document.getElementById("successorPanel");
 				if (panel) panel.classList.remove("open");
 				successorEditingIndex = null;
+			}
+			function previewSuccessorPhoto(e){
+				const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
+				reader.onload = function(ev){
+					const img = new Image(); img.onload = function(){
+					const MAX = 480; let w = img.width, h = img.height; if(w >= h && w > MAX){ h = Math.round(h * (MAX / w)); w = MAX; } else if(h > w && h > MAX){ w = Math.round(w * (MAX / h)); h = MAX; }
+					const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; canvas.getContext("2d").drawImage(img, 0, 0, w, h); const compressed = canvas.toDataURL("image/jpeg", 0.75);
+					document.getElementById("sf_photoPreview").src = compressed; document.getElementById("sf_photoPreview").style.display = "block"; document.getElementById("sf_photoPreview").dataset.value = compressed; document.getElementById("sf_photo_url").value = "";
+					}; img.src = ev.target.result;
+				}; reader.readAsDataURL(file);
+			}
+			function updateSuccessorPhotoPreviewFromUrl() {
+				const url = document.getElementById("sf_photo_url").value.trim();
+				if(url && url.startsWith("http")) { document.getElementById("sf_photoPreview").src = url; document.getElementById("sf_photoPreview").style.display = "block"; document.getElementById("sf_photoPreview").dataset.value = url; }
 			}
 			// Soldaki "Bitiş Tarihi" değiştikçe sağdaki "Başlangıç Tarihi"ni aynı güne çeker.
 			// TEK YÖNLÜ: sağdakini elle değiştirmek soldakini etkilemez; ama sol tekrar
@@ -2981,7 +3027,7 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				const record = {
 					prefix: document.getElementById("sf_prefix").value, name: name, title: title,
 					unit: document.getElementById("sf_unit").value.trim(), status: "aktif",
-					rank: rankRaw === "" ? "" : Number(rankRaw), photo: "",
+					rank: rankRaw === "" ? "" : Number(rankRaw), photo: document.getElementById("sf_photoPreview").dataset.value || "",
 					start: document.getElementById("sf_start").value, end: "",
 					note: document.getElementById("sf_note").value.trim()
 				};
