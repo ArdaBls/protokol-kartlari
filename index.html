@@ -231,7 +231,11 @@
 			/* Mobilde iki formu ayni anda gostermek (soldaki eski kayit + sagdaki yeni atama)
 			   karisikliga yol aciyordu; dar ekranda successor panel acikken soldaki form
 			   GORSEL olarak tamamen gizlenir (durumu/editIndex korunur, Vazgec ile geri doner). */
-			.modal-bg.hide-behind-successor{ display:none !important; }
+			/* NOT: #modalBg'nin TAMAMINI gizlemek yanlisti -- #successorPanel onun ICINDE bir
+			   alt oge, dolayisiyla modalBg display:none olunca successor panel de kayboluyor
+			   ve ekranda hicbir sey kalmiyordu. Sadece ICERIDEKI .modal (eski kayit formu)
+			   gizlenir; #modalBg'nin kendisi acik kalir ki successor panel gorunmeye devam etsin. */
+			.modal-bg.hide-behind-successor > .modal{ display:none !important; }
 
 			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
 			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
@@ -1210,7 +1214,7 @@
 			<div class="successor-panel-inner">
 				<button class="close-x" onclick="closeSuccessorPanel()">✕</button>
 				<h3>Yerine Atanan Kişi</h3>
-				<p class="hint">Unvan, birim ve sıra bilgisi soldaki kayıttan dolduruldu — isim ve fotoğraf boş, yeni kişi için doldurun. Soldaki kayıt otomatik "Pasif" işaretlendi.</p>
+				<p class="hint">Atanan kişinin bilgilerini doldurun.</p>
 				<div class="field">
 					<label>Unvan Ön Eki</label>
 					<select id="sf_prefix">
