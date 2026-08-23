@@ -331,7 +331,9 @@
 			.cal-legend-count{ margin-left:auto; font-size:10px; color:var(--muted); }
 
 			/* ---- Üst bar ---- */
-			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid var(--divider-soft); background:transparent; }
+			/* iPhone centik/Dynamic Island: takvim tam ekran oldugu icin (position:fixed;inset:0)
+			   ust bar dogrudan centigin altinda kalip "Kapat" ve "Bugun" butonlarina dokunulamiyordu. */
+			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px; border-bottom:1px solid var(--divider-soft); background:transparent; }
 			.cal-month-label{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--navy); }
 			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
 			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -527,7 +529,7 @@
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
 			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
 			@media (max-width: 700px) {
-				.cal-topbar{ padding:9px 10px; gap:5px; }
+				.cal-topbar{ padding:calc(9px + env(safe-area-inset-top,0px)) 10px 9px; gap:5px; }
 				.cal-month-label{ font-size:16px; flex:1 1 auto; }
 				.cal-topbar .cal-close{ order:-1; }
 				.cal-addbtn .ab-full{ display:none; }
@@ -661,9 +663,12 @@
 				@keyframes afPulse{ from{ transform:scale(.9); opacity:1;} to{ transform:scale(1.8); opacity:0;} }
 
 				/* === HEADER GİRİŞ ALANI === */
-				.header-auth{ position:absolute; top:20px; right:20px; display:flex; flex-direction:column; align-items:flex-end; gap:6px; font-family:'Roboto',sans-serif; font-size:13px; z-index:5; }
-				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-				.header-auth .ha-row2{ display:flex; justify-content:flex-end; }
+				/* Onceden top:20px;right:20px ile "Protokol Kartlari" basliginin UZERINE
+				   biniyordu (akistan cikmis absolute kutuydu). Artik eyebrow ile baslik
+				   arasinda, akis icinde, ortalanmis kucuk bir serit halinde duruyor. */
+				.header-auth{ position:static; display:flex; flex-direction:column; align-items:center; gap:6px; margin:10px 0 14px; font-family:'Roboto',sans-serif; font-size:13px; }
+				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
+				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
 				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; white-space:nowrap; }
 				.header-auth .btn-auth:hover{ background:rgba(255,255,255,.18); }
 				.header-auth .user-chip{ color:#f3efe6; display:flex; align-items:center; gap:6px; padding:6px 10px; }
@@ -780,15 +785,6 @@
 				.cal-spacer{ display:none; }
 			}
 
-			@media (max-width: 600px){
-				/* KRITIK: .header-auth position:absolute oldugu icin akistan cikmis; giris
-				   yapmis kullanicida "Ad Soyad · Admin" rozeti ve "Cikis" butonu dogrudan
-				   "OMU BASIN" ve "Protokol Kartlari" basliklarinin UZERINE biniyordu.
-				   Mobilde akisa geri alinir. */
-				.header-auth{ position:static; align-items:flex-start; margin:0 0 12px; }
-				.header-auth .ha-row1, .header-auth .ha-row2{ justify-content:flex-start; }
-			}
-
 			@media (max-width: 480px){
 				/* "Unvan On Eki" sabit 140px aldigi icin 320px'te "Isim Soyisim" alanina
 				   yalnizca 94px kaliyordu. Dar ekranda alt alta gecerler. */
@@ -823,10 +819,9 @@
 		</div>
 
 		<header>
-			<div class="header-auth" id="headerAuth"></div>
-
 			<div style="max-width:1040px;margin:0 auto;">
 				<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
+				<div class="header-auth" id="headerAuth"></div>
 				<h1>Protokol Kartları</h1>
 				<p class="sub" id="listSubtitle">Bulut Veritabanına (Firebase) Bağlı Sürüm.</p>
 			</div>
@@ -1478,9 +1473,8 @@
 				wrap.innerHTML =
 				'<div class="ha-row1">' +
 				'<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
-				adminBtn +
 				'</div>' +
-				'<div class="ha-row2"><button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
+				'<div class="ha-row2">' + adminBtn + '<button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
 			}
 
 			function applyPermissions() {
