@@ -607,7 +607,11 @@
 			   <select>in en uzun secenegi (orn. "Dr. Ogr. Uyesi") kadar kuculmeyi REDDEDER --
 			   bu da satiri, modal'i ve sonunda TUM SAYFAYI mobilde yatayda tasiriyordu. */
 			.field-row{ display:flex; gap:10px; } .field-row .field{ flex:1; min-width:0; }
-			.photo-input-row{ display:flex; align-items:center; gap:10px; } .photo-preview{ width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; border:1px solid var(--border); }
+			/* GERCEK SUCLU (canli testle bulundu): native <input type=file>'in "Dosya Sec" dugmesi
+			   + "Secilmedi" metni epey genis bir min-content'e sahip ve flex satirinda varsayilan
+			   min-width:auto ile bundan asla kucuk olmuyor -- mobilde modali (ve dolayisiyla
+			   sayfayi) sabit sekilde yatayda tasiran, "duzenle her acildiginda" tekrar eden buydu. */
+			.photo-input-row{ display:flex; align-items:center; gap:10px; } .photo-input-row input[type=file]{ min-width:0; flex:1; } .photo-preview{ width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; border:1px solid var(--border); flex-shrink:0; }
 			.modal-actions{ display:flex; gap:10px; margin-top:18px; } .modal-actions .btn{ flex:1; text-align:center; }
 			.close-x{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:var(--muted); cursor:pointer; }
 			@keyframes fadeIn { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
