@@ -767,6 +767,13 @@
 			   (Kaydet, "Yerine Yeni Kisi Ata" vb.) kapatiyordu. Herhangi bir panel acikken
 			   (scroll-locked ile ayni kosul) bu iki buton gizlenir. */
 			body.scroll-locked .calendar-fab, body.scroll-locked .faculty-fab{ display:none !important; }
+			/* iOS'ta kisi duzenleme ekrani acikken alttaki "Fakulte Filtrele" cekmecesi hala
+			   dokunuslari kapip surukleniyordu (kullanici: "sadece onu oynatiyorum, asagi
+			   inemiyorum"). openEditModal/openAddModal artik closeFacultySheet() de cagiriyor
+			   (JS tarafinda guvenli sifirlama) AMA CSS tarafinda da kesin olarak gizlenir:
+			   kisi formu (#modalBg) acikken cekmece + tetikleyici buton + arka plani tamamen
+			   devre disi (pointer-events:none GEREKMEZ, display:none zaten dokunuşu da keser). */
+			body:has(#modalBg.open) .faculty-fab, body:has(#modalBg.open) .faculty-sheet, body:has(#modalBg.open) .faculty-sheet-backdrop{ display:none !important; }
 
 			/* =====================================================================
 			   MOBIL DUZELTMELERI
@@ -2967,10 +2974,11 @@ function renderFacultyPickerField(selected) {
 				if (e.target.classList.contains("fm-cb")) syncUnitFromFaculties();
 			});
 
-function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
+function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
+			closeFacultySheet();
 			editIndex = idx; editIdentity = String(p.name || "") + "|" + String(p.title || ""); resetForm();
 			document.getElementById("f_prefix").value = p.prefix || ""; document.getElementById("f_name").value = p.name || ""; document.getElementById("f_title").value = p.title || "";
 			document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
