@@ -1,4 +1,4 @@
-const CACHE_NAME = "omu-protokol-v2.3.3"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
+const CACHE_NAME = "omu-protokol-v2.3.4"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

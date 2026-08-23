@@ -228,6 +228,10 @@
 			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; height:100%; max-height:697.5px; overflow-y:auto; padding:16px; }
 			}
 			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
+			/* Mobilde iki formu ayni anda gostermek (soldaki eski kayit + sagdaki yeni atama)
+			   karisikliga yol aciyordu; dar ekranda successor panel acikken soldaki form
+			   GORSEL olarak tamamen gizlenir (durumu/editIndex korunur, Vazgec ile geri doner). */
+			.modal-bg.hide-behind-successor{ display:none !important; }
 
 			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
 			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
@@ -629,6 +633,9 @@
 			@media (max-width: 600px) {
 				header { padding-bottom: 16px; }
 				.header-auth .btn-auth, .header-auth .user-chip { font-size: 12px; padding: 6px 9px; }
+				/* Guncellik rozeti ("Guncel" / "Hic Dogrulanmadi" vb.) sadece masaustunde gorunur;
+				   mobilde uzun metni dar karti zorlayip yatay tasmaya yol acabiliyordu. */
+				.freshness-badge { display: none; }
 
 				.controlbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px; }
 				.search-wrap { grid-column: span 2; min-width: unset; width: 100%; }
@@ -1171,7 +1178,7 @@
 					<div class="field" id="verifyField" style="display:none;">
 						<label>Veri Doğrulama Kaynağı</label>
 						<div class="input-wrap" style="display:flex; gap:8px; align-items:center;">
-							<select id="f_dogrulamaKaynak" style="flex:1;">
+							<select id="f_dogrulamaKaynak" style="flex:1; min-width:0;">
 								<option value="omu_web">OMÜ Web Sitesi</option>
 								<option value="kullanici_girisi">Kullanıcı Girişi</option>
 								<option value="resmi_yazi">Resmî Yazı</option>
@@ -2977,10 +2984,15 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				document.getElementById("f_status").value = "pasif";
 				document.getElementById("endDateField").style.display = "block";
 				document.getElementById("successorPanel").classList.add("open");
+				// Mobilde iki formu ayni anda gostermek karisiklik yaratiyordu (kullanici geri
+				// bildirimi): dar ekranda soldaki form GORSEL olarak gizlenir; durum (editIndex,
+				// girilen degerler) korunur, "Vazgec" ile geri donulunce ayni yerden devam edilir.
+				if (window.innerWidth < 900) document.getElementById("modalBg").classList.add("hide-behind-successor");
 			}
 			function closeSuccessorPanel(){
 				const panel = document.getElementById("successorPanel");
 				if (panel) panel.classList.remove("open");
+				document.getElementById("modalBg").classList.remove("hide-behind-successor");
 				successorEditingIndex = null;
 			}
 			function previewSuccessorPhoto(e){
