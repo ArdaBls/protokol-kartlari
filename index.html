@@ -38,7 +38,7 @@
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
 			--paper: #f3efe6; --card: #fbf9f4; --ink: #1b1b1b; --muted: #6b6f76;
 			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
-			--warn: #a8631a; --brass-text: #7c5c1f;
+			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #7c5c1f;
 			--border: #dcd6c7; --border-soft: #e7e1d3; --divider: #e2dccb; --divider-soft: #ddd5c2; --divider-faint: #eee6d4;
 			--surface-hover: #f0ece0; --surface-input: #faf8f2; --surface-pill: #efeadd; --surface-subtle: #f4f1e8;
 			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
@@ -124,6 +124,13 @@
 			.status-chip.silindi{ background:var(--danger-bg); color:#a33; }
 			
 			.rank-badge{ position:absolute; top:10px; left:10px; z-index:4; width:26px; height:26px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+
+			/* Veri güncellik rozeti: eski unvan/görev bilgisinin farkedilmeden kalması protokol
+			   sistemlerinde en sık yapılan hatalardan biri, bu yüzden her kartta görünür durur. */
+			.freshness-badge{ display:inline-flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:3px 7px; border-radius:999px; margin-top:6px; width:fit-content; }
+			.freshness-badge.green{ background:var(--ok-bg); color:var(--ok); }
+			.freshness-badge.yellow{ background:var(--warn-bg); color:var(--warn); }
+			.freshness-badge.red{ background:var(--danger-bg); color:#a33; }
 			.info{ padding:12px 14px 14px; display:flex; flex-direction:column; flex:1; }
 			.name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); }
 			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:'Roboto', sans-serif; font-weight:500; }
@@ -1149,6 +1156,19 @@
 						<label>Not (opsiyonel)</label>
 						<textarea id="f_note" rows="2" style="resize:vertical; width:416px; height:54px; max-width:100%;"></textarea>
 					</div>
+					<div class="field" id="verifyField" style="display:none;">
+						<label>Veri Doğrulama Kaynağı</label>
+						<div class="input-wrap" style="display:flex; gap:8px; align-items:center;">
+							<select id="f_dogrulamaKaynak" style="flex:1;">
+								<option value="omu_web">OMÜ Web Sitesi</option>
+								<option value="kullanici_girisi">Kullanıcı Girişi</option>
+								<option value="resmi_yazi">Resmî Yazı</option>
+								<option value="manuel">Manuel Doğrulama</option>
+							</select>
+							<button type="button" class="btn btn-ghost" style="flex-shrink:0; padding:9px 12px;" onclick="verifyPerson(editIndex)">Şimdi Doğrula</button>
+						</div>
+						<p class="hint" id="verifyInfo" style="margin-top:8px;">—</p>
+					</div>
 					<div class="modal-actions">
 						<button class="btn btn-ghost" type="button" onclick="closeModal()">Vazgeç</button>
 						<button class="btn btn-primary" type="button" onclick="saveForm()">Kaydet</button>
@@ -1996,6 +2016,30 @@
 				catch (err) { showToast("Buluta kaydedilemedi.", "error"); return false; }
 			}
 
+			// Diğer form alanlarına dokunmadan sadece "bu bilgi hâlâ doğru" damgası basar --
+			// tam düzenleme akışına girmeden hızlı doğrulama için (saveForm ile aynı stale-index koruması).
+			async function verifyPerson(idx) {
+				if (!requireEdit()) return;
+				const p = people[idx];
+				if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
+				const curIdentity = String(p.name || "") + "|" + String(p.title || "");
+				if (editIdentity !== null && curIdentity !== editIdentity) {
+					showToast("Liste başka bir kullanıcı tarafından değiştirildi, doğrulama yapılmadı. Lütfen tekrar deneyin.", "error");
+					closeModal(); render(); return;
+				}
+				const kaynakSel = document.getElementById("f_dogrulamaKaynak");
+				const kaynak = kaynakSel ? kaynakSel.value : "manuel";
+				const who = ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email;
+				const oldRecord = Object.assign({}, p);
+				people[idx] = Object.assign({}, p, { dogrulamaKaynak: kaynak, sonDogrulamaTs: Date.now(), dogrulayan: who });
+				const actionLabel = (p.name || "Kayıt") + " kişisi doğrulandı · Kaynak: " + (VERIFICATION_SOURCES[kaynak] || kaynak);
+				const saved = await savePerson(idx, actionLabel, p.name);
+				if (!saved) { people[idx] = oldRecord; return; }
+				showToast("Doğrulama kaydedildi: " + (p.name || ""));
+				updateVerifyInfo(people[idx]);
+				render();
+			}
+
 			document.querySelectorAll('#listSwitch button').forEach(b => b.classList.toggle('active', b.dataset.list === currentListKey));
 			attachListener();
 
@@ -2610,9 +2654,11 @@
 					const newsHtml = isNewsMode ? '<input type="checkbox" class="news-cb" style="left:'+cbLeft+';" ' + (newsSelection.includes(p._realIdx) ? 'checked' : '') + '>' : "";
 
 					let actionHtml = "";
-					if (isBulkMode || isNewsMode) { 
-						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:12px; padding:7px; background:#f0f0f0; border-radius:7px;">SEÇİM MODU AKTİF</div>'; 
-					} 
+					const fresh = getFreshnessInfo(p);
+					const freshTitle = p.sonDogrulamaTs ? ("Son doğrulama: " + fmtDate(dKey(new Date(p.sonDogrulamaTs))) + " · " + (VERIFICATION_SOURCES[p.dogrulamaKaynak] || p.dogrulamaKaynak || "") + (p.dogrulayan ? " · " + p.dogrulayan : "")) : "Bu kayıt hiç doğrulanmadı.";
+					if (isBulkMode || isNewsMode) {
+						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:12px; padding:7px; background:#f0f0f0; border-radius:7px;">SEÇİM MODU AKTİF</div>';
+					}
 					else if (mode === "silindi") { 
 						actionHtml = canEditData() ? `
 							<div style="display:flex; gap:8px; margin-top:12px;">
@@ -2633,6 +2679,7 @@
 						'<p class="title">' + escapeHtml(p.title) + '</p>' +
 						'<p class="unit">' + escapeHtml(p.unit) + '</p>' +
 						'<div class="meta"><span>' + escapeHtml(fmtDate(p.start)) + '</span><span>' + (p.end ? escapeHtml(fmtDate(p.end)) : "devam ediyor") + '</span></div>' +
+						'<span class="freshness-badge ' + fresh.level + '" title="' + escapeHtml(freshTitle) + '">' + fresh.icon + ' ' + fresh.label + '</span>' +
 						(p.note ? '<p class="note">' + escapeHtml(p.note) + '</p>' : '') + actionHtml +
 					'</div>';
 
@@ -2725,7 +2772,7 @@ function renderFacultyPickerField(selected) {
 				if (e.target.classList.contains("fm-cb")) syncUnitFromFaculties();
 			});
 
-function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
+function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
@@ -2735,6 +2782,7 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 			document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
 			document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
 			if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
+			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
 			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
 			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
@@ -2774,6 +2822,32 @@ function openAddModal(){ if (!requireEdit()) return; editIndex = null; resetForm
 				note: "Not", photo: "Fotoğraf", faculties: "Bağlı Birim / Ek Görev"
 			};
 			const LOG_STATUS_LABELS = { aktif: "Aktif", pasif: "Pasif (arşiv)", silindi: "Çöp kutusunda" };
+
+			// ---- Veri güncellik / doğrulama sistemi ----
+			// Amaç: eski unvanların fark edilmeden kartlarda kalması protokol sistemlerindeki en yaygın
+			// hatalardan biri; her kişi kaydı en son NE ZAMAN, HANGİ kaynaktan ve KİM tarafından
+			// doğrulandığını taşır (dogrulamaKaynak, sonDogrulamaTs, dogrulayan alanları).
+			const VERIFICATION_SOURCES = {
+				omu_web: "OMÜ Web Sitesi",
+				kullanici_girisi: "Kullanıcı Girişi",
+				resmi_yazi: "Resmî Yazı",
+				manuel: "Manuel Doğrulama"
+			};
+			function getFreshnessInfo(p) {
+				if (!p || !p.sonDogrulamaTs) return { level: "red", icon: "🔴", label: "Hiç Doğrulanmadı" };
+				const days = Math.floor((Date.now() - p.sonDogrulamaTs) / 86400000);
+				if (days < 90) return { level: "green", icon: "🟢", label: "Güncel" };
+				if (days < 365) return { level: "yellow", icon: "🟡", label: days + " Gündür Kontrol Edilmedi" };
+				return { level: "red", icon: "🔴", label: "1 Yıldan Uzun Süredir Kontrol Edilmedi" };
+			}
+			function updateVerifyInfo(p) {
+				const el = document.getElementById("verifyInfo");
+				if (!el) return;
+				if (!p || !p.sonDogrulamaTs) { el.textContent = "Bu kayıt hiç doğrulanmadı."; return; }
+				const dateStr = fmtDate(dKey(new Date(p.sonDogrulamaTs)));
+				const kaynakLabel = VERIFICATION_SOURCES[p.dogrulamaKaynak] || p.dogrulamaKaynak || "—";
+				el.textContent = "Son doğrulama: " + dateStr + " · " + kaynakLabel + (p.dogrulayan ? " · " + p.dogrulayan : "");
+			}
 
 			// Uzun metinler (not, birim vb.) logu şişirmesin diye kısaltılır; boş değerler "(boş)" yazılır.
 			function logValueOrEmpty(v) {
