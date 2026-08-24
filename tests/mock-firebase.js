@@ -18,6 +18,11 @@
 			_path: path,
 			on: function (eventType, cb) {
 				listeners.push(cb);
+				// Cevrimdisi/baglanti-kopuklugu simulasyonu (offline-timeout-test.js): sadece
+				// window.__mockSimulateOfflineHang acikken VE "users/" yolunda callback'i BILEREK
+				// hic cagirma -- gercek Firebase'in internet yokken sessizce beklemede kalmasini
+				// taklit eder. Diger tum testler bu bayragi hic set etmedigi icin etkilenmez.
+				if (window.__mockSimulateOfflineHang && path.indexOf("users/") === 0) return cb;
 				// Anında boş veriyle çağır (gerçek Firebase de ilk bağlanışta mevcut veriyi verir)
 				try { cb(makeSnapshot(null)); } catch (e) { console.error("mock on() callback error", e); }
 				return cb;
@@ -61,6 +66,12 @@
 	var mockAuth = {
 		onAuthStateChanged: function (cb) {
 			authCallbacks.push(cb);
+			if (window.__mockSimulateOfflineHang) {
+				// Cihazda kalıcı oturum var (daha önce giriş yapılmış) ama profil (users/{uid})
+				// hiç çözülmeyecek (yukarıdaki on() yaması) -- offline-timeout-test.js bunu kullanır.
+				setTimeout(function () { cb({ uid: "offlineTestUid", email: "offline@test.com" }); }, 0);
+				return;
+			}
 			// Duman testi: oturum açmamış (misafir) durumu simüle et
 			setTimeout(function () { cb(null); }, 0);
 		},

@@ -551,11 +551,9 @@
 			.ev-att-item .sub{ color:var(--muted); font-size:11px; }
 			.ev-att-search{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; margin-bottom:6px; box-sizing:border-box; }
 
-			/* ---- Etkinliğe özel alt liste: seçili üyelerin sürükle-bırak sıralanabilir mini listesi ---- */
+			/* ---- Etkinliğe özel alt liste: seçili üyelerin protokol sırasına göre otomatik dizilen mini listesi ---- */
 			.sublist-members-box{ max-height:260px; overflow-y:auto; margin-bottom:6px; }
 			.sublist-member-row{ display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; background:#fff; margin-bottom:6px; }
-			.sublist-drag{ cursor:grab; color:var(--muted); font-size:16px; touch-action:none; flex-shrink:0; }
-			.sublist-drag:active{ cursor:grabbing; }
 			.sublist-order{ width:22px; height:22px; border-radius:50%; background:var(--surface-pill); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--navy); flex-shrink:0; }
 			.sublist-info{ flex:1; min-width:0; }
 			.sublist-name{ display:block; font-weight:600; font-size:13px; color:var(--navy); }
@@ -801,6 +799,19 @@
 			.admin-tabs .btn{ padding:10px 6px; font-size:13px; min-width:0; }
 			@media (min-width: 560px){ .admin-tabs{ grid-template-columns:repeat(5,minmax(0,1fr)); } }
 
+			/* ---- Test Modu: admin panelinde HER sekmede görünen sabit anahtar + site geneli şerit ---- */
+			.test-mode-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; margin-bottom:14px; background:var(--paper); border:1px solid var(--divider); border-radius:10px; }
+			.test-mode-title{ font-size:13px; color:var(--navy); }
+			.test-mode-log-section{ margin-bottom:16px; }
+			.ios-switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+			.ios-switch input{ opacity:0; width:0; height:0; }
+			.ios-switch-slider{ position:absolute; cursor:pointer; inset:0; background:#ccc; transition:.2s; border-radius:24px; }
+			.ios-switch-slider::before{ content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
+			.ios-switch input:checked + .ios-switch-slider{ background:var(--navy); }
+			.ios-switch input:checked + .ios-switch-slider::before{ transform:translateX(18px); }
+			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:150; background:var(--navy); color:#f3efe6; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
+			body.test-mode-active{ padding-top:calc(26px + env(safe-area-inset-top,0px)); }
+
 			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */
 			header{ padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
 			.calendar-fab, .faculty-fab{ bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
@@ -884,6 +895,8 @@
 		</style>
 	</head>
 	<body class="is-readonly">
+
+		<div id="testModeBanner">🧪 Test Modu Açık — kayıt işlemleri test günlüğüne yazılıyor</div>
 
 								<div class="loading-overlay" id="loadingOverlay">
 			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
@@ -1165,7 +1178,7 @@
 						<div class="ev-attendee-box" id="subl_box"></div>
 					</div>
 					<div class="field">
-						<label>Seçili Üyeler <span style="font-weight:400; color:var(--muted); font-size:12px;">(sürükleyerek sırala)</span></label>
+						<label>Seçili Üyeler <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol sırasına göre otomatik dizilir)</span></label>
 						<div class="sublist-members-box" id="subl_membersBox"></div>
 					</div>
 					<div class="modal-actions">
@@ -1533,12 +1546,29 @@
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')">Test</button>
 					<button class="btn btn-ghost" id="adminTabDebugBtn" onclick="switchAdminTab('debug')">Debug</button>
 				</div>
+				<div class="test-mode-row">
+					<div>
+						<b class="test-mode-title">🧪 Test Modu</b>
+						<p class="hint" style="margin:2px 0 0;">Açıkken TÜM kayıt işlemlerinin (kişi/etkinlik/özel liste) logu -- kim yaparsa yapsın -- normal geçmiş yerine ayrı bir test günlüğüne yazılır. Veri her zaman gerçek yola yazılır, sitede görünmeye devam eder.</p>
+					</div>
+					<label class="ios-switch">
+						<input type="checkbox" id="testModeSwitch" onchange="setTestMode(this.checked)">
+						<span class="ios-switch-slider"></span>
+					</label>
+				</div>
+				<div class="test-mode-log-section">
+					<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+						<span class="hint" style="margin:0;">Test Günlüğü (son 50)</span>
+						<button type="button" class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="loadTestModeLog()">Yenile</button>
+					</div>
+					<div id="adminTestModeLogList" style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+				</div>
 				<div id="adminUsersView">
 					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
 					<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
 				</div>
 				<div id="adminLogsView" style="display:none;">
-					<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
+					<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi + Özel Liste) son 50 değişiklik.</p>
 					<div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
 				</div>
 				<div id="adminEventsBackupView" style="display:none;">
@@ -1606,6 +1636,7 @@
 			if (firebaseConfig.apiKey) { firebase.initializeApp(firebaseConfig); database = firebase.database(); auth = firebase.auth(); }
 
 			let currentUser = null; // { uid, email, firstName, lastName, role }
+			let testModeEnabled = false; // Firebase'de paylaşımlı (ayarlar/testModuAcik) -- açıkken TÜM kayıt loglarının hedefi logs/test olur
 
 			function showLoading(msg) { document.getElementById("loadingLabel").textContent = msg || "Yükleniyor…"; document.getElementById("loadingOverlay").classList.add("open"); }
 			function hideLoading() { document.getElementById("loadingOverlay").classList.remove("open"); }
@@ -1700,12 +1731,28 @@
 
 			let userProfileRef = null; let userProfileCallback = null;
 			if (auth) {
+				var OFFLINE_FALLBACK_TIMEOUT_MS = window.OFFLINE_FALLBACK_TIMEOUT_MS || 8000; // test'te page.addInitScript ile window.OFFLINE_FALLBACK_TIMEOUT_MS onceden set edilip kisaltilabilir
 				auth.onAuthStateChanged(function(user) {
 					if (userProfileRef && userProfileCallback) { userProfileRef.off("value", userProfileCallback); userProfileRef = null; }
 					if (!user) { currentUser = null; renderAuthUI(); applyPermissions(); return; }
 					showLoading("Yetkiler kontrol ediliyor…");
+					// Internet yoksa/zayifsa bu .on("value") hic tetiklenmeyebilir (hata callback'i de
+					// verilmedigi icin sessizce beklemede kalir) ve tam ekran overlay sonsuza kadar acik
+					// kalirdi -- oysa asagidaki attachListener()/attachEventsListener() auth'tan bagimsiz
+					// zaten calisiyor, kullanici veriyi gorebilirdi ama overlay ustunu kapatiyordu. Belirli
+					// bir sure icinde profil gelmezse salt-okunur/cevrimdisi moda dusup overlay kapatilir;
+					// baglanti sonra gelirse asagidaki callback normal calisip rolu doğru yukseltir.
+					var profileResolved = false;
+					var offlineFallbackTimer = setTimeout(function(){
+						if (profileResolved) return;
+						hideLoading();
+						showToast("İnternet bağlantısı zayıf veya yok — sınırlı (salt okunur) modda görüntüleniyor.", "warn");
+						applyPermissions();
+					}, OFFLINE_FALLBACK_TIMEOUT_MS);
 					userProfileRef = database.ref("users/" + user.uid);
 					userProfileCallback = function(snap) {
+						profileResolved = true;
+						clearTimeout(offlineFallbackTimer);
 						const profile = snap.val() || {};
 						currentUser = { uid: user.uid, email: user.email, firstName: profile.firstName || "", lastName: profile.lastName || "", role: profile.role || "pending" };
 						renderAuthUI(); applyPermissions(); hideLoading();
@@ -1717,6 +1764,8 @@
 			function openAdminPanel() {
 				if (!currentUser || currentUser.role !== "admin") return;
 				document.getElementById("adminPanelBg").classList.add("open");
+				updateTestModeBanner();
+				loadTestModeLog();
 				switchAdminTab("users");
 			}
 			function closeAdminPanel() { document.getElementById("adminPanelBg").classList.remove("open"); }
@@ -1784,12 +1833,14 @@
 				Promise.all([
 				database.ref("logs/il").limitToLast(50).once("value"),
 				database.ref("logs/universite").limitToLast(50).once("value"),
-				database.ref("logs/etkinlik").limitToLast(50).once("value")
+				database.ref("logs/etkinlik").limitToLast(50).once("value"),
+				database.ref("logs/ozelListe").limitToLast(50).once("value")
 				]).then(function(snaps) {
 				const ilLogs = Object.values(snaps[0].val() || {}).map(function(e){ e._list = "il"; return e; });
 				const uniLogs = Object.values(snaps[1].val() || {}).map(function(e){ e._list = "universite"; return e; });
 				const evLogs = Object.values(snaps[2].val() || {}).map(function(e){ e._list = "etkinlik"; return e; });
-				const entries = ilLogs.concat(uniLogs).concat(evLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
+				const ozLogs = Object.values(snaps[3].val() || {}).map(function(e){ e._list = "ozelListe"; return e; });
+				const entries = ilLogs.concat(uniLogs).concat(evLogs).concat(ozLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
 				if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
 				listEl.innerHTML = entries.map(function(e) {
 				const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
@@ -1879,7 +1930,7 @@
 			}
 
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
-			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi' };
+			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi', ozelListe: 'Özel Liste' };
 			// Site açılışında sekme HER ZAMAN Üniversite ile açılır (kullanıcı talebi). Daha önce burada
 			// localStorage'da kayıtlı son sekme (ör. 'il') okunup başlangıç değeri yapılıyordu; artık
 			// açılışta okunmuyor — switchList() elle sekme değişiminde localStorage'a yazmaya devam
@@ -2174,12 +2225,37 @@
 				document.addEventListener("mouseup", onEnd);
 			})();
 
+			// ---- Test Modu: Firebase'de paylaşımlı (ayarlar/testModuAcik) bir anahtar. Açıkken
+			// GERÇEK kayıt işlemlerinin (kişi/etkinlik/özel liste) logu normal logs/{...} yerine
+			// tek bir logs/test dalına yazılır -- veri her zaman gerçek yola yazılır (sitede
+			// görünür), sadece LOG hedefi değişir, denemeler asıl geçmişi kirletmez. logs/debug
+			// (aşağıdaki dar kapsamlı Debug sistemi) BİLEREK bundan ayrı/etkilenmeden kalır.
+			function logTargetPath(basePath) { return testModeEnabled ? "logs/test" : basePath; }
+			function attachTestModeListener() {
+				if (!database) return;
+				database.ref("ayarlar/testModuAcik").on("value", function(snap) {
+					testModeEnabled = !!snap.val();
+					updateTestModeBanner();
+				}, function(err) { console.error("Test modu durumu okunamadı:", err); });
+			}
+			function updateTestModeBanner() {
+				const sw = document.getElementById("testModeSwitch"); if (sw) sw.checked = testModeEnabled;
+				const banner = document.getElementById("testModeBanner"); if (banner) banner.style.display = testModeEnabled ? "flex" : "none";
+				document.body.classList.toggle("test-mode-active", testModeEnabled); // şerit sabit konumlu, header'ın üstüne binmesin diye body'ye üst boşluk eklenir
+			}
+			async function setTestMode(on) {
+				if (!requireAdmin()) { updateTestModeBanner(); return; }
+				if (!database) { showToast("Veritabanı bağlı değil!", "error"); updateTestModeBanner(); return; }
+				try { await database.ref("ayarlar/testModuAcik").set(!!on); }
+				catch (err) { console.error("Test modu değiştirilemedi:", err); showToast("Test modu değiştirilemedi.", "error"); updateTestModeBanner(); }
+			}
+
 			// targetName ayrı tutulur ki log listesinde "kim yaptı" (by) ile "kime yapıldı" (target)
 			// birbirine karışmasın — ikisi de kalın yazınca ayırt edilemiyordu, artık target ayrı renkte bir etiket.
 			function logAction(actionLabel, targetName) {
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				database.ref("logs/" + currentListKey).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
+				database.ref(logTargetPath("logs/" + currentListKey)).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
 			}
 
 			// ---- Debug sistemi: log/logs/{il,universite,etkinlik} ile KARIŞMASIN diye ayrı bir
@@ -2229,6 +2305,23 @@
 					const obj = snap.val() || {};
 					const entries = Object.values(obj).sort(function(a, b) { return (b.timestamp||0) - (a.timestamp||0); });
 					if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Debug günlüğü boş.</p>'; return; }
+					listEl.innerHTML = entries.map(function(e) {
+						const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
+						const targetHtml = e.target ? ('<span class="al-target">' + escapeHtml(e.target) + '</span> ') : "";
+						return '<div class="admin-log-row"><div class="al-top"><span class="al-by">' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + targetHtml + escapeHtml(e.action || "") + '</div></div>';
+					}).join("");
+				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Günlük yüklenemedi.</p>'; });
+			}
+			// Test Modu anahtarı admin panelinde her sekmede görünür (bkz. adminPanelBg HTML'i);
+			// bu yüzden günlüğü de switchAdminTab'a bağlı değil, panel her açıldığında yüklenir.
+			function loadTestModeLog() {
+				const listEl = document.getElementById("adminTestModeLogList"); if (!listEl) return;
+				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				if (!database) { listEl.innerHTML = '<p class="admin-user-empty">Veritabanı bağlı değil.</p>'; return; }
+				database.ref("logs/test").limitToLast(50).once("value").then(function(snap) {
+					const obj = snap.val() || {};
+					const entries = Object.values(obj).sort(function(a, b) { return (b.timestamp||0) - (a.timestamp||0); });
+					if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Test günlüğü boş.</p>'; return; }
 					listEl.innerHTML = entries.map(function(e) {
 						const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
 						const targetHtml = e.target ? ('<span class="al-target">' + escapeHtml(e.target) + '</span> ') : "";
@@ -3446,7 +3539,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						if (!database) { showToast("Veritabanı bağlı değil!", "error"); e.target.value = ""; return; }
 						await database.ref("etkinlikler").set(clean);
 						if (currentUser) {
-							database.ref("logs/etkinlik").push({
+							database.ref(logTargetPath("logs/etkinlik")).push({
 								by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
 								email: currentUser.email, action: "Etkinlik takvimi JSON yedekten geri yüklendi (" + kept + " kayıt" + (skipped ? ", " + skipped + " geçersiz satır atlandı" : "") + ")",
 								target: "", timestamp: Date.now()
@@ -3528,7 +3621,6 @@ let sublistEventId = null;        // modalın bağlı olduğu etkinlik id'si
 let sublistMembers = [];          // modalda seçili üyeler (sıralı, henüz kaydedilmemiş)
 let sublistOtherPool = [];        // aktif olmayan listeden tek seferlik okunan kişi havuzu
 let sublistPoolToken = 0;         // ardışık modal açılışlarında eski .once() sonucunun geç gelip güncel seçimi ezmesini önler
-let sublistSortable = null;       // seçili üyeler mini-listesinin Sortable örneği
 let sublistDeleteTargetId = null;
 
 function evType(k){ for(var i=0;i<EVENT_TYPES.length;i++) if(EVENT_TYPES[i].key===k) return EVENT_TYPES[i]; return EVENT_TYPES[EVENT_TYPES.length-1]; }
@@ -4420,7 +4512,7 @@ function describeEventCreation(e){
 // Ctrl+Z geri alma akislari bunu paylasir (onceden ayni kod birden fazla yerde tekrarlaniyordu).
 function logEventAction(action, target){
 	if(!currentUser || !database) return;
-	database.ref("logs/etkinlik").push({
+	database.ref(logTargetPath("logs/etkinlik")).push({
 		by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
 		email: currentUser.email, action: action || "Etkinlik güncellendi",
 		target: target || "", timestamp: Date.now()
@@ -4660,6 +4752,19 @@ document.addEventListener("click", function(e){
 	openSublistModal(calPeekedId, chip.dataset.sublistId);
 });
 
+// Seçili üyeleri ana listenin protokol hiyerarşisiyle (unvan+kurum ağırlığı) aynı mantıkla
+// sıralar (bkz. getHierarchyWeight/getInstitutionWeight, ana listede de kullanılıyor) — elle
+// sürükleyip sıralama BİLEREK yok: kullanıcı karışıklığa yol açabileceğini düşündüğü için
+// listenin her zaman ana protokol sırasını birebir yansıtmasını istedi.
+function sortSublistMembersByProtocol(){
+	sublistMembers.sort(function(a,b){
+		const hw=getHierarchyWeight(a)-getHierarchyWeight(b);
+		if(hw!==0) return hw;
+		return getInstitutionWeight(a)-getInstitutionWeight(b);
+	});
+	sublistMembers.forEach(function(m,i){ m.sira=i+1; });
+}
+
 function openSublistModal(etkinlikId, sublistId){
 	if(!requireEdit()) return;
 	sublistEventId=etkinlikId||null;
@@ -4670,11 +4775,16 @@ function openSublistModal(etkinlikId, sublistId){
 	document.getElementById("subl_deleteBtn").style.display = s ? "" : "none";
 	document.getElementById("subl_ad").value = s ? (s.ad||"") : ((ev&&ev.ad) ? (ev.ad+" Protokolü") : "");
 	sublistMembers = s ? (Array.isArray(s.uyeler)?s.uyeler.map(function(m){ return Object.assign({},m); }):[])
-		: (ev && Array.isArray(ev.katilimcilar) ? ev.katilimcilar.map(function(a,i){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"", unit:"", kaynakListe:currentListKey, sira:i+1 }; }) : []);
+		: (ev && Array.isArray(ev.katilimcilar) ? ev.katilimcilar.map(function(a,i){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"", unit:"", kaynakListe:"", sira:i+1 }; }) : []);
+	sortSublistMembersByProtocol();
 	document.getElementById("subl_search").value="";
 	sublistOtherPool=[];
 	closeEventPeek();
-	loadSublistPool().then(renderSublistMemberPicker);
+	loadSublistPool().then(function(){
+		enrichSublistMembersFromPool();
+		renderSublistMemberPicker();
+		renderSublistMembersBox();
+	});
 	renderSublistMemberPicker();
 	renderSublistMembersBox();
 	document.getElementById("sublistModalBg").classList.add("open");
@@ -4682,7 +4792,6 @@ function openSublistModal(etkinlikId, sublistId){
 function closeSublistModal(){
 	document.getElementById("sublistModalBg").classList.remove("open");
 	sublistEditingId=null; sublistEventId=null;
-	if(sublistSortable){ sublistSortable.destroy(); sublistSortable=null; }
 }
 
 // Aktif sekmede olmayan listeyi bir kerelik okuyup (kalıcı dinleyici AÇMADAN) "people" ile
@@ -4696,6 +4805,21 @@ function loadSublistPool(){
 		const list=normalizePeopleSnapshot(snap.val());
 		sublistOtherPool=list.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; }).map(function(p){ return Object.assign({}, p, { kaynakListe: otherKey }); });
 	}).catch(function(err){ console.error("Diğer liste okunamadı:", err); sublistOtherPool=[]; });
+}
+
+// Bir etkinliğin katılımcılarından önceden doldurulan üyelerde unit/kaynakListe bilgisi yok
+// (Event.katilimcilar bunları hiç saklamıyor) — bu olmadan getInstitutionWeight yanlış katman
+// verebilir. Havuz yüklendikten sonra, eksik üyeleri isim+unvanla eşleştirip tamamlar.
+function enrichSublistMembersFromPool(){
+	const myPool=people.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; }).map(function(p){ return Object.assign({}, p, { kaynakListe: currentListKey }); });
+	const pool=myPool.concat(sublistOtherPool);
+	let changed=false;
+	sublistMembers.forEach(function(m){
+		if(m.kaynakListe) return;
+		const match=pool.find(function(p){ return p.name===m.name && p.title===m.title; });
+		if(match){ m.unit=match.unit||""; m.kaynakListe=match.kaynakListe||""; m.prefix=match.prefix||m.prefix||""; changed=true; }
+	});
+	if(changed) sortSublistMembersByProtocol();
 }
 
 function renderSublistMemberPicker(){
@@ -4723,7 +4847,7 @@ document.addEventListener("change", function(e){
 	} else {
 		sublistMembers=sublistMembers.filter(function(a){ return (a.name||"")+"|"+(a.title||"")!==key; });
 	}
-	sublistMembers.forEach(function(m,i){ m.sira=i+1; });
+	sortSublistMembersByProtocol();
 	renderSublistMembersBox();
 });
 
@@ -4731,35 +4855,22 @@ function renderSublistMembersBox(){
 	const box=document.getElementById("subl_membersBox"); if(!box) return;
 	if(!sublistMembers.length){
 		box.innerHTML='<p class="hint" style="margin:6px;">Henüz kimse seçilmedi.</p>';
-		if(sublistSortable){ sublistSortable.destroy(); sublistSortable=null; }
 		return;
 	}
 	box.innerHTML=sublistMembers.map(function(m,i){
-		return '<div class="sublist-member-row" data-key="'+escapeHtml((m.name||"")+"|"+(m.title||""))+'">'+
-			'<span class="sublist-drag">⋮⋮</span>'+
+		return '<div class="sublist-member-row">'+
 			'<span class="sublist-order">'+(i+1)+'</span>'+
 			'<span class="sublist-info"><span class="sublist-name">'+escapeHtml(m.name)+'</span><span class="sublist-title">'+escapeHtml(m.title||"")+'</span></span>'+
 			'<button type="button" class="sublist-remove" data-key="'+escapeHtml((m.name||"")+"|"+(m.title||""))+'">✕</button>'+
 		'</div>';
 	}).join("");
-	if(!sublistSortable){
-		sublistSortable=new Sortable(box, {
-			animation:200, handle:'.sublist-drag', ghostClass:'dragging', delay:150, delayOnTouchOnly:true,
-			onEnd: function(){
-				const keys=Array.from(box.children).map(function(el){ return el.dataset.key; });
-				sublistMembers.sort(function(a,b){ return keys.indexOf((a.name||"")+"|"+(a.title||"")) - keys.indexOf((b.name||"")+"|"+(b.title||"")); });
-				sublistMembers.forEach(function(m,i){ m.sira=i+1; });
-				renderSublistMembersBox();
-			}
-		});
-	}
 }
 document.addEventListener("click", function(e){
 	const btn=e.target.closest && e.target.closest(".sublist-remove");
 	if(!btn) return;
 	const key=btn.dataset.key;
 	sublistMembers=sublistMembers.filter(function(a){ return (a.name||"")+"|"+(a.title||"")!==key; });
-	sublistMembers.forEach(function(m,i){ m.sira=i+1; });
+	sortSublistMembersByProtocol();
 	renderSublistMemberPicker();
 	renderSublistMembersBox();
 });
@@ -4849,7 +4960,7 @@ async function executeSublistDelete(){
 function logSublistAction(action, target){
 	if(!database || !currentUser) return;
 	const who=((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email;
-	database.ref("logs/ozelListe").push({ by:who, email:currentUser.email, action:action||"Özel liste güncellendi", target:target||"", timestamp:Date.now() }).catch(function(err){ console.error("Özel liste log kaydı yazılamadı:", err); });
+	database.ref(logTargetPath("logs/ozelListe")).push({ by:who, email:currentUser.email, action:action||"Özel liste güncellendi", target:target||"", timestamp:Date.now() }).catch(function(err){ console.error("Özel liste log kaydı yazılamadı:", err); });
 }
 
 /* ================= HABER ŞABLONLARI ================= */
@@ -5040,6 +5151,7 @@ function generateNewsFromEvent(){
 		// Haber şablonları artık admin panelinden düzenlenmiyor; doğrudan DEFAULT_NEWS_TEMPLATES kullanılır.
 		attachEventsListener();
 		attachSublistsListener();
+		attachTestModeListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();
 		renderCalendarRail();

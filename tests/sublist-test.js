@@ -90,32 +90,24 @@ function serve() {
 	});
 
 	// =====================================================================
-	// SENARYO 2: İki kişiyi de işaretleyip seçili üyeler kutusuna eklenmesi
+	// SENARYO 2: Kişileri TERS hiyerarşi sırasıyla işaretle (önce Vali/İl Kişi Bir,
+	// sonra Rektör/Üni Kişi) -- sürükle-bırak KALDIRILDI, artık liste her zaman ana
+	// protokol hiyerarşisine göre OTOMATİK sıralanmalı: "Rektör" TITLE_HIERARCHY'de
+	// ağırlık 1, "Vali" hiyerarşide hiç yok (eşleşmeyince ağırlık çok daha yüksek/geri
+	// sırada) -- yani ekleme sırası ters olsa bile Üni Kişi (Rektör) hep önce gelmeli.
 	// =====================================================================
 	const selectTest = await page.evaluate(() => {
-		document.querySelectorAll('#subl_box .subl-cb').forEach((cb) => {
-			cb.checked = true;
-			cb.dispatchEvent(new Event('change', { bubbles: true }));
-		});
+		const cbs = Array.from(document.querySelectorAll('#subl_box .subl-cb'));
+		const ilCb = cbs.find((cb) => cb.dataset.name === 'İl Kişi Bir');
+		const uniCb = cbs.find((cb) => cb.dataset.name === 'Üni Kişi');
+		[ilCb, uniCb].forEach((cb) => { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); });
 		return {
 			memberCount: sublistMembers.length,
 			hasIl: sublistMembers.some((m) => m.name === 'İl Kişi Bir' && m.kaynakListe === 'il'),
 			hasUni: sublistMembers.some((m) => m.name === 'Üni Kişi' && m.kaynakListe === 'universite'),
-			membersBoxRendered: document.querySelectorAll('#subl_membersBox .sublist-member-row').length === 2
-		};
-	});
-
-	// =====================================================================
-	// SENARYO 3: Sürükle-bırak sırasını simüle et (Sortable mock, onEnd elle tetiklenir)
-	// =====================================================================
-	const reorderTest = await page.evaluate(() => {
-		const box = document.getElementById('subl_membersBox');
-		const before = sublistMembers.map((m) => m.name);
-		box.insertBefore(box.lastElementChild, box.firstElementChild); // DOM sırasını ters çevir
-		sublistSortable.options.onEnd();
-		const after = sublistMembers.map((m) => m.name);
-		return {
-			orderReallyChanged: before[0] !== after[0],
+			membersBoxRendered: document.querySelectorAll('#subl_membersBox .sublist-member-row').length === 2,
+			// Otomatik protokol sırası: Rektör (Üni Kişi) eklenme sırası SONRA olmasına rağmen 1. sırada olmalı.
+			autoSortedCorrectly: sublistMembers[0].name === 'Üni Kişi' && sublistMembers[1].name === 'İl Kişi Bir',
 			siraIsSequential: sublistMembers[0].sira === 1 && sublistMembers[1].sira === 2
 		};
 	});
@@ -166,7 +158,7 @@ function serve() {
 		return { confirmOpen, removedFromState: !calSublists[id] };
 	});
 
-	const results = { openTest, selectTest, reorderTest, saveTest, gateTest, deleteTest, pageErrorsCount: pageErrors.length };
+	const results = { openTest, selectTest, saveTest, gateTest, deleteTest, pageErrorsCount: pageErrors.length };
 	console.log(JSON.stringify(results, null, 2));
 	if (pageErrors.length) { console.log('PAGE ERRORS:'); pageErrors.forEach((e) => console.log(' - ' + e)); }
 
