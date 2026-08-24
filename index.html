@@ -299,6 +299,30 @@
 			   gizlenir; #modalBg'nin kendisi acik kalir ki successor panel gorunmeye devam etsin. */
 			.modal-bg.hide-behind-successor > .modal{ display:none !important; }
 
+			/* Görev/Etkinlik Geçmişi paneli -- successor-panel'in AYNASI, ama SOLDA. Genişte
+			   (>=900px) düzenleme ekranının SOLUNDA durur: bu, panelin HTML'de .modal'dan ÖNCE
+			   gelmesiyle sağlanıyor (#modalBg flex satırında DOM sırası = görsel sıra). Dar
+			   ekranda successor-panel ile birebir aynı tam ekran katman mekaniği. Ayrı bir sınıf
+			   (successor-panel ile PAYLAŞILMIYOR) -- dosyanın .rank-reference/.successor-panel'de
+			   zaten yaptığı gibi küçük tekrar, erken soyutlamaya tercih ediliyor. */
+			.history-panel{ display:none; }
+			.history-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
+			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
+			@media (min-width: 900px) {
+			.history-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
+			.history-panel.open .history-panel-inner{ max-width:none; width:100%; height:100%; max-height:697.5px; overflow-y:auto; padding:16px; }
+			}
+			.history-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
+			.history-panel h3:first-child{ margin-top:0; }
+			.modal-bg.hide-behind-panel > .modal{ display:none !important; }
+			.hg-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 8px; border-radius:7px; background:var(--surface-input); margin-bottom:5px; }
+			.hg-row-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
+			.hg-row-text b{ color:var(--ink); }
+			.hg-row .btn{ flex-shrink:0; padding:4px 9px; font-size:11px; }
+			.hg-event-row{ font-size:12px; padding:5px 2px; border-bottom:1px solid var(--divider-faint); }
+			.hg-event-date{ color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10px; }
+			.hg-event-tag{ padding:1px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+
 			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
 			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
 			.faculty-multiselect .fm-group{ margin-top:6px; }
@@ -691,6 +715,12 @@
 			.photo-input-row{ display:flex; align-items:center; gap:10px; } .photo-input-row input[type=file]{ min-width:0; flex:1; } .photo-preview{ width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; border:1px solid var(--border); flex-shrink:0; }
 			.modal-actions{ display:flex; gap:10px; margin-top:18px; } .modal-actions .btn{ flex:1; text-align:center; }
 			.close-x{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:var(--muted); cursor:pointer; }
+			/* Gorev/etkinlik gecmisi tetikleyicisi -- SADECE kisi duzenleme modalinde (#modalBg),
+			   .close-x'in aynasi. .modal sinifi projede 9 BASKA modalde de kullanildigi icin
+			   padding-left genel .modal h2'ye DEGIL, bu ozel #modalBg kapsamina eklenir. */
+			#modalBg .history-toggle{ position:absolute; top:14px; left:16px; background:none; border:none; font-size:18px; color:var(--muted); cursor:pointer; padding:2px 4px; }
+			#modalBg .history-toggle:hover{ color:var(--navy); }
+			#modalBg .modal h2{ padding-left:24px; }
 			@keyframes fadeIn { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
 
 			#toastContainer { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
@@ -972,7 +1002,7 @@
 			[data-theme="dark"] .reorder-toolbar button, [data-theme="dark"] .az-sort-btn,
 			[data-theme="dark"] details.rank-group > summary, [data-theme="dark"] .drag-handle-mini:active,
 			[data-theme="dark"] .row-name, [data-theme="dark"] .rank-reference .rr-title,
-			[data-theme="dark"] .successor-panel h3, [data-theme="dark"] .faculty-multiselect .fm-group-title,
+			[data-theme="dark"] .successor-panel h3, [data-theme="dark"] .history-panel h3, [data-theme="dark"] .faculty-multiselect .fm-group-title,
 			[data-theme="dark"] .fs-scope .fs-title, [data-theme="dark"] .fs-scope .fs-group-title,
 			[data-theme="dark"] .cal-rail-label, [data-theme="dark"] .cal-rail-next h4,
 			[data-theme="dark"] .cal-next-date .d, [data-theme="dark"] .cal-mini-title,
@@ -1252,8 +1282,27 @@
 
 		<!-- Ekle/Düzenle Modalı -->
 		<div class="modal-bg" id="modalBg">
+		<div class="history-panel" id="historyPanel">
+		<div class="history-panel-inner">
+			<button class="close-x" onclick="closeHistoryPanel()">✕</button>
+			<h3>Görev Geçmişi</h3>
+			<div class="field">
+				<label>Görev Adı</label>
+				<input type="text" id="hg_unvan" autocomplete="off" placeholder="Örn. Dekanlık, Vekâleten Dekanlık">
+			</div>
+			<div class="field-row">
+				<div class="field"><label>Başlangıç</label><input type="date" id="hg_baslangic"></div>
+				<div class="field"><label>Bitiş</label><input type="date" id="hg_bitis"></div>
+			</div>
+			<button class="btn btn-ghost" type="button" style="width:100%; margin-bottom:14px;" onclick="addHistoryEntry()">Ekle</button>
+			<div id="historyEntryList"></div>
+			<h3>Katıldığı Etkinlikler</h3>
+			<div id="historyEventList"></div>
+		</div>
+		</div>
 		<div class="modal">
 				<button class="close-x" onclick="closeModal()">✕</button>
+				<button class="history-toggle" id="historyToggleBtn" type="button" style="display:none;" onclick="openHistoryPanel()" title="Görev ve Etkinlik Geçmişi">‹</button>
 				<h2 id="modalTitle">Yeni Kişi Ekle</h2>
 				<p class="hint" id="modalHint">Bilgileri doldur, fotoğraf otomatik kareye sığdırılır.</p>
 				<form id="personForm" onsubmit="return false;" onkeydown="handleFormKeydown(event)">
@@ -3262,7 +3311,7 @@ function renderFacultyPickerField(selected) {
 				if (e.target.classList.contains("fm-cb")) syncUnitFromFaculties();
 			});
 
-function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
+function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
@@ -3274,20 +3323,25 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
 			if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
 			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
+			tempGorevGecmisi = Array.isArray(p.gorevGecmisi) ? p.gorevGecmisi.map(function(g){ return { unvan: g.unvan || "", baslangic: g.baslangic || "", bitis: g.bitis || "" }; }) : [];
+			document.getElementById("historyToggleBtn").style.display = "block";
 			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; document.getElementById("successorTriggerWrap").style.display = "block"; renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
 			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
-			function closeModal(){ document.getElementById("modalBg").classList.remove("open"); closeSuccessorPanel(); }
+			function closeModal(){ document.getElementById("modalBg").classList.remove("open"); closeSuccessorPanel(); closeHistoryPanel(); }
 
 			// ---- Görevden alma / yerine yeni kişi atama paneli ----
 			// Soldaki (mevcut) düzenleme ekranı açıkken sağda ikinci, küçük bir "yeni kişi ekle"
 			// paneli açılır; unvan/birim/sıra soldaki kayıttan kopyalanır, isim ve fotoğraf boş
 			// bırakılır. Kaydedilince YENİ bir kişi kaydı oluşturur, soldaki kaydı değiştirmez.
 			let successorEditingIndex = null;
+			// Duzenlenen kisinin gecmis gorevleri (Kaydet'e kadar sunucuya yazilmaz, bkz. history paneli).
+			let tempGorevGecmisi = [];
 			function openSuccessorPanel(){
 				if (!requireEdit()) return;
 				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
+				if (window.innerWidth < 900) closeHistoryPanel();
 				successorEditingIndex = editIndex;
 				const old = people[editIndex];
 				document.getElementById("sf_prefix").value = old.prefix || "";
@@ -3314,6 +3368,69 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				document.getElementById("modalBg").classList.remove("hide-behind-successor");
 				successorEditingIndex = null;
 			}
+
+			// ---- Görev Geçmişi / Etkinlik Geçmişi paneli ----
+			// successor-panel'in AYNADAKİ (solda açılan) hâli: mevcut düzenleme ekranının
+			// SOLUNDA, geçmiş görevleri (vekâleten dahil, tarih araligiyla) eklemeyi ve o
+			// kişinin katıldığı etkinlikleri (salt-okunur, calEvents'ten türetilir) gösterir.
+			function openHistoryPanel(){
+				if (!requireEdit()) return;
+				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
+				if (window.innerWidth < 900) closeSuccessorPanel();
+				renderHistoryPanel();
+				document.getElementById("historyPanel").classList.add("open");
+				if (window.innerWidth < 900) document.getElementById("modalBg").classList.add("hide-behind-panel");
+			}
+			function closeHistoryPanel(){
+				const panel = document.getElementById("historyPanel");
+				if (panel) panel.classList.remove("open");
+				document.getElementById("modalBg").classList.remove("hide-behind-panel");
+			}
+			function addHistoryEntry(){
+				const unvan = document.getElementById("hg_unvan").value.trim();
+				const baslangic = document.getElementById("hg_baslangic").value;
+				const bitis = document.getElementById("hg_bitis").value;
+				if (!unvan) { showToast("Görev adı zorunlu.", "error"); return; }
+				tempGorevGecmisi.push({ unvan: unvan, baslangic: baslangic, bitis: bitis });
+				document.getElementById("hg_unvan").value = ""; document.getElementById("hg_baslangic").value = ""; document.getElementById("hg_bitis").value = "";
+				renderHistoryPanel();
+			}
+			function removeHistoryEntry(i){
+				tempGorevGecmisi.splice(i, 1);
+				renderHistoryPanel();
+			}
+			// Bir kisinin katildigi etkinlikleri calEvents'ten tarar -- SADECE ISIM eslesmesiyle
+			// (unvan DEGIL): kisinin unvani zaman icinde degismis olabilir, unvanla eslestirme
+			// gecmis katilimlari sessizce kaybettirirdi. En yeni etkinlik en basta.
+			function personAttendedEvents(p){
+				if (!p || !p.name) return [];
+				const target = String(p.name).trim().toLocaleLowerCase("tr");
+				return calEventList().filter(function(e){
+					return Array.isArray(e.katilimcilar) && e.katilimcilar.some(function(a){
+						return a && String(a.name || "").trim().toLocaleLowerCase("tr") === target;
+					});
+				}).reverse();
+			}
+			function renderHistoryPanel(){
+				const list = document.getElementById("historyEntryList");
+				list.innerHTML = tempGorevGecmisi.map(function(g, i){
+					return '<div class="hg-row">' +
+						'<div class="hg-row-text"><b>' + escapeHtml(g.unvan) + '</b><span class="hint" style="margin:0;">' +
+						(g.baslangic ? escapeHtml(fmtTrDate(g.baslangic)) : "?") + ' – ' + (g.bitis ? escapeHtml(fmtTrDate(g.bitis)) : "?") + '</span></div>' +
+						'<button class="btn btn-danger-outline" type="button" onclick="removeHistoryEntry(' + i + ')">Sil</button></div>';
+				}).join("") || '<p class="hint">Henüz görev eklenmedi.</p>';
+
+				const evEl = document.getElementById("historyEventList");
+				const p = (editIndex !== null) ? people[editIndex] : null;
+				const evs = personAttendedEvents(p);
+				evEl.innerHTML = evs.length ? evs.map(function(e){
+					const ty = evType(e.tur);
+					return '<div class="hg-event-row"><span class="hg-event-date">' + escapeHtml(fmtTrDate(e.tarih)) + '</span> ' +
+						'<span class="hg-event-tag" style="background:' + ty.bg + '; color:' + ty.renk + ';">' + escapeHtml(ty.ad) + '</span> ' +
+						escapeHtml(e.ad || "") + '</div>';
+				}).join("") : '<p class="hint">Katıldığı etkinlik bulunamadı.</p>';
+			}
+
 			function previewSuccessorPhoto(e){
 				const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
 				reader.onload = function(ev){
@@ -3482,6 +3599,12 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						changes.push(LOG_FIELD_LABELS.faculties + ": " + parts.join("; "));
 					}
 				}
+				// Görev geçmişi bir nesne dizisi olduğu için (tek alan farkı gibi degil) add/remove
+				// yerine basit bir "degisti mi" karsilastirmasi yeterli -- faculties'teki gibi bir
+				// diff algoritmasi burada gereksiz karmasiklik olurdu.
+				const oldHist = JSON.stringify(Array.isArray(oldRec.gorevGecmisi) ? oldRec.gorevGecmisi : []);
+				const newHist = JSON.stringify(Array.isArray(newRec.gorevGecmisi) ? newRec.gorevGecmisi : []);
+				if (oldHist !== newHist) changes.push("Görev geçmişi güncellendi");
 				return changes;
 			}
 
@@ -3504,6 +3627,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			if (currentListKey === "universite") {
 				record.faculties = Array.from(document.querySelectorAll("#facultyMultiSelect .fm-cb:checked")).map(function(cb) { return cb.value; });
 			}
+			record.gorevGecmisi = tempGorevGecmisi.slice();
 			let targetIdx; let actionLabel; let oldRecord = null;
 			if(editIndex === null) {
 				// İki editör aynı anda kişi eklerse ikisi de people.length-1 ile AYNI indekse yazıp birbirini siliyordu.
@@ -3710,6 +3834,7 @@ const EVENT_TYPES = [
 	{ key:"saglik",         ad:"Sağlık Etkinliği",      renk:"#b91c1c", bg:"#fee2e2" },
 	{ key:"uluslararasi",   ad:"Uluslararası Etkinlik", renk:"#334155", bg:"#f1f5f9" },
 	{ key:"yesiluniversite",ad:"Yeşil Üniversite",      renk:"#166534", bg:"#dcfce7" },
+	{ key:"toplanti",  ad:"Toplantı",              renk:"#475569", bg:"#e2e8f0" },
 	{ key:"diger",     ad:"Diğer",                renk:"#57534e", bg:"#f1efec" }
 ];
 const EVENT_STATUS = [
