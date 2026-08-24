@@ -230,9 +230,122 @@ async function newPage(browser, width, height, mobile) {
 		return { usedSaveDataNotUpdate, fullArrayHasBoth };
 	});
 
+	// ==================================================================
+	// GOREV A: halefsiz pasife almayi ana Kaydet uzerinden engelleme (ST-13..ST-20)
+	// ==================================================================
+	const st13Idx = await page.evaluate(() => {
+		people.push({ name: 'ST13 Kisi', title: 'Test Unvan', prefix: '', unit: 'OMU', status: 'aktif', rank: 50, photo: '', start: '2024-01-01', end: '', note: '' });
+		return people.length - 1;
+	});
+
+	// --- ST-13: pasif + sr_reason="yerine_atama" -> ana Kaydet kilitlenir, ipucu gorunur ---
+	const st13 = await page.evaluate((idx) => {
+		closeModal();
+		openEditModal(idx);
+		document.getElementById('f_status').value = 'pasif'; document.getElementById('f_status').dispatchEvent(new Event('change'));
+		document.getElementById('f_end').value = '2026-08-24';
+		document.getElementById('sr_reason').value = 'yerine_atama'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
+		return {
+			disabled: document.getElementById('saveFormBtn').disabled,
+			hintVisible: document.getElementById('saveLockHint').style.display === 'block'
+		};
+	}, st13Idx);
+
+	// --- ST-14: reason "yeni_gorev"'e degisince kilit ANINDA acilir ---
+	const st14 = await page.evaluate(() => {
+		document.getElementById('sr_reason').value = 'yeni_gorev'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
+		return { disabled: document.getElementById('saveFormBtn').disabled };
+	});
+
+	// --- ST-15: tekrar "yerine_atama" + successor paneli acilinca kilit true kalir; "Vazgec"te de ACILMAZ ---
+	const st15 = await page.evaluate(() => {
+		document.getElementById('sr_reason').value = 'yerine_atama'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
+		openSuccessorPanel();
+		const disabledWhilePanelOpen = document.getElementById('saveFormBtn').disabled;
+		closeSuccessorPanel(); // "Vazgec" esdegeri -- hicbir sey kaydedilmedi, kilit acilmamali
+		const disabledAfterCancel = document.getElementById('saveFormBtn').disabled;
+		return { disabledWhilePanelOpen, disabledAfterCancel };
+	});
+
+	// --- ST-16: saveSuccessor() basarili -> kilit acilir, sr_reason="" olur, successorTriggerWrap gizlenir ---
+	const st16 = await page.evaluate(async (idx) => {
+		openSuccessorPanel();
+		document.getElementById('sf_name').value = 'ST16 Halef';
+		window.__mockOnceSnapshot = JSON.parse(JSON.stringify(people));
+		window.__mockUpdates = [];
+		await saveSuccessor();
+		return {
+			disabled: document.getElementById('saveFormBtn').disabled,
+			reasonCleared: document.getElementById('sr_reason').value === '',
+			successorWrapHidden: document.getElementById('successorTriggerWrap').style.display === 'none',
+			oldPersonPasif: people[idx].status === 'pasif'
+		};
+	}, st13Idx);
+
+	// --- ST-17: saveSuccessor() f_end bosken reddedilince kilit true KALIR (henuz halef kaydedilmedi) ---
+	const st17Idx = await page.evaluate(() => {
+		people.push({ name: 'ST17 Kisi', title: 'Test Unvan 2', prefix: '', unit: 'OMU', status: 'aktif', rank: 51, photo: '', start: '2024-01-01', end: '', note: '' });
+		return people.length - 1;
+	});
+	const st17 = await page.evaluate(async (idx) => {
+		closeModal();
+		openEditModal(idx);
+		document.getElementById('f_status').value = 'pasif'; document.getElementById('f_status').dispatchEvent(new Event('change'));
+		// f_end BILEREK bos birakiliyor
+		document.getElementById('sr_reason').value = 'yerine_atama'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
+		const disabledBeforeAttempt = document.getElementById('saveFormBtn').disabled;
+		openSuccessorPanel();
+		document.getElementById('sf_name').value = 'ST17 Halef Denemesi';
+		const lenBefore = people.length;
+		await saveSuccessor();
+		return {
+			disabledBeforeAttempt,
+			rejected: people.length === lenBefore,
+			disabledAfterRejection: document.getElementById('saveFormBtn').disabled
+		};
+	}, st17Idx);
+
+	// --- ST-18 (REGRESYON): pasif+yerine_atama'da kilit aktifken closeModal()->openAddModal() -> kilit acilir.
+	// (resetForm()'a eklenen updateSaveButtonLock() cagrisinin dogrudan testi -- openAddModal()
+	// hicbir zaman refreshStatusReasonBlock() cagirmiyor, bu yuzden onceki oturumdan "yapisik"
+	// disabled=true kalabiliyordu.) ---
+	const st18 = await page.evaluate(() => {
+		closeModal();
+		openAddModal();
+		const disabled = document.getElementById('saveFormBtn').disabled;
+		closeModal();
+		return { disabled };
+	});
+
+	// --- ST-19: Enter-tusu bypass -- handleFormKeydown() saveForm()'u BUTONA DOKUNMADAN dogrudan
+	// cagiriyor, disabled ozniteligi bunu engellemez -- saveForm() icindeki guard yakalamali ---
+	const st19 = await page.evaluate((idx) => {
+		openEditModal(idx);
+		document.getElementById('f_status').value = 'pasif'; document.getElementById('f_status').dispatchEvent(new Event('change'));
+		document.getElementById('sr_reason').value = 'yerine_atama'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
+		const lenBefore = people.length;
+		handleFormKeydown({ key: 'Enter', target: document.getElementById('f_name'), preventDefault: function () {} });
+		return {
+			peopleUnchanged: people.length === lenBefore,
+			modalStillOpen: document.getElementById('modalBg').classList.contains('open')
+		};
+	}, st17Idx);
+
+	// --- ST-20: zaten-pasif bir kaydi SADECE not guncellemek icin acma -- kilit hep false, saveForm() normal calisir ---
+	const st20 = await page.evaluate(async () => {
+		closeModal();
+		people.push({ name: 'ST20 Kisi', title: 'Test Unvan 3', prefix: '', unit: 'OMU', status: 'pasif', rank: 52, photo: '', start: '2020-01-01', end: '2025-01-01', note: '' });
+		const idx = people.length - 1;
+		openEditModal(idx);
+		const disabledOnOpen = document.getElementById('saveFormBtn').disabled;
+		document.getElementById('f_note').value = 'ST20 not guncellemesi';
+		await saveForm();
+		return { disabledOnOpen, noteSaved: people[idx].note === 'ST20 not guncellemesi' };
+	});
+
 	await page.close();
 
-	const results = { st1, st2, st11_12, st4, st5, st6, st7, st3, st8_10_9, st9b };
+	const results = { st1, st2, st11_12, st4, st5, st6, st7, st3, st8_10_9, st9b, st13, st14, st15, st16, st17, st18, st19, st20 };
 	console.log(JSON.stringify(results, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));
@@ -253,6 +366,14 @@ async function newPage(browser, width, height, mobile) {
 		st9_newPersonOk: st8_10_9.newPersonOk, st9_oldPersonOk: st8_10_9.oldPersonOk,
 		st9_atomicUpdateHadBothIndexes: st8_10_9.atomicUpdateHadBothIndexes, st9_updateDataCorrect: st8_10_9.updateDataCorrect,
 		st9b_usedSaveDataNotUpdate: st9b.usedSaveDataNotUpdate, st9b_fullArrayHasBoth: st9b.fullArrayHasBoth,
+		st13_disabled: st13.disabled, st13_hintVisible: st13.hintVisible,
+		st14_disabled: !st14.disabled,
+		st15_disabledWhilePanelOpen: st15.disabledWhilePanelOpen, st15_disabledAfterCancel: st15.disabledAfterCancel,
+		st16_disabled: !st16.disabled, st16_reasonCleared: st16.reasonCleared, st16_successorWrapHidden: st16.successorWrapHidden, st16_oldPersonPasif: st16.oldPersonPasif,
+		st17_disabledBeforeAttempt: st17.disabledBeforeAttempt, st17_rejected: st17.rejected, st17_disabledAfterRejection: st17.disabledAfterRejection,
+		st18_disabled: !st18.disabled,
+		st19_peopleUnchanged: st19.peopleUnchanged, st19_modalStillOpen: st19.modalStillOpen,
+		st20_disabledOnOpen: !st20.disabledOnOpen, st20_noteSaved: st20.noteSaved,
 		pageErrorsCount: pageErrors.length === 0
 	};
 

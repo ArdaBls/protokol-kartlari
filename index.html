@@ -223,7 +223,7 @@
 			.actions-right { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 			
 			.btn{ font-family:'Roboto',sans-serif; font-weight:600; font-size:14px; border-radius:9px; padding:10px 16px; cursor:pointer; border:1px solid transparent; transition: background 0.2s;}
-			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:hover{ background:var(--navy-2); }
+			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:hover{ background:var(--navy-2); } .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
 			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); } .btn-ghost:hover{ background:var(--paper); }
 			.btn-danger{ background:#a33; color:#fff; } .btn-danger:hover{ background:#8a2727; }
 			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; } .btn-danger-outline:hover{ background:#fff0f0; }
@@ -288,6 +288,13 @@
 			.rank-reference{ display:none; }
 			@media (min-width: 900px) {
 			.rank-reference{ display:flex; flex-direction:column; align-self:stretch; width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow:hidden; }
+			/* #modalBg (kişi düzenleme modalı) HER ZAMAN dikey tam ortada kilitli kalsın isteniyor -- paylaşılan
+			   .modal-bg kuralının align-items:safe center'ı (bkz. satır ~719) BİLEREK değiştirilmiyor, çünkü o
+			   sınıfı #adminPanelBg (çok sekmeli/uzun log listeleri) ve #legalModalBg (uzun sözleşme metni) gibi
+			   kısa pencerelerde gerçekten taşabilecek diğer modaller de paylaşıyor -- "safe" fallback'i onların
+			   üst kısmının/X butonunun kesilmesini önlüyor. Burada SADECE #modalBg ID seçici (özgüllük 100),
+			   paylaşılan .modal-bg class'ını (özgüllük 10) ezer; diğer 9 modal-bg etkilenmez. */
+			#modalBg{ align-items:center; }
 			}
 			.rank-reference .rr-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
 			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
@@ -306,8 +313,8 @@
 			.successor-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
 			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
-			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
-			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; height:100%; max-height:697.5px; overflow-y:auto; padding:16px; }
+			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
+			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
 			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
 			/* Mobilde iki formu ayni anda gostermek (soldaki eski kayit + sagdaki yeni atama)
@@ -329,8 +336,8 @@
 			.history-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
 			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
-			.history-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
-			.history-panel.open .history-panel-inner{ max-width:none; width:100%; height:100%; max-height:697.5px; overflow-y:auto; padding:16px; }
+			.history-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
+			.history-panel.open .history-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
 			.history-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
 			.history-panel h3:first-child{ margin-top:0; }
@@ -1459,11 +1466,12 @@
 						</div>
 						<p class="hint" id="verifyInfo" style="margin-top:8px;">—</p>
 					</div>
+					<p class="hint" id="saveLockHint" style="display:none; color:var(--danger-text);">Kaydet kilitli — önce "Yerine Yeni Kişi Ata" panelini doldurup oradan kaydedin.</p>
 					<div class="modal-actions">
 						<button class="btn btn-ghost" type="button" onclick="closeModal()">Vazgeç</button>
-						<button class="btn btn-primary" type="button" onclick="saveForm()">Kaydet</button>
+						<button class="btn btn-primary" type="button" id="saveFormBtn" onclick="saveForm()">Kaydet</button>
 					</div>
-					
+
 					<div id="editDeleteActions" style="display:none; gap:10px; margin-top:10px;">
 						<button class="btn btn-danger-outline" type="button" style="flex:1; padding:8px;" onclick="openConfirmModal()">Çöpe At</button>
 						<button class="btn btn-danger" type="button" style="flex:1; padding:8px;" onclick="openSinglePermDelete(editIndex)">Kalıcı Sil</button>
@@ -3303,6 +3311,7 @@
 				document.getElementById("statusReasonBlock").style.display = "none"; document.getElementById("sr_applyRow").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; lastStatusTransitionNote = "";
 				document.getElementById("f_note").style.height = "54px";
 				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
+				updateSaveButtonLock(); // openAddModal() refreshStatusReasonBlock() cagirmiyor -- onceki bir pasif+yerine_atama oturumundan kalan disabled=true burada temizlenir
 			}
 
 			const UNIVERSITY_PROTOCOL_TITLES = [
@@ -3625,6 +3634,8 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 					}
 				}
 				if (!saved) { people.pop(); return; }
+				// Halef basariyla kaydedildi -- ana Kaydet'i kilitleyen kosul artik gecmis, kilit acilir.
+				document.getElementById("sr_reason").value = ""; onStatusReasonChange();
 				showToast("Yeni kişi eklendi: " + name);
 				closeSuccessorPanel();
 				render();
@@ -3637,6 +3648,18 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// (zaten-pasif bir kayit acilisinda) cagrilir -- boylece zaten pasif bir kaydi sadece
 			// notunu guncellemek icin acan editor de sorguyu (ve dolayisiyla successor'a giden
 			// yolu) gorebiliyor; sadece "change" event'ine baglansaydi bu erisim kaybolurdu.
+			// Halef atanmadan pasife alinmayi ana Kaydet uzerinden engeller: "yerine_atama"
+			// sebebi secili oldugu surece Kaydet kilitli kalir, sadece successor-panel'in
+			// KENDI Kaydet'i (saveSuccessor()) ile devam edilebilir. Kosul dogrudan 3 kaynak
+			// degerden hesaplanir (successorTriggerWrap'in DOM gorunurlugunden DEGIL) ki is
+			// kurali tek yerde acik kalsin.
+			function updateSaveButtonLock() {
+				const locked = editIndex !== null && document.getElementById("f_status").value === "pasif" && document.getElementById("sr_reason").value === "yerine_atama";
+				const btn = document.getElementById("saveFormBtn");
+				if (btn) { btn.disabled = locked; btn.title = locked ? "Önce yerine atanacak kişiyi kaydedin." : ""; }
+				const hint = document.getElementById("saveLockHint");
+				if (hint) hint.style.display = locked ? "block" : "none";
+			}
 			function refreshStatusReasonBlock() {
 				// SADECE mevcut bir kaydi duzenlerken (editIndex!==null) -- yeni kayit eklerken
 				// henuz sunucuya hic yazilmamis bir kaydin "eski unvani" arsivlemek/yerine
@@ -3648,6 +3671,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 					document.getElementById("sr_applyRow").style.display = "none";
 					document.getElementById("successorTriggerWrap").style.display = "none";
 				}
+				updateSaveButtonLock();
 			}
 			function onStatusReasonChange() {
 				const val = document.getElementById("sr_reason").value;
@@ -3659,6 +3683,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				const showSuccessor = (val === "yerine_atama");
 				document.getElementById("successorTriggerWrap").style.display = showSuccessor ? "block" : "none";
 				if (!showSuccessor) closeSuccessorPanel(); // masaustunde acik kalmis olabilir, savunmaci kapatma
+				updateSaveButtonLock();
 			}
 			// Reason1/2 ("Uygula"): eski unvan+tarih araligi otomatik Gorev Gecmisi'ne
 			// arsivlenir, form yeni unvanla "Aktif" durumuna geri doner -- kisi gercekte
@@ -3694,6 +3719,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 
 				toggleFieldClear("f_title");
 				renderHistoryPanel();
+				updateSaveButtonLock();
 				showToast("Uygulandı: " + newTitle + ". Değişiklikleri kaydetmeyi unutmayın.");
 			}
 			document.getElementById("f_status").addEventListener("change", function(e){
@@ -3820,6 +3846,13 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 
 			async function saveForm(){
 				if (!requireEdit()) return;
+			// Buton disabled olsa bile handleFormKeydown() Enter tusuyla bu fonksiyonu dogrudan
+			// cagirabiliyor (disabled sadece tiklama/focus'u engeller) -- ayni kilit kosulu burada
+			// da tekrar kontrol edilir.
+			if (editIndex !== null && document.getElementById("f_status").value === "pasif" && document.getElementById("sr_reason").value === "yerine_atama") {
+				showToast("Bu kayıt yerine biri atanmadan pasife alınamaz. Önce 'Yerine Yeni Kişi Ata' panelini kaydedin.", "error");
+				return;
+			}
 			const name = document.getElementById("f_name").value.trim(); const title = document.getElementById("f_title").value.trim();
 			if(!name || !title){ showToast("İsim ve unvan zorunlu!", "error"); return; }
 			const status = document.getElementById("f_status").value; if(status === "pasif" && !document.getElementById("f_end").value){ showToast("Pasif kayıtlar için bitiş tarihi girilmelidir.", "error"); return; }
