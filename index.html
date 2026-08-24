@@ -328,6 +328,12 @@
 			.hg-event-row{ font-size:12px; padding:5px 2px; border-bottom:1px solid var(--divider-faint); }
 			.hg-event-date{ color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10px; }
 			.hg-event-tag{ padding:1px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+			/* Gorev Gecmisi panelindeki "Guncel" satiri: tempGorevGecmisi'nin gercek bir elemani
+			DEGIL, formun o anki f_title/f_start/f_end degerlerinin salt-okunur bir yansimasi
+			(bkz. renderHistoryPanel). Diger satirlardan gorsel olarak ayirt edilsin diye
+			kesikli kenarlik + rozet kullanilir. */
+			.hg-row-current{ background:var(--surface-hover); border:1px dashed var(--brass-light); }
+			.hg-current-badge{ flex-shrink:0; font-size:10px; font-weight:700; color:var(--brass-text); padding:2px 8px; border-radius:20px; background:var(--surface-input); }
 
 			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
 			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
@@ -1377,6 +1383,24 @@
 								<input type="text" inputmode="numeric" id="f_rank" placeholder="?" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_rank')">
 								<button type="button" class="clear-btn" id="clear_f_rank" onclick="clearFieldInput('f_rank')">✕</button>
 							</div>
+						</div>
+					</div>
+					<div class="field" id="statusReasonBlock" style="display:none;">
+						<label>Pasife Alma Sebebi</label>
+						<select id="sr_reason" onchange="onStatusReasonChange()">
+							<option value="">Seçiniz…</option>
+							<option value="yeni_gorev">Yeni bir göreve atandı</option>
+							<option value="gorev_bitti">Görevi sona erdi, başka bir göreve geri çekildi</option>
+							<option value="yerine_atama">Yerine yeni biri atanacak</option>
+						</select>
+						<div id="sr_applyRow" style="display:none; margin-top:10px;">
+							<label>Yeni Unvan</label>
+							<div class="input-wrap">
+								<input type="text" id="sr_newTitle" autocomplete="off" placeholder="Örn. Öğretim Üyesi">
+							</div>
+							<label style="margin-top:8px;">Geçiş Tarihi</label>
+							<input type="date" id="sr_transitionDate">
+							<button class="btn btn-ghost" type="button" style="width:100%; margin-top:10px;" onclick="applyStatusReason()">Uygula</button>
 						</div>
 					</div>
 					<div class="field-row">
@@ -3258,6 +3282,7 @@
 				// Düzenleme sırasında openEditModal() bu alanı hemen ardından kişinin gerçek/eski değeriyle eziyor, yani mevcut kayıtlar hiç bozulmuyor.
 				document.getElementById("f_unit").value = currentListKey === "universite" ? "Ondokuz Mayıs Üniversitesi" : "";
 				document.getElementById("f_start").value = ""; document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
+				document.getElementById("statusReasonBlock").style.display = "none"; document.getElementById("sr_applyRow").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; lastStatusTransitionNote = "";
 				document.getElementById("f_note").style.height = "54px";
 				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
@@ -3342,11 +3367,12 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("f_unit").value = p.unit || ""; document.getElementById("f_status").value = p.status || "aktif"; document.getElementById("f_rank").value = (p.rank !== undefined && p.rank !== null && p.rank !== "") ? p.rank : "";
 			document.getElementById("f_start").value = p.start || ""; document.getElementById("f_end").value = p.end || ""; document.getElementById("f_note").value = p.note || "";
 			document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
+			refreshStatusReasonBlock(); // f_status.value az once p.status'a ayarlandi; zaten-pasif bir kayit acilinca da sorgu gorunsun diye burada da cagrilir
 			if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
 			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
 			tempGorevGecmisi = Array.isArray(p.gorevGecmisi) ? p.gorevGecmisi.map(function(g){ return { unvan: g.unvan || "", baslangic: g.baslangic || "", bitis: g.bitis || "" }; }) : [];
 			document.getElementById("historyToggleBtn").style.display = "block";
-			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; document.getElementById("successorTriggerWrap").style.display = "block"; renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
+			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; /* successorTriggerWrap artik refreshStatusReasonBlock()/onStatusReasonChange() tarafindan yonetiliyor, burada kosulsuz acilmiyor */ renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
 			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
@@ -3359,6 +3385,10 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			let successorEditingIndex = null;
 			// Duzenlenen kisinin gecmis gorevleri (Kaydet'e kadar sunucuya yazilmaz, bkz. history paneli).
 			let tempGorevGecmisi = [];
+			// Sebebe ozgu log notu (applyStatusReason() set eder, saveForm() tuketir) --
+			// describeRecordChanges() jenerik bir once/sonra diff'i, HANGI sebeple
+			// degistigini bilemez (reason1/reason2 ayni unvan degisikligini uretir).
+			let lastStatusTransitionNote = "";
 			function openSuccessorPanel(){
 				if (!requireEdit()) return;
 				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
@@ -3442,12 +3472,25 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			}
 			function renderHistoryPanel(){
 				const list = document.getElementById("historyEntryList");
-				list.innerHTML = tempGorevGecmisi.map(function(g, i){
+				// Guncel-gorev satiri: people[editIndex]'ten DEGIL, DOM alanlarindan (f_title/
+				// f_start/f_end) anlik okunur -- addHistoryEntry()'nin zaten kullandigi kaynak
+				// deseniyle tutarli, boylece henuz Kaydet'e basilmamis degisiklikler de yansir.
+				// Salt-okunur (Sil butonu yok) -- tempGorevGecmisi'nin gercek bir elemani DEGIL,
+				// sadece formun o anki durumunun bir yansimasi.
+				const curTitle = (editIndex !== null) ? document.getElementById("f_title").value.trim() : "";
+				const curStart = (editIndex !== null) ? document.getElementById("f_start").value : "";
+				const curEnd = (editIndex !== null) ? document.getElementById("f_end").value : "";
+				const currentRow = curTitle ? (
+					'<div class="hg-row hg-row-current"><div class="hg-row-text"><b>' + escapeHtml(curTitle) + '</b><span class="hint" style="margin:0;">' +
+					(curStart ? escapeHtml(fmtTrDate(curStart)) : "?") + ' – ' + (curEnd ? escapeHtml(fmtTrDate(curEnd)) : "devam ediyor") + '</span></div>' +
+					'<span class="hg-current-badge">Güncel</span></div>'
+				) : "";
+				list.innerHTML = currentRow + (tempGorevGecmisi.map(function(g, i){
 					return '<div class="hg-row">' +
 						'<div class="hg-row-text"><b>' + escapeHtml(g.unvan) + '</b><span class="hint" style="margin:0;">' +
 						(g.baslangic ? escapeHtml(fmtTrDate(g.baslangic)) : "?") + ' – ' + (g.bitis ? escapeHtml(fmtTrDate(g.bitis)) : "?") + '</span></div>' +
 						'<button class="btn btn-danger-outline" type="button" onclick="removeHistoryEntry(' + i + ')">Sil</button></div>';
-				}).join("") || '<p class="hint">Henüz görev eklenmedi.</p>';
+				}).join("") || (currentRow ? "" : '<p class="hint">Henüz görev eklenmedi.</p>'));
 
 				const evEl = document.getElementById("historyEventList");
 				const p = (editIndex !== null) ? people[editIndex] : null;
@@ -3481,6 +3524,17 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				if (document.getElementById("successorPanel").classList.contains("open")) {
 					document.getElementById("sf_start").value = this.value;
 				}
+				if (document.getElementById("historyPanel").classList.contains("open")) renderHistoryPanel();
+			});
+			// >=900px'de Gorev Gecmisi paneli formun yaninda SABIT/her-zaman-gorunur (overlay
+			// degil) -- editor panel acikken ana formu da degistirebiliyor, panelin "Guncel"
+			// satiri (bkz. renderHistoryPanel) bayatlamasin diye yeniden render tetiklenir.
+			// Mobilde risk yok (panel acikken form zaten hide-behind-panel ile tamamen gizli).
+			document.getElementById("f_title").addEventListener("input", function(){
+				if (document.getElementById("historyPanel").classList.contains("open")) renderHistoryPanel();
+			});
+			document.getElementById("f_start").addEventListener("input", function(){
+				if (document.getElementById("historyPanel").classList.contains("open")) renderHistoryPanel();
 			});
 			async function saveSuccessor(){
 				if (!requireEdit()) return;
@@ -3490,6 +3544,8 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				if (!name || !title) { showToast("Yeni kişi için isim ve unvan zorunlu!", "error"); return; }
 				const rankRaw = document.getElementById("sf_rank").value.trim();
 				if (rankRaw !== "" && !/^\d+$/.test(rankRaw)) { showToast("Protokol sırası sadece rakam olmalı.", "error"); return; }
+				// saveForm()'daki AYNI kural burada da gecerli: eski kaydin pasife alinmasi icin bitis tarihi sart.
+				if (!document.getElementById("f_end").value) { showToast("Eski kaydın bitiş tarihini girin (soldaki formda).", "error"); return; }
 				// Diğer editörler arada kayıt eklemiş/silmiş olabilir; yazmadan hemen önce güncel liste okunur.
 				if (database && LIST_PATHS[currentListKey]) {
 					try { const fresh = await database.ref(dbPath(LIST_PATHS[currentListKey])).once("value"); people = normalizePeopleSnapshot(fresh.val()); }
@@ -3512,13 +3568,120 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				people.push(record);
 				const newIdx = people.length - 1;
 				const actionLabel = name + " kişisi, " + (oldP.name || "eski kayıt") + " yerine atandı" + (record.rank !== "" ? ", " + record.rank + ". sıra" : "");
-				const saved = await savePerson(newIdx, actionLabel, name);
+
+				// Eski kaydi (successorEditingIndex) da AYNI islemde pasife cekiyoruz -- aksi
+				// halde yeni kisi eklenip eski kayit sunucuda "aktif" kalabiliyordu (bilinen
+				// tutarlilik acigi: eskiden bu sadece f_status'un DOM degerini degistiriyordu,
+				// veritabanina yazilmasi icin ayrica sol formda Kaydet'e basilmasi gerekiyordu).
+				// oldP fresh() okumadan gelen DOGRULANMIS kopya -- DOM'daki olasi kaydedilmemis
+				// diger alan degisikliklerini (unit/not/gorevGecmisi vb.) KASITLI OLARAK almiyoruz,
+				// sadece status+end degisiyor; boylece stale-write riski yok, editor diger
+				// degisiklikleri istiyorsa ayrica sol formda Kaydet'e basar.
+				const oldUpdated = Object.assign({}, oldP, { status: "pasif", end: document.getElementById("f_end").value });
+				const oldActionLabel = (oldP.name || "Kayıt") + " kişisi pasife alındı (yerine " + name + " atandı)";
+
+				let saved = false;
+				if (peopleNeedsFullSave || !database || !LIST_PATHS[currentListKey]) {
+					// Kacis yolu: savePerson()'un da kullandigi ayni bayrak -- veri dizi-indeksli
+					// degil (obje/nesne şeklinde) geldiyse tek-index yazimi guvenli degil, tum
+					// listeyi tek .set() ile yaz (saveData() zaten atomik).
+					people[successorEditingIndex] = oldUpdated;
+					saved = await saveData(actionLabel + " · " + oldActionLabel, name);
+					if (!saved) people[successorEditingIndex] = oldP;
+				} else {
+					// Firebase'in cok-yollu update()'i: TEK istekte iki index'e birden yazar,
+					// native olarak atomik -- iki ayri savePerson() cagrisinin arasinda kalan
+					// tutarsizlik penceresini tamamen kapatir.
+					try {
+						const updates = {};
+						updates[String(newIdx)] = record;
+						updates[String(successorEditingIndex)] = oldUpdated;
+						await database.ref(dbPath(LIST_PATHS[currentListKey])).update(updates);
+						people[successorEditingIndex] = oldUpdated;
+						logAction(actionLabel, name);
+						logAction(oldActionLabel, oldP.name || "");
+						saved = true;
+					} catch (err) {
+						showToast("Buluta kaydedilemedi (yeni kişi ve eski kayıt birlikte yazılamadı).", "error");
+						saved = false;
+					}
+				}
 				if (!saved) { people.pop(); return; }
 				showToast("Yeni kişi eklendi: " + name);
 				closeSuccessorPanel();
 				render();
 			}
-			document.getElementById("f_status").addEventListener("change", function(e){ document.getElementById("endDateField").style.display = e.target.value === "pasif" ? "block" : "none"; });
+			// f_status "pasif" oldugunda sorgu blogunu gosterir; "aktif"e donulunce sorguyu
+			// VE ona bagli alt-UI'lari (yeni unvan girisi, successor tetikleyicisi) sifirlar.
+			// NOT: successorTriggerWrap'in KENDI gorunurlugu SADECE sr_reason=="yerine_atama"
+			// iken acilir (onStatusReasonChange() yonetir) -- burada sadece "aktif"e donulunce
+			// KAPATMA sorumlulugu var. Hem f_status "change" event'inden hem openEditModal()'dan
+			// (zaten-pasif bir kayit acilisinda) cagrilir -- boylece zaten pasif bir kaydi sadece
+			// notunu guncellemek icin acan editor de sorguyu (ve dolayisiyla successor'a giden
+			// yolu) gorebiliyor; sadece "change" event'ine baglansaydi bu erisim kaybolurdu.
+			function refreshStatusReasonBlock() {
+				// SADECE mevcut bir kaydi duzenlerken (editIndex!==null) -- yeni kayit eklerken
+				// henuz sunucuya hic yazilmamis bir kaydin "eski unvani" arsivlemek/yerine
+				// birini atamak anlamsiz, sadece endDateField (mevcut/degismeyen davranis) yeter.
+				const isPasif = editIndex !== null && document.getElementById("f_status").value === "pasif";
+				document.getElementById("statusReasonBlock").style.display = isPasif ? "block" : "none";
+				if (!isPasif) {
+					document.getElementById("sr_reason").value = "";
+					document.getElementById("sr_applyRow").style.display = "none";
+					document.getElementById("successorTriggerWrap").style.display = "none";
+				}
+			}
+			function onStatusReasonChange() {
+				const val = document.getElementById("sr_reason").value;
+				const isArchiveReason = (val === "yeni_gorev" || val === "gorev_bitti");
+				document.getElementById("sr_applyRow").style.display = isArchiveReason ? "block" : "none";
+				if (isArchiveReason) {
+					document.getElementById("sr_transitionDate").value = document.getElementById("f_end").value || dKey(new Date());
+				}
+				const showSuccessor = (val === "yerine_atama");
+				document.getElementById("successorTriggerWrap").style.display = showSuccessor ? "block" : "none";
+				if (!showSuccessor) closeSuccessorPanel(); // masaustunde acik kalmis olabilir, savunmaci kapatma
+			}
+			// Reason1/2 ("Uygula"): eski unvan+tarih araligi otomatik Gorev Gecmisi'ne
+			// arsivlenir, form yeni unvanla "Aktif" durumuna geri doner -- kisi gercekte
+			// pasife dusmuyor, sadece unvani degisiyor. Kaydetme normal saveForm() ile olur,
+			// burada ayri bir persist YOK (tempGorevGecmisi/f_title/f_start zaten Kaydet'e
+			// kadar sunucuya yazilmayan alanlar, addHistoryEntry() ile ayni desen).
+			function applyStatusReason() {
+				if (!requireEdit()) return;
+				const reason = document.getElementById("sr_reason").value;
+				if (reason !== "yeni_gorev" && reason !== "gorev_bitti") return;
+				const oldTitle = document.getElementById("f_title").value.trim();
+				const newTitle = document.getElementById("sr_newTitle").value.trim();
+				if (!oldTitle) { showToast("Mevcut unvan boş, önce unvan girin.", "error"); return; }
+				if (!newTitle) { showToast("Yeni unvan zorunlu.", "error"); return; }
+				const oldStart = document.getElementById("f_start").value;
+				const transitionDate = document.getElementById("sr_transitionDate").value || dKey(new Date());
+
+				tempGorevGecmisi.push({ unvan: oldTitle, baslangic: oldStart, bitis: transitionDate });
+
+				document.getElementById("f_title").value = newTitle;
+				document.getElementById("f_start").value = transitionDate;
+				document.getElementById("f_status").value = "aktif";
+				document.getElementById("f_end").value = ""; // ONEMLI: temizlenmezse "aktif" kiside eski bitis tarihi kart uzerinde yanlis gorunur
+				document.getElementById("endDateField").style.display = "none";
+
+				lastStatusTransitionNote = (reason === "yeni_gorev" ? "Yeni göreve atandı" : "Görevden geri çekildi") + ": " + oldTitle + " → " + newTitle;
+
+				document.getElementById("sr_reason").value = "";
+				document.getElementById("sr_applyRow").style.display = "none";
+				document.getElementById("sr_newTitle").value = "";
+				document.getElementById("statusReasonBlock").style.display = "none";
+				document.getElementById("successorTriggerWrap").style.display = "none";
+
+				toggleFieldClear("f_title");
+				renderHistoryPanel();
+				showToast("Uygulandı: " + newTitle + ". Değişiklikleri kaydetmeyi unutmayın.");
+			}
+			document.getElementById("f_status").addEventListener("change", function(e){
+				document.getElementById("endDateField").style.display = e.target.value === "pasif" ? "block" : "none";
+				refreshStatusReasonBlock();
+			});
 
 			function previewPhoto(e){
 			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
@@ -3691,7 +3854,11 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 					const rest = changes.filter(function(c) { return c.indexOf(LOG_FIELD_LABELS.status + ":") !== 0; });
 					if (rest.length) actionLabel += " · " + rest.join(" · ");
 				} else if (changes.length) {
-					actionLabel = name + " kişisi güncellendi · " + changes.join(" · ");
+					// lastStatusTransitionNote doluysa (applyStatusReason() ile bir gecis uygulandiysa)
+					// jenerik diff'in BASINA eklenir -- describeRecordChanges() salt bir once/sonra
+					// karsilastirmasi oldugu icin HANGI sebeple degistigini (yeni gorev / geri cekilme)
+					// bilemez, ikisi de ayni "Gorev Unvani: X -> Y" satirini uretir.
+					actionLabel = name + " kişisi güncellendi · " + (lastStatusTransitionNote ? lastStatusTransitionNote + " · " : "") + changes.join(" · ");
 				} else {
 					actionLabel = name + " kişisi kaydedildi (içerikte değişiklik yok)";
 				}
@@ -3702,6 +3869,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// ekranda "kaydedilmis" gorunen ama sunucuya hic ulasmamis veri, bir sonraki gercek guncellemeye kadar fark edilmez.
 			if (!saved) { if (oldRecord === null) people.pop(); else people[targetIdx] = oldRecord; return; }
 			closeModal(); showToast("Kayıt başarıyla kaydedildi.");
+			lastStatusTransitionNote = ""; // tuketildi -- sadece basari yolunda temizlenir, basarisiz yazmada editor tekrar deneyebilsin diye not korunur
 			}
 
 			function openConfirmModal() { closeModal(); document.getElementById("confirmModalBg").classList.add("open"); }

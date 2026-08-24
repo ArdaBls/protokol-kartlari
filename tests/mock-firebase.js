@@ -28,7 +28,11 @@
 				return cb;
 			},
 			once: function () {
-				return Promise.resolve(makeSnapshot(null));
+				// Varsayilan: bos (mevcut 16 testin hicbiri bunu set etmiyor, davranis degismez).
+				// window.__mockOnceSnapshot set edilmisse onun yerine dondurulur -- saveSuccessor()
+				// gibi "yazmadan once fresh() oku" yapan fonksiyonlari test edebilmek icin gerekli:
+				// aksi halde her .once() bos donup people'i [] ile eziyordu.
+				return Promise.resolve(makeSnapshot(window.__mockOnceSnapshot !== undefined ? window.__mockOnceSnapshot : null));
 			},
 			off: function () { listeners = []; },
 			push: function (data) {
@@ -48,6 +52,8 @@
 				return Promise.resolve();
 			},
 			update: function (data) {
+				window.__mockUpdates = window.__mockUpdates || [];
+				window.__mockUpdates.push({ path: path, data: data });
 				return Promise.resolve();
 			},
 			remove: function () {
