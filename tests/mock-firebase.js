@@ -43,6 +43,8 @@
 				return p;
 			},
 			set: function (data) {
+				window.__mockSets = window.__mockSets || [];
+				window.__mockSets.push({ path: path, data: data });
 				return Promise.resolve();
 			},
 			update: function (data) {

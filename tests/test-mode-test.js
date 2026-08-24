@@ -57,83 +57,123 @@ function serve() {
 		currentListKey = 'universite';
 		people = [{ name: 'Test Kişi', title: 'Rektör', unit: 'OMÜ', prefix: 'Prof. Dr.', status: 'aktif' }];
 		calEvents = { ev1: { ad: 'Test Etkinlik', tur: 'diger', durum: 'planlandi', tarih: '2026-09-10', katilimcilar: [] } };
-		window.__testModeSets = [];
+	});
+
+	// =====================================================================
+	// SENARYO 1: dbPath() -- mod kapalıyken gerçek yol, açıkken test/ önekli yol döner
+	// =====================================================================
+	const dbPathTest = await page.evaluate(() => {
+		testModeEnabled = false;
+		const off1 = dbPath('etkinlikler') === 'etkinlikler';
+		const off2 = dbPath('logs/il') === 'logs/il';
+		testModeEnabled = true;
+		const on1 = dbPath('etkinlikler') === 'test/etkinlikler';
+		const on2 = dbPath('logs/il') === 'test/logs/il';
+		testModeEnabled = false;
+		return { off1, off2, on1, on2 };
+	});
+
+	// =====================================================================
+	// SENARYO 2: cloneRealDataToTestMode() -- 5 gerçek yol okunup test/ öneki ile yazılıyor mu
+	// =====================================================================
+	const cloneTest = await page.evaluate(async () => {
+		window.__mockSets = [];
+		const readPaths = [];
 		const origRef = database.ref.bind(database);
 		database.ref = function (p) {
-			if (p === 'ayarlar/testModuAcik') {
-				return { set: (v) => { window.__testModeSets.push(v); return Promise.resolve(); } };
-			}
-			return origRef(p);
+			const real = origRef(p);
+			const wrapped = Object.assign({}, real);
+			wrapped.once = function (evt) { readPaths.push(p); return real.once(evt); };
+			return wrapped;
+		};
+		await cloneRealDataToTestMode();
+		database.ref = origRef;
+		const expectedSources = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'etkinlikOzelListeleri', 'basinGorevlileri'];
+		const expectedTargets = expectedSources.map((p) => 'test/' + p);
+		return {
+			allSourcesRead: expectedSources.every((p) => readPaths.indexOf(p) !== -1),
+			allTargetsWritten: expectedTargets.every((p) => window.__mockSets.some((s) => s.path === p))
 		};
 	});
 
 	// =====================================================================
-	// SENARYO 1: admin setTestMode(true) çağırabiliyor mu (doğru path'e doğru değer yazılıyor mu)
+	// SENARYO 3: setTestMode(true) -- ÖNCE klonlama, SONRA ayarlar/testModuAcik=true yazılıyor;
+	// editor rolü çağıramıyor (requireAdmin kapısı)
 	// =====================================================================
-	const adminSetTest = await page.evaluate(async () => {
+	const setOnTest = await page.evaluate(async () => {
+		window.__mockSets = [];
 		await setTestMode(true);
-		return { wroteTrue: window.__testModeSets.length === 1 && window.__testModeSets[0] === true };
+		const cloneWrites = window.__mockSets.filter((s) => s.path.indexOf('test/') === 0);
+		const flagWrite = window.__mockSets.find((s) => s.path === 'ayarlar/testModuAcik');
+		const flagIndex = window.__mockSets.indexOf(flagWrite);
+		const lastCloneIndex = Math.max.apply(null, cloneWrites.map((s) => window.__mockSets.indexOf(s)));
+		return {
+			cloneHappened: cloneWrites.length === 5,
+			flagWroteTrue: !!flagWrite && flagWrite.data === true,
+			cloneBeforeFlag: !!flagWrite && flagIndex > lastCloneIndex
+		};
 	});
-
-	// =====================================================================
-	// SENARYO 2: editor rolü setTestMode() çağıramıyor (requireAdmin kapısı)
-	// =====================================================================
 	const editorGateTest = await page.evaluate(async () => {
-		window.__testModeSets = [];
+		window.__mockSets = [];
 		currentUser = { uid: 'ed1', role: 'editor', firstName: 'Test', lastName: 'Editor', email: 'editor@test.com' };
 		applyPermissions();
 		await setTestMode(true);
-		const blocked = window.__testModeSets.length === 0;
+		const blocked = window.__mockSets.length === 0;
 		currentUser = { uid: 'admin1', role: 'admin', firstName: 'Test', lastName: 'Admin', email: 'admin@test.com' };
 		applyPermissions();
 		return { blocked };
 	});
 
 	// =====================================================================
-	// SENARYO 3: testModeEnabled açıkken kişi/etkinlik/özel liste logları logs/test'e gidiyor,
-	// logs/debug bundan ETKİLENMİYOR (ayrı kalması onaylanmıştı)
+	// SENARYO 4: testModeEnabled açıkken -- kişi/etkinlik/özel liste/DEBUG kaydı VE loglarının
+	// HEPSİ test/ altına gidiyor, gerçek yola HİÇBİR ŞEY yazılmıyor
 	// =====================================================================
-	const redirectOnTest = await page.evaluate(() => {
+	const redirectOnTest = await page.evaluate(async () => {
 		testModeEnabled = true; updateTestModeBanner();
-		window.__mockPushes = [];
-		logAction('Test kişi işlemi', 'Test Kişi');
+		window.__mockPushes = []; window.__mockSets = [];
+		await saveData('Test kişi kaydı', 'Test Kişi');
 		logEventAction('Test etkinlik işlemi', 'Test Etkinlik');
 		logSublistAction('Test özel liste işlemi', 'Test Liste');
 		logDebugAction('Test debug işlemi', 'Test Hedef');
-		const personLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test kişi işlemi');
+		const personSet = window.__mockSets.find((s) => s.path === 'test/universiteProtokolVerileri');
+		const realPersonSet = window.__mockSets.find((s) => s.path === 'universiteProtokolVerileri');
 		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi');
 		const sublistLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test özel liste işlemi');
 		const debugLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test debug işlemi');
 		return {
 			bannerVisible: document.getElementById('testModeBanner').style.display === 'flex',
 			switchChecked: document.getElementById('testModeSwitch').checked === true,
-			personWentToTest: !!personLog && personLog.path === 'logs/test',
-			eventWentToTest: !!eventLog && eventLog.path === 'logs/test',
-			sublistWentToTest: !!sublistLog && sublistLog.path === 'logs/test',
-			debugStayedSeparate: !!debugLog && debugLog.path === 'logs/debug'
+			personWentToTest: !!personSet,
+			personDidNotTouchReal: !realPersonSet,
+			eventLogWentToTest: !!eventLog && eventLog.path === 'test/logs/etkinlik',
+			sublistLogWentToTest: !!sublistLog && sublistLog.path === 'test/logs/ozelListe',
+			debugLogWentToTest: !!debugLog && debugLog.path === 'test/logs/debug'
 		};
 	});
 
 	// =====================================================================
-	// SENARYO 4: testModeEnabled kapanınca loglar tekrar normal yollarına dönüyor
+	// SENARYO 5: testModeEnabled kapanınca -- her şey gerçek yoluna döner, test/ verisine dokunulmaz
 	// =====================================================================
-	const redirectOffTest = await page.evaluate(() => {
+	const redirectOffTest = await page.evaluate(async () => {
 		testModeEnabled = false; updateTestModeBanner();
-		window.__mockPushes = [];
-		logAction('Test kişi işlemi 2', 'Test Kişi');
-		const personLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test kişi işlemi 2');
+		window.__mockPushes = []; window.__mockSets = [];
+		await saveData('Test kişi kaydı 2', 'Test Kişi');
+		logEventAction('Test etkinlik işlemi 2', 'Test Etkinlik');
+		const personSet = window.__mockSets.find((s) => s.path === 'universiteProtokolVerileri');
+		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi 2');
 		return {
 			bannerHidden: document.getElementById('testModeBanner').style.display === 'none',
 			switchUnchecked: document.getElementById('testModeSwitch').checked === false,
-			personWentToNormal: !!personLog && personLog.path === 'logs/universite'
+			personWentToReal: !!personSet,
+			eventLogWentToReal: !!eventLog && eventLog.path === 'logs/etkinlik'
 		};
 	});
 
-	const results = { adminSetTest, editorGateTest, redirectOnTest, redirectOffTest, pageErrorsCount: pageErrors.length };
+	const results = { dbPathTest, cloneTest, setOnTest, editorGateTest, redirectOnTest, redirectOffTest, pageErrorsCount: pageErrors.length };
 	console.log(JSON.stringify(results, null, 2));
 	if (pageErrors.length) { console.log('PAGE ERRORS:'); pageErrors.forEach((e) => console.log(' - ' + e)); }
 
-	const __boolFails = collectBooleanFailures({ adminSetTest, editorGateTest, redirectOnTest, redirectOffTest }, []);
+	const __boolFails = collectBooleanFailures({ dbPathTest, cloneTest, setOnTest, editorGateTest, redirectOnTest, redirectOffTest }, []);
 	const __allPassed = pageErrors.length === 0 && __boolFails.length === 0;
 	console.log('ALL_TESTS_PASSED:', __allPassed);
 	if (__boolFails.length) console.log('BASARISIZ ALANLAR:', JSON.stringify(__boolFails));
