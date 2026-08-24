@@ -48,8 +48,16 @@
 
 			*{box-sizing:border-box;}
 			html,body{margin:0;padding:0;}
-			html{ overflow-x:hidden; max-width:100%; }
-			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; max-width:100%; }
+			/* overscroll-behavior-y:none -- iOS Safari'de sayfanin en ustunde/altinda parmakla
+			   asiri cekince olusan "lastik" sicrama efekti bazen modal/panel acikken bile
+			   ekranin alt kenarinda gercek sayfa (krem) arka planini bir an icin aciga
+			   cikariyordu (kullanici "altta bir bar gorunuyor" diye bildirdi). Bu, modal-bg
+			   veya successor-panel'in kendi ic kaydirmasindan degil, DOKUMANIN kendisinin
+			   sicramasindan kaynaklaniyor -- scroll-locked (body position:fixed) tek basina
+			   yetmiyor, cunku iOS bu "elastic bounce"u gercek bir tasma olmasa bile dokunma
+			   jestinden tetikleyebiliyor. */
+			html{ overflow-x:hidden; max-width:100%; overscroll-behavior-y:none; }
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; max-width:100%; overscroll-behavior-y:none; }
 
 			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
 			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
@@ -62,7 +70,8 @@
 
 			header{ background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #24406e 100%); color:#f3efe6; padding:28px 20px 24px; position:relative; overflow:hidden; }
 			header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 40px); pointer-events:none; }
-			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+			.header-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
+			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow-short{ display:none; }
@@ -224,7 +233,7 @@
 			   eklenmiştir -- yoksa çentik/Dynamic Island üstten, ev tuşu şeridi alttaki
 			   Vazgeç/Kaydet butonlarına biner. */
 			.successor-panel{ display:none; }
-			.successor-panel.open{ display:flex; position:fixed; inset:0; z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; }
+			.successor-panel.open{ display:flex; position:fixed; inset:0; z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
 			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
 			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
@@ -607,7 +616,7 @@
 			   uzun (safe center -> flex-start'a gerileyen) modallerin kapat (X) tusu durum
 			   cubugunun (saat/pil) altina/uzerine biniyordu. viewport-fit=cover meta etiketiyle
 			   birlikte TUM bildirim-centikli telefonlarda calisir, sadece iPhone'a ozel degil. */
-			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px 24px; overflow-y:auto; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
+			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
 			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
 			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; }
 			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
@@ -721,11 +730,16 @@
 
 				/* === HEADER GİRİŞ ALANI === */
 				/* Onceden top:20px;right:20px ile "Protokol Kartlari" basliginin UZERINE
-				   biniyordu (akistan cikmis absolute kutuydu). Artik eyebrow ile baslik
-				   arasinda, akis icinde, ortalanmis kucuk bir serit halinde duruyor. */
-				.header-auth{ position:static; display:flex; flex-direction:column; align-items:center; gap:6px; margin:10px 0 14px; font-family:'Roboto',sans-serif; font-size:13px; }
-				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
-				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
+				   biniyordu (akistan cikmis absolute kutuydu). Sonra eyebrow ile baslik
+				   arasinda, akis icinde, ortalanmis kucuk bir serit haline getirilmisti.
+				   Simdi kullanicinin istegiyle sag-ust koseye tasindi ama YINE akis icinde
+				   (.header-top flex row) -- eski absolute'un basligin USTUNE binme hatasini
+				   tekrarlamamak icin. 1. satir (isim rozeti + Admin Paneli) eyebrow ile AYNI
+				   satirda sagda; 2. satir (Cikis) onun altinda, h1 akista dogal olarak asagi
+				   itiliyor, cakisma olmuyor. */
+				.header-auth{ position:static; display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; font-family:'Roboto',sans-serif; font-size:13px; }
+				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
 				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; white-space:nowrap; }
 				.header-auth .btn-auth:hover{ background:rgba(255,255,255,.18); }
 				.header-auth .user-chip{ color:#f3efe6; display:flex; align-items:center; gap:6px; padding:6px 10px; }
@@ -908,8 +922,10 @@
 
 		<header>
 			<div style="max-width:1040px;margin:0 auto;">
-				<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
-				<div class="header-auth" id="headerAuth"></div>
+				<div class="header-top">
+					<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
+					<div class="header-auth" id="headerAuth"></div>
+				</div>
 				<h1>Protokol Kartları</h1>
 				<p class="sub" id="listSubtitle">Bulut Veritabanına (Firebase) Bağlı Sürüm.</p>
 			</div>
@@ -1671,8 +1687,9 @@
 				wrap.innerHTML =
 				'<div class="ha-row1">' +
 				'<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
+				adminBtn +
 				'</div>' +
-				'<div class="ha-row2">' + adminBtn + '<button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
+				'<div class="ha-row2"><button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
 			}
 
 			function applyPermissions() {
