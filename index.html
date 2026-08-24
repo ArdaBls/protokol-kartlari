@@ -664,8 +664,8 @@
 			.faculty-fab .fab-count{ background:var(--brass); color:var(--navy); border-radius:50%; min-width:19px; height:19px; font-size:11px; align-items:center; justify-content:center; padding:0 4px; }
 			.faculty-sheet-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.55); z-index:80; display:none; }
 			.faculty-sheet-backdrop.open{ display:block; }
-			.faculty-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:81; background:var(--card); border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.4); max-height:82vh; display:flex; flex-direction:column; transform:translateY(100%); transition:transform .28s cubic-bezier(.22,.8,.32,1); }
-			.faculty-sheet.open{ transform:translateY(0); }
+			.faculty-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:81; background:var(--card); border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.4); max-height:82vh; display:flex; flex-direction:column; transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear .28s; }
+			.faculty-sheet.open{ transform:translateY(0); visibility:visible; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear 0s; }
 			.faculty-sheet.dragging{ transition:none; }
 			.fsheet-handle-wrap{ display:flex; justify-content:center; padding:10px 0 6px; cursor:grab; touch-action:none; }
 			.fsheet-handle{ width:42px; height:5px; border-radius:3px; background:#d8d2c2; }
@@ -4452,8 +4452,8 @@ function calGoToMonth(y,m){ calAnchor=new Date(y,m,1); calMiniAnchor=new Date(y,
 /* --- Liste görünümü --- */
 function renderListView(body){
 	const today=todayDate();
-	const evs=calVisibleEvents().filter(function(e){ const d=parseKey(e.tarih); return d && d>=addDays(today,-1); });
-	if(!evs.length){ body.innerHTML='<div class="cal-list-wrap"><div class="cal-empty">Yaklaşan etkinlik yok.<br>Sağ üstteki “+ Etkinlik” ile ekleyebilirsin.</div></div>'; return; }
+	const evs=calVisibleEvents();
+	if(!evs.length){ body.innerHTML='<div class="cal-list-wrap"><div class="cal-empty">Etkinlik yok.<br>Sağ üstteki “+ Etkinlik” ile ekleyebilirsin.</div></div>'; return; }
 	let html='<div class="cal-list">'; let lastDay=null;
 	evs.forEach(function(e){
 		if(e.tarih!==lastDay){
@@ -4461,13 +4461,14 @@ function renderListView(body){
 			html+='<div class="cal-list-daysep'+(isT?" is-today":"")+'">'+fmtTrDate(e.tarih)+'<span class="dow">'+CAL_DOW[(d.getDay()+6)%7]+(isT?" · BUGÜN":"")+'</span></div>';
 		}
 		const ty=evType(e.tur), st=evStatus(e.durum);
+		const evD=parseKey(e.tarih), isPast=evD&&evD<today;
 		const meta=[]; if(e.yer) meta.push(escapeHtml(e.yer)); if(e.birim) meta.push(escapeHtml(e.birim));
 		if(e.gorevli) meta.push("📷 "+escapeHtml(e.gorevli));
 		if(Array.isArray(e.katilimcilar)&&e.katilimcilar.length) meta.push(e.katilimcilar.length+" katılımcı");
 		html+='<button type="button" class="cal-ev" onclick="openEventPeek(\''+e._id+'\')">'+
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
 			'<span class="cal-ev-time">'+escapeHtml(e.saat||"—")+'</span>'+
-			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal")?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
+			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span>'+
 			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" onclick="event.stopPropagation(); openEventModal(\''+e._id+'\')">✎</span>' : '')+
 			'</button>';
