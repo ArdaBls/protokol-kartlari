@@ -58,6 +58,9 @@
 			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
 			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
 			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
+			/* Acik modda mevcut ham #a33 / #8a6a24 degerleriyle AYNI -- regresyon yok.
+			   Karanlik modda WCAG 4.5:1 esigini gecmek icin asagida yeniden tanimlanir. */
+			--danger-text: #a33; --warn-text-alt: #8a6a24;
 			/* --vh: 1/100'u gercek GORUNUR yukseklik (visualViewport) -- JS tarafindan
 			   guncellenir (asagida syncViewportHeightVar). iOS Safari'de adres/arac cubugu
 			   acilip kapaninca "position:fixed; inset:0" TEK BASINA bunu takip etmiyor,
@@ -84,6 +87,9 @@
 			--surface-hover-2: #38342c; --surface-hover-3: #403b32; --danger-bg: #3a2020; --today: #e2661c;
 			--shadow: 0 10px 30px -12px rgba(0,0,0,.55);
 			--news: #4f9eff; --news-bg: rgba(79,158,255,.16);
+			/* WCAG hesabi (contrast.js, tests disi scratchpad): #ff6b6b -> card/danger-bg/paper/warn-bg
+			   uzerinde 4.87-5.92:1, #d9b568 -> ayni fonlarda 6.92-8.42:1 (esik 4.5:1). */
+			--danger-text: #ff6b6b; --warn-text-alt: #d9b568;
 			}
 
 			*{box-sizing:border-box;}
@@ -172,7 +178,7 @@
 			.status-chip{ position:absolute; top:10px; right:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; z-index:3; backdrop-filter: blur(2px); pointer-events:none;}
 			.status-chip.aktif{ background:var(--ok-bg); color:var(--ok); }
 			.status-chip.pasif{ background:var(--off-bg); color:var(--off); }
-			.status-chip.silindi{ background:var(--danger-bg); color:#a33; }
+			.status-chip.silindi{ background:var(--danger-bg); color:var(--danger-text); }
 			
 			.rank-badge{ position:absolute; top:10px; left:10px; z-index:4; width:26px; height:26px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
 
@@ -181,7 +187,7 @@
 			.freshness-badge{ display:inline-flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:3px 7px; border-radius:999px; margin-top:6px; width:fit-content; }
 			.freshness-badge.green{ background:var(--ok-bg); color:var(--ok); }
 			.freshness-badge.yellow{ background:var(--warn-bg); color:var(--warn); }
-			.freshness-badge.red{ background:var(--danger-bg); color:#a33; }
+			.freshness-badge.red{ background:var(--danger-bg); color:var(--danger-text); }
 			.info{ padding:12px 14px 14px; display:flex; flex-direction:column; flex:1; }
 			.name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:'Roboto', sans-serif; font-weight:500; }
@@ -206,7 +212,7 @@
 			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:hover{ background:var(--navy-2); }
 			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); } .btn-ghost:hover{ background:var(--paper); }
 			.btn-danger{ background:#a33; color:#fff; } .btn-danger:hover{ background:#8a2727; }
-			.btn-danger-outline{ background:var(--card); color:#a33; border-color:#e3c7c7; } .btn-danger-outline:hover{ background:#fff0f0; }
+			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; } .btn-danger-outline:hover{ background:#fff0f0; }
 			.btn-news { background: var(--news); color: #fff; } .btn-news:hover { background: #004494; }
 			
 			/* margin-top:auto -- .info flex-column'da SON oge; icerik (isim/unvan/birim/not)
@@ -219,7 +225,7 @@
 			
 			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:'Roboto',sans-serif; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
 			.btn-restore-card { background: #e3efe6; color: #2f6f4e; } .btn-restore-card:hover { background: #cce0d3; }
-			.btn-permdel-card { background: var(--danger-bg); color: #a33; } .btn-permdel-card:hover { background: #fad9d9; }
+			.btn-permdel-card { background: var(--danger-bg); color: var(--danger-text); } .btn-permdel-card:hover { background: #fad9d9; }
 
 			/* --- REORDER (Sıralama) ÜST BİLGİ DÜZENİ --- */
 			.reorder-header-bar { display:flex; justify-content:space-between; align-items:center; gap:20px; width: 100%; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow); }
@@ -619,7 +625,7 @@
 			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
 			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
 			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
-			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:#8a6a24; border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:'Roboto',sans-serif; white-space:nowrap; }
+			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:var(--warn-text-alt); border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:'Roboto',sans-serif; white-space:nowrap; }
 			.ev-now-btn:hover{ background:rgba(184,146,63,.26); }
 			.ev-now-btn:active{ transform:scale(.94); }
 
@@ -664,7 +670,7 @@
 			.faculty-fab .fab-count{ background:var(--brass); color:var(--navy); border-radius:50%; min-width:19px; height:19px; font-size:11px; align-items:center; justify-content:center; padding:0 4px; }
 			.faculty-sheet-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.55); z-index:80; display:none; }
 			.faculty-sheet-backdrop.open{ display:block; }
-			.faculty-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:81; background:var(--card); border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.4); max-height:82vh; display:flex; flex-direction:column; transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear .28s; }
+			.faculty-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:81; background:var(--card); border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.4); max-height:calc(var(--vh, 1vh) * 82); display:flex; flex-direction:column; transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear .28s; }
 			.faculty-sheet.open{ transform:translateY(0); visibility:visible; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear 0s; }
 			.faculty-sheet.dragging{ transition:none; }
 			.fsheet-handle-wrap{ display:flex; justify-content:center; padding:10px 0 6px; cursor:grab; touch-action:none; }
@@ -863,7 +869,7 @@
 				.admin-log-row .al-by{ color:var(--navy); font-weight:600; }
 				.admin-log-row .al-action{ color:var(--ink); }
 				/* "kim yaptı" (al-by, lacivert/kalın) ile "kime yapıldı" (al-target, altın rozet) birbirine karışmasın diye ayrı stiller */
-				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:#8a6a24; font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
+				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:var(--warn-text-alt); font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
 				.admin-log-row .al-time{ font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; font-weight:500; white-space:nowrap; }
 				/* Hangi alanın değiştiği ("Protokol Sırası: 2. sıradan 4. sıraya düşürüldü") alt satırlar hâlinde listelenir */
 				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:12px; line-height:1.55; color:var(--muted); }
@@ -1231,7 +1237,7 @@
 		<!-- Etkinlik Silme Onay Modali (peek panel + duzenleme formu ortak kullanir) -->
 		<div class="modal-bg" id="eventDeleteConfirmModalBg" style="z-index:97;">
 			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
-				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Etkinliği Sil</h2>
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Etkinliği Sil</h2>
 				<p class="hint" id="eventDeleteConfirmText" style="margin-bottom:20px;">Bu etkinlik takvimden silinecek. Emin misiniz?</p>
 				<div class="modal-actions" style="margin-top:0;">
 					<button class="btn btn-ghost" onclick="closeEventDeleteConfirm()">Vazgeç</button>
@@ -1494,7 +1500,7 @@
 		<!-- Çöpe At Onay -->
 		<div class="modal-bg" id="confirmModalBg" style="z-index:60;">
 			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
-				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Çöpe At</h2>
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Çöpe At</h2>
 				<p class="hint" style="margin-bottom:20px;">Bu kişiyi silinenler klasörüne (Çöp) taşımak istediğinize emin misiniz?</p>
 				<div class="modal-actions" style="margin-top:0;">
 					<button class="btn btn-ghost" onclick="closeConfirmModal()">Vazgeç</button>
@@ -1506,7 +1512,7 @@
 		<!-- Toplu Çöpe At Onay -->
 		<div class="modal-bg" id="bulkConfirmModalBg" style="z-index:60;">
 			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
-				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Toplu Çöpe Atma</h2>
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Toplu Çöpe Atma</h2>
 				<p class="hint" id="bulkConfirmText" style="margin-bottom:20px;">Seçilen kişileri çöp kutusuna taşımak istediğinize emin misiniz?</p>
 				<div class="modal-actions" style="margin-top:0;">
 					<button class="btn btn-ghost" onclick="closeBulkConfirmModal()">Vazgeç</button>
@@ -1518,7 +1524,7 @@
 		<!-- Çöp Kutusunu Boşalt Onay Modalı -->
 		<div class="modal-bg" id="emptyTrashModalBg" style="z-index:60;">
 			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
-				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Çöpü Tamamen Boşalt</h2>
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Çöpü Tamamen Boşalt</h2>
 				<p class="hint" style="margin-bottom:20px;">Çöp kutusundaki <b>tüm kişileri</b> veritabanından kalıcı olarak silmek istediğinize emin misiniz? <br><br><i>Bu işlem geri alınamaz!</i></p>
 				<div class="modal-actions" style="margin-top:0;">
 					<button class="btn btn-ghost" onclick="closeEmptyTrashModal()">Vazgeç</button>
@@ -1530,7 +1536,7 @@
 		<!-- Tekil Kalıcı Silme Onay Modalı -->
 		<div class="modal-bg" id="singlePermDeleteModalBg" style="z-index:70;">
 			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
-				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Kalıcı Olarak Sil</h2>
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Kalıcı Olarak Sil</h2>
 				<p class="hint" style="margin-bottom:20px;">Bu kişiyi <b>tamamen</b> silmek istediğinize emin misiniz? <br><br><i>Veritabanından (JSON) kalıcı olarak silinecek.</i></p>
 				<div class="modal-actions" style="margin-top:0;">
 					<button class="btn btn-ghost" onclick="closeSinglePermDelete()">Vazgeç</button>
