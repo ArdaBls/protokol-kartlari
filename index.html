@@ -119,7 +119,15 @@
 
 			header{ background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #24406e 100%); color:#f3efe6; padding:28px 20px 24px; position:relative; overflow:hidden; }
 			header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 40px); pointer-events:none; }
-			.header-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
+			/* .header-top: dikey (column) duzen -- ust satirda ince eyebrow/tema/auth seridi,
+			   basaligin (h1+.sub) ise min-height sayesinde acilan bosluga "yaslanmasi" icin
+			   justify-content:space-between kullanilir. min-height, ust satirin dogal
+			   yuksekliginden buyuk tutulur ki bosluk gercekten olussun; icerik (orn. admin
+			   girisinde 2 satirli .header-auth) min-height'i asarsa header dogal olarak
+			   uzar, hicbir tasma/kirpma olmaz. */
+			.header-top{ display:flex; flex-direction:column; justify-content:space-between; min-height:108px; }
+			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+			.header-title-block{ margin:0; }
 			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow-short{ display:none; }
@@ -1055,14 +1063,18 @@
 		<header>
 			<div style="max-width:1040px;margin:0 auto;">
 				<div class="header-top">
-					<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
-					<div class="header-top-right">
-						<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
-						<div class="header-auth" id="headerAuth"></div>
+					<div class="header-top-row">
+						<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
+						<div class="header-top-right">
+							<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
+							<div class="header-auth" id="headerAuth"></div>
+						</div>
+					</div>
+					<div class="header-title-block">
+						<h1>Protokol Kartları</h1>
+						<p class="sub" id="listSubtitle">Bulut Veritabanına (Firebase) Bağlı Sürüm.</p>
 					</div>
 				</div>
-				<h1>Protokol Kartları</h1>
-				<p class="sub" id="listSubtitle">Bulut Veritabanına (Firebase) Bağlı Sürüm.</p>
 			</div>
 		</header>
 
