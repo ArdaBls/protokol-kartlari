@@ -32,7 +32,7 @@ jobs:
         working-directory: tests
         run: |
           overall=0
-          for f in smoke-test.js notes-fix-test.js news-template-test.js news-rich-template-test.js calendar-lock-undo-test.js admin-test-panel-test.js calendar-rail-now-test.js calendar-year-list-admin-test.js press-officer-lock-test.js audit-fixes-test.js; do
+          for f in smoke-test.js notes-fix-test.js news-template-test.js news-rich-template-test.js calendar-lock-undo-test.js admin-test-panel-test.js calendar-rail-now-test.js calendar-year-list-admin-test.js press-officer-lock-test.js audit-fixes-test.js modal-centering-test.js offline-timeout-test.js test-mode-test.js; do
             echo "::group::$f"
             node "$f" || overall=1
             echo "::endgroup::"

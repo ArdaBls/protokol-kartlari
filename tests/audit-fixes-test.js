@@ -198,6 +198,118 @@ async function newPage(browser, width, height, mobile) {
 		};
 	});
 
+	// --- K-6: saveForm sirasinda editIndex DEGISIRSE rollback yanlis kayda YAZMAMALI ---
+	// (K-5'ten farkli: burada dizi kaymiyor, ayni await penceresinde editIndex baska
+	// bir kaydi gostermeye baslıyor -- eski kod bu durumda global editIndex'i okuyup
+	// YANLIS kaydin uzerine eski veriyi yaziyordu, targetIdx'i yakalayip kullanmiyordu)
+	const k6 = await page.evaluate(async () => {
+		currentUser = { uid: 'ed1', role: 'editor', firstName: 'T', lastName: 'K', email: 't@t.com' };
+		applyPermissions();
+		people = [
+			{ name: 'Kayit A', title: 'Unvan', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
+			{ name: 'Kayit B', title: 'Unvan', prefix: '', unit: '', status: 'aktif', rank: 2, photo: '', start: '', end: '', note: '' }
+		];
+		render();
+		openEditModal(0);                                   // "Kayit A" duzenleniyor
+		document.getElementById('f_name').value = 'Kayit A Guncellendi';
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) {
+			const r = origRef(p);
+			r.set = function () { return new Promise((_, reject) => setTimeout(() => reject(new Error('mock-fail')), 30)); };
+			return r;
+		};
+		const p = saveForm();                               // await ETME
+		openEditModal(1);                                    // yazma beklerken baska kaydi actı -> editIndex artik 1
+		await p;
+		database.ref = origRef;
+		return {
+			recordARolledBack: people[0].name === 'Kayit A',          // eski haline donmeli
+			recordBUntouched: people[1].name === 'Kayit B'            // editIndex=1'in kaydina YANLISLIKLA yazilmamali
+		};
+	});
+
+	// --- K-7: restoreSingle basarisizsa geri alinan durum GERI DONMELI ---
+	const k7 = await page.evaluate(async () => {
+		people = [{ name: 'Cop Kayit', title: '', prefix: '', unit: '', status: 'silindi', prevStatus: 'pasif', rank: '', photo: '', start: '', end: '', note: '' }];
+		render();
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		await restoreSingle(0);
+		database.ref = origRef;
+		return { statusRolledBack: people[0].status === 'silindi', prevStatusRestored: people[0].prevStatus === 'pasif' };
+	});
+
+	// --- K-8: executeSinglePermDelete basarisizsa kayit dizide KALMALI (silinmemis gibi geri donmeli) ---
+	const k8 = await page.evaluate(async () => {
+		people = [
+			{ name: 'Kalici Silinecek', title: '', prefix: '', unit: '', status: 'silindi', rank: '', photo: '', start: '', end: '', note: '' },
+			{ name: 'Diger Kayit', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }
+		];
+		render();
+		singlePermDeleteIdx = 0;
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		await executeSinglePermDelete();
+		database.ref = origRef;
+		return { recordStillPresent: people.length === 2 && people[0].name === 'Kalici Silinecek', otherRecordIntact: people[1].name === 'Diger Kayit' };
+	});
+
+	// --- K-9: executeEmptyTrash basarisizsa cop kutusu BOSALTILMAMIS gibi geri donmeli ---
+	const k9 = await page.evaluate(async () => {
+		people = [
+			{ name: 'Coptekiler', title: '', prefix: '', unit: '', status: 'silindi', rank: '', photo: '', start: '', end: '', note: '' },
+			{ name: 'Aktif Kayit', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }
+		];
+		render();
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		await executeEmptyTrash();
+		database.ref = origRef;
+		return { trashRestored: people.length === 2 && people.some((p) => p.status === 'silindi') };
+	});
+
+	// --- K-10: executeBulkDelete basarisizsa secilen kayitlarin durumu GERI ALINMALI ve ekran YENIDEN CIZILMELI ---
+	// (eski kodda bu fonksiyon hic render() cagirmiyordu -- basarisizlikta ekran hicbir zaman duzelmiyordu)
+	const k10 = await page.evaluate(async () => {
+		people = [
+			{ name: 'Toplu 1', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
+			{ name: 'Toplu 2', title: '', prefix: '', unit: '', status: 'pasif', prevStatus: 'pasif', rank: 2, photo: '', start: '', end: '', note: '' }
+		];
+		render();
+		bulkSelection = [0, 1];
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		await executeBulkDelete();
+		database.ref = origRef;
+		return {
+			firstRolledBack: people[0].status === 'aktif' && people[0].prevStatus === undefined,
+			secondRolledBack: people[1].status === 'pasif' && people[1].prevStatus === 'pasif'
+		};
+	});
+
+	// --- K-11: sortRankGroupByName basarisizsa .order alanlari ESKI HALINE donmeli ---
+	const k11 = await page.evaluate(async () => {
+		people = [
+			{ name: 'B Kisi', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, order: 5, photo: '', start: '', end: '', note: '' },
+			{ name: 'A Kisi', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, order: 9, photo: '', start: '', end: '', note: '' }
+		];
+		render();
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		const fakeEvt = { preventDefault() {}, stopPropagation() {} };
+		await sortRankGroupByName(fakeEvt, '1');
+		database.ref = origRef;
+		return { firstOrderRolledBack: people[0].order === 5, secondOrderRolledBack: people[1].order === 9 };
+	});
+
+	// --- K-12: logAction/logDebugAction push basarisiz olursa artik SESSIZ kalmamali (console.error) ---
+	const k12 = await page.evaluate(() => {
+		return {
+			logActionLogsError: logAction.toString().indexOf('console.error') !== -1,
+			logDebugActionLogsError: logDebugAction.toString().indexOf('console.error') !== -1
+		};
+	});
+
 	await page.close();
 
 	// ==================================================================
@@ -264,7 +376,7 @@ async function newPage(browser, width, height, mobile) {
 		await mp.close();
 	}
 
-	const combined = { k1, k1undo, k2, o12, persistGuard, o7, k5, o6, mobile };
+	const combined = { k1, k1undo, k2, o12, persistGuard, o7, k5, o6, k6, k7, k8, k9, k10, k11, k12, mobile };
 	console.log(JSON.stringify(combined, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));

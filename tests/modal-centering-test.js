@@ -99,6 +99,41 @@ function serve() {
 		return false;
 	});
 
+	// --- Ek kaynak-metin kontrolleri: --vh (iOS arac cubugu takibi) ve dokunma alani
+	// genisletmesi (@media(pointer:coarse) icinde) -- bu ikisi de @media blogu icinde
+	// oldugu icin duz sheet.cssRules taramasi yetmiyor, cssRules'u REKURSIF gezmek gerekiyor.
+	const extraCssChecks = await page.evaluate(() => {
+		function collectRuleTexts() {
+			const texts = [];
+			function walk(rules) {
+				for (const rule of rules) {
+					texts.push({ selector: rule.selectorText || '', text: rule.cssText || '' });
+					if (rule.cssRules) walk(rule.cssRules);
+				}
+			}
+			for (const sheet of document.styleSheets) {
+				try { walk(sheet.cssRules); } catch (e) { /* cross-origin, atla */ }
+			}
+			return texts;
+		}
+		const all = collectRuleTexts();
+		function ruleFor(selector) { return all.find((r) => r.selector === selector); }
+		const authformBg = ruleFor('.authform-bg');
+		const calOverlay = ruleFor('.cal-overlay');
+		const loadingOverlay = ruleFor('.loading-overlay');
+		const tapTargetPos = all.find((r) => r.selector && r.selector.indexOf('.header-auth .btn-auth') !== -1 && /position\s*:\s*relative/.test(r.text) && r.text.indexOf('::after') === -1);
+		const tapTargetAfter = all.find((r) => r.selector && r.selector.indexOf('.header-auth .btn-auth::after') !== -1);
+		return {
+			authformBgHasVh: !!(authformBg && /height:\s*calc\(var\(--vh/.test(authformBg.text)),
+			authformBgHasSafeAreaTop: !!(authformBg && /env\(safe-area-inset-top/.test(authformBg.text)),
+			authformBgHasSafeAreaBottom: !!(authformBg && /env\(safe-area-inset-bottom/.test(authformBg.text)),
+			calOverlayHasVh: !!(calOverlay && /height:\s*calc\(var\(--vh/.test(calOverlay.text)),
+			loadingOverlayHasVh: !!(loadingOverlay && /height:\s*calc\(var\(--vh/.test(loadingOverlay.text)),
+			headerAuthBtnHasRelative: !!tapTargetPos,
+			headerAuthBtnHasTapExpansion: !!(tapTargetAfter && /inset:\s*-10px/.test(tapTargetAfter.text))
+		};
+	});
+
 	const results = {
 		personModal: {
 			alignItemsIsCenter: personModal.alignItems === 'center' || personModal.alignItems === 'safe center',
@@ -118,6 +153,7 @@ function serve() {
 			bothGapsPositive: shortModal.topGap > 0 && shortModal.bottomGap > 0
 		},
 		safeAreaInsetTopInCss: safeAreaCssCheck,
+		extraCssChecks,
 		pageErrorsCount: pageErrors.length
 	};
 	console.log(JSON.stringify({ personModal, eventModal, shortModal, results }, null, 2));

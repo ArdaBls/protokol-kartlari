@@ -82,7 +82,6 @@
 			.header-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
 			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
-			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow-short{ display:none; }
 			@media (max-width: 600px) { .eyebrow-full{ display:none; } .eyebrow-short{ display:inline; } }
 			h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0 0 4px; letter-spacing:-.01em; }
@@ -233,7 +232,6 @@
 			.rank-reference .rr-num{ font-family:'JetBrains Mono',monospace; font-weight:700; width:22px; height:22px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.rank-reference .rr-info{ min-width:0; display:flex; flex-direction:column; }
 			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:normal; line-height:1.3; }
-			.rank-reference .rr-info .rr-n{ color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 			/* Görevden alma / yerine yeni kişi atama paneli. Genişte (>=900px) mevcut düzenleme
 			   ekranının SAĞINDA küçük bir kart olarak durur. Dar ekranda (mobil/tablet) aynı
@@ -332,7 +330,7 @@
 			/* ---- Tam ekran kabuk ---- */
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
-			.cal-overlay{ position:fixed; inset:0; z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
 			.cal-overlay.open{ display:block; }
 			.cal-launch-backdrop{ position:fixed; inset:0; z-index:89; background:rgba(22,35,61,.42); display:none; opacity:0; pointer-events:none; transition:opacity .32s ease; }
 			.cal-launch-backdrop.show{ display:block; }
@@ -583,7 +581,7 @@
 				.cal-addbtn .ab-full{ display:none; }
 				.cal-addbtn .ab-short{ display:inline; font-size:16px; line-height:1; }
 				.cal-addbtn{ padding:5px 12px; }
-				.cal-jump{ padding:0 4px; font-size:11px; height:27px; max-width:120px; }
+				.cal-jump{ padding:0 4px; height:27px; max-width:120px; }
 				.cal-viewbtn{ padding:4px 9px; font-size:12px; }
 				.cal-addbtn{ padding:5px 10px; font-size:12px; }
 				.cal-m-grid{ grid-auto-rows:minmax(74px,1fr); }
@@ -714,7 +712,7 @@
 				.reorder-toolbar button { flex: 1; text-align: center; }
 			}
 			/* === GİRİŞ / KAYIT FORMU (Uiverse.io by ammarsaa, brass temaya uyarlandı) === */
-				.authform-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:60; }
+				.authform-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:60; }
 				.authform-bg.open{ display:flex; animation: fadeIn 0.2s ease; }
 				.af-wrap{ position:relative; }
 				.af-close{ position:absolute; top:14px; right:14px; background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.7; z-index:2; }
@@ -757,7 +755,7 @@
 				.header-auth .user-chip.admin .role-dot{ background:var(--brass-light); }
 
 				/* === YÜKLENİYOR EKRANI  === */
-				.loading-overlay{ position:fixed; inset:0; background:rgba(243,239,230,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:300; }
+				.loading-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(243,239,230,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:300; }
 				.loading-overlay.open{ display:flex; }
 				.loading-overlay .loading-label{ font-family:'Roboto',sans-serif; font-size:13px; color:var(--muted); font-weight:600; }
 
@@ -911,9 +909,9 @@
 			   bu absolute'u eziyordu, iPhone'da (pointer:coarse) X butonlari yanlis yere kayiyordu.
 			   Sadece position tanimi OLMAYAN iki elemana relative eklenir. */
 			@media (pointer: coarse){
-				.cal-ev-edit-ico, .fsheet-close{ position:relative; }
+				.cal-ev-edit-ico, .fsheet-close, .header-auth .btn-auth{ position:relative; }
 				.cal-ev-edit-ico::after, .clear-btn::after, .fsheet-close::after,
-				.af-close::after, .close-x::after{ content:""; position:absolute; inset:-10px; }
+				.af-close::after, .close-x::after, .header-auth .btn-auth::after{ content:""; position:absolute; inset:-10px; }
 				.cal-ev-edit-ico{ opacity:.75; }
 				.cal-viewbtn{ padding:9px 11px; }
 				.foot-link{ padding:8px 4px; }
@@ -2262,7 +2260,7 @@
 			function logAction(actionLabel, targetName) {
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				database.ref(dbPath("logs/" + currentListKey)).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
+				database.ref(dbPath("logs/" + currentListKey)).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(err){ console.error("Log kaydı yazılamadı:", err); });
 			}
 
 			// ---- Debug sistemi: log/logs/{il,universite,etkinlik} ile KARIŞMASIN diye ayrı bir
@@ -2273,7 +2271,7 @@
 			function logDebugAction(actionLabel, targetName) {
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				database.ref(dbPath("logs/debug")).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(){});
+				database.ref(dbPath("logs/debug")).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(err){ console.error("Debug log kaydı yazılamadı:", err); });
 			}
 			// NOT: aşağıdaki iki fonksiyon BİLEREK saveData()/savePerson() kullanmıyor -- onlar
 			// gerçek logs/{currentListKey} dalına yazar. Debug butonları veriyi gerçekten
@@ -2609,13 +2607,20 @@
 				const valid = bulkSelection.filter(function(i) { return !!people[i]; });
 				if (!valid.length) { closeBulkConfirmModal(); toggleBulkDeleteMode(); showToast("Seçim geçersiz, liste yenilendi.", "error"); return; }
 				const names = valid.map(function(i) { return people[i].name || "İsimsiz kayıt"; });
+				// Yazma basarisiz olursa geri alinabilmesi icin dokunulan kayitlarin eski durumu saklanir.
+				const prevStates = valid.map(function(i) { return { i: i, status: people[i].status, prevStatus: people[i].prevStatus }; });
 				for (var i = 0; i < valid.length; i++) { people[valid[i]].prevStatus = people[valid[i]].status || "aktif"; people[valid[i]].status = "silindi"; }
 				const label = names.length === 1 ? (names[0] + " kişisi çöpe atıldı") : (names.length + " kişi çöpe atıldı: " + names.join(", "));
 				// Sayı toggleBulkDeleteMode() ÖNCESİNDE alınır; o fonksiyon bulkSelection'ı boşalttığı için bildirim hep "0" yazıyordu.
 				const movedCount = valid.length;
 				const ok = await saveData(label, names.length === 1 ? names[0] : undefined);
 				closeBulkConfirmModal(); toggleBulkDeleteMode();
-				if (ok) showToast(movedCount + " kayıt çöpe taşındı.", "warn");
+				if (!ok) {
+					prevStates.forEach(function(s) { if (people[s.i]) { people[s.i].status = s.status; if (s.prevStatus === undefined) delete people[s.i].prevStatus; else people[s.i].prevStatus = s.prevStatus; } });
+					render();
+					return;
+				}
+				showToast(movedCount + " kayıt çöpe taşındı.", "warn");
 			}
 
 			function toggleNewsMode() {
@@ -2800,12 +2805,15 @@
 				const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
 				// Çöpe atılmadan önce hangi durumdaysa (aktif ya da pasif/arşiv) o duruma geri döner;
 				// bu alan eklenmeden önce çöpe atılmış eski kayıtlarda bilgi yoksa varsayılan olarak aktif'e döner.
+				const oldRecord = Object.assign({}, p);
 				const restoredStatus = p.prevStatus || "aktif";
 				p.status = restoredStatus; delete p.prevStatus;
 				const hasRank = p.rank !== undefined && p.rank !== null && p.rank !== "";
 				const destLabel = restoredStatus === "pasif" ? "arşive (pasif)" : "aktif listeye";
 				const label = (p.name || "Kayıt") + " kişisi yeniden " + destLabel + " katıldı" + (hasRank ? (", " + p.rank + ". sıraya") : "");
-				const rOk = await saveData(label, p.name); render(); if (!rOk) return; showToast(restoredStatus === "pasif" ? "Kayıt arşive (pasif) geri alındı." : "Kayıt aktif klasörüne geri alındı.");
+				const rOk = await saveData(label, p.name);
+				if (!rOk) { people[idx] = oldRecord; render(); return; }
+				render(); showToast(restoredStatus === "pasif" ? "Kayıt arşive (pasif) geri alındı." : "Kayıt aktif klasörüne geri alındı.");
 			}
 
 			function openSinglePermDelete(idx) { singlePermDeleteIdx = idx; closeModal(); document.getElementById("singlePermDeleteModalBg").classList.add("open"); }
@@ -2814,10 +2822,14 @@
 				if (!requireEdit()) return;
 				if (singlePermDeleteIdx !== null && people[singlePermDeleteIdx]) {
 					const name = (people[singlePermDeleteIdx] && people[singlePermDeleteIdx].name) ? people[singlePermDeleteIdx].name : "Kayıt";
+					const prevPeople = people.slice();
 					people.splice(singlePermDeleteIdx, 1);
 					// Dizi yeniden indekslendi: "Rektörlük / Merkez" seçimi indeks tuttuğu için artık başka kişiyi işaret eder.
 					selectedCentralAdminIdx.clear();
-					const spOk = await saveData(name + " kişisi kalıcı olarak silindi", name); closeSinglePermDelete(); render(); if (!spOk) return; showToast("Kayıt kalıcı olarak yok edildi.", "warn");
+					const spOk = await saveData(name + " kişisi kalıcı olarak silindi", name);
+					closeSinglePermDelete();
+					if (!spOk) { people = prevPeople; render(); return; }
+					render(); showToast("Kayıt kalıcı olarak yok edildi.", "warn");
 				}
 			}
 
@@ -2826,9 +2838,13 @@
 			async function executeEmptyTrash() {
 				if (!requireEdit()) return;
 				const removedCount = people.filter(function(p) { return p.status === "silindi"; }).length;
+				const prevPeople = people;
 				people = people.filter(p => p.status !== "silindi");
 				selectedCentralAdminIdx.clear();
-				const etOk = await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)"); closeEmptyTrashModal(); render(); if (!etOk) return; showToast("Çöp kutusu tamamen boşaltıldı.", "warn");
+				const etOk = await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)");
+				closeEmptyTrashModal();
+				if (!etOk) { people = prevPeople; render(); return; }
+				render(); showToast("Çöp kutusu tamamen boşaltıldı.", "warn");
 			}
 
 			async function sortRankGroupByName(evt, key) {
@@ -2843,10 +2859,11 @@
 					return (a.p.name || "").localeCompare(b.p.name || "", "tr");
 				});
 
+				const prevOrders = groupPeople.map(o => ({ idx: o.idx, order: o.p.order }));
 				groupPeople.forEach((o, i) => { people[o.idx].order = i + 1; });
 				const groupLabel = key === "__none__" ? "Sırasız" : ("Sıra " + key);
 				const srtOk = await saveData(groupLabel + " grubu (" + groupPeople.length + " kişi) isme göre A-Z sıralandı");
-				if (!srtOk) { render(); return; }
+				if (!srtOk) { prevOrders.forEach(function(o) { if (people[o.idx]) people[o.idx].order = o.order; }); render(); return; }
 				showToast("İsim sırasına göre düzenlendi.", "success");
 				render();
 			}
@@ -3429,7 +3446,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			const saved = await savePerson(targetIdx, actionLabel, name);
 			// Duzenleme sirasinda yazma basarisiz olursa yerel diziyi de eski haline dondur; aksi halde
 			// ekranda "kaydedilmis" gorunen ama sunucuya hic ulasmamis veri, bir sonraki gercek guncellemeye kadar fark edilmez.
-			if (!saved) { if (editIndex === null) people.pop(); else if (oldRecord) people[editIndex] = oldRecord; return; }
+			if (!saved) { if (oldRecord === null) people.pop(); else people[targetIdx] = oldRecord; return; }
 			closeModal(); showToast("Kayıt başarıyla kaydedildi.");
 			}
 
