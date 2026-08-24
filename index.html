@@ -88,16 +88,19 @@
 
 			*{box-sizing:border-box;}
 			html,body{margin:0;padding:0;}
-			/* overscroll-behavior-y:none -- iOS Safari'de sayfanin en ustunde/altinda parmakla
-			   asiri cekince olusan "lastik" sicrama efekti bazen modal/panel acikken bile
-			   ekranin alt kenarinda gercek sayfa (krem) arka planini bir an icin aciga
-			   cikariyordu (kullanici "altta bir bar gorunuyor" diye bildirdi). Bu, modal-bg
-			   veya successor-panel'in kendi ic kaydirmasindan degil, DOKUMANIN kendisinin
-			   sicramasindan kaynaklaniyor -- scroll-locked (body position:fixed) tek basina
-			   yetmiyor, cunku iOS bu "elastic bounce"u gercek bir tasma olmasa bile dokunma
-			   jestinden tetikleyebiliyor. */
-			html{ overflow-x:hidden; max-width:100%; overscroll-behavior-y:none; }
-			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; max-width:100%; overscroll-behavior-y:none; }
+			/* NOT (2026-08-24): html/body'ye SITE GENELINDE overscroll-behavior-y:none
+			   denenmisti (iOS'ta modal acikken bile "lastik" sicramanin bir an icin krem
+			   arka plani gostermesi icin) ama Android 16'da SADECE sicramayi degil TUM
+			   DIKEY KAYDIRMAYI devre disi biraktigi bildirildi -- site Android'de tamamen
+			   kullanilamaz hale geliyordu. KALDIRILDI. Modal/duzenle ekrani ACIKKEN arka
+			   planin kaymasini engelleyen asil mekanizma BU DEGIL, ayri bir sistem: asagida
+			   .modal-bg/.successor-panel/.authform-bg'nin kendi overscroll-behavior:contain'i
+			   + body.scroll-locked (bkz. lockBodyScroll(), dosya sonu) -- o sisteme
+			   DOKUNULMADI, hala tam calisiyor. Ayrica krem-arka-plan sorununun asil,
+			   dogrulanmis cozumu zaten --vh/visualViewport takibiydi (bkz. --vh yorumu
+			   yukarida), bu satir o noktada da fazlaydi. */
+			html{ overflow-x:hidden; max-width:100%; }
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; max-width:100%; }
 
 			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
 			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
