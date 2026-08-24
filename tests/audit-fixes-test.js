@@ -432,6 +432,11 @@ async function newPage(browser, width, height, mobile) {
 			closeCalendar();
 			// Kart izgarasi: 2'li/3'lu/4'lu modlarda farkli uzunlukta isim/unvan/birim
 			// icerigiyle yukseklik tutarliligi + .meta ("devam ediyor"/tarih) cakismamasi.
+			// Bilerek "il" listesinde test ediliyor -- kart CSS/JS'i universite/il arasinda
+			// PAYLASILIYOR ama kullanici ozellikle "il protokol kartlarinda da" sorununu
+			// bildirdigi icin sadece universite ile test edip varsaymak yerine bizzat
+			// dogrulaniyor.
+			currentListKey = 'il';
 			people = [
 				{ name: 'A', title: 'Kisa', unit: 'Kisa Birim', prefix: '', status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: '' },
 				{ name: 'Çok Uzun Bir İsim Soyisim Buraya', title: 'Çok Uzun Bir Görev Unvanı Buraya Sığmaz', unit: 'Çok Uzun Bir Birim Adı Fakültesi Buraya', prefix: 'Prof. Dr.', status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: 'Uzun bir not metni burada da devam ediyor gidiyor.' },
@@ -460,6 +465,14 @@ async function newPage(browser, width, height, mobile) {
 					return el.scrollHeight <= el.clientHeight + 2;
 				};
 				const clampWorking = clampCheck('.name') && clampCheck('.title') && clampCheck('.unit');
+				// "Duzenle" butonu her kartta ayni ust-alt konumda olmali (margin-top:auto ile
+				// kartin en altina sabitlenir) -- degilse ayni satirdaki kartlarda buton
+				// kimi ustte kimi altta gorunur (kullanicinin bildirdigi sorun).
+				const editBtnOffsets = cards.map(function (c) {
+					const btn = c.querySelector('.card-edit'); if (!btn) return null;
+					return Math.round(c.getBoundingClientRect().bottom - btn.getBoundingClientRect().bottom);
+				}).filter(function (v) { return v !== null; });
+				const editBtnAligned = editBtnOffsets.length > 0 && (Math.max.apply(null, editBtnOffsets) - Math.min.apply(null, editBtnOffsets)) <= 2;
 				// Kaba bir ust sinir da tutuluyor: clamp gercekten isliyorsa fark makul kalmali
 				// (name/title/unit'te en fazla 1'er ekstra satir + varsa bir not bloğu).
 				const heightVarianceOk = (maxH - minH) <= 140;
@@ -475,7 +488,7 @@ async function newPage(browser, width, height, mobile) {
 						}
 					}
 				});
-				r.cardGrid['cols' + cols] = { clampWorking: clampWorking, heightVarianceOk: heightVarianceOk, noMetaOverlap: !metaOverlapFound, maxHeight: Math.round(maxH), minHeight: Math.round(minH) };
+				r.cardGrid['cols' + cols] = { clampWorking: clampWorking, heightVarianceOk: heightVarianceOk, noMetaOverlap: !metaOverlapFound, editBtnAligned: editBtnAligned, maxHeight: Math.round(maxH), minHeight: Math.round(minH) };
 			});
 			// iOS otomatik yakinlastirma: form alanlari >= 16px
 			openAddModal();

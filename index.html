@@ -206,7 +206,13 @@
 			.btn-danger-outline{ background:var(--card); color:#a33; border-color:#e3c7c7; } .btn-danger-outline:hover{ background:#fff0f0; }
 			.btn-news { background: var(--news); color: #fff; } .btn-news:hover { background: #004494; }
 			
-			.card-edit{ width:100%; margin-top:12px; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; } .card-edit:hover{ background:var(--paper); }
+			/* margin-top:auto -- .info flex-column'da SON oge; icerik (isim/unvan/birim/not)
+			   kart kart degistigi icin butonun konumu ONCEDEN sabit 12px ust bosluktan
+			   sonra geliyordu, bu da ayni satirdaki kartlarda "Duzenle" butonunun kimi
+			   ustte kimi altta gorunmesine yol aciyordu (grid ayni satiri esitliyor ama
+			   icerigin kendisi esit yukseklikte degil). auto, kalan tum bosluga yayilip
+			   butonu HER ZAMAN kartin en altina sabitler. */
+			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; } .card-edit:hover{ background:var(--paper); }
 			
 			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:'Roboto',sans-serif; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
 			.btn-restore-card { background: #e3efe6; color: #2f6f4e; } .btn-restore-card:hover { background: #cce0d3; }
@@ -738,7 +744,7 @@
 				.grid:not(.is-reorder) { grid-template-columns: repeat(var(--mobile-cols, 4), 1fr) !important; gap: 8px; }
 				.grid:not(.is-reorder).grid-cols-2 .info { padding: 10px; }
 				.grid:not(.is-reorder).grid-cols-3 .info { padding: 8px; } .grid:not(.is-reorder).grid-cols-3 .name { font-size: 12px; margin-bottom: 2px;} .grid:not(.is-reorder).grid-cols-3 .title { font-size: 10px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-3 .unit { font-size: 9px; } .grid:not(.is-reorder).grid-cols-3 .card-edit { padding: 5px; font-size: 10px; } .grid:not(.is-reorder).grid-cols-3 .rank-badge { width:22px; height:22px; font-size:10px; top:6px; left:6px;} .grid:not(.is-reorder).grid-cols-3 .avatar-fallback { font-size:24px; }
-				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 11px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 9px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; margin-top:4px;} .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
+				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 11px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 9px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; } .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
 				.grid:not(.is-reorder).grid-cols-4 .bulk-cb, .grid:not(.is-reorder).grid-cols-4 .news-cb { width: 16px; height: 16px; top: 5px; }
 
 				.reorder-header-bar { flex-direction: column; align-items: stretch; gap: 10px; }
@@ -3138,16 +3144,16 @@
 					const fresh = getFreshnessInfo(p);
 					const freshTitle = p.sonDogrulamaTs ? ("Son doğrulama: " + fmtDate(dKey(new Date(p.sonDogrulamaTs))) + " · " + (VERIFICATION_SOURCES[p.dogrulamaKaynak] || p.dogrulamaKaynak || "") + (p.dogrulayan ? " · " + p.dogrulayan : "")) : "Bu kayıt hiç doğrulanmadı.";
 					if (isBulkMode || isNewsMode) {
-						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:12px; padding:7px; background:#f0f0f0; border-radius:7px;">SEÇİM MODU AKTİF</div>';
+						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:#f0f0f0; border-radius:7px;">SEÇİM MODU AKTİF</div>';
 					}
-					else if (mode === "silindi") { 
+					else if (mode === "silindi") {
 						actionHtml = canEditData() ? `
-							<div style="display:flex; gap:8px; margin-top:12px;">
+							<div style="display:flex; gap:8px; margin-top:auto;">
 								<button class="card-action-btn btn-restore-card" onclick="restoreSingle(${p._realIdx}); event.stopPropagation();">Kurtar</button>
 								<button class="card-action-btn btn-permdel-card" onclick="openSinglePermDelete(${p._realIdx}); event.stopPropagation();">Kalıcı Sil</button>
 							</div>
-						` : ""; 
-					} 
+						` : "";
+					}
 					else { actionHtml = canEditData() ? '<button class="card-edit" onclick="openEditModal(' + p._realIdx + '); event.stopPropagation();">Düzenle</button>' : ""; }
 
 					card.innerHTML = bulkHtml + newsHtml +
