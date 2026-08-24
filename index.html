@@ -551,6 +551,18 @@
 			.ev-att-item .sub{ color:var(--muted); font-size:11px; }
 			.ev-att-search{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; margin-bottom:6px; box-sizing:border-box; }
 
+			/* ---- Etkinliğe özel alt liste: seçili üyelerin sürükle-bırak sıralanabilir mini listesi ---- */
+			.sublist-members-box{ max-height:260px; overflow-y:auto; margin-bottom:6px; }
+			.sublist-member-row{ display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; background:#fff; margin-bottom:6px; }
+			.sublist-drag{ cursor:grab; color:var(--muted); font-size:16px; touch-action:none; flex-shrink:0; }
+			.sublist-drag:active{ cursor:grabbing; }
+			.sublist-order{ width:22px; height:22px; border-radius:50%; background:var(--surface-pill); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--navy); flex-shrink:0; }
+			.sublist-info{ flex:1; min-width:0; }
+			.sublist-name{ display:block; font-weight:600; font-size:13px; color:var(--navy); }
+			.sublist-title{ display:block; font-size:11px; color:var(--muted); }
+			.sublist-remove{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:4px; flex-shrink:0; }
+			.sublist-remove:hover{ color:#a33; }
+
 			/* ---- Mobil ---- */
 			.calendar-fab{ display:none; position:fixed; left:16px; bottom:16px; z-index:70; align-items:center; gap:7px; background:var(--brass); color:var(--navy); border:2px solid var(--navy); border-radius:30px; padding:12px 18px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.35); cursor:pointer; }
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
@@ -1056,6 +1068,9 @@
 					<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
 				</div>
 				<div class="peek-row">
+					<button class="btn btn-news edit-only" onclick="openSublistModal(calPeekedId, null)">Özel Liste Oluştur</button>
+				</div>
+				<div class="peek-row">
 					<button class="btn btn-danger-outline edit-only" onclick="deleteEvent()">Sil</button>
 				</div>
 			</div>
@@ -1069,6 +1084,18 @@
 				<div class="modal-actions" style="margin-top:0;">
 					<button class="btn btn-ghost" onclick="closeEventDeleteConfirm()">Vazgeç</button>
 					<button class="btn btn-danger" onclick="executeEventDelete()">Evet, Sil</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Özel Liste Silme Onay Modali -->
+		<div class="modal-bg" id="sublistDeleteConfirmModalBg" style="z-index:99;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:#a33;">Özel Listeyi Sil</h2>
+				<p class="hint" id="sublistDeleteConfirmText" style="margin-bottom:20px;">Bu özel liste silinecek. Emin misiniz?</p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeSublistDeleteConfirm()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeSublistDelete()">Evet, Sil</button>
 				</div>
 			</div>
 		</div>
@@ -1116,6 +1143,35 @@
 						<button class="btn btn-danger-outline" type="button" id="ev_deleteBtn" style="display:none;" onclick="deleteEvent()">Sil</button>
 						<button class="btn btn-ghost" type="button" onclick="closeEventModal()">Vazgeç</button>
 						<button class="btn btn-primary" type="button" onclick="saveEvent()">Kaydet</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Etkinliğe özel alt liste oluştur / düzenle (ana protokol veritabanını değiştirmez) -->
+		<div class="modal-bg" id="sublistModalBg" style="z-index:96;">
+			<div class="modal" style="max-width:480px;">
+				<button class="close-x" onclick="closeSublistModal()">✕</button>
+				<h2 id="sublistModalTitle">Özel Liste Oluştur</h2>
+				<p class="hint">Bu liste sadece seçtiğin etkinlik için; İl/Üniversite protokol listelerini değiştirmez.</p>
+				<form id="sublistForm" onsubmit="return false;">
+					<div class="field">
+						<label>Liste Adı</label>
+						<input type="text" id="subl_ad" placeholder="Örn: BİLİMFEST Protokolü">
+					</div>
+					<div class="field">
+						<label>Üye Ekle <span style="font-weight:400; color:var(--muted); font-size:12px;">(İl + Üniversite protokol listelerinden seçilir)</span></label>
+						<input type="text" class="ev-att-search" id="subl_search" placeholder="İsim veya unvan ara…" oninput="renderSublistMemberPicker()">
+						<div class="ev-attendee-box" id="subl_box"></div>
+					</div>
+					<div class="field">
+						<label>Seçili Üyeler <span style="font-weight:400; color:var(--muted); font-size:12px;">(sürükleyerek sırala)</span></label>
+						<div class="sublist-members-box" id="subl_membersBox"></div>
+					</div>
+					<div class="modal-actions">
+						<button class="btn btn-danger-outline" type="button" id="subl_deleteBtn" style="display:none;" onclick="deleteSublist()">Sil</button>
+						<button class="btn btn-ghost" type="button" onclick="closeSublistModal()">Vazgeç</button>
+						<button class="btn btn-primary" type="button" onclick="saveSublist()">Kaydet</button>
 					</div>
 				</form>
 			</div>
@@ -3465,6 +3521,16 @@ let undoStack = [];               // { type:'move'|'edit'|'create'|'delete', id,
 let undoCount = 0;                // bu oturumda kacinci Ctrl+Z geri almasi yapildigi (log metnine yazilir)
 const UNDO_STACK_LIMIT = 20;
 
+/* --- Etkinliğe özel alt listeler (ana protokol veritabanını değiştirmez, ayrı Firebase düğümü) --- */
+let calSublists = {};             // { pushKey: özelListe }
+let sublistEditingId = null;      // düzenlenen özel listenin id'si (yeni oluşturuluyorsa null)
+let sublistEventId = null;        // modalın bağlı olduğu etkinlik id'si
+let sublistMembers = [];          // modalda seçili üyeler (sıralı, henüz kaydedilmemiş)
+let sublistOtherPool = [];        // aktif olmayan listeden tek seferlik okunan kişi havuzu
+let sublistPoolToken = 0;         // ardışık modal açılışlarında eski .once() sonucunun geç gelip güncel seçimi ezmesini önler
+let sublistSortable = null;       // seçili üyeler mini-listesinin Sortable örneği
+let sublistDeleteTargetId = null;
+
 function evType(k){ for(var i=0;i<EVENT_TYPES.length;i++) if(EVENT_TYPES[i].key===k) return EVENT_TYPES[i]; return EVENT_TYPES[EVENT_TYPES.length-1]; }
 function evStatus(k){ for(var i=0;i<EVENT_STATUS.length;i++) if(EVENT_STATUS[i].key===k) return EVENT_STATUS[i]; return EVENT_STATUS[0]; }
 
@@ -4104,6 +4170,9 @@ function openEventPeek(id){
 		row("Planlayan", escapeHtml(e.planlayan||""))+
 		row("Basın", escapeHtml(e.gorevli||""))+
 		row("Katılımcılar", attHtml)+
+		row("Özel Listeler", sublistsForEvent(id).map(function(s){
+			return '<span class="cal-att-chip sublist-open-chip" style="cursor:pointer;" data-sublist-id="'+escapeHtml(s._id)+'">'+escapeHtml(s.ad)+' ('+(Array.isArray(s.uyeler)?s.uyeler.length:0)+')</span>';
+		}).join(""))+
 		row("Arşiv", e.arsiv ? '<a href="'+escapeHtml(safeLinkUrl(e.arsiv))+'" target="_blank" rel="noopener noreferrer">Klasörü aç ↗</a>' : "")+
 		row("Not", escapeHtml(e.not||""));
 	document.getElementById("calPeekNewsBtn").style.display = att.length ? "" : "none";
@@ -4562,6 +4631,227 @@ document.addEventListener("keydown", function(e){
 	undoLastCalendarAction();
 });
 
+/* ================= ETKİNLİĞE ÖZEL ALT LİSTELER =================
+   Ana protokol veritabanını (ilProtokolVerileri/universiteProtokolVerileri) HİÇ değiştirmez;
+   seçilen kişiler kendi alanlarıyla (isim/unvan/birim) ayrı bir Firebase düğümüne
+   (etkinlikOzelListeleri) anlık görüntü (snapshot) olarak kopyalanır. Fotoğraf bilerek
+   dahil edilmez (base64 payload'ının şişmesini önlemek için, bkz. proje genelindeki bilinen
+   fotoğraf-boyutu sorunu). */
+function attachSublistsListener(){
+	if(!database) return;
+	database.ref("etkinlikOzelListeleri").on("value", function(snap){
+		const v=snap.val();
+		calSublists=(v && typeof v==="object") ? v : {};
+		if(calPeekedId) openEventPeek(calPeekedId); // peek açıksa listesi tazelensin
+	}, function(err){
+		console.error("Özel listeler okunamadı:", err);
+		calSublists={};
+	});
+}
+function sublistsForEvent(etkinlikId){
+	const out=[];
+	for(const id in calSublists){ const s=calSublists[id]; if(s && s.etkinlikId===etkinlikId) out.push(Object.assign({_id:id}, s)); }
+	out.sort(function(a,b){ return (a.olusturmaTs||0)-(b.olusturmaTs||0); });
+	return out;
+}
+document.addEventListener("click", function(e){
+	const chip=e.target.closest && e.target.closest(".sublist-open-chip");
+	if(!chip) return;
+	openSublistModal(calPeekedId, chip.dataset.sublistId);
+});
+
+function openSublistModal(etkinlikId, sublistId){
+	if(!requireEdit()) return;
+	sublistEventId=etkinlikId||null;
+	sublistEditingId=sublistId||null;
+	const ev=etkinlikId?calEvents[etkinlikId]:null;
+	const s=sublistId?calSublists[sublistId]:null;
+	document.getElementById("sublistModalTitle").textContent = s ? "Özel Listeyi Düzenle" : "Özel Liste Oluştur";
+	document.getElementById("subl_deleteBtn").style.display = s ? "" : "none";
+	document.getElementById("subl_ad").value = s ? (s.ad||"") : ((ev&&ev.ad) ? (ev.ad+" Protokolü") : "");
+	sublistMembers = s ? (Array.isArray(s.uyeler)?s.uyeler.map(function(m){ return Object.assign({},m); }):[])
+		: (ev && Array.isArray(ev.katilimcilar) ? ev.katilimcilar.map(function(a,i){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"", unit:"", kaynakListe:currentListKey, sira:i+1 }; }) : []);
+	document.getElementById("subl_search").value="";
+	sublistOtherPool=[];
+	closeEventPeek();
+	loadSublistPool().then(renderSublistMemberPicker);
+	renderSublistMemberPicker();
+	renderSublistMembersBox();
+	document.getElementById("sublistModalBg").classList.add("open");
+}
+function closeSublistModal(){
+	document.getElementById("sublistModalBg").classList.remove("open");
+	sublistEditingId=null; sublistEventId=null;
+	if(sublistSortable){ sublistSortable.destroy(); sublistSortable=null; }
+}
+
+// Aktif sekmede olmayan listeyi bir kerelik okuyup (kalıcı dinleyici AÇMADAN) "people" ile
+// birleştirir; böylece seçici İl+Üniversite birleşik havuzdan arama yapabilir.
+function loadSublistPool(){
+	if(!database) return Promise.resolve();
+	const otherKey = currentListKey==="il" ? "universite" : "il";
+	const myToken = ++sublistPoolToken;
+	return database.ref(LIST_PATHS[otherKey]).once("value").then(function(snap){
+		if(myToken!==sublistPoolToken) return; // bu arada modal tekrar açıldı, eski sonuç geçersiz
+		const list=normalizePeopleSnapshot(snap.val());
+		sublistOtherPool=list.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; }).map(function(p){ return Object.assign({}, p, { kaynakListe: otherKey }); });
+	}).catch(function(err){ console.error("Diğer liste okunamadı:", err); sublistOtherPool=[]; });
+}
+
+function renderSublistMemberPicker(){
+	const box=document.getElementById("subl_box"); if(!box) return;
+	const q=(document.getElementById("subl_search").value||"").trim().toLocaleLowerCase("tr");
+	const myPool=people.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; }).map(function(p){ return Object.assign({}, p, { kaynakListe: currentListKey }); });
+	const pool=myPool.concat(sublistOtherPool);
+	const filtered=pool.filter(function(p){ return ((p.name||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr").includes(q); }).slice(0,120);
+	const selKeys=new Set(sublistMembers.map(function(a){ return (a.name||"")+"|"+(a.title||""); }));
+	let html=filtered.map(function(p){
+		const k=(p.name||"")+"|"+(p.title||"");
+		return '<label class="ev-att-item"><input type="checkbox" class="subl-cb" data-key="'+escapeHtml(k)+'" data-prefix="'+escapeHtml(p.prefix||"")+'" data-name="'+escapeHtml(p.name||"")+'" data-title="'+escapeHtml(p.title||"")+'" data-unit="'+escapeHtml(p.unit||"")+'" data-kaynak="'+escapeHtml(p.kaynakListe||"")+'" '+(selKeys.has(k)?"checked":"")+'><span><b>'+escapeHtml(p.name)+'</b> <span class="sub">'+escapeHtml(p.title||"")+(p.kaynakListe==="il"?" · İl":" · Üniversite")+'</span></span></label>';
+	}).join("");
+	if(!html) html='<p class="hint" style="margin:6px;">Eşleşen kişi yok.</p>';
+	box.innerHTML=html;
+}
+document.addEventListener("change", function(e){
+	const cb=e.target;
+	if(!cb.classList || !cb.classList.contains("subl-cb")) return;
+	const key=cb.dataset.key;
+	if(cb.checked){
+		if(!sublistMembers.some(function(a){ return (a.name||"")+"|"+(a.title||"")===key; })){
+			sublistMembers.push({ prefix:cb.dataset.prefix||"", name:cb.dataset.name||key.split("|")[0], title:cb.dataset.title||key.split("|")[1]||"", unit:cb.dataset.unit||"", kaynakListe:cb.dataset.kaynak||"", sira:sublistMembers.length+1 });
+		}
+	} else {
+		sublistMembers=sublistMembers.filter(function(a){ return (a.name||"")+"|"+(a.title||"")!==key; });
+	}
+	sublistMembers.forEach(function(m,i){ m.sira=i+1; });
+	renderSublistMembersBox();
+});
+
+function renderSublistMembersBox(){
+	const box=document.getElementById("subl_membersBox"); if(!box) return;
+	if(!sublistMembers.length){
+		box.innerHTML='<p class="hint" style="margin:6px;">Henüz kimse seçilmedi.</p>';
+		if(sublistSortable){ sublistSortable.destroy(); sublistSortable=null; }
+		return;
+	}
+	box.innerHTML=sublistMembers.map(function(m,i){
+		return '<div class="sublist-member-row" data-key="'+escapeHtml((m.name||"")+"|"+(m.title||""))+'">'+
+			'<span class="sublist-drag">⋮⋮</span>'+
+			'<span class="sublist-order">'+(i+1)+'</span>'+
+			'<span class="sublist-info"><span class="sublist-name">'+escapeHtml(m.name)+'</span><span class="sublist-title">'+escapeHtml(m.title||"")+'</span></span>'+
+			'<button type="button" class="sublist-remove" data-key="'+escapeHtml((m.name||"")+"|"+(m.title||""))+'">✕</button>'+
+		'</div>';
+	}).join("");
+	if(!sublistSortable){
+		sublistSortable=new Sortable(box, {
+			animation:200, handle:'.sublist-drag', ghostClass:'dragging', delay:150, delayOnTouchOnly:true,
+			onEnd: function(){
+				const keys=Array.from(box.children).map(function(el){ return el.dataset.key; });
+				sublistMembers.sort(function(a,b){ return keys.indexOf((a.name||"")+"|"+(a.title||"")) - keys.indexOf((b.name||"")+"|"+(b.title||"")); });
+				sublistMembers.forEach(function(m,i){ m.sira=i+1; });
+				renderSublistMembersBox();
+			}
+		});
+	}
+}
+document.addEventListener("click", function(e){
+	const btn=e.target.closest && e.target.closest(".sublist-remove");
+	if(!btn) return;
+	const key=btn.dataset.key;
+	sublistMembers=sublistMembers.filter(function(a){ return (a.name||"")+"|"+(a.title||"")!==key; });
+	sublistMembers.forEach(function(m,i){ m.sira=i+1; });
+	renderSublistMemberPicker();
+	renderSublistMembersBox();
+});
+
+async function persistSublist(id, obj, logLabel){
+	if(id!==null && id!==undefined && typeof id!=="string"){ showToast("Geçersiz özel liste kimliği.", "error"); return false; }
+	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return false; }
+	try{
+		let finalId=id;
+		if(id) await database.ref("etkinlikOzelListeleri/"+id).set(obj);
+		else { const ref=await database.ref("etkinlikOzelListeleri").push(obj); finalId=ref.key; }
+		logSublistAction(logLabel, obj.ad);
+		return { ok:true, id:finalId };
+	}catch(err){
+		console.error("Özel liste kaydedilemedi:", err);
+		const reason=(err && (err.code||err.message)) ? (" ("+(err.code||err.message)+")") : "";
+		showToast("Özel liste kaydedilemedi"+reason+".", "error");
+		return false;
+	}
+}
+
+async function saveSublist(){
+	if(!requireEdit()) return;
+	const ad=document.getElementById("subl_ad").value.trim();
+	if(!ad){ showToast("Liste adı zorunlu!", "error"); return; }
+	if(!sublistMembers.length){ showToast("En az bir kişi seçin!", "error"); return; }
+	const eski=sublistEditingId ? calSublists[sublistEditingId] : null;
+	const ev=sublistEventId ? calEvents[sublistEventId] : null;
+	const obj={
+		ad: ad, etkinlikId: sublistEventId||(eski?eski.etkinlikId:null)||null,
+		etkinlikAdiSnapshot: (ev&&ev.ad) || (eski&&eski.etkinlikAdiSnapshot) || "",
+		uyeler: sublistMembers.map(function(m,i){ return { prefix:m.prefix||"", name:m.name||"", title:m.title||"", unit:m.unit||"", kaynakListe:m.kaynakListe||"", sira:i+1 }; })
+	};
+	obj.olusturan = eski ? (eski.olusturan||"") : (currentUser ? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : "");
+	obj.olusturmaTs = eski ? (eski.olusturmaTs||Date.now()) : Date.now();
+	obj.guncelleyen = currentUser ? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : "";
+	obj.guncellemeTs = Date.now();
+	const label = sublistEditingId
+		? (ad+" özel listesi güncellendi ("+obj.uyeler.length+" kişi)")
+		: (ad+" özel listesi oluşturuldu ("+obj.uyeler.length+" kişi)"+(obj.etkinlikAdiSnapshot?" · Etkinlik: "+obj.etkinlikAdiSnapshot:""));
+	const editingId=sublistEditingId;
+	const res=await persistSublist(editingId, obj, label);
+	if(!res) return;
+	calSublists[res.id]=obj;
+	const targetEtkinlikId=obj.etkinlikId;
+	closeSublistModal();
+	showToast("Özel liste kaydedildi.", "success");
+	if(targetEtkinlikId) openEventPeek(targetEtkinlikId);
+}
+
+function deleteSublist(){
+	if(!requireEdit() || !sublistEditingId) return;
+	openSublistDeleteConfirm(sublistEditingId);
+}
+function openSublistDeleteConfirm(id){
+	sublistDeleteTargetId=id;
+	const s=calSublists[id];
+	document.getElementById("sublistDeleteConfirmText").textContent='"'+((s&&s.ad)||"Özel liste")+'" silinecek. Emin misiniz?';
+	document.getElementById("sublistDeleteConfirmModalBg").classList.add("open");
+}
+function closeSublistDeleteConfirm(){
+	document.getElementById("sublistDeleteConfirmModalBg").classList.remove("open");
+	sublistDeleteTargetId=null;
+}
+async function executeSublistDelete(){
+	if(!requireEdit() || !sublistDeleteTargetId) return;
+	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return; }
+	const id=sublistDeleteTargetId;
+	const s=calSublists[id];
+	if(!s){ closeSublistDeleteConfirm(); return; }
+	const ad=s.ad||"Özel liste";
+	const etkinlikId=s.etkinlikId;
+	try{
+		await database.ref("etkinlikOzelListeleri/"+id).remove();
+		delete calSublists[id];
+		logSublistAction(ad+" özel listesi silindi", ad);
+		closeSublistDeleteConfirm(); closeSublistModal();
+		showToast("Özel liste silindi.", "warn");
+		if(etkinlikId) openEventPeek(etkinlikId);
+	}catch(err){
+		console.error("Özel liste silinemedi:", err);
+		const reason=(err && (err.code||err.message)) ? (" ("+(err.code||err.message)+")") : "";
+		showToast("Özel liste silinemedi"+reason+".", "error");
+	}
+}
+
+function logSublistAction(action, target){
+	if(!database || !currentUser) return;
+	const who=((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email;
+	database.ref("logs/ozelListe").push({ by:who, email:currentUser.email, action:action||"Özel liste güncellendi", target:target||"", timestamp:Date.now() }).catch(function(err){ console.error("Özel liste log kaydı yazılamadı:", err); });
+}
+
 /* ================= HABER ŞABLONLARI ================= */
 // Şablonlar artık admin panelinden düzenlenmiyor; sabit (aşağıdaki) varsayılan liste kullanılır.
 // Yer tutucular: {kisiler} {kisilerDuz} {ilkKisi} {ilkKisiIn} {etkinlik} {yer} {tarih} {birim} {gruplar}
@@ -4749,6 +5039,7 @@ function generateNewsFromEvent(){
 		// Takvim dinleyicisi, ilgili let değişkenleri tanımlandıktan SONRA başlatılır.
 		// Haber şablonları artık admin panelinden düzenlenmiyor; doğrudan DEFAULT_NEWS_TEMPLATES kullanılır.
 		attachEventsListener();
+		attachSublistsListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();
 		renderCalendarRail();
