@@ -44,6 +44,15 @@
 			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
 			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
 			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
+			/* --vh: 1/100'u gercek GORUNUR yukseklik (visualViewport) -- JS tarafindan
+			   guncellenir (asagida syncViewportHeightVar). iOS Safari'de adres/arac cubugu
+			   acilip kapaninca "position:fixed; inset:0" TEK BASINA bunu takip etmiyor,
+			   arac cubugu acikken sabit katmanin (modal-bg, successor-panel) alt kenarinda
+			   sayfanin gercek (krem) arka plani bir sure aciga cikiyordu -- JS bu degiskeni
+			   gercek zamanli guncelleyip .modal-bg/.successor-panel'in height'ini buna
+			   baglayarak cozer. JS calismadan once veya visualViewport desteklenmiyorsa
+			   1vh'a duser (eski davranis, zararsiz fallback). */
+			--vh: 1vh;
 			}
 
 			*{box-sizing:border-box;}
@@ -233,7 +242,7 @@
 			   eklenmiştir -- yoksa çentik/Dynamic Island üstten, ev tuşu şeridi alttaki
 			   Vazgeç/Kaydet butonlarına biner. */
 			.successor-panel{ display:none; }
-			.successor-panel.open{ display:flex; position:fixed; inset:0; z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
+			.successor-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
 			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
 			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
@@ -616,7 +625,7 @@
 			   uzun (safe center -> flex-start'a gerileyen) modallerin kapat (X) tusu durum
 			   cubugunun (saat/pil) altina/uzerine biniyordu. viewport-fit=cover meta etiketiyle
 			   birlikte TUM bildirim-centikli telefonlarda calisir, sadece iPhone'a ozel degil. */
-			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
+			.modal-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
 			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
 			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; }
 			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
@@ -4952,6 +4961,26 @@ function generateNewsFromEvent(){
 			var observer = new MutationObserver(recomputeLock);
 			watched.forEach(function(el){ observer.observe(el, { attributes: true, attributeFilter: ["class"] }); });
 			recomputeLock();
+		})();
+
+		// ---- --vh: iOS Safari'de adres/arac cubugu acilip kapaninca GERCEK gorunur
+		// yuksekligi takip eden degisken (bkz. :root'taki --vh yorumu). position:fixed;inset:0
+		// tek basina bunu takip etmiyor, .modal-bg/.successor-panel'in alt kenarinda sayfanin
+		// gercek arka planini aciga cikarabiliyordu (kullanici bildirimi). visualViewport API
+		// arac cubugu her acilip kapandiginda "resize" fırlatır -- bunu dinleyip height'i
+		// GERCEK zamanli guncelliyoruz.
+		(function setupViewportHeightVar(){
+			function sync(){
+				var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+				document.documentElement.style.setProperty("--vh", (h * 0.01) + "px");
+			}
+			sync();
+			if (window.visualViewport) {
+				window.visualViewport.addEventListener("resize", sync);
+			} else {
+				window.addEventListener("resize", sync);
+			}
+			window.addEventListener("orientationchange", sync);
 		})();
 
 		// Service Worker Kaydı (Offline / PWA desteği)
