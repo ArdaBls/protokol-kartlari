@@ -219,9 +219,12 @@
 
 			/* Görevden alma / yerine yeni kişi atama paneli. Genişte (>=900px) mevcut düzenleme
 			   ekranının SAĞINDA küçük bir kart olarak durur. Dar ekranda (mobil/tablet) aynı
-			   panel kendi tam ekran katmanına döner -- iki farklı yerleşim, TEK ortak DOM/JS. */
+			   panel kendi tam ekran katmanına döner -- iki farklı yerleşim, TEK ortak DOM/JS.
+			   #modalBg'deki gibi (bkz. üst padding notu) üst/alt boşluğa env(safe-area-inset-*)
+			   eklenmiştir -- yoksa çentik/Dynamic Island üstten, ev tuşu şeridi alttaki
+			   Vazgeç/Kaydet butonlarına biner. */
 			.successor-panel{ display:none; }
-			.successor-panel.open{ display:flex; position:fixed; inset:0; z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; }
+			.successor-panel.open{ display:flex; position:fixed; inset:0; z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; }
 			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
 			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:stretch; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
@@ -896,7 +899,7 @@
 	</head>
 	<body class="is-readonly">
 
-		<div id="testModeBanner">🧪 Test Modu Açık — bu sahte/deneme verisi, gerçek veri değişmiyor</div>
+		<div id="testModeBanner">Test Modu Açık — bu sahte/deneme verisi, gerçek veri değişmiyor</div>
 
 								<div class="loading-overlay" id="loadingOverlay">
 			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
@@ -1506,7 +1509,7 @@
 				</div>
 				<div class="test-mode-row">
 					<div>
-						<b class="test-mode-title">🧪 Test Modu</b>
+						<b class="test-mode-title">Test Modu</b>
 						<p class="hint" style="margin:2px 0 0;">Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz -- kişi/etkinlik kaydı, Debug butonları dahil. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. <b>Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!</b></p>
 					</div>
 					<label class="ios-switch">
