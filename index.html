@@ -718,8 +718,18 @@
 			/* Gorev/etkinlik gecmisi tetikleyicisi -- SADECE kisi duzenleme modalinde (#modalBg),
 			   .close-x'in aynasi. .modal sinifi projede 9 BASKA modalde de kullanildigi icin
 			   padding-left genel .modal h2'ye DEGIL, bu ozel #modalBg kapsamina eklenir. */
-			#modalBg .history-toggle{ position:absolute; top:14px; left:16px; background:none; border:none; font-size:18px; color:var(--muted); cursor:pointer; padding:2px 4px; }
+			/* Disari-cikintili "sekme": .history-panel .modal'dan HEMEN ONCE gelen bir flex
+			   kardes oldugu icin (panel kapaliyken display:none, akistan tamamen cikiyor),
+			   sekme SADECE panel KAPALIYKEN gorunur -- acilinca panelin kendisi o bosluga
+			   oturuyor, sekme ile CAKISMASIN diye gizleniyor (kapatma isini panelin kendi
+			   ✕'i goruyor). Masaustunde sol kenardan disari tasar; mobilde (.modal neredeyse
+			   tam genislik oldugu icin sola tasacak yer olmadigindan) AYNI "kenardan cikinti"
+			   fikri UST kenara tasinir. */
+			#modalBg .history-toggle{ position:absolute; top:50%; left:-32px; transform:translateY(-50%); width:32px; height:44px; background:var(--card); border:1px solid var(--border-soft); border-right:none; border-radius:10px 0 0 10px; display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--muted); cursor:pointer; box-shadow:-3px 0 10px rgba(0,0,0,.12); }
 			#modalBg .history-toggle:hover{ color:var(--navy); }
+			@media (max-width: 899px){
+				#modalBg .history-toggle{ top:-20px; left:50%; transform:translateX(-50%); width:48px; height:20px; border-radius:10px 10px 0 0; border:1px solid var(--border-soft); border-bottom:none; box-shadow:0 -3px 10px rgba(0,0,0,.12); }
+			}
 			#modalBg .modal h2{ padding-left:24px; }
 			@keyframes fadeIn { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
 
@@ -3379,12 +3389,16 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				if (window.innerWidth < 900) closeSuccessorPanel();
 				renderHistoryPanel();
 				document.getElementById("historyPanel").classList.add("open");
+				// Sekme .modal'dan disari tastigi icin panel acikken ayni yerde CAKISIR --
+				// bu yuzden panel acikken sekme gizlenir, kapatma isini panelin kendi ✕'i gorur.
+				document.getElementById("historyToggleBtn").style.display = "none";
 				if (window.innerWidth < 900) document.getElementById("modalBg").classList.add("hide-behind-panel");
 			}
 			function closeHistoryPanel(){
 				const panel = document.getElementById("historyPanel");
 				if (panel) panel.classList.remove("open");
 				document.getElementById("modalBg").classList.remove("hide-behind-panel");
+				if (editIndex !== null) document.getElementById("historyToggleBtn").style.display = "block";
 			}
 			function addHistoryEntry(){
 				const unvan = document.getElementById("hg_unvan").value.trim();
@@ -3392,6 +3406,10 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				const bitis = document.getElementById("hg_bitis").value;
 				if (!unvan) { showToast("Görev adı zorunlu.", "error"); return; }
 				tempGorevGecmisi.push({ unvan: unvan, baslangic: baslangic, bitis: bitis });
+				// Yeni eklenen gorev genelde kisinin GUNCEL durumunu yansitir -- ana kayittaki
+				// "Baslangic Tarihi" de ayni tarihle senkron edilir (Kaydet'e kadar hicbir sey
+				// sunucuya gitmiyor, yanlissa kullanici f_start'i elle duzeltebilir).
+				if (baslangic) document.getElementById("f_start").value = baslangic;
 				document.getElementById("hg_unvan").value = ""; document.getElementById("hg_baslangic").value = ""; document.getElementById("hg_bitis").value = "";
 				renderHistoryPanel();
 			}
