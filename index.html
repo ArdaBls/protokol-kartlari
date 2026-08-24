@@ -2043,6 +2043,7 @@
 			// editorlere acmadan, sadece "kimler basin gorevlisi" listesini herkese okutmak icin.
 			async function toggleUserBasinGorevlisi(uid, checked) {
 				if (!requireAdmin()) return;
+				if (testModeEnabled) { showToast("Test Modu açıkken bu işlem yapılamaz.", "error"); loadAdminUsers(); return; }
 				try {
 					await database.ref("users/" + uid + "/basinGorevlisi").set(checked);
 					if (checked) {
@@ -2412,6 +2413,7 @@
 			// targetName ayrı tutulur ki log listesinde "kim yaptı" (by) ile "kime yapıldı" (target)
 			// birbirine karışmasın — ikisi de kalın yazınca ayırt edilemiyordu, artık target ayrı renkte bir etiket.
 			function logAction(actionLabel, targetName) {
+				if (!requireEdit()) return;
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
 				database.ref(dbPath("logs/" + currentListKey)).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(err){ console.error("Log kaydı yazılamadı:", err); });
@@ -2423,6 +2425,7 @@
 			// dbPath() ile sarmalanır: Test Modu açıkken debug butonları da (kullanıcı isteğiyle)
 			// gerçek veriye/gerçek debug logına dokunmaz, hepsi test/ altında kalır.
 			function logDebugAction(actionLabel, targetName) {
+				if (!requireAdmin()) return;
 				if (!database || !currentUser) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
 				database.ref(dbPath("logs/debug")).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(err){ console.error("Debug log kaydı yazılamadı:", err); });
@@ -2518,6 +2521,7 @@
 			}
 
 			async function saveData(actionLabel, targetName) {
+				if (!requireEdit()) return false;
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
 				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
 				try { await database.ref(dbPath(LIST_PATHS[currentListKey])).set(people); peopleNeedsFullSave = false; logAction(actionLabel || "Liste güncellendi", targetName); return true; }
@@ -2526,6 +2530,7 @@
 
 			// Tüm listeyi değil, sadece TEK kişiyi gönderir — çok daha hızlı kayıt için
 			async function savePerson(idx, actionLabel, targetName) {
+				if (!requireEdit()) return false;
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
 				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
 				if (!people[idx]) { showToast("Kayıt bulunamadı, sayfayı yenileyin.", "error"); return false; }
@@ -3810,7 +3815,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 								// "locked" burada yazilmazsa yedekten geri yuklemede TUM etkinliklerin
 								// kilidi sessizce acilir (yanlislikla surukleme korumasi kaybolur).
 								locked: !!item.locked,
-								arsiv: item.arsiv ? String(item.arsiv) : "", not: item.not ? String(item.not) : "",
+								arsiv: safeLinkUrl(item.arsiv), not: item.not ? String(item.not) : "",
 								olusturan: item.olusturan ? String(item.olusturan) : "", olusturmaTs: item.olusturmaTs || Date.now(), guncellemeTs: Date.now()
 							};
 							kept++;
@@ -4837,6 +4842,7 @@ function logEventAction(action, target){
 // basarisizlikta false. {ok:true,...} bir NESNE oldugundan "truthy"dir; bu yuzden eski
 // `if(!ok) return;` tarzi kontroller (eventQuickStamp, saveEvent) KIRILMADAN calismaya devam eder.
 async function persistEvent(id, obj, logLabel){
+	if(!requireEdit()) return false;
 	// id "undefined"/null gelirse asagisi sessizce push() ile YENI kayit olusturur;
 	// bu, guncelleme sanilan bir islemin kopya uretmesi demektir. Acikca reddedilir.
 	if(id !== null && id !== undefined && typeof id !== "string"){ showToast("Geçersiz etkinlik kimliği.", "error"); return false; }
