@@ -88,9 +88,42 @@ function serve() {
 		return { onceStillWorks: snap.val() === null };
 	});
 
-	const results = { duringWait, afterTimeout, lateRecovery, pageErrorsCount: pageErrors.length };
+	await page.close();
+
+	// =====================================================================
+	// SENARYO 2: navigator.onLine === false (uçak modunda tarayıcının verdiği SENKRON sinyal) --
+	// hiç zaman aşımı beklemeden, ANINDA salt-okunur moda düşülmeli. Bu, gerçek iPhone'da
+	// düzeltmeden SONRA bile hâlâ takılma bildirilince eklendi -- muhtemel sebep iOS'un arka
+	// planda setTimeout'u duraklatması; navigator.onLine kontrolü buna hiç ihtiyaç duymuyor.
+	// =====================================================================
+	const page2 = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+	const pageErrors2 = [];
+	page2.on('pageerror', (e) => pageErrors2.push(e.message));
+	await page2.addInitScript(() => {
+		window.__mockSimulateOfflineHang = true; // profil callback'i yine hiç tetiklenmesin
+		window.OFFLINE_FALLBACK_TIMEOUT_MS = 20000; // KASITLI çok uzun -- hızlı yol bunu hiç beklememeli
+		Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true });
+	});
+	await page2.route('**/firebasejs/**/firebase-app-compat.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-firebase.js'), contentType: 'application/javascript' }));
+	await page2.route('**/firebasejs/**/firebase-database-compat.js', (route) => route.fulfill({ body: '' }));
+	await page2.route('**/firebasejs/**/firebase-auth-compat.js', (route) => route.fulfill({ body: '' }));
+	await page2.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
+	await page2.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
+	await page2.route('**://fonts.gstatic.com/**', (route) => route.abort());
+	const t0 = Date.now();
+	await page2.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	// Overlay'in kapanmasını bekle (poll) -- 20sn'lik yedek zamanlayıcıyı ASLA beklemeden kapanmalı.
+	await page2.waitForFunction(() => !document.getElementById('loadingOverlay').classList.contains('open'), { timeout: 3000 });
+	const elapsedMs = Date.now() - t0;
+	const fastPath = await page2.evaluate(() => ({
+		bodyIsReadonly: document.body.classList.contains('is-readonly'),
+		currentUserStillNull: currentUser === null
+	}));
+	await page2.close();
+
+	const results = { duringWait, afterTimeout, lateRecovery, fastPath, elapsedMs, pageErrorsCount: pageErrors.length + pageErrors2.length };
 	console.log(JSON.stringify(results, null, 2));
-	if (pageErrors.length) { console.log('PAGE ERRORS:'); pageErrors.forEach((e) => console.log(' - ' + e)); }
+	if (pageErrors.length || pageErrors2.length) { console.log('PAGE ERRORS:'); pageErrors.concat(pageErrors2).forEach((e) => console.log(' - ' + e)); }
 
 	const checks = {
 		overlayOpenWhileWaiting: duringWait.overlayOpenWhileWaiting,
@@ -99,7 +132,10 @@ function serve() {
 		currentUserStillNull: afterTimeout.currentUserStillNull,
 		listSwitchVisible: afterTimeout.listSwitchVisible,
 		onceStillWorks: lateRecovery.onceStillWorks,
-		noPageErrors: pageErrors.length === 0
+		fastPathBodyIsReadonly: fastPath.bodyIsReadonly,
+		fastPathCurrentUserStillNull: fastPath.currentUserStillNull,
+		fastPathWasActuallyFast: elapsedMs < 3000, // 20sn yedek zamanlayıcıya kıyasla çok hızlı
+		noPageErrors: (pageErrors.length + pageErrors2.length) === 0
 	};
 	const __boolFails = collectBooleanFailures(checks, []);
 	const __allPassed = __boolFails.length === 0;

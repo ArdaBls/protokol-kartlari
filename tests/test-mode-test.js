@@ -88,7 +88,7 @@ function serve() {
 		};
 		await cloneRealDataToTestMode();
 		database.ref = origRef;
-		const expectedSources = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'etkinlikOzelListeleri', 'basinGorevlileri'];
+		const expectedSources = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'basinGorevlileri'];
 		const expectedTargets = expectedSources.map((p) => 'test/' + p);
 		return {
 			allSourcesRead: expectedSources.every((p) => readPaths.indexOf(p) !== -1),
@@ -108,7 +108,7 @@ function serve() {
 		const flagIndex = window.__mockSets.indexOf(flagWrite);
 		const lastCloneIndex = Math.max.apply(null, cloneWrites.map((s) => window.__mockSets.indexOf(s)));
 		return {
-			cloneHappened: cloneWrites.length === 5,
+			cloneHappened: cloneWrites.length === 4,
 			flagWroteTrue: !!flagWrite && flagWrite.data === true,
 			cloneBeforeFlag: !!flagWrite && flagIndex > lastCloneIndex
 		};
@@ -125,7 +125,7 @@ function serve() {
 	});
 
 	// =====================================================================
-	// SENARYO 4: testModeEnabled açıkken -- kişi/etkinlik/özel liste/DEBUG kaydı VE loglarının
+	// SENARYO 4: testModeEnabled açıkken -- kişi/etkinlik/DEBUG kaydı VE loglarının
 	// HEPSİ test/ altına gidiyor, gerçek yola HİÇBİR ŞEY yazılmıyor
 	// =====================================================================
 	const redirectOnTest = await page.evaluate(async () => {
@@ -133,12 +133,10 @@ function serve() {
 		window.__mockPushes = []; window.__mockSets = [];
 		await saveData('Test kişi kaydı', 'Test Kişi');
 		logEventAction('Test etkinlik işlemi', 'Test Etkinlik');
-		logSublistAction('Test özel liste işlemi', 'Test Liste');
 		logDebugAction('Test debug işlemi', 'Test Hedef');
 		const personSet = window.__mockSets.find((s) => s.path === 'test/universiteProtokolVerileri');
 		const realPersonSet = window.__mockSets.find((s) => s.path === 'universiteProtokolVerileri');
 		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi');
-		const sublistLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test özel liste işlemi');
 		const debugLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test debug işlemi');
 		return {
 			bannerVisible: document.getElementById('testModeBanner').style.display === 'flex',
@@ -146,7 +144,6 @@ function serve() {
 			personWentToTest: !!personSet,
 			personDidNotTouchReal: !realPersonSet,
 			eventLogWentToTest: !!eventLog && eventLog.path === 'test/logs/etkinlik',
-			sublistLogWentToTest: !!sublistLog && sublistLog.path === 'test/logs/ozelListe',
 			debugLogWentToTest: !!debugLog && debugLog.path === 'test/logs/debug'
 		};
 	});
