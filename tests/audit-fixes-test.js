@@ -310,6 +310,70 @@ async function newPage(browser, width, height, mobile) {
 		};
 	});
 
+	// --- K-13: checkbox isaretli DEGILKEN Il Protokolu kayitlari secicide GORUNMEMELI ---
+	const k13 = await page.evaluate(async () => {
+		currentUser = { uid: 'ed1', role: 'editor', firstName: 'T', lastName: 'K', email: 't@t.com' };
+		applyPermissions();
+		currentListKey = 'universite';
+		people = [{ name: 'Universite Kisi', title: 'Rektor', prefix: '', unit: 'OMU', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }];
+		ilPoolCache = [{ name: 'Valilik Kisisi', title: 'Vali Yardimcisi', prefix: '', unit: 'Valilik', status: 'aktif', rank: 1 }];
+		openEventModal(null);
+		document.getElementById('ev_attIncludeIl').checked = false;
+		document.getElementById('ev_attSearch').value = 'valilik kisisi';
+		renderEventAttendeePicker();
+		const box = document.getElementById('ev_attendeeBox');
+		return { ilPersonHidden: box.textContent.indexOf('Valilik Kisisi') === -1 };
+	});
+
+	// --- K-14: checkbox isaretliyken Il Protokolu kayitlari da secicide GORUNMELI ---
+	const k14 = await page.evaluate(async () => {
+		document.getElementById('ev_attIncludeIl').checked = true;
+		document.getElementById('ev_attSearch').value = 'valilik kisisi';
+		renderEventAttendeePicker();
+		const box = document.getElementById('ev_attendeeBox');
+		return { ilPersonShown: box.textContent.indexOf('Valilik Kisisi') !== -1 };
+	});
+
+	// --- K-15: AYNI isim+birim iki listede de varsa TEK kisiye insin ve IL kaydi KAZANSIN ---
+	const k15 = await page.evaluate(async () => {
+		people = [{ name: 'Ayni Kisi', title: 'Universite Unvani', prefix: '', unit: 'Ortak Birim', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }];
+		ilPoolCache = [{ name: 'Ayni Kisi', title: 'Il Unvani', prefix: '', unit: 'Ortak Birim', status: 'aktif', rank: 1 }];
+		document.getElementById('ev_attIncludeIl').checked = true;
+		document.getElementById('ev_attSearch').value = 'ayni kisi';
+		renderEventAttendeePicker();
+		const box = document.getElementById('ev_attendeeBox');
+		const items = box.querySelectorAll('.ev-att-item');
+		return {
+			collapsedToOne: items.length === 1,
+			ilVersionWon: box.textContent.indexOf('Il Unvani') !== -1,
+			universityVersionGone: box.textContent.indexOf('Universite Unvani') === -1
+		};
+	});
+
+	// --- K-16: onAttIncludeIlToggle() GERCEK .once('value') akisini de dogru tetiklemeli (tek seferlik, onbelleklenen) ---
+	const k16 = await page.evaluate(async () => {
+		ilPoolCache = null;
+		let fetchCount = 0;
+		const origRef = database.ref.bind(database);
+		database.ref = function (p) {
+			const r = origRef(p);
+			if (p === 'ilProtokolVerileri' || p === dbPath('ilProtokolVerileri')) {
+				const oo = r.once.bind(r);
+				r.once = function (ev) { fetchCount++; return Promise.resolve({ val: () => [{ name: 'Taze Il Kisi', title: 'X', prefix: '', unit: 'Y', status: 'aktif', rank: 1 }] }); };
+			}
+			return r;
+		};
+		document.getElementById('ev_attIncludeIl').checked = true;
+		await onAttIncludeIlToggle();
+		document.getElementById('ev_attIncludeIl').checked = false; // kapat-ac -- yeniden fetch OLMAMALI (onbellek)
+		onAttIncludeIlToggle();
+		document.getElementById('ev_attIncludeIl').checked = true;
+		await onAttIncludeIlToggle();
+		database.ref = origRef;
+		return { fetchedOnce: fetchCount === 1, cachePopulated: Array.isArray(ilPoolCache) && ilPoolCache.some((p) => p.name === 'Taze Il Kisi') };
+	});
+	await page.evaluate(() => closeEventModal());
+
 	await page.close();
 
 	// ==================================================================
@@ -366,6 +430,53 @@ async function newPage(browser, width, height, mobile) {
 			const add = document.querySelector('.cal-mdayadd');
 			r.mdayAddVisible = !!add && parseFloat(getComputedStyle(add).opacity) > 0.2;
 			closeCalendar();
+			// Kart izgarasi: 2'li/3'lu/4'lu modlarda farkli uzunlukta isim/unvan/birim
+			// icerigiyle yukseklik tutarliligi + .meta ("devam ediyor"/tarih) cakismamasi.
+			people = [
+				{ name: 'A', title: 'Kisa', unit: 'Kisa Birim', prefix: '', status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: '' },
+				{ name: 'Çok Uzun Bir İsim Soyisim Buraya', title: 'Çok Uzun Bir Görev Unvanı Buraya Sığmaz', unit: 'Çok Uzun Bir Birim Adı Fakültesi Buraya', prefix: 'Prof. Dr.', status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: 'Uzun bir not metni burada da devam ediyor gidiyor.' },
+				{ name: 'B Kısa', title: 'Orta Unvan', unit: 'Orta Birim', prefix: '', status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: '' },
+				{ name: 'C Kısa', title: 'Orta Unvan 2', unit: 'Orta Birim 2', prefix: '', status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: '' }
+			];
+			r.cardGrid = {};
+			[2, 3, 4].forEach(function (cols) {
+				const grid = document.getElementById('grid');
+				grid.classList.remove('grid-cols-2', 'grid-cols-3', 'grid-cols-4');
+				grid.classList.add('grid-cols-' + cols);
+				grid.style.setProperty('--mobile-cols', cols);
+				render();
+				const cards = Array.from(document.querySelectorAll('.card'));
+				const heights = cards.map(function (c) { return c.getBoundingClientRect().height; });
+				const maxH = Math.max.apply(null, heights); const minH = Math.min.apply(null, heights);
+				// Line-clamp KESIN esitlik saglamiyor (kisa kart 1 satir, uzun kart clamp'lenmis
+				// 2 satir kullanabilir -- bu kabul edilen bir fark, yapay min-height'la
+				// bastirilmiyor). Asil dogrulanmasi gereken: clamp GERCEKTEN calisiyor mu --
+				// yani uzun icerikli karttaki .name/.title/.unit TASMIYOR (scrollHeight,
+				// clientHeight'i asmiyor), sinirsiz sarip kart yuksekligini sismemesini
+				// engelliyor. Once clamp'siz eski davranista bu deger cok daha buyuk olurdu.
+				const longCard = cards[1]; // 2. kisi = kasitli en uzun isim/unvan/birim/not
+				const clampCheck = function (sel) {
+					const el = longCard.querySelector(sel); if (!el) return true;
+					return el.scrollHeight <= el.clientHeight + 2;
+				};
+				const clampWorking = clampCheck('.name') && clampCheck('.title') && clampCheck('.unit');
+				// Kaba bir ust sinir da tutuluyor: clamp gercekten isliyorsa fark makul kalmali
+				// (name/title/unit'te en fazla 1'er ekstra satir + varsa bir not bloğu).
+				const heightVarianceOk = (maxH - minH) <= 140;
+				let metaOverlapFound = false;
+				document.querySelectorAll('.meta').forEach(function (meta) {
+					const spans = Array.from(meta.querySelectorAll('span'));
+					for (let i = 0; i < spans.length; i++) {
+						for (let j = i + 1; j < spans.length; j++) {
+							const a = spans[i].getBoundingClientRect(); const b = spans[j].getBoundingClientRect();
+							if (a.width === 0 || b.width === 0) continue;
+							const overlaps = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+							if (overlaps) metaOverlapFound = true;
+						}
+					}
+				});
+				r.cardGrid['cols' + cols] = { clampWorking: clampWorking, heightVarianceOk: heightVarianceOk, noMetaOverlap: !metaOverlapFound, maxHeight: Math.round(maxH), minHeight: Math.round(minH) };
+			});
 			// iOS otomatik yakinlastirma: form alanlari >= 16px
 			openAddModal();
 			r.inputFontIs16 = parseFloat(getComputedStyle(document.getElementById('f_name')).fontSize) >= 16;
@@ -376,7 +487,7 @@ async function newPage(browser, width, height, mobile) {
 		await mp.close();
 	}
 
-	const combined = { k1, k1undo, k2, o12, persistGuard, o7, k5, o6, k6, k7, k8, k9, k10, k11, k12, mobile };
+	const combined = { k1, k1undo, k2, o12, persistGuard, o7, k5, o6, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, mobile };
 	console.log(JSON.stringify(combined, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));

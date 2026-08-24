@@ -125,12 +125,20 @@ const CONTRAST_HELPERS_SRC = `
 			// bulabiliyordu (querySelector ilk eslesmeyi alir, gorunurluk onemsiz) --
 			// #modalTitle ile GERCEKTEN acik olan Ekle/Duzenle modalini hedefliyoruz.
 			const modalTitleRatio = pairRatio('#modalTitle', false);
+			// Kayit duzenleme formundaki metin girisi (f_name, .field input[type=text]) --
+			// onceki oturumda SADECE background degisti, color unutulmustu (bu testin
+			// yakaladigi gercek regresyon, bkz. commit).
+			document.getElementById('f_name').value = 'Test Deger';
+			const formInputRatio = pairRatio('#f_name', true);
+			const formSelectRatio = pairRatio('#f_status', true);
 			closeModal();
 			return {
 				searchInput: pairRatio('#search', true),
 				btnPrimary: pairRatio('.btn-primary', true),
 				cardName: pairRatio('.card .name', false),
 				modalTitle: modalTitleRatio,
+				formInput: formInputRatio,
+				formSelect: formSelectRatio,
 				emptyOrPageText: pairRatio('.empty-title', false) || pairRatio('#countLabel', false)
 			};
 		}, CONTRAST_HELPERS_SRC);
@@ -157,6 +165,8 @@ const CONTRAST_HELPERS_SRC = `
 			btnPrimary: passContrast(darkContrasts.btnPrimary),
 			cardName: passContrast(darkContrasts.cardName),
 			modalTitle: passContrast(darkContrasts.modalTitle),
+			formInput: passContrast(darkContrasts.formInput),
+			formSelect: passContrast(darkContrasts.formSelect),
 			emptyOrPageText: passContrast(darkContrasts.emptyOrPageText)
 		},
 		lightContrastOk: {
@@ -164,6 +174,8 @@ const CONTRAST_HELPERS_SRC = `
 			btnPrimary: passContrast(lightContrasts.btnPrimary),
 			cardName: passContrast(lightContrasts.cardName),
 			modalTitle: passContrast(lightContrasts.modalTitle),
+			formInput: passContrast(lightContrasts.formInput),
+			formSelect: passContrast(lightContrasts.formSelect),
 			emptyOrPageText: passContrast(lightContrasts.emptyOrPageText)
 		},
 		pageErrorsCount: pageErrors.length

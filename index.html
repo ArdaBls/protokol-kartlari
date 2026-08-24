@@ -180,12 +180,15 @@
 			.freshness-badge.yellow{ background:var(--warn-bg); color:var(--warn); }
 			.freshness-badge.red{ background:var(--danger-bg); color:#a33; }
 			.info{ padding:12px 14px 14px; display:flex; flex-direction:column; flex:1; }
-			.name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); }
+			.name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:'Roboto', sans-serif; font-weight:500; }
-			.title{ font-size:13px; color:var(--ink); font-weight:600; margin:0 0 2px; }
-			.unit{ font-size:12px; color:var(--muted); margin:0 0 8px; }
-			.meta{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); border-top:1px dashed #ddd6c4; padding-top:7px; display:flex; justify-content:space-between; }
-			.note{ font-size:11px; color:var(--muted); font-style:italic; margin-top:5px; line-height:1.3; }
+			.title{ font-size:13px; color:var(--ink); font-weight:600; margin:0 0 2px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			.unit{ font-size:12px; color:var(--muted); margin:0 0 8px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			/* flex-wrap+gap: tarih ve "devam ediyor" dar kartlarda (ozellikle 3'lu mobil
+			   moda) sigmayinca birbirine yapismak yerine alt satira sarar. */
+			.meta{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); border-top:1px dashed var(--divider); padding-top:7px; display:flex; flex-wrap:wrap; gap:2px 8px; justify-content:space-between; }
+			.meta span{ white-space:nowrap; }
+			.note{ font-size:11px; color:var(--muted); font-style:italic; margin-top:5px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.empty{ max-width:1040px; margin:60px auto; text-align:center; color:var(--muted); font-family:'Roboto',sans-serif; padding:0 20px; }
 			.empty-icon{ font-size:32px; margin-bottom:8px; opacity:.55; }
 			.empty-title{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px; }
@@ -581,7 +584,7 @@
 				.field-row.ev-datetime-row .field.ev-time{ flex:0 0 142px; }
 			}
 			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
-			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); box-sizing:border-box; }
+			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
 			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
 			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:#8a6a24; border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:'Roboto',sans-serif; white-space:nowrap; }
 			.ev-now-btn:hover{ background:rgba(184,146,63,.26); }
@@ -599,7 +602,7 @@
 			.ev-att-item{ display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 6px; border-radius:6px; cursor:pointer; }
 			.ev-att-item:hover{ background:#f6f2e8; }
 			.ev-att-item .sub{ color:var(--muted); font-size:11px; }
-			.ev-att-search{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; margin-bottom:6px; box-sizing:border-box; }
+			.ev-att-search{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; margin-bottom:6px; box-sizing:border-box; background:var(--surface-input); color:var(--ink); }
 
 			/* ---- Mobil ---- */
 			.calendar-fab{ display:none; position:fixed; left:16px; bottom:16px; z-index:70; align-items:center; gap:7px; background:var(--brass); color:var(--navy); border:2px solid var(--navy); border-radius:30px; padding:12px 18px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.35); cursor:pointer; }
@@ -662,7 +665,7 @@
 			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
 			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
 			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
-			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); }
+			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); }
 			/* iOS Safari, dolu bir metin kutusuna kendi native "temizle" X'ini ekleyebiliyor;
 			   bu, bizim ozel .clear-btn X'imizle CAKISIP yanlis hizali gorunmesine yol aciyordu
 			   (masaustu Chrome'da bu sorun hic gorunmuyor cunku Chrome boyle bir seyi yapmiyor).
@@ -801,7 +804,7 @@
 				.admin-user-row .au-info{ display:flex; flex-direction:column; gap:2px; }
 				.admin-user-row .au-name{ font-weight:700; font-size:14px; color:var(--ink); }
 				.admin-user-row .au-email{ font-size:12px; color:var(--muted); }
-				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:'Roboto',sans-serif; background:var(--surface-input); cursor:pointer; }
+				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:'Roboto',sans-serif; background:var(--surface-input); color:var(--ink); cursor:pointer; }
 				.admin-user-row select:disabled{ background:#f0eee7; color:var(--muted); cursor:not-allowed; }
 				.au-basin-toggle{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; white-space:nowrap; user-select:none; }
 				.au-basin-toggle input{ cursor:pointer; }
@@ -1223,6 +1226,7 @@
 					</div>
 					<div class="field">
 						<label>Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
+						<label class="au-basin-toggle" style="margin:2px 0 6px;"><input type="checkbox" id="ev_attIncludeIl" onchange="onAttIncludeIlToggle()"> İl Protokolünü de dahil et</label>
 						<input type="text" class="ev-att-search" id="ev_attSearch" placeholder="İsim veya unvan ara…" oninput="renderEventAttendeePicker()">
 						<div class="ev-attendee-box" id="ev_attendeeBox"></div>
 					</div>
@@ -1483,7 +1487,7 @@
 					<p class="hint">Seçtiğiniz kişilerin protokol sırası ve unvanlarına göre otomatik oluşturulan metin:</p>
 
 					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
-					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); box-sizing:border-box;"></select>
+					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;"></select>
 
 					<div id="newsPlaceholderFields"></div>
 
@@ -1509,7 +1513,7 @@
 					<p class="hint">Yapay zekaya yapıştıracağınız, kurallar ve bağlam içeren hazır bir komut oluşturulur. Uygulama bu metni hiçbir yapay zeka servisine göndermez.</p>
 
 					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
-					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); box-sizing:border-box;">
+					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;">
 						<option value="mezuniyet">Mezuniyet Töreni</option>
 						<option value="genel" selected>Q1 / Genel Etkinlik (Taslak Var)</option>
 						<option value="diger">Diğer</option>
@@ -2105,6 +2109,18 @@
 				// Boşluk bulunduysa indeksler kaydı: tek kayıt yazımı yanlış yere gideceğinden tüm liste yazılmalı.
 				peopleNeedsFullSave = clean.length !== arr.length || !Array.isArray(data);
 				return clean;
+			}
+
+			// normalizePeopleSnapshot ile AYNI dizi/nesne sekil-normalizasyonunu yapar ama
+			// global peopleNeedsFullSave bayragina DOKUNMAZ -- o bayrak SADECE aktif listenin
+			// kayit davranisi icin, ilgisiz bir okuma (orn. takvimde Il Protokolu onbellegi)
+			// onu yanlislikla ezmemeli.
+			function normalizeSnapshotArray(data) {
+				if (!data) return [];
+				let arr;
+				if (Array.isArray(data)) { arr = data; }
+				else { arr = Object.keys(data).sort(function(a, b){ return Number(a) - Number(b); }).map(function(k){ return data[k]; }); }
+				return arr.filter(function(x){ return x && typeof x === "object"; });
 			}
 
 			function attachListener() {
@@ -4488,11 +4504,47 @@ function setEventTimeNow(fieldId){
 
 function closeEventModal(){ document.getElementById("eventModalBg").classList.remove("open"); calEditingId=null; }
 
+// İl Protokolü havuzu: kalıcı bir ikinci Firebase dinleyicisi AÇILMAZ, sadece checkbox
+// ilk işaretlendiğinde tek seferlik .once('value') ile okunup burada önbelleğe alınır.
+let ilPoolCache = null;
+function onAttIncludeIlToggle(){
+	const cb = document.getElementById("ev_attIncludeIl");
+	if (!cb.checked || ilPoolCache !== null) { renderEventAttendeePicker(); return; }
+	if (!database) { renderEventAttendeePicker(); return; }
+	database.ref(dbPath("ilProtokolVerileri")).once("value").then(function(snap){
+		ilPoolCache = normalizeSnapshotArray(snap.val());
+		renderEventAttendeePicker();
+	}).catch(function(err){
+		console.error("İl Protokolü okunamadı:", err);
+		showToast("İl Protokolü okunamadı.", "error");
+		cb.checked = false;
+		renderEventAttendeePicker();
+	});
+}
+
 // Katılımcı seçici: kişileri üniversite listesinden okur (yoksa aktif listeden).
+// "İl Protokolünü de dahil et" işaretliyse ilPoolCache de havuza katılır; ayni isim+ayni
+// calistigi birim ikisinde de varsa TEK kisiye indirgenir ve İl Protokolü kaydı KAZANIR
+// (haberde dışarıdan gelen protokol bilgisi İl+Üniversite'yi zaten birlestirdigi icin).
 function renderEventAttendeePicker(){
 	const box=document.getElementById("ev_attendeeBox"); if(!box) return;
 	const q=(document.getElementById("ev_attSearch").value||"").trim().toLocaleLowerCase("tr");
-	const pool=people.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; });
+	const includeIl = document.getElementById("ev_attIncludeIl").checked && ilPoolCache;
+	let pool;
+	if (includeIl) {
+		const merged = new Map();
+		function addAll(list){
+			list.forEach(function(p){
+				if ((p.status && p.status !== "aktif") || !p.name) return;
+				const key = (p.name||"").trim().toLocaleLowerCase("tr") + "|" + (p.unit||"").trim().toLocaleLowerCase("tr");
+				merged.set(key, p);
+			});
+		}
+		addAll(people); addAll(ilPoolCache);
+		pool = Array.from(merged.values());
+	} else {
+		pool=people.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; });
+	}
 	const filtered=pool.filter(function(p){ return ((p.name||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr").includes(q); }).slice(0,120);
 	const selKeys=new Set(calAttendees.map(function(a){ return (a.name||"")+"|"+(a.title||""); }));
 	let html="";
