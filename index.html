@@ -599,7 +599,12 @@
 			   geriler: yoksa oversized bir modal ortalaninca ustu/altti esit miktarda
 			   viewport disina tasip acilista kullanici formun NE basligini NE kaydet
 			   butonunu goremeden ortasina dusuyordu (Playwright'ta olculup boyle bulundu). */
-			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
+			/* Ustteki padding'e env(safe-area-inset-top) eklenir -- yoksa centik/Dynamic Island'i
+			   (iPhone) veya kamera kesigi olan Android telefonlari olan cihazlarda, viewport'tan
+			   uzun (safe center -> flex-start'a gerileyen) modallerin kapat (X) tusu durum
+			   cubugunun (saat/pil) altina/uzerine biniyordu. viewport-fit=cover meta etiketiyle
+			   birlikte TUM bildirim-centikli telefonlarda calisir, sadece iPhone'a ozel degil. */
+			.modal-bg{ position:fixed; inset:0; background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px 24px; overflow-y:auto; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
 			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
 			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; }
 			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik

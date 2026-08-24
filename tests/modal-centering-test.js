@@ -84,6 +84,21 @@ function serve() {
 	const shortModal = await checkModalCentering("openEventDeleteConfirm('yok')", 'eventDeleteConfirmModalBg');
 	await page.evaluate(() => closeEventDeleteConfirm());
 
+	// env(safe-area-inset-top) headless Chromium'da (gerçek çentik/Dynamic Island olmadığı için)
+	// hep 0 çözümlenir -- piksel bazlı ölçüm bu yüzden bunu KANITLAYAMAZ. Bunun yerine kaynak
+	// CSS kuralının metnini okuyup env(safe-area-inset-top) ifadesinin gerçekten .modal-bg'ye
+	// yazıldığını doğruluyoruz (gerçek çentikli cihazda tarayıcı bunu otomatik hesaba katacak).
+	const safeAreaCssCheck = await page.evaluate(() => {
+		for (const sheet of document.styleSheets) {
+			try {
+				for (const rule of sheet.cssRules) {
+					if (rule.selectorText === '.modal-bg' && /env\(safe-area-inset-top/.test(rule.cssText)) return true;
+				}
+			} catch (e) { /* cross-origin stylesheet olabilir, atla */ }
+		}
+		return false;
+	});
+
 	const results = {
 		personModal: {
 			alignItemsIsCenter: personModal.alignItems === 'center' || personModal.alignItems === 'safe center',
@@ -102,6 +117,7 @@ function serve() {
 			trulyCentered: Math.abs(shortModal.topGap - shortModal.bottomGap) < 20,
 			bothGapsPositive: shortModal.topGap > 0 && shortModal.bottomGap > 0
 		},
+		safeAreaInsetTopInCss: safeAreaCssCheck,
 		pageErrorsCount: pageErrors.length
 	};
 	console.log(JSON.stringify({ personModal, eventModal, shortModal, results }, null, 2));
