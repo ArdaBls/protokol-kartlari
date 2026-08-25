@@ -1157,6 +1157,11 @@
 			body.test-mode-active .cal-peek-head{ padding-top:16px; }
 			body.test-mode-active .modal-bg{ padding-top:24px; }
 			body.test-mode-active .authform-bg{ padding-top:24px; }
+			/* header{padding-top} de AYNI cift-sayim ailesinden kacmisti -- body zaten banner
+			   kadar (notch dahil) asagi itiyor, header'in KENDI env(safe-area-inset-top) eklemesi
+			   iOS'ta (gercek notch/Dynamic Island payi olan cihazlarda) header'in USTUNDE fazladan
+			   bosluk yaratiyordu (kullanici: "iosda header ustunde cok bosluk gozukuyor"). */
+			body.test-mode-active header{ padding-top:28px; }
 
 			/* Mobilde etkinlik detay paneli artik kenardan kenara TAM EKRAN kaplayan bir sayfa gibi
 			   degil, kisi duzenleme ekrani (.modal-bg/.modal) ile AYNI hissi veren ORTALANMIS bir
