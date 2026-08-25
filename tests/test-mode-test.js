@@ -130,12 +130,17 @@ function serve() {
 	// =====================================================================
 	const redirectOnTest = await page.evaluate(async () => {
 		testModeEnabled = true; updateTestModeBanner();
-		window.__mockPushes = []; window.__mockSets = [];
+		// saveData() artik veri+log'u TEK atomik database.ref("/").update({...}) cagrisiyla yaziyor
+		// (audit #6) -- .set() DEGIL, bu yuzden yol kontrolu __mockUpdates icindeki payload
+		// anahtarlarindan yapilir (bkz. audit-fixes-test.js/status-transition-test.js'teki ayni desen).
+		window.__mockPushes = []; window.__mockSets = []; window.__mockUpdates = [];
 		await saveData('Test kişi kaydı', 'Test Kişi');
 		logEventAction('Test etkinlik işlemi', 'Test Etkinlik');
 		logDebugAction('Test debug işlemi', 'Test Hedef');
-		const personSet = window.__mockSets.find((s) => s.path === 'test/universiteProtokolVerileri');
-		const realPersonSet = window.__mockSets.find((s) => s.path === 'universiteProtokolVerileri');
+		const lastUpd = window.__mockUpdates[window.__mockUpdates.length - 1];
+		const updKeys = lastUpd ? Object.keys(lastUpd.data) : [];
+		const personSet = updKeys.indexOf('test/universiteProtokolVerileri') !== -1;
+		const realPersonSet = updKeys.indexOf('universiteProtokolVerileri') !== -1;
 		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi');
 		const debugLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test debug işlemi');
 		return {
@@ -153,10 +158,12 @@ function serve() {
 	// =====================================================================
 	const redirectOffTest = await page.evaluate(async () => {
 		testModeEnabled = false; updateTestModeBanner();
-		window.__mockPushes = []; window.__mockSets = [];
+		window.__mockPushes = []; window.__mockSets = []; window.__mockUpdates = [];
 		await saveData('Test kişi kaydı 2', 'Test Kişi');
 		logEventAction('Test etkinlik işlemi 2', 'Test Etkinlik');
-		const personSet = window.__mockSets.find((s) => s.path === 'universiteProtokolVerileri');
+		const lastUpd = window.__mockUpdates[window.__mockUpdates.length - 1];
+		const updKeys = lastUpd ? Object.keys(lastUpd.data) : [];
+		const personSet = updKeys.indexOf('universiteProtokolVerileri') !== -1;
 		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi 2');
 		return {
 			bannerHidden: document.getElementById('testModeBanner').style.display === 'none',

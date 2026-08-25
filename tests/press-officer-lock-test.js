@@ -98,6 +98,23 @@ function serve() {
 				r.set = function (v) { window.__writes.push({ path: path, op: 'set', value: v }); return origSet(v); };
 				r.remove = function () { window.__writes.push({ path: path, op: 'remove' }); return origRemove(); };
 			}
+			// toggleUserBasinGorevlisi() artik IKI ayri .set()/.remove() DEGIL, TEK atomik
+			// database.ref("/").update({...}) cagrisi kullaniyor (audit #9) -- kok referansindaki
+			// update() burada ayristirilip ayni {path,op,value} sekline donusturulur ki asagidaki
+			// testler DEGISMEDEN calismaya devam etsin.
+			if (path === '/') {
+				const origUpdate = r.update.bind(r);
+				r.update = function (data) {
+					Object.keys(data || {}).forEach(function (k) {
+						if (k.indexOf('users/') === 0 && k.indexOf('/basinGorevlisi') !== -1) {
+							window.__writes.push({ path: k, op: 'set', value: data[k] });
+						} else if (k.indexOf('basinGorevlileri/') === 0) {
+							window.__writes.push(data[k] === null ? { path: k, op: 'remove' } : { path: k, op: 'set', value: data[k] });
+						}
+					});
+					return origUpdate(data);
+				};
+			}
 			return r;
 		};
 

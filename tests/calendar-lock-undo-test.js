@@ -275,7 +275,16 @@ function serve() {
 	// Log icerigi dogrulamasi (reload'dan ONCE - reload __mockPushes'i sifirlar)
 	// =====================================================================
 	const logTest = await page.evaluate(() => {
-		const logs = (window.__mockPushes || []).filter(p => p.path === 'logs/etkinlik').map(p => p.data.action);
+		// persistEvent()/executeEventDelete()/undoLastCalendarAction() artik veri+log'u TEK atomik
+		// database.ref("/").update({...}) cagrisiyla yaziyor (audit #6) -- log verisi artik ayri bir
+		// push(data) DEGIL, update() payload'i icinde "logs/etkinlik/<key>" anahtarinda bulunur
+		// (anahtari almak icin yapilan push() ise veri ICERMEZ, sadece key uretir).
+		const logs = (window.__mockUpdates || []).reduce((acc, upd) => {
+			Object.keys(upd.data || {}).forEach((k) => {
+				if (k.indexOf('logs/etkinlik/') === 0 && upd.data[k] && upd.data[k].action) acc.push(upd.data[k].action);
+			});
+			return acc;
+		}, []);
 		return {
 			totalLogCount: logs.length,
 			hasLockLog: logs.some(a => a.includes('kilitlendi')),

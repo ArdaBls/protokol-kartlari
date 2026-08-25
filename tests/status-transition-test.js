@@ -63,12 +63,14 @@ async function newPage(browser, width, height, mobile) {
 		currentUser = { uid: 'ed1', role: 'editor', firstName: 'T', lastName: 'K', email: 't@t.com' };
 		applyPermissions();
 		currentListKey = 'universite';
-		people = [
-			{ name: 'Aktif Kisi', title: 'Dekan', prefix: 'Prof. Dr.', unit: 'OMU', status: 'aktif', rank: 5, photo: '', start: '2024-01-01', end: '', note: '' },
-			{ name: 'Pasif Kisi', title: 'Eski Dekan', prefix: 'Prof. Dr.', unit: 'OMU', status: 'pasif', rank: 6, photo: '', start: '2020-01-01', end: '2026-01-01', note: '' },
-			{ name: 'Successor Kaynak', title: 'Fakülte Sekreteri', prefix: '', unit: 'OMU', status: 'aktif', rank: 7, photo: '', start: '2023-01-01', end: '', note: '' },
-			{ name: 'Fallback Kaynak', title: 'Şube Müdürü', prefix: '', unit: 'OMU', status: 'aktif', rank: 8, photo: '', start: '2022-01-01', end: '', note: '' }
-		];
+		// people ARTIK push-ID'li bir NESNE (bkz. CLAUDE.md/refactor "people-push-id") -- test
+		// verisi de bu şekilde, SABİT (test-only) ID'lerle seed edilir, dizi indeksi DEĞİL.
+		people = {
+			pidAktif: { name: 'Aktif Kisi', title: 'Dekan', prefix: 'Prof. Dr.', unit: 'OMU', status: 'aktif', rank: 5, photo: '', start: '2024-01-01', end: '', note: '' },
+			pidPasif: { name: 'Pasif Kisi', title: 'Eski Dekan', prefix: 'Prof. Dr.', unit: 'OMU', status: 'pasif', rank: 6, photo: '', start: '2020-01-01', end: '2026-01-01', note: '' },
+			pidSuccessor: { name: 'Successor Kaynak', title: 'Fakülte Sekreteri', prefix: '', unit: 'OMU', status: 'aktif', rank: 7, photo: '', start: '2023-01-01', end: '', note: '' },
+			pidFallback: { name: 'Fallback Kaynak', title: 'Şube Müdürü', prefix: '', unit: 'OMU', status: 'aktif', rank: 8, photo: '', start: '2022-01-01', end: '', note: '' }
+		};
 		render();
 	});
 
@@ -86,7 +88,7 @@ async function newPage(browser, width, height, mobile) {
 	// --- ST-2: aktif bir kaydi duzenlerken sorgu blogu VE successor tetikleyicisi baslangicta gizli
 	// (REGRESYON testi: eskiden successorTriggerWrap kosulsuz "block" idi) ---
 	const st2 = await page.evaluate(() => {
-		openEditModal(0);
+		openEditModal('pidAktif');
 		const blockHiddenOnActiveEdit = document.getElementById('statusReasonBlock').style.display === 'none';
 		const successorHiddenOnActiveEdit = document.getElementById('successorTriggerWrap').style.display === 'none';
 		return { blockHiddenOnActiveEdit, successorHiddenOnActiveEdit };
@@ -147,13 +149,18 @@ async function newPage(browser, width, height, mobile) {
 
 	// --- ST-7: Kaydet -- log mesaji sebebe ozgu ibareyi iceriyor, kayit dogru persist oluyor ---
 	const st7 = await page.evaluate(async () => {
+		// savePerson() artik veri+log'u TEK atomik root().update() ile yaziyor (audit #6) -- log
+		// icerigi artik ayri bir push() cagrisinda DEGIL, __mockUpdates icindeki "logs/universite/<key>"
+		// yolunda bulunur (anahtari almak icin yapilan push() ise veri ICERMEZ, sadece key uretir).
 		window.__mockPushes = [];
+		window.__mockUpdates = [];
 		await saveForm();
-		const logPush = window.__mockPushes.find((p) => p.path === 'logs/universite');
-		const noteInLog = !!(logPush && logPush.data && logPush.data.action && logPush.data.action.indexOf('Yeni göreve atandı') !== -1);
-		const savedTitle = people[0].title === 'Öğretim Üyesi';
-		const savedStatusAktif = people[0].status === 'aktif';
-		const savedHistLen = Array.isArray(people[0].gorevGecmisi) ? people[0].gorevGecmisi.length : 0;
+		const upd = window.__mockUpdates[window.__mockUpdates.length - 1];
+		const logEntry = upd && upd.data && Object.keys(upd.data).map((k) => ({ k, v: upd.data[k] })).find((e) => e.k.indexOf('logs/universite/') === 0);
+		const noteInLog = !!(logEntry && logEntry.v && logEntry.v.action && logEntry.v.action.indexOf('Yeni göreve atandı') !== -1);
+		const savedTitle = people.pidAktif.title === 'Öğretim Üyesi';
+		const savedStatusAktif = people.pidAktif.status === 'aktif';
+		const savedHistLen = Array.isArray(people.pidAktif.gorevGecmisi) ? people.pidAktif.gorevGecmisi.length : 0;
 		return { noteInLog, savedTitle, savedStatusAktif, savedHistLen1: savedHistLen === 1 };
 	});
 
@@ -161,7 +168,7 @@ async function newPage(browser, width, height, mobile) {
 	// successor'a giden yol hala erisilebilir olmali) ---
 	const st3 = await page.evaluate(() => {
 		closeModal();
-		openEditModal(1);
+		openEditModal('pidPasif');
 		const blockVisibleOnAlreadyPasif = document.getElementById('statusReasonBlock').style.display === 'block';
 		closeModal();
 		return { blockVisibleOnAlreadyPasif };
@@ -171,7 +178,7 @@ async function newPage(browser, width, height, mobile) {
 	// bosken kaydetme reddedilir; f_end doldurulunca YENI kisi + ESKI kaydin pasife alinmasi
 	// TEK islemde (update()) atomik olarak persist olur ---
 	const st8_10_9 = await page.evaluate(async () => {
-		openEditModal(2);
+		openEditModal('pidSuccessor');
 		const sel = document.getElementById('f_status');
 		sel.value = 'pasif'; sel.dispatchEvent(new Event('change'));
 		const reasonSel = document.getElementById('sr_reason');
@@ -183,24 +190,37 @@ async function newPage(browser, width, height, mobile) {
 		document.getElementById('sf_name').value = 'Yeni Sekreter';
 
 		// ST-10: f_end bos -- kaydetme reddedilmeli, people degismemeli
-		const lenBeforeReject = people.length;
+		const countBeforeReject = Object.keys(people).length;
 		await saveSuccessor();
-		const rejectedWhenEndEmpty = people.length === lenBeforeReject;
+		const rejectedWhenEndEmpty = Object.keys(people).length === countBeforeReject;
 
 		// f_end doldur (successor panel acikken sf_start'i da otomatik senkronlar) + tekrar dene
 		document.getElementById('f_end').value = '2026-08-24';
 		window.__mockOnceSnapshot = JSON.parse(JSON.stringify(people)); // saveSuccessor()'in fresh-read'i people'i EZMESIN diye
 		window.__mockUpdates = [];
+		window.__mockPushes = []; // yeni halefin GERÇEK push-ID'sini yakalamak için sıfırlanır
 		await saveSuccessor();
 
-		const newPersonIdx = people.length - 1;
-		const newPersonOk = people[newPersonIdx] && people[newPersonIdx].name === 'Yeni Sekreter' && people[newPersonIdx].status === 'aktif';
-		const oldPersonOk = people[2].status === 'pasif' && people[2].end === '2026-08-24' && people[2].name === 'Successor Kaynak';
+		// Yeni halefin ID'si test-öngörülü bir sayı DEĞİL, saveSuccessor()'ün ürettiği GERÇEK
+		// push-ID'dir -- mock'un kaydettiği push() çağrılarından, listenin path'i universite
+		// listesine ait olan (logAction()'ın "logs/universite"ye yaptığı push'larla KARIŞMAYAN)
+		// SADECE kişi kaydı için üretilen anahtar okunur.
+		const personPush = window.__mockPushes.find((p) => p.path === 'universiteProtokolVerileri');
+		const newId = personPush ? personPush.key : null;
+		const newPersonOk = !!newId && people[newId] && people[newId].name === 'Yeni Sekreter' && people[newId].status === 'aktif';
+		const oldPersonOk = people.pidSuccessor.status === 'pasif' && people.pidSuccessor.end === '2026-08-24' && people.pidSuccessor.name === 'Successor Kaynak';
 
+		// saveSuccessor() artik kisi + IKI log satirini (yeni kisi + eski kaydin pasife alinmasi)
+		// TEK atomik root().update() ile yaziyor (audit #6) -- anahtarlar artik bare ID DEGIL, tam
+		// path ("universiteProtokolVerileri/<id>", "logs/universite/<logKey>").
 		const upd = window.__mockUpdates[window.__mockUpdates.length - 1];
-		const updateKeys = upd ? Object.keys(upd.data).sort() : [];
-		const atomicUpdateHadBothIndexes = updateKeys.length === 2 && updateKeys.indexOf(String(newPersonIdx)) !== -1 && updateKeys.indexOf('2') !== -1;
-		const updateDataCorrect = upd && upd.data[String(2)] && upd.data[String(2)].status === 'pasif' && upd.data[String(newPersonIdx)] && upd.data[String(newPersonIdx)].status === 'aktif';
+		const updateKeys = upd ? Object.keys(upd.data) : [];
+		const listPath = 'universiteProtokolVerileri';
+		const newIdKey = updateKeys.find((k) => k === listPath + '/' + newId);
+		const oldIdKey = updateKeys.find((k) => k === listPath + '/pidSuccessor');
+		const logKeys = updateKeys.filter((k) => k.indexOf('logs/universite/') === 0);
+		const atomicUpdateHadBothIndexes = !!newId && !!newIdKey && !!oldIdKey && logKeys.length === 2 && updateKeys.length === 4;
+		const updateDataCorrect = !!newId && upd && oldIdKey && upd.data[oldIdKey].status === 'pasif' && newIdKey && upd.data[newIdKey].status === 'aktif';
 
 		return { successorVisible, applyRowHidden, rejectedWhenEndEmpty, newPersonOk, oldPersonOk, atomicUpdateHadBothIndexes, updateDataCorrect };
 	});
@@ -208,34 +228,44 @@ async function newPage(browser, width, height, mobile) {
 	// --- ST-9b: peopleNeedsFullSave=true iken saveSuccessor() -- update() DEGIL, saveData() (tek .set()) kullanilmali ---
 	const st9b = await page.evaluate(async () => {
 		closeModal();
-		openEditModal(3);
+		openEditModal('pidFallback');
 		document.getElementById('f_status').value = 'pasif'; document.getElementById('f_status').dispatchEvent(new Event('change'));
 		document.getElementById('sr_reason').value = 'yerine_atama'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
 		openSuccessorPanel();
 		document.getElementById('sf_name').value = 'Fallback Yeni Kisi';
 		document.getElementById('f_end').value = '2026-08-24';
 		// normalizePeopleSnapshot() peopleNeedsFullSave'i KENDISI hesaplar (once() donusunden
-		// hemen sonra) -- elle onceden true atamak yeterli DEGIL, fresh-read bunu eziyor. Gercek
-		// Firebase'in bosluklu diziyi nesne olarak donmesini simule etmek icin snapshot'i
-		// dizi degil {index:kisi} nesnesi olarak veriyoruz -- bu, !Array.isArray(data) dalindan
-		// gecerek peopleNeedsFullSave'i GERCEK kod yoluyla true yapar.
-		const snapshotObj = {}; people.forEach((p, i) => { snapshotObj[i] = p; });
-		window.__mockOnceSnapshot = JSON.parse(JSON.stringify(snapshotObj));
-		window.__mockSets = [];
-		const updatesBefore = (window.__mockUpdates || []).length;
+		// hemen sonra) -- elle onceden true atamak yeterli DEGIL, fresh-read bunu eziyor. people
+		// ARTIK zaten push-ID'li bir NESNE oldugu icin (eski dizi modelinden farkli olarak) SADE
+		// bir nesne donusu ARTIK "bozuk/sparse" sayilmaz -- gercekci bir bozukluk, Firebase'den
+		// gelen GECERSIZ bir cocuk (orn. elle silinmis/null birakilmis bir kayit) ile simule edilir;
+		// bu da normalizePeopleSnapshot()'daki "sawInvalid" dalindan gecerek peopleNeedsFullSave'i
+		// GERCEK kod yoluyla true yapar -- ID'ler (successorEditingIndex dahil) DEGISMEDEN kalir.
+		const snapshotObj = JSON.parse(JSON.stringify(people));
+		snapshotObj.ghostKey = null;
+		window.__mockOnceSnapshot = snapshotObj;
+		window.__mockUpdates = [];
 		await saveSuccessor();
-		const usedSaveDataNotUpdate = (window.__mockUpdates || []).length === updatesBefore && window.__mockSets.length > 0;
-		const lastSet = window.__mockSets[window.__mockSets.length - 1];
-		const fullArrayHasBoth = lastSet && Array.isArray(lastSet.data) && lastSet.data.some((p) => p && p.name === 'Fallback Yeni Kisi' && p.status === 'aktif') && lastSet.data[3] && lastSet.data[3].status === 'pasif';
-		return { usedSaveDataNotUpdate, fullArrayHasBoth };
+		// saveData() artik veri+log'u TEK atomik root().update() ile yaziyor (audit #6) -- eskiden
+		// burada .set() ile ayirt ediliyordu, artik hem "normal" hem "fallback" yol update()
+		// kullaniyor. Asil ayirt edici ozellik: fallback yolda TUM liste tek bir path altinda
+		// (universiteProtokolVerileri) BUTUN nesne olarak yazilir (patch/bare-ID DEGIL).
+		const upd = window.__mockUpdates[window.__mockUpdates.length - 1];
+		const listPath = 'universiteProtokolVerileri';
+		const fullListWrite = upd && upd.data && upd.data[listPath];
+		const usedFullListWrite = !!fullListWrite && typeof fullListWrite === 'object' && !Array.isArray(fullListWrite);
+		const fullObjectHasBoth = fullListWrite &&
+			Object.values(fullListWrite).some((p) => p && p.name === 'Fallback Yeni Kisi' && p.status === 'aktif') &&
+			fullListWrite.pidFallback && fullListWrite.pidFallback.status === 'pasif';
+		return { usedFullListWrite, fullObjectHasBoth };
 	});
 
 	// ==================================================================
 	// GOREV A: halefsiz pasife almayi ana Kaydet uzerinden engelleme (ST-13..ST-20)
 	// ==================================================================
 	const st13Idx = await page.evaluate(() => {
-		people.push({ name: 'ST13 Kisi', title: 'Test Unvan', prefix: '', unit: 'OMU', status: 'aktif', rank: 50, photo: '', start: '2024-01-01', end: '', note: '' });
-		return people.length - 1;
+		people.pidSt13 = { name: 'ST13 Kisi', title: 'Test Unvan', prefix: '', unit: 'OMU', status: 'aktif', rank: 50, photo: '', start: '2024-01-01', end: '', note: '' };
+		return 'pidSt13';
 	});
 
 	// --- ST-13: pasif + sr_reason="yerine_atama" -> ana Kaydet kilitlenir, ipucu gorunur ---
@@ -284,8 +314,8 @@ async function newPage(browser, width, height, mobile) {
 
 	// --- ST-17: saveSuccessor() f_end bosken reddedilince kilit true KALIR (henuz halef kaydedilmedi) ---
 	const st17Idx = await page.evaluate(() => {
-		people.push({ name: 'ST17 Kisi', title: 'Test Unvan 2', prefix: '', unit: 'OMU', status: 'aktif', rank: 51, photo: '', start: '2024-01-01', end: '', note: '' });
-		return people.length - 1;
+		people.pidSt17 = { name: 'ST17 Kisi', title: 'Test Unvan 2', prefix: '', unit: 'OMU', status: 'aktif', rank: 51, photo: '', start: '2024-01-01', end: '', note: '' };
+		return 'pidSt17';
 	});
 	const st17 = await page.evaluate(async (idx) => {
 		closeModal();
@@ -296,11 +326,11 @@ async function newPage(browser, width, height, mobile) {
 		const disabledBeforeAttempt = document.getElementById('saveFormBtn').disabled;
 		openSuccessorPanel();
 		document.getElementById('sf_name').value = 'ST17 Halef Denemesi';
-		const lenBefore = people.length;
+		const countBefore = Object.keys(people).length;
 		await saveSuccessor();
 		return {
 			disabledBeforeAttempt,
-			rejected: people.length === lenBefore,
+			rejected: Object.keys(people).length === countBefore,
 			disabledAfterRejection: document.getElementById('saveFormBtn').disabled
 		};
 	}, st17Idx);
@@ -323,10 +353,10 @@ async function newPage(browser, width, height, mobile) {
 		openEditModal(idx);
 		document.getElementById('f_status').value = 'pasif'; document.getElementById('f_status').dispatchEvent(new Event('change'));
 		document.getElementById('sr_reason').value = 'yerine_atama'; document.getElementById('sr_reason').dispatchEvent(new Event('change'));
-		const lenBefore = people.length;
+		const countBefore = Object.keys(people).length;
 		handleFormKeydown({ key: 'Enter', target: document.getElementById('f_name'), preventDefault: function () {} });
 		return {
-			peopleUnchanged: people.length === lenBefore,
+			peopleUnchanged: Object.keys(people).length === countBefore,
 			modalStillOpen: document.getElementById('modalBg').classList.contains('open')
 		};
 	}, st17Idx);
@@ -334,8 +364,8 @@ async function newPage(browser, width, height, mobile) {
 	// --- ST-20: zaten-pasif bir kaydi SADECE not guncellemek icin acma -- kilit hep false, saveForm() normal calisir ---
 	const st20 = await page.evaluate(async () => {
 		closeModal();
-		people.push({ name: 'ST20 Kisi', title: 'Test Unvan 3', prefix: '', unit: 'OMU', status: 'pasif', rank: 52, photo: '', start: '2020-01-01', end: '2025-01-01', note: '' });
-		const idx = people.length - 1;
+		people.pidSt20 = { name: 'ST20 Kisi', title: 'Test Unvan 3', prefix: '', unit: 'OMU', status: 'pasif', rank: 52, photo: '', start: '2020-01-01', end: '2025-01-01', note: '' };
+		const idx = 'pidSt20';
 		openEditModal(idx);
 		const disabledOnOpen = document.getElementById('saveFormBtn').disabled;
 		document.getElementById('f_note').value = 'ST20 not guncellemesi';
@@ -365,7 +395,7 @@ async function newPage(browser, width, height, mobile) {
 		st10_rejectedWhenEndEmpty: st8_10_9.rejectedWhenEndEmpty,
 		st9_newPersonOk: st8_10_9.newPersonOk, st9_oldPersonOk: st8_10_9.oldPersonOk,
 		st9_atomicUpdateHadBothIndexes: st8_10_9.atomicUpdateHadBothIndexes, st9_updateDataCorrect: st8_10_9.updateDataCorrect,
-		st9b_usedSaveDataNotUpdate: st9b.usedSaveDataNotUpdate, st9b_fullArrayHasBoth: st9b.fullArrayHasBoth,
+		st9b_usedFullListWrite: st9b.usedFullListWrite, st9b_fullObjectHasBoth: st9b.fullObjectHasBoth,
 		st13_disabled: st13.disabled, st13_hintVisible: st13.hintVisible,
 		st14_disabled: !st14.disabled,
 		st15_disabledWhilePanelOpen: st15.disabledWhilePanelOpen, st15_disabledAfterCancel: st15.disabledAfterCancel,

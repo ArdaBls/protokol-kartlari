@@ -1989,7 +1989,7 @@
 				btn.disabled = true; btn.textContent = "Kaydediliyor…";
 				try {
 					const cred = await auth.createUserWithEmailAndPassword(email, pass);
-					await database.ref("users/" + cred.user.uid).set({ firstName: firstName, lastName: lastName, email: email, role: "pending", createdAt: Date.now() });
+					await database.ref("users/" + cred.user.uid).set({ firstName: firstName, lastName: lastName, email: email, role: "pending", createdAt: firebase.database.ServerValue.TIMESTAMP });
 					closeAuthForm(); showToast("Kayıt alındı. Admin onayı bekleniyor.", "success");
 								} catch (err) {
 					console.error("Signup error:", err.code, err.message);
@@ -2224,6 +2224,10 @@
 				if (!requireAdmin()) return;
 				// Kendi yetkisini yükseltmeyi engelleyen <select disabled> sadece görseldi, gerçek kontrol burada.
 				if (currentUser && uid === currentUser.uid) { showToast("Kendi yetkinizi değiştiremezsiniz.", "error"); return; }
+				// Rules'daki whitelist'in istemci tarafi aynasi -- <select> zaten sadece bu 3 degeri
+				// urettigi icin normal akista tetiklenmez, ama fonksiyon global oldugundan konsoldan
+				// keyfi bir string ile cagrilabilir; bu kapi burada da ZORUNLUDUR.
+				if (!["pending","editor","admin"].includes(newRole)) { showToast("Geçersiz rol.", "error"); return; }
 				try {
 					// Eski rolü loga yazabilmek için üzerine yazmadan önce okunur.
 					const snap = await database.ref("users/" + uid).once("value");
@@ -2231,11 +2235,22 @@
 					const oldRole = u.role || "pending";
 					const roleLabels = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" };
 					const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || uid;
+					// SON ADMIN KORUMASI: Rules seviyesinde "en az bir admin kalmali" kisitini ifade
+					// etmek pratik degil (tum users dugumunu saymak gerekir, kirilgan/pahali olur) --
+					// bkz. docs/firebase-database-rules.json notu. Bunun yerine burada, istemci
+					// tarafinda, mevcut TUM admin sayisi kontrol edilir; bu kisi son admin ise
+					// rolu düşürülemez.
+					if (oldRole === "admin" && newRole !== "admin") {
+						const allSnap = await database.ref("users").once("value");
+						const allUsers = allSnap.val() || {};
+						const adminCount = Object.keys(allUsers).filter(function(k){ return allUsers[k] && allUsers[k].role === "admin"; }).length;
+						if (adminCount <= 1) { showToast("Son admin kullanıcının rolü düşürülemez. Önce başka bir admin atayın.", "error"); loadAdminUsers(); return; }
+					}
 					await database.ref("users/" + uid + "/role").set(newRole);
-					logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının rolü değiştirildi · Rol: " + (roleLabels[oldRole] || oldRole) + " → " + (roleLabels[newRole] || newRole), fullName);
+					await logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının rolü değiştirildi · Rol: " + (roleLabels[oldRole] || oldRole) + " → " + (roleLabels[newRole] || newRole), fullName);
 					showToast("Yetki güncellendi.", "success"); loadAdminUsers();
 				}
-				catch (err) { showToast("Yetki güncellenemedi.", "error"); }
+				catch (err) { console.error("Yetki güncellenemedi:", err); showToast("Yetki güncellenemedi.", "error"); }
 			}
 
 			// "basinGorevlisi" ROLDEN bagimsiz bir bayraktir: editor/admin olmayan biri bile
@@ -2247,19 +2262,21 @@
 				if (!requireAdmin()) return;
 				if (testModeEnabled) { showToast("Paylaşımlı Test Ortamı açıkken bu işlem yapılamaz.", "error"); loadAdminUsers(); return; }
 				try {
-					await database.ref("users/" + uid + "/basinGorevlisi").set(checked);
 					// Log mesajı için isim her iki durumda (işaretlense de kaldırılsa da) gerekiyor.
 					const snap = await database.ref("users/" + uid).once("value");
 					const u = snap.val() || {};
 					const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || "(isim yok)";
-					if (checked) {
-						await database.ref(dbPath("basinGorevlileri/" + uid)).set(fullName);
-					} else {
-						await database.ref(dbPath("basinGorevlileri/" + uid)).remove();
-					}
-					logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının Basın Görevlisi bayrağı " + (checked ? "işaretlendi" : "kaldırıldı"), fullName);
+					// users/{uid}/basinGorevlisi VE basinGorevlileri/{uid} eskiden IKI AYRI .set()/.remove()
+					// cagrisiydi -- biri basarili biri basarisiz olabiliyordu (ornegin ikinci istekte
+					// baglanti kopması). Firebase'in cok-yollu update()'i ile TEK istekte, atomik yazilir.
+					const updates = {};
+					updates["users/" + uid + "/basinGorevlisi"] = checked;
+					updates[dbPath("basinGorevlileri/" + uid)] = checked ? fullName : null;
+					await database.ref("/").update(updates);
+					await logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının Basın Görevlisi bayrağı " + (checked ? "işaretlendi" : "kaldırıldı"), fullName);
 					showToast(checked ? "Basın görevlisi olarak işaretlendi." : "Basın görevlisi işareti kaldırıldı.", "success");
 				} catch (err) {
+					console.error("İşlem gerçekleştirilemedi:", err);
 					showToast("İşlem gerçekleştirilemedi.", "error");
 					loadAdminUsers();
 				}
@@ -2312,7 +2329,9 @@
 
 			// Sol filtre panelinde seçilen fakülte/birim adları (çoklu seçim)
 			let selectedFaculties = new Set();
-			// Sol paneldeki "Rektörlük / Merkez" kutusunda tek tek işaretlenen kişilerin _realIdx değerleri
+			// Sol paneldeki "Rektörlük / Merkez" kutusunda tek tek işaretlenen kişilerin push-ID'leri
+			// (eskiden dizi indeksi (_realIdx) tutulurdu -- başka bir editör kayıt ekleyip/silince
+			// indeksler kayar, yanlış kişi işaretli görünürdü; ID'ler kalıcı olduğu için artık kaymaz).
 			let selectedCentralAdminIdx = new Set();
 			// Sol paneldeki hangi fakülte/birim grubu (akordiyon) başlığının açık olduğu
 			let openedFacultyGroups = new Set();
@@ -2362,42 +2381,72 @@
 				return 2;
 			}
 			
-			let people = [];
+			// ---- KİŞİ DEPOLAMA MODELİ: push-ID'li NESNE ----
+			// Eskiden "people" Firebase'de DÜZ BİR DİZİ (array-index) olarak tutulurdu ve kod
+			// dizi indeksini (_realIdx/editIndex) kalıcı kimlik gibi kullanırdı. İki editör aynı anda
+			// kişi eklerse/silerse indeksler kayar, kaydetme/silme/sıralama YANLIŞ kişiyi hedeflerdi.
+			// Artık "etkinlikler" dalındaki ile AYNI desen kullanılıyor: people = { "-Oabc...": {...} }.
+			// idx/editIndex/singlePermDeleteIdx/successorEditingIndex/bulkSelection/newsSelection gibi
+			// değişken adları TARİHSEL nedenlerle korunmuştur ama artık SAYISAL İNDEKS DEĞİL, kalıcı
+			// push-ID (string) TUTARLAR -- isimler değişmedi, İÇERİKLERİ değişti.
+			let people = {};
+			// Belirli bir id'ye ait kayıt + o kaydın kimliğini (_id) taşıyan düz bir dizi döndürür --
+			// render/arama/filtre gibi dizi tabanlı işlemler bunun üzerinden çalışır.
+			function peopleIds() { return Object.keys(people); }
+			function peopleList() { return peopleIds().map(function(id) { return Object.assign({}, people[id], { _id: id }); }); }
 			// Denetim maddesi #1: Fuse.js her tuş vuruşunda (render() -> oninput) yeniden kurulmasın diye
 			// oncekinden farkli bir "people" referansi gorulunce indeks yeniden kurulur, ayni referans
 			// icin (yani sadece arama kutusuna yazarken) onceki indeks tekrar kullanilir. people; hem
 			// attachListener()'in on("value") callback'inde hem de undo/geri-alma/tazeleme noktalarinda
-			// (satir ~3167,3178,3710,4013,4124) HER SEFERINDE yeni/degisen bir referansla degistirildigi
-			// icin, tek tek o noktalari yakalamak yerine referans karsilastirmasi ayni sonucu daha guvenli
-			// verir -- veri degisen HER yerde otomatik gecersiz olur, currentListKey degisiminde de
-			// (switchList() people'i once [] yapip sonra yeni veriyle degistiriyor) kendiliginden yenilenir.
+			// HER SEFERINDE yeni/degisen bir referansla degistirildigi icin, tek tek o noktalari
+			// yakalamak yerine referans karsilastirmasi ayni sonucu daha guvenli verir -- veri degisen
+			// HER yerde otomatik gecersiz olur (nesne İÇİ mutasyonlarda -- orn. tek bir kaydin order
+			// alanini degistirmek -- referans AYNI kaldigi icin ilgili fonksiyonlar globalFuseSourceRef'i
+			// ACIKCA null'a cekmek ZORUNDADIR, tipki eski dizi modelinde oldugu gibi).
 			let globalFuse = null;
 			let globalFuseSourceRef = null;
 			let mode = "aktif";
-			let editIndex = null;
-			// Duzenleme modali acildiginda hedef kaydin kimlik imzasi (ad+unvan). Kisiler dizi
-			// INDEKSIYLE tutuldugu icin, baska bir editor arada kayit silerse indeksler kayar ve
-			// kaydetme yanlis kisinin uzerine yazardi; bu imza ile o durum yakalanir.
+			let editIndex = null; // ARTIK bir push-ID (string) tutar, sayisal indeks DEGIL
+			// Duzenleme modali acildiginda hedef kaydin kimlik imzasi (ad+unvan). ID'ler artik kalici
+			// olsa da AYNI ID'ye baska bir editor arada farkli bir kayit yazmis olabilir (silinip ayni
+			// anahtarla... hayir, Firebase push-ID'leri pratikte hic tekrar etmez, ama YINE DE ayni ID
+			// uzerinde ES ZAMANLI iki duzenleme olabilir) -- bu imza o durumu yakalar.
 			let editIdentity = null;
-			let singlePermDeleteIdx = null; 
+			let singlePermDeleteIdx = null; // ARTIK bir push-ID (string) tutar
 			let sortableInstances = [];
-			let openedRanks = new Set(); 
+			let openedRanks = new Set();
 
 			let isReorderMode = false; let isBulkMode = false; let isNewsMode = false;
-			let bulkSelection = []; let newsSelection = [];
+			let bulkSelection = []; let newsSelection = []; // ARTIK push-ID (string) DİZİLERİ, sayısal indeks değil
 
 			// Firebase seyrek diziyi nesneye çevirebilir ve silinen çocukların yerine null bırakabilir;
-			// bu hâliyle people.map/push çağrıları patlar veya isimsiz "hayalet" kartlar oluşur.
+			// bu hâliyle Object.keys/values çağrıları isimsiz/bozuk "hayalet" kartlar üretebilir.
+			// Ayrıca ESKİ (dizi tabanlı) bir JSON yedeği veya henüz migrasyona uğramamış bir üretim
+			// kaydı okunursa, dizi öğelerine YEREL olarak (yazmadan) gerçek Firebase push-ID'leri
+			// atanır -- database.ref(...).push() sadece bir anahtar üretir, .set() çağrılana kadar
+			// hiçbir şey yazmaz. Bu durumda peopleNeedsFullSave=true olur ki bir sonraki kayıt işlemi
+			// (savePerson yerine saveData) yeni ID'leri sunucuya KALICI olarak yazsın.
 			let peopleNeedsFullSave = false;
 			function normalizePeopleSnapshot(data) {
-				if (!data) { peopleNeedsFullSave = false; return []; }
-				let arr;
-				if (Array.isArray(data)) { arr = data; }
-				else { arr = Object.keys(data).sort(function(a, b){ return Number(a) - Number(b); }).map(function(k){ return data[k]; }); }
-				const clean = arr.filter(function(x){ return x && typeof x === "object"; });
-				// Boşluk bulunduysa indeksler kaydı: tek kayıt yazımı yanlış yere gideceğinden tüm liste yazılmalı.
-				peopleNeedsFullSave = clean.length !== arr.length || !Array.isArray(data);
-				return clean;
+				if (!data) { peopleNeedsFullSave = false; return {}; }
+				if (Array.isArray(data)) {
+					const obj = {};
+					data.forEach(function(item) {
+						if (!item || typeof item !== "object") return;
+						const id = (database && LIST_PATHS[currentListKey]) ? database.ref(dbPath(LIST_PATHS[currentListKey])).push().key : ("-local" + Math.random().toString(36).slice(2) + Date.now().toString(36));
+						obj[id] = item;
+					});
+					peopleNeedsFullSave = true; // yeni uretilen ID'ler kaliciliginda ilk firsatta tum liste yazilmali
+					return obj;
+				}
+				if (typeof data !== "object") { peopleNeedsFullSave = false; return {}; }
+				const obj = {}; let sawInvalid = false;
+				Object.keys(data).forEach(function(k) {
+					const v = data[k];
+					if (v && typeof v === "object") obj[k] = v; else sawInvalid = true;
+				});
+				peopleNeedsFullSave = sawInvalid;
+				return obj;
 			}
 
 			// normalizePeopleSnapshot ile AYNI dizi/nesne sekil-normalizasyonunu yapar ama
@@ -2420,16 +2469,19 @@
 				
 				activeListenerRef = database.ref(dbPath(LIST_PATHS[currentListKey]));
 				activeListenerCallback = function(snapshot) {
-					const previousLength = people.length;
 					people = normalizePeopleSnapshot(snapshot.val());
-					// Seçim ve sürükleme modları kişileri dizi indeksiyle tutuyor. Başka bir editör kayıt ekler/silerse
-					// indeksler kayar ve ekranda işaretlenen kişi ile işlem yapılan kişi farklı olur — bu yüzden mod iptal edilir.
-					if ((isBulkMode || isNewsMode || isReorderMode) && people.length !== previousLength) {
-						showToast("Liste başka bir kullanıcı tarafından değiştirildi, seçiminiz iptal edildi.", "error");
-						if (isBulkMode) toggleBulkDeleteMode();
-						if (isNewsMode) toggleNewsMode();
-						if (isReorderMode) toggleReorderMode();
+					// ID'ler kalıcı olduğu için başka bir editörün EKLEDİĞİ/SİLDİĞİ başka bir kayıt artık
+					// seçimleri BOZMAZ (eski dizi-indeksli modelde tüm mod iptal edilirdi). Sadece seçili/
+					// sıralanan kaydın KENDİSİ uzaktan silinmişse o kayıt seçimden düşürülür.
+					if (isBulkMode) {
+						const before = bulkSelection.length;
+						bulkSelection = bulkSelection.filter(function(id) { return !!people[id]; });
+						if (bulkSelection.length !== before) {
+							const btn = document.getElementById("executeBulkDeleteBtn"); if (btn) btn.textContent = "Seçilenleri Çöpe At (" + bulkSelection.length + ")";
+							showToast("Seçili kayıtlardan biri başka bir kullanıcı tarafından değiştirildi, seçimden çıkarıldı.", "error");
+						}
 					}
+					if (isNewsMode) newsSelection = newsSelection.filter(function(id) { return !!people[id]; });
 					renderFacultySidebar();
 					// Sürükleme sırasında yeniden çizmek Sortable örneklerini altından çeker; o modda çizim ertelenir.
 					if (!isBulkMode && !isNewsMode && !isReorderMode) render();
@@ -2449,7 +2501,7 @@
 				openedRanks.clear();
 				selectedFaculties.clear(); selectedCentralAdminIdx.clear();
 				if (isBulkMode) toggleBulkDeleteMode(); if (isReorderMode) toggleReorderMode(); if (isNewsMode) toggleNewsMode();
-				closeModal(); people = []; renderFacultySidebar(); render(); attachListener();
+				closeModal(); people = {}; renderFacultySidebar(); render(); attachListener();
 			}
 
 			document.getElementById('listSwitch').addEventListener('click', function(e) {
@@ -2479,8 +2531,7 @@
 					return;
 				}
 
-				const centralCandidates = people
-					.map(function(p, idx) { return Object.assign({}, p, { _realIdx: idx }); })
+				const centralCandidates = peopleList()
 					.filter(function(p) { return (!p.status || p.status === "aktif") && isCentralAdminPerson(p); })
 					.sort(function(a, b) { return (Number(a.rank) - Number(b.rank)) || (a.name || "").localeCompare(b.name || "", "tr"); });
 
@@ -2489,8 +2540,8 @@
 					html += '<p class="hint" style="margin:0 0 12px;">Merkezi idare kaydı yok.</p>';
 				} else {
 					html += '<div class="fs-central-list">' + centralCandidates.map(function(p) {
-						const checked = selectedCentralAdminIdx.has(p._realIdx) ? "checked" : "";
-						return '<label class="fs-item"><input type="checkbox" class="fs-central-cb" data-idx="' + p._realIdx + '" ' + checked + '><span><b>' + escapeHtml(p.name) + '</b><br><span class="fs-item-sub">' + escapeHtml(p.title) + '</span></span></label>';
+						const checked = selectedCentralAdminIdx.has(p._id) ? "checked" : "";
+						return '<label class="fs-item"><input type="checkbox" class="fs-central-cb" data-idx="' + escapeHtml(p._id) + '" ' + checked + '><span><b>' + escapeHtml(p.name) + '</b><br><span class="fs-item-sub">' + escapeHtml(p.title) + '</span></span></label>';
 					}).join("") + '</div>';
 				}
 
@@ -2533,7 +2584,7 @@
 			function handleFacultyFilterChange(e) {
 				const t = e.target;
 				if (t.classList.contains('fs-central-cb')) {
-					const idx = Number(t.dataset.idx);
+					const idx = t.dataset.idx; // push-ID (string), sayısal indeks DEĞİL
 					if (t.checked) selectedCentralAdminIdx.add(idx); else selectedCentralAdminIdx.delete(idx);
 					renderFacultySidebar(); render();
 				} else if (t.classList.contains('fs-faculty-cb')) {
@@ -2602,6 +2653,12 @@
 				database.ref("ayarlar/testModuAcik").on("value", function(snap) {
 					testModeEnabled = !!snap.val();
 					updateTestModeBanner();
+					// Test Modu ACILDIGINDA veya KAPANDIGINDA Ctrl+Z yigini temizlenir -- aksi halde
+					// production'da yapilan bir islemin "before/after" kaydi, mod degistikten sonra
+					// test/ (veya gercek) veriye yanlislikla uygulanabilirdi. Bu, testModeEnabled'in
+					// TEK degistigi nokta oldugu icin (setTestMode() de bu listener'i tetikleyerek
+					// buraya duser) tum client'lar icin ayni sekilde calisir.
+					if (typeof undoStack !== "undefined") undoStack = [];
 					// Zaten açık dinleyiciler yeni yola (test/ ya da gerçek) kendiliğinden geçmez --
 					// mod her değiştiğinde ikisi de yeniden bağlanır (attachListener/attachEventsListener
 					// kendi eski referanslarını off() ile bırakıp yenisine geçer, sayfa yenilenmez).
@@ -2626,11 +2683,17 @@
 
 			// targetName ayrı tutulur ki log listesinde "kim yaptı" (by) ile "kime yapıldı" (target)
 			// birbirine karışmasın — ikisi de kalın yazınca ayırt edilemiyordu, artık target ayrı renkte bir etiket.
+			// PROMISE DONER: eskiden "ates et ve unut" (push().catch(...)) idi -- veri basariyla
+			// yazilsa bile log yazimi sessizce basarisiz olabiliyordu. Artik cagiran taraf
+			// (mumkunse) await ile logun da tamamlandigindan emin olabilir; basarisizlik hem
+			// konsola hem de kullaniciya (toast ile) bildirilir, sessizce yutulmaz.
 			function logAction(actionLabel, targetName) {
-				if (!requireEdit()) return;
-				if (!database || !currentUser) return;
+				if (!requireEdit()) return Promise.resolve(false);
+				if (!database || !currentUser) return Promise.resolve(false);
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				database.ref(dbPath("logs/" + currentListKey)).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(err){ console.error("Log kaydı yazılamadı:", err); });
+				return database.ref(dbPath("logs/" + currentListKey)).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: firebase.database.ServerValue.TIMESTAMP })
+					.then(function(){ return true; })
+					.catch(function(err){ console.error("Log kaydı yazılamadı:", err); showToast("Kayıt yapıldı ancak işlem günlüğüne yazılamadı.", "warn"); return false; });
 			}
 
 			// ---- Debug sistemi: log/logs/{il,universite,etkinlik} ile KARIŞMASIN diye ayrı bir
@@ -2639,10 +2702,12 @@
 			// dbPath() ile sarmalanır: Test Modu açıkken debug butonları da (kullanıcı isteğiyle)
 			// gerçek veriye/gerçek debug logına dokunmaz, hepsi test/ altında kalır.
 			function logDebugAction(actionLabel, targetName) {
-				if (!requireAdmin()) return;
-				if (!database || !currentUser) return;
+				if (!requireAdmin()) return Promise.resolve(false);
+				if (!database || !currentUser) return Promise.resolve(false);
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				database.ref(dbPath("logs/debug")).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: Date.now() }).catch(function(err){ console.error("Debug log kaydı yazılamadı:", err); });
+				return database.ref(dbPath("logs/debug")).push({ by: who, email: currentUser.email, action: actionLabel, target: targetName || "", timestamp: firebase.database.ServerValue.TIMESTAMP })
+					.then(function(){ return true; })
+					.catch(function(err){ console.error("Debug log kaydı yazılamadı:", err); showToast("İşlem yapıldı ancak debug günlüğüne yazılamadı.", "warn"); return false; });
 			}
 			// NOT: aşağıdaki iki fonksiyon BİLEREK saveData()/savePerson() kullanmıyor -- onlar
 			// gerçek logs/{currentListKey} dalına yazar. Debug butonları veriyi gerçekten
@@ -2653,25 +2718,43 @@
 				if (!confirm(LIST_LABELS[currentListKey] + " listesindeki TÜM kayıtlar \"Güncel\" doğrulanmış olarak işaretlenecek. Bu GERÇEK veriyi değiştirir. Devam edilsin mi?")) return;
 				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
 				const now = Date.now();
-				people.forEach(function(p){ p.dogrulamaKaynak = "manuel"; p.sonDogrulamaTs = now; p.dogrulayan = who; });
+				// Tüm listeyi .set() ile YENİDEN YAZMAK yerine, sadece dokunulan alanlar id/field
+				// bazında .update() ile yazılır -- bu sayede debug butonuna basılırken ARADA başka
+				// bir editörün eklediği yeni bir kayıt sessizce kaybolmaz (bkz. people nesne modeli).
+				const patch1 = {};
+				Object.keys(people).forEach(function(id) {
+					// Yerelde ANINDA gorunum icin istemci zamani (now) kullanilir; Firebase'e yazilan
+					// deger ise sunucu saatiyle (ServerValue.TIMESTAMP) belirlenir -- istemci saati
+					// yanlis ayarlanmis olsa bile "sonDogrulamaTs" gercek/tutarli sunucu zamanini tasir.
+					people[id].dogrulamaKaynak = "manuel"; people[id].sonDogrulamaTs = now; people[id].dogrulayan = who;
+					patch1[id + "/dogrulamaKaynak"] = "manuel"; patch1[id + "/sonDogrulamaTs"] = firebase.database.ServerValue.TIMESTAMP; patch1[id + "/dogrulayan"] = who;
+				});
+				const count1 = Object.keys(people).length;
 				try {
-					await database.ref(dbPath(LIST_PATHS[currentListKey])).set(people);
-					logDebugAction("Tüm kayıtlar \"Güncel\" olarak işaretlendi (" + people.length + " kayıt)", LIST_LABELS[currentListKey]);
+					await database.ref(dbPath(LIST_PATHS[currentListKey])).update(patch1);
+					globalFuseSourceRef = null;
+					await logDebugAction("Tüm kayıtlar \"Güncel\" olarak işaretlendi (" + count1 + " kayıt)", LIST_LABELS[currentListKey]);
 					showToast("Tüm kayıtlar güncel olarak işaretlendi.", "success");
 					render();
-				} catch (err) { showToast("Kaydedilemedi.", "error"); }
+				} catch (err) { console.error("Kaydedilemedi:", err); showToast("Kaydedilemedi.", "error"); }
 			}
 			async function debugResetVerificationAllCurrent() {
 				if (!requireAdmin()) return;
 				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); return; }
 				if (!confirm(LIST_LABELS[currentListKey] + " listesindeki TÜM kayıtların doğrulama bilgisi silinip \"Hiç Doğrulanmadı\" yapılacak. Bu GERÇEK veriyi değiştirir. Devam edilsin mi?")) return;
-				people.forEach(function(p){ delete p.dogrulamaKaynak; delete p.sonDogrulamaTs; delete p.dogrulayan; });
+				const patch2 = {};
+				Object.keys(people).forEach(function(id) {
+					delete people[id].dogrulamaKaynak; delete people[id].sonDogrulamaTs; delete people[id].dogrulayan;
+					patch2[id + "/dogrulamaKaynak"] = null; patch2[id + "/sonDogrulamaTs"] = null; patch2[id + "/dogrulayan"] = null;
+				});
+				const count2 = Object.keys(people).length;
 				try {
-					await database.ref(dbPath(LIST_PATHS[currentListKey])).set(people);
-					logDebugAction("Tüm kayıtların doğrulaması sıfırlandı (" + people.length + " kayıt)", LIST_LABELS[currentListKey]);
+					await database.ref(dbPath(LIST_PATHS[currentListKey])).update(patch2);
+					globalFuseSourceRef = null;
+					await logDebugAction("Tüm kayıtların doğrulaması sıfırlandı (" + count2 + " kayıt)", LIST_LABELS[currentListKey]);
 					showToast("Doğrulama bilgisi sıfırlandı.", "warn");
 					render();
-				} catch (err) { showToast("Kaydedilemedi.", "error"); }
+				} catch (err) { console.error("Kaydedilemedi:", err); showToast("Kaydedilemedi.", "error"); }
 			}
 			function loadAdminDebugPanel() {
 				if (!requireAdmin()) return;
@@ -2734,38 +2817,71 @@
 				catch (err) { showToast("Günlük temizlenemedi.", "error"); }
 			}
 
-			async function saveData(actionLabel, targetName) {
+			// actionLabel/targetName standart tam kayıt; opsiyonel "patch" verilirse (id veya
+			// "id/alan" -> deger, silme için null) TÜM listeyi değil, sadece dokunulan yol(lar)ı
+			// .update() ile yazar -- eş zamanlı olarak başka bir editörün eklediği kayıt kaybolmaz.
+			async function saveData(actionLabel, targetName, patch) {
 				if (!requireEdit()) return false;
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
 				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
-				// people bu noktaya kadar caginin dogrudan mutasyonuyla (push/splice/index atamasi)
-				// degismis olabilir, referansi AYNI kalabilir -- Fuse onbellegi bu yuzden burada
-				// da acikca gecersiz kilinir (bkz. "globalFuseSourceRef" tanimindaki uzun yorum).
+				// people bu noktaya kadar caginin dogrudan mutasyonuyla degismis olabilir, referansi
+				// AYNI kalabilir -- Fuse onbellegi bu yuzden burada da acikca gecersiz kilinir
+				// (bkz. "globalFuseSourceRef" tanimindaki uzun yorum).
 				globalFuseSourceRef = null;
-				try { await database.ref(dbPath(LIST_PATHS[currentListKey])).set(people); peopleNeedsFullSave = false; logAction(actionLabel || "Liste güncellendi", targetName); return true; }
-				catch (err) { showToast("Buluta kaydedilemedi.", "error"); return false; }
-			}
-
-			// Tüm listeyi değil, sadece TEK kişiyi gönderir — çok daha hızlı kayıt için
-			async function savePerson(idx, actionLabel, targetName) {
-				if (!requireEdit()) return false;
-				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
-				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
-				if (!people[idx]) { showToast("Kayıt bulunamadı, sayfayı yenileyin.", "error"); return false; }
-				globalFuseSourceRef = null; // bkz. saveData() -- ayni sebep, tek kayit guncellense bile arama alaninda degisiklik olabilir
-				// Dizide boşluk vardı ve yerel kopya sıkıştırıldıysa indeksler kaymıştır; tek kayıt yerine tüm liste yazılır.
-				if (peopleNeedsFullSave) { const ok = await saveData(actionLabel, targetName); if (ok) peopleNeedsFullSave = false; return ok; }
 				try {
-					await database.ref(dbPath(LIST_PATHS[currentListKey] + "/" + idx)).set(people[idx]);
-					const name = (people[idx] && people[idx].name) ? people[idx].name : "Kayıt";
-					logAction(actionLabel || (name + " güncellendi"), targetName || name);
+					// Veri + log TEK cok-yollu update() ile ATOMIK yazilir -- eskiden log ayri (ates-et-
+					// unut) bir push() idi, veri basariyla yazilip log yazimi sessizce basarisiz
+					// olabiliyordu. root().update() ile ayni istekte iki farkli dal birden yazilir;
+					// Firebase her dali kendi .write kuraliyla ayri ayri degerlendirir, ikisi de
+					// editor/admin icin zaten acik oldugundan ek bir Rules degisikligi gerekmez.
+					const updates = {};
+					if (patch) { Object.keys(patch).forEach(function(k){ updates[dbPath(LIST_PATHS[currentListKey]) + "/" + k] = patch[k]; }); }
+					else { updates[dbPath(LIST_PATHS[currentListKey])] = people; }
+					let logKey = null;
+					if (currentUser) {
+						logKey = database.ref(dbPath("logs/" + currentListKey)).push().key;
+						const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
+						updates[dbPath("logs/" + currentListKey) + "/" + logKey] = { by: who, email: currentUser.email, action: actionLabel || "Liste güncellendi", target: targetName || "", timestamp: firebase.database.ServerValue.TIMESTAMP };
+					}
+					await database.ref("/").update(updates);
+					peopleNeedsFullSave = false;
+					if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
 					return true;
 				}
-				catch (err) { showToast("Buluta kaydedilemedi.", "error"); return false; }
+				catch (err) { console.error("Kaydedilemedi:", err); showToast("Buluta kaydedilemedi.", "error"); return false; }
+			}
+
+			// Tüm listeyi değil, sadece TEK kişiyi (kendi push-ID'sinin altına) gönderir —
+			// hem çok daha hızlı hem de başka bir kaydı asla etkilemez.
+			async function savePerson(id, actionLabel, targetName) {
+				if (!requireEdit()) return false;
+				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
+				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
+				if (!people[id]) { showToast("Kayıt bulunamadı, sayfayı yenileyin.", "error"); return false; }
+				globalFuseSourceRef = null; // bkz. saveData() -- ayni sebep, tek kayit guncellense bile arama alaninda degisiklik olabilir
+				// Snapshot ESKİ (dizi tabanlı) bir yedekten yerel olarak ID'lere çevrildiyse, o ID'lerin
+				// sunucuya KALICI olarak yazılması gerekir -- bu yüzden tek-yol yazımı yerine tüm nesne yazılır.
+				if (peopleNeedsFullSave) { const ok = await saveData(actionLabel, targetName); if (ok) peopleNeedsFullSave = false; return ok; }
+				try {
+					const name = (people[id] && people[id].name) ? people[id].name : "Kayıt";
+					// saveData() ile ayni gerekce: kayit + log TEK atomik update() ile yazilir.
+					const updates = {};
+					updates[dbPath(LIST_PATHS[currentListKey] + "/" + id)] = people[id];
+					let logKey = null;
+					if (currentUser) {
+						logKey = database.ref(dbPath("logs/" + currentListKey)).push().key;
+						const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
+						updates[dbPath("logs/" + currentListKey) + "/" + logKey] = { by: who, email: currentUser.email, action: actionLabel || (name + " güncellendi"), target: targetName || name, timestamp: firebase.database.ServerValue.TIMESTAMP };
+					}
+					await database.ref("/").update(updates);
+					if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+					return true;
+				}
+				catch (err) { console.error("Kaydedilemedi:", err); showToast("Buluta kaydedilemedi.", "error"); return false; }
 			}
 
 			// Diğer form alanlarına dokunmadan sadece "bu bilgi hâlâ doğru" damgası basar --
-			// tam düzenleme akışına girmeden hızlı doğrulama için (saveForm ile aynı stale-index koruması).
+			// tam düzenleme akışına girmeden hızlı doğrulama için (saveForm ile aynı stale-id koruması).
 			async function verifyPerson(idx) {
 				if (!requireEdit()) return;
 				const p = people[idx];
@@ -2779,10 +2895,16 @@
 				const kaynak = kaynakSel ? kaynakSel.value : "manuel";
 				const who = ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email;
 				const oldRecord = Object.assign({}, p);
-				people[idx] = Object.assign({}, p, { dogrulamaKaynak: kaynak, sonDogrulamaTs: Date.now(), dogrulayan: who });
+				// savePerson() tum people[idx] nesnesini oldugu gibi Firebase'e yazdigindan, sunucu
+				// saatini DB'ye tasimak icin sonDogrulamaTs burada ServerValue.TIMESTAMP olarak
+				// yazilir; yazim basarili olur olmaz yerel gorunum icin Date.now() ile degistirilir
+				// (aksi halde ekranda sentinel nesnesi gorunurdu -- listener zaten bir sonraki
+				// senkronizasyonda gercek sunucu degerini getirecek).
+				people[idx] = Object.assign({}, p, { dogrulamaKaynak: kaynak, sonDogrulamaTs: firebase.database.ServerValue.TIMESTAMP, dogrulayan: who });
 				const actionLabel = (p.name || "Kayıt") + " kişisi doğrulandı · Kaynak: " + (VERIFICATION_SOURCES[kaynak] || kaynak);
 				const saved = await savePerson(idx, actionLabel, p.name);
 				if (!saved) { people[idx] = oldRecord; return; }
+				people[idx].sonDogrulamaTs = Date.now();
 				showToast("Doğrulama kaydedildi: " + (p.name || ""));
 				updateVerifyInfo(people[idx]);
 				render();
@@ -2986,20 +3108,28 @@
 
 			async function executeBulkDelete() {
 				if (!requireEdit()) return;
-				// Sadece gerçekten var olan indeksler işlenir; liste kısalmışsa people[i] undefined olup hata veriyordu.
-				const valid = bulkSelection.filter(function(i) { return !!people[i]; });
+				// Sadece gerçekten var olan ID'ler işlenir; kayıt uzaktan silinmişse people[id] undefined olup hata veriyordu.
+				const valid = bulkSelection.filter(function(id) { return !!people[id]; });
 				if (!valid.length) { closeBulkConfirmModal(); toggleBulkDeleteMode(); showToast("Seçim geçersiz, liste yenilendi.", "error"); return; }
-				const names = valid.map(function(i) { return people[i].name || "İsimsiz kayıt"; });
+				const names = valid.map(function(id) { return people[id].name || "İsimsiz kayıt"; });
 				// Yazma basarisiz olursa geri alinabilmesi icin dokunulan kayitlarin eski durumu saklanir.
-				const prevStates = valid.map(function(i) { return { i: i, status: people[i].status, prevStatus: people[i].prevStatus }; });
-				for (var i = 0; i < valid.length; i++) { people[valid[i]].prevStatus = people[valid[i]].status || "aktif"; people[valid[i]].status = "silindi"; }
+				const prevStates = valid.map(function(id) { return { id: id, status: people[id].status, prevStatus: people[id].prevStatus }; });
+				// Sadece dokunulan kayıtların "status"/"prevStatus" alanları .update() ile yazılır --
+				// TÜM listeyi .set() ile yeniden yazmak, aynı anda başka bir editörün eklediği yeni bir
+				// kaydı üzerine yazıp kaybettirebilirdi.
+				const patch = {};
+				valid.forEach(function(id) {
+					const prevStatus = people[id].status || "aktif";
+					people[id].prevStatus = prevStatus; people[id].status = "silindi";
+					patch[id + "/prevStatus"] = prevStatus; patch[id + "/status"] = "silindi";
+				});
 				const label = names.length === 1 ? (names[0] + " kişisi çöpe atıldı") : (names.length + " kişi çöpe atıldı: " + names.join(", "));
 				// Sayı toggleBulkDeleteMode() ÖNCESİNDE alınır; o fonksiyon bulkSelection'ı boşalttığı için bildirim hep "0" yazıyordu.
 				const movedCount = valid.length;
-				const ok = await saveData(label, names.length === 1 ? names[0] : undefined);
+				const ok = await saveData(label, names.length === 1 ? names[0] : undefined, patch);
 				closeBulkConfirmModal(); toggleBulkDeleteMode();
 				if (!ok) {
-					prevStates.forEach(function(s) { if (people[s.i]) { people[s.i].status = s.status; if (s.prevStatus === undefined) delete people[s.i].prevStatus; else people[s.i].prevStatus = s.prevStatus; } });
+					prevStates.forEach(function(s) { if (people[s.id]) { people[s.id].status = s.status; if (s.prevStatus === undefined) delete people[s.id].prevStatus; else people[s.id].prevStatus = s.prevStatus; } });
 					render();
 					return;
 				}
@@ -3234,7 +3364,8 @@
 				const hasRank = p.rank !== undefined && p.rank !== null && p.rank !== "";
 				const destLabel = restoredStatus === "pasif" ? "arşive (pasif)" : "aktif listeye";
 				const label = (p.name || "Kayıt") + " kişisi yeniden " + destLabel + " katıldı" + (hasRank ? (", " + p.rank + ". sıraya") : "");
-				const rOk = await saveData(label, p.name);
+				// Tüm listeyi değil, SADECE bu kaydı yazar -- geri yükleme başka bir kaydı asla etkilemez.
+				const rOk = await savePerson(idx, label, p.name);
 				if (!rOk) { people[idx] = oldRecord; render(); return; }
 				render(); showToast(restoredStatus === "pasif" ? "Kayıt arşive (pasif) geri alındı." : "Kayıt aktif klasörüne geri alındı.");
 			}
@@ -3243,15 +3374,34 @@
 			function closeSinglePermDelete() { document.getElementById("singlePermDeleteModalBg").classList.remove("open"); singlePermDeleteIdx = null; }
 			async function executeSinglePermDelete() {
 				if (!requireEdit()) return;
+				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); return; }
 				if (singlePermDeleteIdx !== null && people[singlePermDeleteIdx]) {
-					const name = (people[singlePermDeleteIdx] && people[singlePermDeleteIdx].name) ? people[singlePermDeleteIdx].name : "Kayıt";
-					const prevPeople = people.slice();
-					people.splice(singlePermDeleteIdx, 1);
-					// Dizi yeniden indekslendi: "Rektörlük / Merkez" seçimi indeks tuttuğu için artık başka kişiyi işaret eder.
-					selectedCentralAdminIdx.clear();
-					const spOk = await saveData(name + " kişisi kalıcı olarak silindi", name);
+					const id = singlePermDeleteIdx;
+					const name = (people[id] && people[id].name) ? people[id].name : "Kayıt";
+					const prevRecord = people[id];
+					delete people[id];
+					// ID'ler kalıcı olduğu için diğer seçimler etkilenmez; sadece silinen kaydın kendisi
+					// "Rektörlük / Merkez" filtresinde seçiliyse temizlenir.
+					selectedCentralAdminIdx.delete(id);
+					globalFuseSourceRef = null;
+					let spOk = false;
+					try {
+						// SADECE bu kaydın kendi düğümü silinir (update() içinde null = remove) -- log ile
+						// AYNI atomik update() isteğinde gider, tüm listeyi yeniden yazmadığı için başka
+						// bir kaydı etkilemez.
+						const updates = {}; updates[dbPath(LIST_PATHS[currentListKey] + "/" + id)] = null;
+						let logKey = null;
+						if (currentUser) {
+							logKey = database.ref(dbPath("logs/" + currentListKey)).push().key;
+							const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
+							updates[dbPath("logs/" + currentListKey) + "/" + logKey] = { by: who, email: currentUser.email, action: name + " kişisi kalıcı olarak silindi", target: name, timestamp: firebase.database.ServerValue.TIMESTAMP };
+						}
+						await database.ref("/").update(updates);
+						if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+						spOk = true;
+					} catch (err) { console.error("Kaydedilemedi:", err); showToast("Buluta kaydedilemedi.", "error"); }
 					closeSinglePermDelete();
-					if (!spOk) { people = prevPeople; render(); return; }
+					if (!spOk) { people[id] = prevRecord; render(); return; }
 					render(); showToast("Kayıt kalıcı olarak silindi.", "warn");
 				}
 			}
@@ -3260,20 +3410,24 @@
 			function closeEmptyTrashModal() { document.getElementById("emptyTrashModalBg").classList.remove("open"); }
 			async function executeEmptyTrash() {
 				if (!requireEdit()) return;
-				const removedCount = people.filter(function(p) { return p.status === "silindi"; }).length;
-				const prevPeople = people;
-				people = people.filter(p => p.status !== "silindi");
+				const idsToRemove = Object.keys(people).filter(function(id) { return people[id].status === "silindi"; });
+				const removedCount = idsToRemove.length;
+				if (!removedCount) { closeEmptyTrashModal(); showToast("Çöp kutusu zaten boş.", "success"); return; }
+				const prevRecords = {}; idsToRemove.forEach(function(id) { prevRecords[id] = people[id]; });
+				// Her silinecek ID için .update() patch'inde deger "null" verilir -- Firebase bunu
+				// o TEK düğümü silmek olarak yorumlar, tüm listeyi yeniden yazmaz (bkz. saveData()).
+				const patch = {}; idsToRemove.forEach(function(id) { patch[id] = null; delete people[id]; });
 				selectedCentralAdminIdx.clear();
-				const etOk = await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)");
+				const etOk = await saveData("Çöp kutusu boşaltıldı (" + removedCount + " kayıt kalıcı olarak silindi)", undefined, patch);
 				closeEmptyTrashModal();
-				if (!etOk) { people = prevPeople; render(); return; }
+				if (!etOk) { idsToRemove.forEach(function(id) { people[id] = prevRecords[id]; }); render(); return; }
 				render(); showToast("Çöp kutusu tamamen boşaltıldı.", "warn");
 			}
 
 			async function sortRankGroupByName(evt, key) {
 				evt.preventDefault(); evt.stopPropagation();
 				if (!requireEdit()) return;
-				const groupPeople = people.map((p, idx) => ({ p, idx }))
+				const groupPeople = peopleList().map(function(p) { return { p: p, idx: p._id }; })
 					.filter(o => (!o.p.status || o.p.status === "aktif") && ((o.p.rank === "" || o.p.rank == null) ? "__none__" : String(o.p.rank)) === key);
 
 				groupPeople.sort((a, b) => {
@@ -3283,9 +3437,13 @@
 				});
 
 				const prevOrders = groupPeople.map(o => ({ idx: o.idx, order: o.p.order }));
-				groupPeople.forEach((o, i) => { people[o.idx].order = i + 1; });
+				// Sadece değişen "order" alanı, her kişinin KENDİ id'si altında ("id/order") .update()
+				// ile yazılır -- tüm listeyi yeniden yazmak, bu sırada başka bir editörün eklediği bir
+				// kaydı kaybettirebilirdi (bkz. CLAUDE.md #4 -- reorder her zaman hedefli update olmalı).
+				const patch = {};
+				groupPeople.forEach((o, i) => { people[o.idx].order = i + 1; patch[o.idx + "/order"] = i + 1; });
 				const groupLabel = key === "__none__" ? "Sırasız" : ("Sıra " + key);
-				const srtOk = await saveData(groupLabel + " grubu (" + groupPeople.length + " kişi) isme göre A-Z sıralandı");
+				const srtOk = await saveData(groupLabel + " grubu (" + groupPeople.length + " kişi) isme göre A-Z sıralandı", undefined, patch);
 				if (!srtOk) { prevOrders.forEach(function(o) { if (people[o.idx]) people[o.idx].order = o.order; }); render(); return; }
 				showToast("İsim sırasına göre düzenlendi.", "success");
 				render();
@@ -3357,7 +3515,7 @@
 				if(clrBtn) clrBtn.style.display = q.length > 0 ? "flex" : "none"; 
 			}
 
-			let listAll = people.map((p, idx) => Object.assign({}, p, { _realIdx: idx }));
+			let listAll = peopleList();
 			let list;
 			if (!q) {
 				list = listAll;
@@ -3387,7 +3545,7 @@
 			// yine de filtrelenmemiş TÜM kayıtları sildiği için kullanıcı görmediği veriyi yok ediyordu.
 			if (currentListKey === "universite" && !isReorderMode && mode !== "silindi" && (selectedFaculties.size > 0 || selectedCentralAdminIdx.size > 0)) {
 				list = list.filter(p => {
-					if (selectedCentralAdminIdx.has(p._realIdx)) return true;
+					if (selectedCentralAdminIdx.has(p._id)) return true;
 					if (selectedFaculties.size && Array.isArray(p.faculties) && p.faculties.some(f => selectedFaculties.has(f))) return true;
 					return false;
 				});
@@ -3427,7 +3585,7 @@
 				const subgrid = document.createElement("div"); subgrid.className = "rank-subgrid"; subgrid.dataset.rankKey = key;
 
 				g.items.forEach((p, idx) => {
-					const row = document.createElement("div"); row.className = "reorder-row"; row.dataset.realIdx = p._realIdx;
+					const row = document.createElement("div"); row.className = "reorder-row"; row.dataset.pid = p._id;
 					const rowPhoto = safePhotoUrl(p.photo);
 						const imgHtml = rowPhoto ? '<img src="' + escapeHtml(rowPhoto) + '" alt="" loading="lazy">' : "";
 					row.innerHTML = `<div class="internal-order-badge">${idx + 1}</div> <span class="drag-handle-mini">⋮⋮</span> <span class="row-thumb">${imgHtml || escapeHtml(initials(p.name))}</span>
@@ -3442,8 +3600,8 @@
 				const inst = new Sortable(subgrid, {
 					animation: 200, handle: '.drag-handle-mini', ghostClass: 'dragging', delay: 150, delayOnTouchOnly: true,
 					onMove: function (evt) {
-					const draggedIdx = Number(evt.dragged.dataset.realIdx); const relatedIdx = Number(evt.related.dataset.realIdx);
-					const dp = people[draggedIdx], rp = people[relatedIdx];
+					const draggedId = evt.dragged.dataset.pid; const relatedId = evt.related.dataset.pid;
+					const dp = people[draggedId], rp = people[relatedId];
 					if (!dp || !rp) return false;
 					if (getHierarchyWeight(dp) !== getHierarchyWeight(rp)) return false;
 					if (getInstitutionWeight(dp) !== getInstitutionWeight(rp)) return false;
@@ -3451,14 +3609,17 @@
 					},
 					onEnd: async function (evt) {
 					if (evt.oldIndex === evt.newIndex) return; const rowEls = Array.from(subgrid.children);
-					// Sürükleme sırasında liste uzaktan değişmiş olabilir; kayan indekslerle yazmak yanlış kişilere sıra numarası verirdi.
-					if (rowEls.some(function(el){ return !people[Number(el.dataset.realIdx)]; })) { showToast("Liste değişti, sıralama kaydedilmedi.", "error"); render(); return; }
-					rowEls.forEach((el, idx) => { const realIdx = Number(el.dataset.realIdx); people[realIdx].order = idx + 1; el.querySelector('.internal-order-badge').textContent = idx + 1; });
-					const draggedIdx = Number(evt.item.dataset.realIdx);
-					const draggedName = (people[draggedIdx] && people[draggedIdx].name) ? people[draggedIdx].name : "Kayıt";
+					// Sürükleme sırasında liste uzaktan değişmiş olabilir; silinmiş bir kayda yazmaya çalışmayı önler.
+					if (rowEls.some(function(el){ return !people[el.dataset.pid]; })) { showToast("Liste değişti, sıralama kaydedilmedi.", "error"); render(); return; }
+					// Sadece değişen "order" alanları id/order yoluyla .update() ile yazılır -- tüm listeyi
+					// yeniden yazmak, aynı anda başka bir editörün eklediği bir kaydı kaybettirebilirdi.
+					const patch = {};
+					rowEls.forEach((el, idx) => { const pid = el.dataset.pid; people[pid].order = idx + 1; patch[pid + "/order"] = idx + 1; el.querySelector('.internal-order-badge').textContent = idx + 1; });
+					const draggedId = evt.item.dataset.pid;
+					const draggedName = (people[draggedId] && people[draggedId].name) ? people[draggedId].name : "Kayıt";
 					const rankKey = subgrid.dataset.rankKey === "__none__" ? "Sırasız" : ("Sıra " + subgrid.dataset.rankKey);
 					// Surukleme kaydedilemezse ekrandaki yeni dizilim yaniltici olur; liste geri cizilir.
-					const dragOk = await saveData(draggedName + " kişisi " + rankKey + " içinde " + (evt.newIndex + 1) + ". konuma sürüklendi", draggedName);
+					const dragOk = await saveData(draggedName + " kişisi " + rankKey + " içinde " + (evt.newIndex + 1) + ". konuma sürüklendi", draggedName, patch);
 					if (!dragOk) render();
 					}
 				}); sortableInstances.push(inst);
@@ -3472,16 +3633,16 @@
 					if (p.status === "pasif") cClass += " pasif"; if (p.status === "silindi") cClass += " silindi";
 					
 					// ARAMA YAPILDIĞINDA SEÇİMLERİN KORUNMASI İÇİN "checked" DURUMUNU SEÇİM DİZİSİNDEN (Array) KONTROL EDİYORUZ
-					if (isBulkMode) { cClass += " bulk-mode"; if (bulkSelection.includes(p._realIdx)) cClass += " bulk-selected"; } 
-					else if (isNewsMode) { cClass += " news-mode"; if (newsSelection.includes(p._realIdx)) cClass += " news-selected"; } 
+					if (isBulkMode) { cClass += " bulk-mode"; if (bulkSelection.includes(p._id)) cClass += " bulk-selected"; }
+					else if (isNewsMode) { cClass += " news-mode"; if (newsSelection.includes(p._id)) cClass += " news-selected"; }
 
-					card.className = cClass; card.dataset.realIdx = p._realIdx;
+					card.className = cClass; card.dataset.pid = p._id;
 					const safePhoto = safePhotoUrl(p.photo);
 					const imgHtml = safePhoto ? '<img src="' + escapeHtml(safePhoto) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : "";
 					const hasRank = (p.rank !== undefined && p.rank !== ""); const cbLeft = hasRank ? '42px' : '10px';
 
-					const bulkHtml = isBulkMode ? '<input type="checkbox" class="bulk-cb" style="left:'+cbLeft+';" ' + (bulkSelection.includes(p._realIdx) ? 'checked' : '') + '>' : "";
-					const newsHtml = isNewsMode ? '<input type="checkbox" class="news-cb" style="left:'+cbLeft+';" ' + (newsSelection.includes(p._realIdx) ? 'checked' : '') + '>' : "";
+					const bulkHtml = isBulkMode ? '<input type="checkbox" class="bulk-cb" style="left:'+cbLeft+';" ' + (bulkSelection.includes(p._id) ? 'checked' : '') + '>' : "";
+					const newsHtml = isNewsMode ? '<input type="checkbox" class="news-cb" style="left:'+cbLeft+';" ' + (newsSelection.includes(p._id) ? 'checked' : '') + '>' : "";
 
 					let actionHtml = "";
 					const fresh = getFreshnessInfo(p);
@@ -3491,14 +3652,17 @@
 						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:#f0f0f0; border-radius:7px;">' + selectionHint + '</div>';
 					}
 					else if (mode === "silindi") {
+						// Kimlik (push-ID) bir DIZE oldugu icin JS cagrisina TIRNAK ICINDE gecirilir --
+						// aksi halde ornegin "-Oabc123" gibi bir ID sayi gibi ayristirilmaya calisilip
+						// gecersiz JS (eksi isareti + tanimlayici) uretir.
 						actionHtml = canEditData() ? `
 							<div style="display:flex; gap:8px; margin-top:auto;">
-								<button class="card-action-btn btn-restore-card" onclick="restoreSingle(${p._realIdx}); event.stopPropagation();">Geri Yükle</button>
-								<button class="card-action-btn btn-permdel-card" onclick="openSinglePermDelete(${p._realIdx}); event.stopPropagation();">Kalıcı Sil</button>
+								<button class="card-action-btn btn-restore-card" onclick="restoreSingle('${p._id}'); event.stopPropagation();">Geri Yükle</button>
+								<button class="card-action-btn btn-permdel-card" onclick="openSinglePermDelete('${p._id}'); event.stopPropagation();">Kalıcı Sil</button>
 							</div>
 						` : "";
 					}
-					else { actionHtml = canEditData() ? '<button class="card-edit" onclick="openEditModal(' + p._realIdx + '); event.stopPropagation();">Düzenle</button>' : ""; }
+					else { actionHtml = canEditData() ? '<button class="card-edit" onclick="openEditModal(\'' + p._id + '\'); event.stopPropagation();">Düzenle</button>' : ""; }
 
 					card.innerHTML = bulkHtml + newsHtml +
 					'<div class="photo-wrap"><div class="avatar-fallback">' + escapeHtml(initials(p.name)) + '</div>' + imgHtml +
@@ -3514,8 +3678,8 @@
 						(p.note ? '<p class="note">' + escapeHtml(p.note) + '</p>' : '') + actionHtml +
 					'</div>';
 
-					if (isBulkMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateBulkSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.bulk-cb'); cb.checked = !cb.checked; updateBulkSelection(personIdx, cb.checked, crd); };})(p._realIdx, card); } 
-					else if (isNewsMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateNewsSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.news-cb'); cb.checked = !cb.checked; updateNewsSelection(personIdx, cb.checked, crd); };})(p._realIdx, card); } 
+					if (isBulkMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateBulkSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.bulk-cb'); cb.checked = !cb.checked; updateBulkSelection(personIdx, cb.checked, crd); };})(p._id, card); }
+					else if (isNewsMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateNewsSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.news-cb'); cb.checked = !cb.checked; updateNewsSelection(personIdx, cb.checked, crd); };})(p._id, card); }
 
 					grid.appendChild(card);
 				});
@@ -3815,8 +3979,11 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 					note: document.getElementById("sf_note").value.trim()
 				};
 				if (currentListKey === "universite" && Array.isArray(oldP.faculties)) record.faculties = oldP.faculties.slice();
-				people.push(record);
-				const newIdx = people.length - 1;
+				// Yeni kayıt için GERÇEK bir Firebase push-ID üretilir -- push() sadece bir anahtar
+				// verir, .set()/.update() çağrılana kadar hiçbir şey yazmaz, bu yüzden anahtarı burada
+				// almak güvenlidir ve iki editör aynı anda halef atasa bile ÇAKIŞMAZ.
+				const newId = (database && LIST_PATHS[currentListKey]) ? database.ref(dbPath(LIST_PATHS[currentListKey])).push().key : ("-local" + Date.now().toString(36));
+				people[newId] = record;
 				const actionLabel = name + " kişisi, " + (oldP.name || "eski kayıt") + " yerine atandı" + (record.rank !== "" ? ", " + record.rank + ". sıra" : "");
 
 				// Eski kaydi (successorEditingIndex) da AYNI islemde pasife cekiyoruz -- aksi
@@ -3832,32 +3999,45 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 
 				let saved = false;
 				if (peopleNeedsFullSave || !database || !LIST_PATHS[currentListKey]) {
-					// Kacis yolu: savePerson()'un da kullandigi ayni bayrak -- veri dizi-indeksli
-					// degil (obje/nesne şeklinde) geldiyse tek-index yazimi guvenli degil, tum
-					// listeyi tek .set() ile yaz (saveData() zaten atomik).
+					// Kacis yolu: savePerson()'un da kullandigi ayni bayrak -- snapshot ESKİ (dizi
+					// tabanlı) bir yedekten yerel ID'lere cevrildiyse tek-yol yazimi guvenli degil,
+					// tum nesneyi tek .set() ile yaz (saveData() zaten atomik).
 					people[successorEditingIndex] = oldUpdated;
 					saved = await saveData(actionLabel + " · " + oldActionLabel, name);
 					if (!saved) people[successorEditingIndex] = oldP;
 				} else {
-					// Firebase'in cok-yollu update()'i: TEK istekte iki index'e birden yazar,
-					// native olarak atomik -- iki ayri savePerson() cagrisinin arasinda kalan
-					// tutarsizlik penceresini tamamen kapatir.
+					// Firebase'in cok-yollu update()'i: TEK istekte iki ID'ye (yeni push-ID + eski
+					// kaydin push-ID'si) birden yazar, native olarak atomik -- iki ayri savePerson()
+					// cagrisinin arasinda kalan tutarsizlik penceresini tamamen kapatir.
 					try {
+						// Kayit + IKI log satiri (yeni kisi + eski kaydin pasife alinmasi) TEK atomik
+						// root().update() istegine tasindi -- once ayri ayri (ates-et-unut) push()
+						// cagrilariydi, veri basariyla yazilsa bile loglardan biri sessizce kaybolabiliyordu.
+						const listPath = dbPath(LIST_PATHS[currentListKey]);
 						const updates = {};
-						updates[String(newIdx)] = record;
-						updates[String(successorEditingIndex)] = oldUpdated;
+						updates[listPath + "/" + newId] = record;
+						updates[listPath + "/" + successorEditingIndex] = oldUpdated;
+						let logKey1 = null, logKey2 = null;
+						if (currentUser) {
+							const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
+							const logsPath = dbPath("logs/" + currentListKey);
+							logKey1 = database.ref(logsPath).push().key;
+							logKey2 = database.ref(logsPath).push().key;
+							updates[logsPath + "/" + logKey1] = { by: who, email: currentUser.email, action: actionLabel, target: name, timestamp: firebase.database.ServerValue.TIMESTAMP };
+							updates[logsPath + "/" + logKey2] = { by: who, email: currentUser.email, action: oldActionLabel, target: oldP.name || "", timestamp: firebase.database.ServerValue.TIMESTAMP };
+						}
 						globalFuseSourceRef = null; // saveData()/savePerson() disinda kalan tek yazma yolu -- bkz. tanim yorumu
-						await database.ref(dbPath(LIST_PATHS[currentListKey])).update(updates);
+						await database.ref("/").update(updates);
 						people[successorEditingIndex] = oldUpdated;
-						logAction(actionLabel, name);
-						logAction(oldActionLabel, oldP.name || "");
+						if (!logKey1) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
 						saved = true;
 					} catch (err) {
+						console.error("Kaydedilemedi:", err);
 						showToast("Buluta kaydedilemedi (yeni kişi ve eski kayıt birlikte yazılamadı).", "error");
 						saved = false;
 					}
 				}
-				if (!saved) { people.pop(); return; }
+				if (!saved) { delete people[newId]; people[successorEditingIndex] = oldP; return; }
 				// Halef basariyla kaydedildi -- ana Kaydet'i kilitleyen kosul artik gecmis, kilit acilir.
 				document.getElementById("sr_reason").value = ""; onStatusReasonChange();
 				showToast("Yeni kişi eklendi: " + name);
@@ -4097,15 +4277,14 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			record.gorevGecmisi = tempGorevGecmisi.slice();
 			let targetIdx; let actionLabel; let oldRecord = null;
 			if(editIndex === null) {
-				// İki editör aynı anda kişi eklerse ikisi de people.length-1 ile AYNI indekse yazıp birbirini siliyordu.
-				// Yazmadan hemen önce sunucudaki güncel liste okunarak bu pencere daraltılır.
-				if (database && LIST_PATHS[currentListKey]) {
-					// Bu okuma, yeni kisi eklemede eszamanli yazma korumasinin TAMAMI. Sessizce
-					// basarisiz olursa koruma da sessizce yok olur; en azindan konsola yazilir.
-					try { const fresh = await database.ref(dbPath(LIST_PATHS[currentListKey])).once("value"); people = normalizePeopleSnapshot(fresh.val()); }
-					catch (err) { console.warn("Güncel liste okunamadı, yerel listeye göre kaydediliyor:", err); showToast("Sunucudaki güncel liste okunamadı; kayıt yerel listeye göre yapılıyor.", "warn"); }
-				}
-				people.push(record); targetIdx = people.length - 1;
+				// Eskiden iki editör aynı anda kişi eklerse ikisi de "people.length-1" ile AYNI dizi
+				// indeksine yazıp birbirini siliyordu. Artık her yeni kayıt için GERÇEK, benzersiz bir
+				// Firebase push-ID üretilir ve savePerson() SADECE o tek düğümü yazar -- tüm liste
+				// yeniden yazılmadığı için başka bir editörün eş zamanlı eklemesiyle asla çakışmaz,
+				// bu yüzden ekleme öncesi ayrıca "güncel listeyi oku" adımına da gerek kalmadı.
+				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil, kayıt yapılamadı.", "error"); return; }
+				targetIdx = database.ref(dbPath(LIST_PATHS[currentListKey])).push().key;
+				people[targetIdx] = record;
 				const newRank = (record.rank !== "" && record.rank !== undefined && record.rank !== null) ? Number(record.rank) : null;
 				actionLabel = name + " kişisi eklendi" + (newRank !== null ? ", " + newRank + ". sıra" : "");
 			} else {
@@ -4140,9 +4319,9 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			}
 			// Yazma başarısızsa modal kapatılıp "başarıyla kaydedildi" denmemeli — kullanıcı kaydettiğini sanıyordu.
 			const saved = await savePerson(targetIdx, actionLabel, name);
-			// Duzenleme sirasinda yazma basarisiz olursa yerel diziyi de eski haline dondur; aksi halde
+			// Duzenleme sirasinda yazma basarisiz olursa yerel kopyayi da eski haline dondur; aksi halde
 			// ekranda "kaydedilmis" gorunen ama sunucuya hic ulasmamis veri, bir sonraki gercek guncellemeye kadar fark edilmez.
-			if (!saved) { if (oldRecord === null) people.pop(); else people[targetIdx] = oldRecord; return; }
+			if (!saved) { if (oldRecord === null) delete people[targetIdx]; else people[targetIdx] = oldRecord; return; }
 			closeModal(); showToast("Kayıt başarıyla kaydedildi.");
 			lastStatusTransitionNote = ""; // tuketildi -- sadece basari yolunda temizlenir, basarisiz yazmada editor tekrar deneyebilsin diye not korunur
 			}
@@ -4158,18 +4337,24 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				const delP = people[editIndex];
 				if (!delP) { showToast("Kayıt bulunamadı, liste yenilendi.", "error"); document.getElementById("confirmModalBg").classList.remove("open"); closeModal(); render(); return; }
 				const name = delP.name || "Kayıt";
-				delP.prevStatus = delP.status || "aktif";
+				const prevStatus = delP.status || "aktif";
+				delP.prevStatus = prevStatus;
 				delP.status = "silindi";
-				const delOk = await saveData(name + " kişisi çöpe atıldı", name);
+				// Tüm listeyi değil, SADECE bu kaydı yazar -- çöpe atma başka bir kaydı asla etkilemez.
+				const delOk = await savePerson(editIndex, name + " kişisi çöpe atıldı", name);
 				document.getElementById("confirmModalBg").classList.remove("open");
-				if (!delOk) { render(); return; }
+				if (!delOk) { delP.status = prevStatus; delete delP.prevStatus; render(); return; }
 				showToast("Kayıt çöpe atıldı.", "warn");
 			}
 
 			function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], {type: mimeType}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url); }
+			// people artık push-ID -> kayıt şeklinde bir NESNE; dışa aktarım bu nesneyi ID'leriyle
+			// BİRLİKTE indirir. Eski (dizi tabanlı) yedeklerle geriye dönük uyumluluk importJSON()'da
+			// sağlanır (Array.isArray kontrolü ile hem eski hem yeni format kabul edilir).
 			function exportJSON(){ const fileName = currentListKey === "universite" ? "Üniversite-Protokol-Listesi.json" : "İl-Protokol-Listesi.json"; downloadFile(JSON.stringify(people, null, 2), fileName, "application/json"); showToast("JSON yedeği indirildi."); }
 			function importJSON(e){
 			if (!requireEdit()) { e.target.value = ""; return; }
+			if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); e.target.value = ""; return; }
 			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
 			reader.onload = async function(ev) {
 				// Girdi doğrulanmadan kabul edilirse: rank:null → Number(null)=0 olup kişiyi Rektör'ün üstüne çıkarıyor,
@@ -4183,22 +4368,76 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				function cleanDate(v) { const s = String(v === undefined || v === null ? "" : v).trim(); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ""; }
 				const snapshotBefore = JSON.parse(JSON.stringify(people));
 				try{
-				const data = JSON.parse(ev.target.result); if(!Array.isArray(data)) throw new Error("Format hatalı");
+				const parsed = JSON.parse(ev.target.result);
+				// Hem ESKİ dizi-tabanlı bir yedek (exportJSON()'un eski çıktısı / dizi tabanlı
+				// Firebase yapısından alınmış bir dışa aktarım) hem de YENİ push-ID'li nesne formatı
+				// (bu ekrandan yeni indirilmiş) kabul edilir.
+				let data;
+				if (Array.isArray(parsed)) { data = parsed; }
+				else if (parsed && typeof parsed === "object") { data = Object.keys(parsed).map(function(k){ return parsed[k]; }); }
+				else { throw new Error("Format hatalı"); }
 				let matchCount = 0; let newCount = 0; let skipped = 0;
+				// İçe aktarma modu: varsayılan (ve önerilen) davranış BİRLEŞTİR'dir -- eşleşen
+				// kayıtlar güncellenir, yeni olanlar eklenir, listedeki diğer kayıtlara dokunulmaz.
+				// "Tamamen Geri Yükle" ise MEVCUT TÜM listeyi SİLİP sadece dosyadakini yazar; geri
+				// dönüşü olmadığı için İKİNCİ, ayrı bir onayla korunur.
+				const fullRestoreWanted = confirm(
+					"İçe Aktarma Modu\n\n" +
+					"TAMAM: Tamamen Geri Yükle — mevcut listedeki TÜM kayıtlar SİLİNİR, sadece bu dosyadaki kayıtlar kalır (GERİ ALINAMAZ).\n" +
+					"İPTAL: Birleştir (varsayılan) — eşleşen kayıtlar güncellenir, yeni olanlar eklenir, listedeki diğer kayıtlara dokunulmaz."
+				);
+				if (fullRestoreWanted) {
+					if (!confirm("TAMAMEN GERİ YÜKLE seçildi. Mevcut " + Object.keys(people).length + " kayıt SİLİNECEK ve yerine bu dosyadaki kayıtlar yazılacak. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?")) {
+						showToast("İçe aktarma iptal edildi.", "warn"); return;
+					}
+					const freshPeople = {};
+					for (var fi = 0; fi < data.length; fi++) {
+						const fitem = data[fi]; if (!fitem || typeof fitem !== "object" || !fitem.name || !fitem.title) { skipped++; continue; }
+						const fname = String(fitem.name).trim(); const ftitle = String(fitem.title).trim();
+						const fstatus = (fitem.status && VALID_STATUS[fitem.status]) ? fitem.status : "aktif";
+						const fid = database.ref(dbPath(LIST_PATHS[currentListKey])).push().key;
+						const freshRecord = {
+							prefix: fitem.prefix ? String(fitem.prefix) : "", name: fname, title: ftitle, unit: fitem.unit ? String(fitem.unit) : "",
+							status: fstatus, rank: cleanRank(fitem.rank),
+							photo: safePhotoUrl(fitem.photo), start: cleanDate(fitem.start), end: cleanDate(fitem.end), note: fitem.note ? String(fitem.note) : ""
+						};
+						const ford = cleanRank(fitem.order); if (ford !== "") freshRecord.order = ford;
+						if (Array.isArray(fitem.faculties)) freshRecord.faculties = fitem.faculties.map(String);
+						freshPeople[fid] = freshRecord; newCount++;
+					}
+					if (!Object.keys(freshPeople).length) { showToast(skipped ? (skipped + " satırın hepsi geçersiz, içe aktarılan kayıt yok.") : "İçe aktarılacak geçerli kayıt yok.", "error"); return; }
+					people = freshPeople;
+					const restoreLabel = "JSON'dan TAMAMEN GERİ YÜKLENDİ (" + newCount + " kayıt" + (skipped ? ", " + skipped + " geçersiz satır atlandı" : "") + ")";
+					// patch verilmez -- saveData() bu durumda tüm "people" nesnesini TEK .set() ile yazar.
+					const restoreOk = await saveData(restoreLabel, undefined);
+					if (!restoreOk) { people = snapshotBefore; render(); return; }
+					showToast(newCount + " kayıtla liste tamamen değiştirildi." + (skipped ? (" " + skipped + " geçersiz satır atlandı.") : ""));
+					render();
+					return;
+				}
+				// Tüm listeyi .set() ile yeniden yazmak yerine, sadece dokunulan alanlar/kayıtlar
+				// id (veya "id/alan") -> değer şeklinde tek bir .update() patch'inde toplanır --
+				// içe aktarma sırasında başka bir editörün eklediği bir kayıt asla kaybolmaz.
+				const patch = {};
 				for (var i = 0; i < data.length; i++) {
 					const item = data[i]; if(!item || typeof item !== "object" || !item.name || !item.title) { skipped++; continue; }
 					const name = String(item.name).trim(); const title = String(item.title).trim();
-					const existingIndex = people.findIndex(function(pp) { return String(pp.name || "").trim() === name && String(pp.title || "").trim() === title; });
+					const existingId = Object.keys(people).find(function(id) { return String(people[id].name || "").trim() === name && String(people[id].title || "").trim() === title; });
 					const status = (item.status && VALID_STATUS[item.status]) ? item.status : "aktif";
-					if (existingIndex !== -1) {
+					if (existingId) {
 						matchCount++;
-						people[existingIndex].rank = cleanRank(item.rank, people[existingIndex].rank);
-						people[existingIndex].status = status;
-						if(item.prefix) people[existingIndex].prefix = String(item.prefix);
-						if(item.unit !== undefined && item.unit !== null) people[existingIndex].unit = String(item.unit);
-						if(Array.isArray(item.faculties)) people[existingIndex].faculties = item.faculties.map(String);
+						people[existingId].rank = cleanRank(item.rank, people[existingId].rank);
+						people[existingId].status = status;
+						patch[existingId + "/rank"] = people[existingId].rank === "" ? null : people[existingId].rank;
+						patch[existingId + "/status"] = status;
+						if(item.prefix) { people[existingId].prefix = String(item.prefix); patch[existingId + "/prefix"] = people[existingId].prefix; }
+						if(item.unit !== undefined && item.unit !== null) { people[existingId].unit = String(item.unit); patch[existingId + "/unit"] = people[existingId].unit; }
+						if(Array.isArray(item.faculties)) { people[existingId].faculties = item.faculties.map(String); patch[existingId + "/faculties"] = people[existingId].faculties; }
 					} else {
 						newCount++;
+						// Yeni her kayıt için GERÇEK bir Firebase push-ID üretilir (henüz yazılmadan
+						// sadece anahtar alınır) -- iki editör aynı anda içe aktarsa bile ÇAKIŞMAZ.
+						const newId = database.ref(dbPath(LIST_PATHS[currentListKey])).push().key;
 						const newRecord = {
 							prefix: item.prefix ? String(item.prefix) : "", name: name, title: title, unit: item.unit ? String(item.unit) : "",
 							status: status, rank: cleanRank(item.rank),
@@ -4207,12 +4446,14 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						// order alanı eskiden atlanıyordu; bu yüzden içe aktarılan kişilerin sıra içi dizilimi kayboluyordu.
 						const ord = cleanRank(item.order); if (ord !== "") newRecord.order = ord;
 						if (Array.isArray(item.faculties)) newRecord.faculties = item.faculties.map(String);
-						people.push(newRecord);
+						people[newId] = newRecord;
+						patch[newId] = newRecord;
 					}
 				}
+				if (!Object.keys(patch).length) { showToast(skipped ? (skipped + " satırın hepsi geçersiz, içe aktarılan kayıt yok.") : "İçe aktarılacak geçerli kayıt yok.", "error"); return; }
 				const importLabel = "JSON içe aktarıldı (" + matchCount + " kişi güncellendi, " + newCount + " kişi eklendi)";
-				// Bulut yazımı başarısızsa yerel liste geri alınır; aksi hâlde ekranda duran veriler sunucuda yoktu.
-				const ok = await saveData(importLabel);
+				// Bulut yazımı başarısızsa yerel kopya geri alınır; aksi hâlde ekranda duran veriler sunucuda yoktu.
+				const ok = await saveData(importLabel, undefined, patch);
 				if (!ok) { people = snapshotBefore; render(); return; }
 				const skipNote = skipped ? (" " + skipped + " geçersiz satır atlandı.") : "";
 				if(matchCount > 0) showToast(matchCount + " kişi güncellendi. " + newCount + " kişi eklendi." + skipNote); else showToast(newCount + " yeni kişi başarıyla eklendi." + skipNote);
@@ -4259,7 +4500,10 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 								// kilidi sessizce acilir (yanlislikla surukleme korumasi kaybolur).
 								locked: !!item.locked,
 								arsiv: safeLinkUrl(item.arsiv), not: item.not ? String(item.not) : "",
-								olusturan: item.olusturan ? String(item.olusturan) : "", olusturmaTs: item.olusturmaTs || Date.now(), guncellemeTs: Date.now()
+								// olusturmaTs yedekte VARSA (tarihsel deger) korunur; yoksa sunucu saatiyle
+								// doldurulur. guncellemeTs bu geri yukleme anini yansitir, o yuzden her
+								// zaman sunucu saatiyle yazilir.
+								olusturan: item.olusturan ? String(item.olusturan) : "", olusturmaTs: item.olusturmaTs || firebase.database.ServerValue.TIMESTAMP, guncellemeTs: firebase.database.ServerValue.TIMESTAMP
 							};
 							kept++;
 						});
@@ -4269,12 +4513,16 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						if (!confirm(confirmMsg)) { e.target.value = ""; return; }
 						if (!database) { showToast("Veritabanı bağlı değil!", "error"); e.target.value = ""; return; }
 						await database.ref(dbPath("etkinlikler")).set(clean);
+						// Log yazımı artık AWAIT edilir -- veri başarıyla yazılsa bile log sessizce
+						// kaybolmasın diye (audit #6); hata olursa konsola VE kullanıcıya bildirilir.
 						if (currentUser) {
-							database.ref(dbPath("logs/etkinlik")).push({
-								by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
-								email: currentUser.email, action: "Etkinlik takvimi JSON yedekten geri yüklendi (" + kept + " kayıt" + (skipped ? ", " + skipped + " geçersiz satır atlandı" : "") + ")",
-								target: "", timestamp: Date.now()
-							}).catch(function(err){ console.error("Yedekleme log kaydı yazılamadı:", err); });
+							try {
+								await database.ref(dbPath("logs/etkinlik")).push({
+									by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
+									email: currentUser.email, action: "Etkinlik takvimi JSON yedekten geri yüklendi (" + kept + " kayıt" + (skipped ? ", " + skipped + " geçersiz satır atlandı" : "") + ")",
+									target: "", timestamp: firebase.database.ServerValue.TIMESTAMP
+								});
+							} catch (logErr) { console.error("Yedekleme log kaydı yazılamadı:", logErr); showToast("Yedek geri yüklendi ancak işlem günlüğüne yazılamadı.", "warn"); }
 						}
 						const skipNote = skipped ? (" " + skipped + " geçersiz satır atlandı.") : "";
 						showToast(kept + " etkinlik geri yüklendi." + skipNote);
@@ -4356,12 +4604,24 @@ function evStatus(k){ for(var i=0;i<EVENT_STATUS.length;i++) if(EVENT_STATUS[i].
 /* --- Tarih yardımcıları: hepsi YEREL saatle çalışır, UTC kayması olmaz --- */
 function pad2(n){ return (n<10?"0":"")+n; }
 function dKey(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
-function parseKey(s){ const a=String(s||"").split("-"); if(a.length!==3) return null; const d=new Date(Number(a[0]),Number(a[1])-1,Number(a[2])); return isNaN(d.getTime())?null:d; }
+// Sadece Date() ile parse etmek yetmez: JS "2026-02-31" gibi takvimsel olarak GECERSIZ bir
+// tarihi sessizce Mart'a tasir (overflow). Parse ettikten sonra yil/ay/gun geri okunup
+// istenenle birebir eslesiyor mu diye kontrol edilir, eslesmezse null donulur.
+function parseKey(s){
+	const a=String(s||"").split("-");
+	if(a.length!==3) return null;
+	const y=Number(a[0]), m=Number(a[1]), day=Number(a[2]);
+	if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(day)) return null;
+	const d=new Date(y,m-1,day);
+	if(isNaN(d.getTime())) return null;
+	if(d.getFullYear()!==y || d.getMonth()!==m-1 || d.getDate()!==day) return null;
+	return d;
+}
 function addDays(d,n){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; }
 function startOfWeek(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const wd=(x.getDay()+6)%7; return addDays(x,-wd); }
 function isSameDay(a,b){ return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
 function todayDate(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
-function hmToMin(s){ const a=String(s||"").split(":"); if(a.length<2) return null; const h=Number(a[0]), m=Number(a[1]); if(isNaN(h)||isNaN(m)) return null; return h*60+m; }
+function hmToMin(s){ const a=String(s||"").split(":"); if(a.length<2) return null; const h=Number(a[0]), m=Number(a[1]); if(isNaN(h)||isNaN(m)) return null; if(h<0||h>23||m<0||m>59) return null; return h*60+m; }
 function minToHm(m){ return pad2(Math.floor(m/60)%24)+":"+pad2(m%60); }
 function fmtTrDate(s){ const d=parseKey(s); if(!d) return s||""; return d.getDate()+" "+CAL_MONTHS[d.getMonth()]+" "+d.getFullYear(); }
 
@@ -5151,10 +5411,10 @@ function renderEventAttendeePicker(){
 				merged.set(key, p);
 			});
 		}
-		addAll(people); addAll(ilPoolCache);
+		addAll(peopleList()); addAll(ilPoolCache);
 		pool = Array.from(merged.values());
 	} else {
-		pool=people.filter(function(p){ return (!p.status||p.status==="aktif") && p.name; });
+		pool=peopleList().filter(function(p){ return (!p.status||p.status==="aktif") && p.name; });
 	}
 	const filtered=pool.filter(function(p){ return ((p.name||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr").includes(q); }).slice(0,120);
 	const selKeys=new Set(calAttendees.map(function(a){ return (a.name||"")+"|"+(a.title||""); }));
@@ -5276,13 +5536,16 @@ function describeEventCreation(e){
 
 // logs/etkinlik altına ortak bicimde log satiri ekler; persistEvent, executeEventDelete ve
 // Ctrl+Z geri alma akislari bunu paylasir (onceden ayni kod birden fazla yerde tekrarlaniyordu).
+// PROMISE DONER (bkz. logAction() ile ayni gerekce): fire-and-forget push().catch(...) yerine,
+// cagiran taraf isterse await ile logun tamamlandigindan emin olabilir; basarisizlik konsola VE
+// kullaniciya (toast) bildirilir.
 function logEventAction(action, target){
-	if(!currentUser || !database) return;
-	database.ref(dbPath("logs/etkinlik")).push({
+	if(!currentUser || !database) return Promise.resolve(false);
+	return database.ref(dbPath("logs/etkinlik")).push({
 		by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
 		email: currentUser.email, action: action || "Etkinlik güncellendi",
-		target: target || "", timestamp: Date.now()
-	}).catch(function(err){ console.error("Etkinlik log kaydı yazılamadı:", err); });
+		target: target || "", timestamp: firebase.database.ServerValue.TIMESTAMP
+	}).then(function(){ return true; }).catch(function(err){ console.error("Etkinlik log kaydı yazılamadı:", err); showToast("Etkinlik kaydedildi ancak işlem günlüğüne yazılamadı.", "warn"); return false; });
 }
 // DONUS DEGERI: basarida {ok:true, id:...} (create'te yeni push-key, update'te girilen id'nin
 // aynisi - Ctrl+Z "olusturma" geri almasi icin hangi kaydin silinecegini bilmemiz gerekiyor),
@@ -5295,10 +5558,30 @@ async function persistEvent(id, obj, logLabel){
 	if(id !== null && id !== undefined && typeof id !== "string"){ showToast("Geçersiz etkinlik kimliği.", "error"); return false; }
 	if(!database){ showToast("Veritabanı bağlı değil!", "error"); return false; }
 	try{
-		let finalId=id;
-		if(id) await database.ref(dbPath("etkinlikler/"+id)).set(obj);
-		else { const ref=await database.ref(dbPath("etkinlikler")).push(obj); finalId=ref.key; }
-		logEventAction(logLabel, obj.ad);
+		const isNew = !id;
+		const finalId = id || database.ref(dbPath("etkinlikler")).push().key;
+		// Firebase'e yazilan olusturmaTs/guncellemeTs SUNUCU saatiyle (ServerValue.TIMESTAMP)
+		// damgalanir; `obj` (caller'in calEvents[id]=obj ile ANINDA yerel gosterime aldigi kopya)
+		// kendi Date.now() degerini korur -- boylece ekranda sentinel nesnesi degil okunabilir
+		// bir zaman gorunur, sonraki listener senkronunda gercek sunucu degeri gelir.
+		const toWrite = Object.assign({}, obj);
+		if (isNew) toWrite.olusturmaTs = firebase.database.ServerValue.TIMESTAMP;
+		toWrite.guncellemeTs = firebase.database.ServerValue.TIMESTAMP;
+		// Kayit + log TEK atomik root().update() istegiyle yazilir -- eskiden ayri (ates-et-unut)
+		// bir push() idi, veri basariyla yazilsa bile log sessizce kaybolabiliyordu.
+		const updates = {};
+		updates[dbPath("etkinlikler/"+finalId)] = toWrite;
+		let logKey = null;
+		if (currentUser) {
+			logKey = database.ref(dbPath("logs/etkinlik")).push().key;
+			updates[dbPath("logs/etkinlik") + "/" + logKey] = {
+				by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
+				email: currentUser.email, action: logLabel || "Etkinlik güncellendi",
+				target: obj.ad || "", timestamp: firebase.database.ServerValue.TIMESTAMP
+			};
+		}
+		await database.ref("/").update(updates);
+		if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
 		return { ok:true, id:finalId };
 	}catch(err){
 		console.error("Etkinlik kaydedilemedi:", err);
@@ -5317,7 +5600,11 @@ async function saveEvent(){
 	const saat=document.getElementById("ev_saat").value;
 	const bitis=document.getElementById("ev_bitisSaat").value;
 	if(saat && bitis && hmToMin(bitis)!==null && hmToMin(saat)!==null && hmToMin(bitis)<=hmToMin(saat)){
-		showToast("Bitiş saati başlangıçtan sonra olmalı.", "error"); return;
+		// Bitis, baslangictan KUCUK/ESIT olabilir -- bu illa hata degil, gece yarisini asan bir
+		// etkinlik de (ornegin 22:00 -> 01:00) olabilir. Karmasik bir tarih-araligi modeline
+		// gecmek yerine (tek "tarih" alani hala ayni gun kalir) kullaniciya acikca sorulur.
+		const geceYarisiOnay = confirm("Bitiş saati (" + bitis + "), başlangıçtan (" + saat + ") önce görünüyor.\n\nBu etkinlik gece yarısını geçiyor mu (bitiş ertesi gün)?\n\n\"Tamam\" derseniz bu şekilde kaydedilir, \"İptal\" ile saatleri düzeltebilirsiniz.");
+		if(!geceYarisiOnay){ showToast("Bitiş saati başlangıçtan sonra olmalı.", "error"); return; }
 	}
 	const obj={
 		ad: ad, tur: document.getElementById("ev_tur").value, durum: document.getElementById("ev_durum").value,
@@ -5393,9 +5680,21 @@ async function executeEventDelete(){
 	const ad=e.ad||"Etkinlik";
 	try{
 		const before=Object.assign({}, e);   // Ctrl+Z icin tam kopya
-		await database.ref(dbPath("etkinlikler/"+id)).remove();
+		// Silme + log TEK atomik update() ile yazilir (update() icinde null = remove).
+		const updates = {}; updates[dbPath("etkinlikler/"+id)] = null;
+		let logKey = null;
+		if (currentUser) {
+			logKey = database.ref(dbPath("logs/etkinlik")).push().key;
+			updates[dbPath("logs/etkinlik") + "/" + logKey] = {
+				by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
+				email: currentUser.email,
+				action: evLogName(ad)+" etkinliği takvimden silindi"+(e.tarih?" · "+EVENT_LOG_LABELS.tarih+": "+fmtTrDate(e.tarih):"")+(e.yer?" · "+EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer):""),
+				target: ad, timestamp: firebase.database.ServerValue.TIMESTAMP
+			};
+		}
+		await database.ref("/").update(updates);
+		if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
 		delete calEvents[id];
-		logEventAction(evLogName(ad)+" etkinliği takvimden silindi"+(e.tarih?" · "+EVENT_LOG_LABELS.tarih+": "+fmtTrDate(e.tarih):"")+(e.yer?" · "+EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer):""), ad);
 		pushUndo({ type:"delete", id:id, before:before, after:null });
 		closeEventDeleteConfirm(); closeEventModal(); closeEventPeek();
 		renderCalendar();
@@ -5408,8 +5707,17 @@ async function executeEventDelete(){
 }
 
 /* --- CTRL+Z: son takvim islemini geri alma --- */
+// before/after cagiran taraflarda genelde Object.assign({}, e) ile (SIG) kopyalanir -- bu SIG
+// bir kopyadir, katilimcilar gibi ic ice diziler hala AYNI referansi paylasir. O dizi daha
+// sonra baska bir yerde mutasyona ugrarsa (ornegin calAttendees.slice() yeniden atanmadan
+// once ayni referans uzerinde push/splice yapilirsa) bu undo kaydi da sessizce bozulurdu.
+// Tum cagiranlari tek tek duzeltmek yerine tek bir noktada (burada) structuredClone ile
+// DERIN kopya alinir -- boylece undoStack'teki her girdi cagiran tarafin daha sonraki
+// mutasyonlarindan tamamen izole olur.
 function pushUndo(entry){
 	entry.ts=Date.now();
+	if(entry.before!==undefined && entry.before!==null) entry.before=structuredClone(entry.before);
+	if(entry.after!==undefined && entry.after!==null) entry.after=structuredClone(entry.after);
 	undoStack.push(entry);
 	if(undoStack.length>UNDO_STACK_LIMIT) undoStack.shift();
 }
@@ -5446,9 +5754,21 @@ async function undoLastCalendarAction(){
 	let ok=false;
 	if(entry.type==="create"){
 		try{
-			await database.ref(dbPath("etkinlikler/"+entry.id)).remove();
+			// Silme + log TEK atomik update() ile yazilir (update() icinde null = remove).
+			const updates = {}; updates[dbPath("etkinlikler/"+entry.id)] = null;
+			let logKey = null;
+			if (currentUser) {
+				logKey = database.ref(dbPath("logs/etkinlik")).push().key;
+				updates[dbPath("logs/etkinlik") + "/" + logKey] = {
+					by: ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email,
+					email: currentUser.email,
+					action: adName+" etkinliğinin eklenmesi geri alındı (Ctrl+Z, oturumda #"+undoCount+")",
+					target: adName, timestamp: firebase.database.ServerValue.TIMESTAMP
+				};
+			}
+			await database.ref("/").update(updates);
+			if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
 			delete calEvents[entry.id];
-			logEventAction(adName+" etkinliğinin eklenmesi geri alındı (Ctrl+Z, oturumda #"+undoCount+")", adName);
 			ok=true;
 		}catch(err){ console.error("Geri alma başarısız:", err); showToast("Geri alma başarısız oldu.", "error"); }
 	} else if(entry.type==="delete"){

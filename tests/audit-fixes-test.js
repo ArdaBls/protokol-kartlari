@@ -162,25 +162,29 @@ async function newPage(browser, width, height, mobile) {
 		};
 	});
 
-	// --- K-5: bayat editIndex baska kisinin uzerine YAZMAMALI ---
+	// --- K-5 (ARTIK bir REGRESYON-KORUMA testi, eski hali "bayat dizi indeksi" senaryosuydu):
+	// people ARTIK push-ID'li bir NESNE -- baska bir editorun ALAKASIZ bir kaydi silmesi
+	// digerlerinin ID'sini/kimligini ASLA KAYDIRMAZ. saveForm() halen dogru (kendi) ID'ye
+	// yazmali ve silinen kaydi DIRILTMEMELI. ---
 	const k5 = await page.evaluate(async () => {
 		currentUser = { uid: 'ed1', role: 'editor', firstName: 'T', lastName: 'K', email: 't@t.com' };
 		applyPermissions();
 		closeCalendar();
-		people = [
-			{ name: 'Birinci Kisi', title: 'Unvan1', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
-			{ name: 'Ikinci Kisi', title: 'Unvan2', prefix: '', unit: '', status: 'aktif', rank: 2, photo: '', start: '', end: '', note: '' },
-			{ name: 'Ucuncu Kisi', title: 'Unvan3', prefix: '', unit: '', status: 'aktif', rank: 3, photo: '', start: '', end: '', note: '' }
-		];
+		people = {
+			pid1: { name: 'Birinci Kisi', title: 'Unvan1', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
+			pid2: { name: 'Ikinci Kisi', title: 'Unvan2', prefix: '', unit: '', status: 'aktif', rank: 2, photo: '', start: '', end: '', note: '' },
+			pid3: { name: 'Ucuncu Kisi', title: 'Unvan3', prefix: '', unit: '', status: 'aktif', rank: 3, photo: '', start: '', end: '', note: '' }
+		};
 		render();
-		openEditModal(2);                                   // "Ucuncu Kisi" duzenleniyor
+		openEditModal('pid3');                              // "Ucuncu Kisi" duzenleniyor
 		document.getElementById('f_name').value = 'Degistirilmis Ad';
-		people.splice(0, 1);                                // baska editor 1. kaydi sildi -> indeksler kaydi
+		delete people.pid1;                                 // baska editor ALAKASIZ bir kaydi sildi
 		render();
 		await saveForm();
 		return {
-			victimUntouched: people[1] && people[1].name === 'Ucuncu Kisi',   // ezilmemeli
-			noWrongWrite: !people.some((p) => p.name === 'Degistirilmis Ad'),
+			victimNotResurrected: people.pid1 === undefined,          // silinen kayit geri gelmemeli
+			editedRecordUpdated: people.pid3 && people.pid3.name === 'Degistirilmis Ad', // KENDI ID'sine yazilmali
+			otherRecordIntact: people.pid2 && people.pid2.name === 'Ikinci Kisi',
 			modalClosed: !document.getElementById('modalBg').classList.contains('open')
 		};
 	});
@@ -188,9 +192,9 @@ async function newPage(browser, width, height, mobile) {
 	// --- O-6: executeDelete uzaktan silinen kayitta COKMEMELI ---
 	const o6 = await page.evaluate(async () => {
 		const errsBefore = window.__pageErrCount || 0;
-		people = [{ name: 'Tek Kisi', title: 'U', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }];
-		render(); openEditModal(0);
-		people.length = 0;                                  // kayit uzaktan yok oldu
+		people = { pidTek: { name: 'Tek Kisi', title: 'U', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' } };
+		render(); openEditModal('pidTek');
+		people = {};                                        // kayit uzaktan yok oldu
 		await executeDelete();
 		return {
 			confirmModalClosed: !document.getElementById('confirmModalBg').classList.contains('open'),
@@ -199,107 +203,117 @@ async function newPage(browser, width, height, mobile) {
 	});
 
 	// --- K-6: saveForm sirasinda editIndex DEGISIRSE rollback yanlis kayda YAZMAMALI ---
-	// (K-5'ten farkli: burada dizi kaymiyor, ayni await penceresinde editIndex baska
+	// (K-5'ten farkli: burada ID kaymiyor, ayni await penceresinde editIndex baska
 	// bir kaydi gostermeye baslıyor -- eski kod bu durumda global editIndex'i okuyup
 	// YANLIS kaydin uzerine eski veriyi yaziyordu, targetIdx'i yakalayip kullanmiyordu)
 	const k6 = await page.evaluate(async () => {
 		currentUser = { uid: 'ed1', role: 'editor', firstName: 'T', lastName: 'K', email: 't@t.com' };
 		applyPermissions();
-		people = [
-			{ name: 'Kayit A', title: 'Unvan', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
-			{ name: 'Kayit B', title: 'Unvan', prefix: '', unit: '', status: 'aktif', rank: 2, photo: '', start: '', end: '', note: '' }
-		];
+		people = {
+			pidA: { name: 'Kayit A', title: 'Unvan', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
+			pidB: { name: 'Kayit B', title: 'Unvan', prefix: '', unit: '', status: 'aktif', rank: 2, photo: '', start: '', end: '', note: '' }
+		};
 		render();
-		openEditModal(0);                                   // "Kayit A" duzenleniyor
+		openEditModal('pidA');                              // "Kayit A" duzenleniyor
 		document.getElementById('f_name').value = 'Kayit A Guncellendi';
 		const origRef = database.ref.bind(database);
 		database.ref = function (p) {
 			const r = origRef(p);
-			r.set = function () { return new Promise((_, reject) => setTimeout(() => reject(new Error('mock-fail')), 30)); };
+			// savePerson() artik veri+log'u TEK atomik root().update() ile yaziyor (audit #6) --
+			// eski kod .set() kullaniyordu, bu yuzden .update() de ayni sekilde reddedilmeli.
+			const fail = function () { return new Promise((_, reject) => setTimeout(() => reject(new Error('mock-fail')), 30)); };
+			r.set = fail; r.update = fail;
 			return r;
 		};
 		const p = saveForm();                               // await ETME
-		openEditModal(1);                                    // yazma beklerken baska kaydi actı -> editIndex artik 1
+		openEditModal('pidB');                               // yazma beklerken baska kaydi actı -> editIndex artik 'pidB'
 		await p;
 		database.ref = origRef;
 		return {
-			recordARolledBack: people[0].name === 'Kayit A',          // eski haline donmeli
-			recordBUntouched: people[1].name === 'Kayit B'            // editIndex=1'in kaydina YANLISLIKLA yazilmamali
+			recordARolledBack: people.pidA.name === 'Kayit A',        // eski haline donmeli
+			recordBUntouched: people.pidB.name === 'Kayit B'          // editIndex='pidB'nin kaydina YANLISLIKLA yazilmamali
 		};
 	});
 
 	// --- K-7: restoreSingle basarisizsa geri alinan durum GERI DONMELI ---
 	const k7 = await page.evaluate(async () => {
-		people = [{ name: 'Cop Kayit', title: '', prefix: '', unit: '', status: 'silindi', prevStatus: 'pasif', rank: '', photo: '', start: '', end: '', note: '' }];
+		people = { pid1: { name: 'Cop Kayit', title: '', prefix: '', unit: '', status: 'silindi', prevStatus: 'pasif', rank: '', photo: '', start: '', end: '', note: '' } };
 		render();
 		const origRef = database.ref.bind(database);
-		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
-		await restoreSingle(0);
+		// savePerson() artik .set() DEGIL, veri+log'u TEK atomik root().update() ile yaziyor (audit #6).
+		database.ref = function (p) { const r = origRef(p); const fail = function () { return Promise.reject(new Error('mock-fail')); }; r.set = fail; r.update = fail; return r; };
+		await restoreSingle('pid1');
 		database.ref = origRef;
-		return { statusRolledBack: people[0].status === 'silindi', prevStatusRestored: people[0].prevStatus === 'pasif' };
+		return { statusRolledBack: people.pid1.status === 'silindi', prevStatusRestored: people.pid1.prevStatus === 'pasif' };
 	});
 
-	// --- K-8: executeSinglePermDelete basarisizsa kayit dizide KALMALI (silinmemis gibi geri donmeli) ---
+	// --- K-8: executeSinglePermDelete basarisizsa kayit NESNEDE KALMALI (silinmemis gibi geri donmeli) ---
+	// (Kalici silme artik .set() DEGIL, .remove() kullaniyor -- hata simulasyonu buna gore .remove()'u eziyor.)
 	const k8 = await page.evaluate(async () => {
-		people = [
-			{ name: 'Kalici Silinecek', title: '', prefix: '', unit: '', status: 'silindi', rank: '', photo: '', start: '', end: '', note: '' },
-			{ name: 'Diger Kayit', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }
-		];
+		people = {
+			pidSil: { name: 'Kalici Silinecek', title: '', prefix: '', unit: '', status: 'silindi', rank: '', photo: '', start: '', end: '', note: '' },
+			pidDiger: { name: 'Diger Kayit', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }
+		};
 		render();
-		singlePermDeleteIdx = 0;
+		singlePermDeleteIdx = 'pidSil';
 		const origRef = database.ref.bind(database);
-		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		// executeSinglePermDelete() artik .remove() DEGIL, silme+log'u TEK atomik root().update()
+		// (update() icinde null = remove) ile yaziyor (audit #6).
+		database.ref = function (p) { const r = origRef(p); const fail = function () { return Promise.reject(new Error('mock-fail')); }; r.remove = fail; r.update = fail; return r; };
 		await executeSinglePermDelete();
 		database.ref = origRef;
-		return { recordStillPresent: people.length === 2 && people[0].name === 'Kalici Silinecek', otherRecordIntact: people[1].name === 'Diger Kayit' };
+		return { recordStillPresent: Object.keys(people).length === 2 && people.pidSil.name === 'Kalici Silinecek', otherRecordIntact: people.pidDiger.name === 'Diger Kayit' };
 	});
 
 	// --- K-9: executeEmptyTrash basarisizsa cop kutusu BOSALTILMAMIS gibi geri donmeli ---
+	// (Cop bosaltma artik TEK .set() DEGIL, {id:null} patch'li .update() kullaniyor.)
 	const k9 = await page.evaluate(async () => {
-		people = [
-			{ name: 'Coptekiler', title: '', prefix: '', unit: '', status: 'silindi', rank: '', photo: '', start: '', end: '', note: '' },
-			{ name: 'Aktif Kayit', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }
-		];
+		people = {
+			pidCop: { name: 'Coptekiler', title: '', prefix: '', unit: '', status: 'silindi', rank: '', photo: '', start: '', end: '', note: '' },
+			pidAktif: { name: 'Aktif Kayit', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' }
+		};
 		render();
 		const origRef = database.ref.bind(database);
-		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		database.ref = function (p) { const r = origRef(p); r.update = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
 		await executeEmptyTrash();
 		database.ref = origRef;
-		return { trashRestored: people.length === 2 && people.some((p) => p.status === 'silindi') };
+		return { trashRestored: Object.keys(people).length === 2 && Object.keys(people).some((id) => people[id].status === 'silindi') };
 	});
 
 	// --- K-10: executeBulkDelete basarisizsa secilen kayitlarin durumu GERI ALINMALI ve ekran YENIDEN CIZILMELI ---
-	// (eski kodda bu fonksiyon hic render() cagirmiyordu -- basarisizlikta ekran hicbir zaman duzelmiyordu)
+	// (eski kodda bu fonksiyon hic render() cagirmiyordu -- basarisizlikta ekran hicbir zaman duzelmiyordu.
+	// Toplu silme artik id/field patch'li .update() kullaniyor, .set() degil.)
 	const k10 = await page.evaluate(async () => {
-		people = [
-			{ name: 'Toplu 1', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
-			{ name: 'Toplu 2', title: '', prefix: '', unit: '', status: 'pasif', prevStatus: 'pasif', rank: 2, photo: '', start: '', end: '', note: '' }
-		];
+		people = {
+			pid1: { name: 'Toplu 1', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
+			pid2: { name: 'Toplu 2', title: '', prefix: '', unit: '', status: 'pasif', prevStatus: 'pasif', rank: 2, photo: '', start: '', end: '', note: '' }
+		};
 		render();
-		bulkSelection = [0, 1];
+		bulkSelection = ['pid1', 'pid2'];
 		const origRef = database.ref.bind(database);
-		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		database.ref = function (p) { const r = origRef(p); r.update = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
 		await executeBulkDelete();
 		database.ref = origRef;
 		return {
-			firstRolledBack: people[0].status === 'aktif' && people[0].prevStatus === undefined,
-			secondRolledBack: people[1].status === 'pasif' && people[1].prevStatus === 'pasif'
+			firstRolledBack: people.pid1.status === 'aktif' && people.pid1.prevStatus === undefined,
+			secondRolledBack: people.pid2.status === 'pasif' && people.pid2.prevStatus === 'pasif'
 		};
 	});
 
 	// --- K-11: sortRankGroupByName basarisizsa .order alanlari ESKI HALINE donmeli ---
+	// (Sıralama artik id/order patch'li .update() kullaniyor, tum listeyi .set() ile DEGIL.)
 	const k11 = await page.evaluate(async () => {
-		people = [
-			{ name: 'B Kisi', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, order: 5, photo: '', start: '', end: '', note: '' },
-			{ name: 'A Kisi', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, order: 9, photo: '', start: '', end: '', note: '' }
-		];
+		people = {
+			pidB: { name: 'B Kisi', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, order: 5, photo: '', start: '', end: '', note: '' },
+			pidA: { name: 'A Kisi', title: '', prefix: '', unit: '', status: 'aktif', rank: 1, order: 9, photo: '', start: '', end: '', note: '' }
+		};
 		render();
 		const origRef = database.ref.bind(database);
-		database.ref = function (p) { const r = origRef(p); r.set = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
+		database.ref = function (p) { const r = origRef(p); r.update = function () { return Promise.reject(new Error('mock-fail')); }; return r; };
 		const fakeEvt = { preventDefault() {}, stopPropagation() {} };
 		await sortRankGroupByName(fakeEvt, '1');
 		database.ref = origRef;
-		return { firstOrderRolledBack: people[0].order === 5, secondOrderRolledBack: people[1].order === 9 };
+		return { firstOrderRolledBack: people.pidB.order === 5, secondOrderRolledBack: people.pidA.order === 9 };
 	});
 
 	// --- K-12: logAction/logDebugAction push basarisiz olursa artik SESSIZ kalmamali (console.error) ---

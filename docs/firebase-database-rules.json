@@ -54,8 +54,18 @@
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         ".validate": "newData.hasChildren(['firstName','lastName','email','role'])",
+        // Whitelist: role sadece 'pending'|'editor'|'admin' olabilir -- hem kendi kendine kayit
+        // (pending) hem de admin tarafindan yapilan degisiklik icin AYNI whitelist kosulu gecerli.
+        //
+        // NOT ("son admin kalmasin" kisiti): Bu kisiti Rules seviyesinde ifade etmek pratik degil --
+        // tum users dugumunu sayip "bu yazimdan sonra en az bir admin kaliyor mu" diye kontrol etmek
+        // Rules dilinde kirilgan/pahali olur (iki admin ayni anda yazarsa yarisma durumu da olusabilir).
+        // Bunun yerine index.html/setUserRole() icinde ISTEMCI TARAFINDA bir kontrol var: mevcut
+        // admin sayisi sayilip, son admin ise rolu dusurme islemi reddediliyor. Bu, kotu niyetli/
+        // dogrudan REST API cagrisina karsi TAM bir garanti DEGILDIR (sadece normal admin panel
+        // akisini korur) -- tam garanti icin bir Cloud Function tetikleyicisi gerekir.
         "role": {
-          ".validate": "(auth.uid === $uid && !data.exists() && newData.val() === 'pending') || (root.child('users').child(auth.uid).child('role').val() === 'admin')"
+          ".validate": "(newData.val() === 'pending' || newData.val() === 'editor' || newData.val() === 'admin') && ((auth.uid === $uid && !data.exists() && newData.val() === 'pending') || (root.child('users').child(auth.uid).child('role').val() === 'admin'))"
         }
       }
     },
