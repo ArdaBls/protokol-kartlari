@@ -990,6 +990,25 @@
 			   (Kaydet, "Yerine Yeni Kisi Ata" vb.) kapatiyordu. Herhangi bir panel acikken
 			   (scroll-locked ile ayni kosul) bu iki buton gizlenir. */
 			body.scroll-locked .calendar-fab, body.scroll-locked .faculty-fab{ display:none !important; }
+			/* UCUNCU DENEME (2026-08-25): v2.9.15 (faculty-sheet gizleme) ve v2.9.16
+			   (--vh + safe-area padding-bottom) tek basina yetmedi, kullanici iPhone 16
+			   Pro'da hala herhangi bir panel acikken sayfanin en altinda "gitmeyen,
+			   tutup oynatilabilen bir dikdortgen" gorduğunu bildirdi. Bu üçüncü katman:
+			   panel acikken (body.scroll-locked, bkz. yukarida) sayfanin en alt kenarina
+			   dar, sabit bir "temizleme seridi" eklenir -- iOS Safari'nin kendi adres/
+			   arac cubugunu gizleyemeyiz ama en azindan altta gorunen kismin SITE
+			   icerigi degil duz --paper rengi olmasini saglariz. Sadece dar bir serit
+			   (env(safe-area-inset-bottom)+8px), TUM ekrani KAPLAMAZ -- boyle olsaydi
+			   ayni z-index katmanindaki modal/panel backdrop'unu (karartmayi) da
+			   kapatirdi. z-index:49 KASITLI: en dusuk panel olan .modal-bg'nin (50)
+			   BIR ALTINDA, boylece hicbir modal/panel/backdrop'un uzerine binmez veya
+			   butonlarini (Kaydet, Vazgec vb.) tiklanamaz yapmaz; normal sayfa
+			   iceriginin (z-index:auto) ise USTUNDE kalir. pointer-events:none ile de
+			   hicbir dokunusu kapmaz. Dogrulanmamis nokta: headless Chromium iOS'un
+			   gercek native lastik-sicrama/adres cubugu davranisini simule edemiyor,
+			   bu yuzden bu katmanin gercekten cozup cozmedigi SADECE gercek cihazda
+			   dogrulanabilir. */
+			body.scroll-locked::after{ content:""; position:fixed; left:0; right:0; bottom:0; height:calc(env(safe-area-inset-bottom, 0px) + 8px); background:var(--paper); z-index:49; pointer-events:none; }
 			/* iOS'ta kisi duzenleme ekrani acikken alttaki "Fakulte Filtrele" cekmecesi hala
 			   dokunuslari kapip surukleniyordu (kullanici: "sadece onu oynatiyorum, asagi
 			   inemiyorum"). openEditModal/openAddModal/openCalendar/openHistoryPanel/
