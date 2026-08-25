@@ -3446,19 +3446,29 @@ function calSortableFilter(evt, item){
 }
 // onFilter, TEK bir dokunuş/surukleme jesti sirasinda SortableJS tarafindan defalarca (her
 // touchmove'da) tekrar tetiklenebiliyordu -- kullanici parmagini kaldirmadan bir sure basili
-// tutarsa ayni toast art arda "yaniyordu" (kullanici: "bu uyari hem mobilde hem webde 1 kere
-// çıksın"). calLockedToastTimer, KISA bir sure (700ms) icinde tekrar gosterimi engelleyen bir
-// debounce -- gercekten AYRI bir sonraki deneme (parmagi kaldirip tekrar deneme) icin toast yine
-// gosterilir. calLockedAttemptCounts ise kullanicinin AYNI kilitli etkinlikte ISRAR ettigini
-// sayar -- kullanici istegiyle 6-7. denemeden sonra normal mesaj yerine daha "ısrarcı"/esprili
-// bir mesaja geciliyor.
-let calLockedToastTimer = null;
-let calLockedAttemptCounts = {};
+// tutarsa ayni toast art arda "yaniyordu" (kullanici: "bu uyari 1 kere çıksın"). ILK denemede
+// SABIT bir sure (700ms) ile debounce edilmisti ama kullanici 700ms'den UZUN sure basili
+// tutarsa (gercekci bir surukleme denemesinde gayet olasi) sure dolup ayni jest icinde IKINCI
+// bir toast cikabiliyordu (kullanici: "hala spamlanıyor"). Dogru cozum: sabit bir sureye
+// guvenmek yerine, jest GERCEKTEN bitene (touchend/mouseup/touchcancel) kadar bayragi acik
+// tutmak -- ne kadar uzun basili tutulursa tutulsun TEK toast cikar, jest bitip YENIDEN
+// baslayinca (parmagi kaldirip tekrar deneme) toast tekrar gosterilir.
+let calLockedToastActive = false;
+let calLockedAttemptCounts = {}; // AYRI denemeleri sayar (kullanici istegiyle 6. denemeden sonra daha "israrci"/espirili bir mesaja gecilir)
+function calLockedToastGestureEnd(){
+	calLockedToastActive = false;
+	document.removeEventListener("touchend", calLockedToastGestureEnd);
+	document.removeEventListener("touchcancel", calLockedToastGestureEnd);
+	document.removeEventListener("mouseup", calLockedToastGestureEnd);
+}
 function calSortableOnFilter(evt){
 	const item=evt.item; const id=item && item.dataset.evid;
 	if(!id || !calEvents[id] || !calEvents[id].locked) return;
-	if(calLockedToastTimer) return;
-	calLockedToastTimer = setTimeout(function(){ calLockedToastTimer=null; }, 700);
+	if(calLockedToastActive) return;
+	calLockedToastActive = true;
+	document.addEventListener("touchend", calLockedToastGestureEnd, { once:true });
+	document.addEventListener("touchcancel", calLockedToastGestureEnd, { once:true });
+	document.addEventListener("mouseup", calLockedToastGestureEnd, { once:true });
 	calLockedAttemptCounts[id] = (calLockedAttemptCounts[id] || 0) + 1;
 	if(calLockedAttemptCounts[id] >= 6){
 		showToast("Tamam tamam, kilidi aç artık 😄 taşınamaz.", "error");

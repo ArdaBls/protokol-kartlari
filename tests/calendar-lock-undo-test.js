@@ -95,24 +95,31 @@ function serve() {
 	});
 
 	// =====================================================================
-	// SENARYO 1c: calSortableOnFilter -- ayni jest icinde tekrar tekrar tetiklenirse
-	// (700ms throttle) toast SPAMLANMAMALI, ama 6. GERCEK denemede daha israrci bir mesaja gecmeli.
-	// evLock bu noktada tekrar KILITLI (unlockTest sonunda relockedOk=true).
+	// SENARYO 1c: calSortableOnFilter -- ayni JEST (parmak/mouse KALDIRILMADAN) icinde
+	// tekrar tekrar tetiklenirse toast SPAMLANMAMALI (ne kadar UZUN basili tutulursa tutulsun --
+	// sabit bir zaman asimina degil GERCEK touchend/mouseup'a bagli), ama AYRI (araya
+	// touchend giren) 6. denemede daha israrci bir mesaja gecmeli. evLock bu noktada
+	// tekrar KILITLI (unlockTest sonunda relockedOk=true).
 	// =====================================================================
 	const lockToastTest = await page.evaluate(async () => {
 		const fakeEvt = { item: { dataset: { evid: 'evLock' } } };
+		function endGesture() { document.dispatchEvent(new Event('mouseup')); }
 		const before = document.querySelectorAll('#toastContainer .toast').length;
 		calSortableOnFilter(fakeEvt); // deneme 1
-		calSortableOnFilter(fakeEvt); // ayni jest icinde ANINDA tekrar -- THROTTLE edilmeli
-		const afterRapid = document.querySelectorAll('#toastContainer .toast').length;
-		for (let i = 0; i < 5; i++) {
-			await new Promise((r) => setTimeout(r, 750)); // throttle penceresi (700ms) gecsin
-			calSortableOnFilter(fakeEvt); // deneme 2,3,4,5,6
+		calSortableOnFilter(fakeEvt); // AYNI jest icinde ANINDA tekrar (parmak hala basili) -- engellenmeli
+		await new Promise((r) => setTimeout(r, 900)); // uzun sure basili tutulsa BILE (sabit zaman asimi YOK artik) hala TEK toast
+		calSortableOnFilter(fakeEvt); // hala AYNI jest -- yine engellenmeli
+		const afterSameGesture = document.querySelectorAll('#toastContainer .toast').length;
+		endGesture(); // parmak KALKTI -- bir sonraki deneme YENI bir jest sayilmali
+		for (let i = 0; i < 4; i++) {
+			calSortableOnFilter(fakeEvt); // deneme 2,3,4,5
+			endGesture();
 		}
+		calSortableOnFilter(fakeEvt); // deneme 6 -- esik asilmali
 		const toasts = Array.from(document.querySelectorAll('#toastContainer .toast'));
 		const lastToast = toasts[toasts.length - 1];
 		return {
-			rapidCallThrottled: afterRapid === before + 1,
+			sameGestureThrottled: afterSameGesture === before + 1,
 			totalToastsAdded: toasts.length - before,
 			escalatedMessageShown: lastToast ? /kilidi aç/i.test(lastToast.textContent) : false
 		};

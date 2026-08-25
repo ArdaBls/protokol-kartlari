@@ -615,7 +615,14 @@
 			.cal-more:hover{ color:var(--navy); }
 
 			/* ---- Yıl görünümü ---- */
-			.cal-year-grid{ max-width:1040px; margin:0 auto; width:100%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; align-content:start; }
+			/* overscroll-behavior:contain EKSIKTI -- projedeki DIGER kaydirilabilir katmanlarin
+			   (.modal-bg, .successor-panel, .history-panel, .authform-bg) HEPSINDE bu var, burada
+			   unutulmus. Eksikligi, grid kendi ust/alt sinirina ULASTIGINDA kaydirma jestinin
+			   ebeveyn/sayfa katmanina "sizmasina" (scroll chaining) yol acabiliyordu -- kullanici
+			   yil gorunumunde aylari gormek icin asagi kaydirmaya calisirken, jestin grid'in
+			   kendisini degil BASKA bir katmani (aciklanan "alttaki bottom sheet") hareket
+			   ettirdigini bildirdi. */
+			.cal-year-grid{ max-width:1040px; margin:0 auto; width:100%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; overscroll-behavior:contain; align-content:start; }
 			.cal-year-month{ border:1px solid var(--divider); border-radius:10px; padding:10px; }
 			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; grid-template-columns:repeat(7,minmax(0,1fr)); }
 			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
@@ -669,7 +676,15 @@
 			   cubuguna kadar cikiyor duzenle listesinin en ustu"). */
 			.cal-peek-head{ flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:calc(16px + env(safe-area-inset-top, 0px)) 18px 12px; border-bottom:1px solid var(--border-soft); }
 			.cal-peek-head h3{ margin:0; font-family:'Fraunces',serif; font-size:17px; color:var(--navy); font-weight:600; line-height:1.3; }
-			.cal-peek-body{ flex:1; overflow-y:auto; padding:14px 18px 18px; }
+			/* min-height:0 KRITIK: flex item'lar varsayilan olarak icerigin altina KUCULMEZ (min-height:auto),
+			   yani .cal-peek-body uzun icerikle .cal-peek'in (height:calc(var(--vh,1vh)*100) ile sabitli)
+			   kendi sinirini ASIP tasabiliyordu -- kendi ICINDE kaymak yerine, panelin TAMAMI (flex-shrink:0
+			   olan .cal-peek-foot dahil) ekran disina itiliyordu. Sonuc: alttaki "Simdi Bitir/Duzenle/Sil"
+			   butonlari sabit degil, sayfayi/paneli yukari-asagi cektikce goruniyordu (kullanici: "alttaki
+			   ... butonlar sabit değil aşağı yukarı çekiştirince geliyor"). Ayni ailenin bir baska ornegi
+			   projede daha once .field-row .field icin min-WIDTH:0 olarak cozulmustu, burada min-HEIGHT
+			   versiyonu. */
+			.cal-peek-body{ flex:1; min-height:0; overflow-y:auto; padding:14px 18px 18px; }
 			.cal-peek-foot{ flex-shrink:0; display:flex; gap:8px; padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--surface-hover); }
 			body.is-readonly .cal-peek-foot .btn-ghost{ display:none; }
 			.cal-detail-row{ display:flex; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid #f7f4ec; }
