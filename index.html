@@ -676,6 +676,21 @@
 				.field-row.ev-datetime-row .field.ev-date{ flex:1 1 150px; }
 				.field-row.ev-datetime-row .field.ev-time{ flex:0 0 142px; }
 			}
+
+			/* Baslangic/Bitis tarih ciftleri (kisi formu f_start/f_end + Gorev Gecmisi paneli
+			   hg_baslangic/hg_bitis): ayni kok sebep -- iOS Safari'de native <input type=date>
+			   kontrolu, .field-row .field{flex:1;min-width:0} yuzunden flex-basis:0 olunca ASLA
+			   sarmiyordu (flex-wrap:wrap tek basina yetmiyor, cunku min-width:0 hipotetik ana
+			   boyutu 0'a indirip tasma hic tetiklenmiyor) ve dar alanda komsu alanin uzerine
+			   biniyordu (Chromium'un kendi <input type=date> UI'si native olmadigi icin
+			   headless'ta ayni sekilde uretilemiyor, gorsel dogrulama iOS cihazda yapilmali).
+			   Cozum yukaridaki .ev-datetime-row ile AYNI teknik: 3 sinifli ozgullukle sarilip
+			   dar ekranda tam genislikte alt alta, genis ekranda yan yana. */
+			.field-row.date-pair-row{ flex-wrap:wrap; }
+			.field-row.date-pair-row .field{ flex:1 1 100%; min-width:0; }
+			@media (min-width: 620px){
+				.field-row.date-pair-row .field{ flex:1 1 150px; }
+			}
 			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
 			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
 			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
@@ -1362,7 +1377,7 @@
 				<label>Görev Adı</label>
 				<input type="text" id="hg_unvan" autocomplete="off" placeholder="Örn. Dekanlık, Vekâleten Dekanlık">
 			</div>
-			<div class="field-row">
+			<div class="field-row date-pair-row">
 				<div class="field"><label>Başlangıç</label><input type="date" id="hg_baslangic"></div>
 				<div class="field"><label>Bitiş</label><input type="date" id="hg_bitis"></div>
 			</div>
@@ -1453,7 +1468,7 @@
 							<button class="btn btn-ghost" type="button" style="width:100%; margin-top:10px;" onclick="applyStatusReason()">Uygula</button>
 						</div>
 					</div>
-					<div class="field-row">
+					<div class="field-row date-pair-row">
 						<div class="field">
 							<label>Başlangıç Tarihi</label>
 							<input type="date" id="f_start">
