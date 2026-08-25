@@ -126,9 +126,18 @@
 			   ust satir kisayken (orn. cikis yapilmamis "Giris Yap") h1 ile arasinda
 			   gorsel bosluk birakiyordu. Artik h1 dogrudan satirin icinde oldugu icin
 			   min-height hack'ine gerek yok, icerik (2 satirli .header-auth dahil) header'i
-			   dogal olarak buyutur. */
-			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-			.header-left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+			   dogal olarak buyutur.
+			   Sikisik genisliklerde (kullanicinin bizzat bildirdigi bir sorun): satir
+			   ASLA alt satira DUSMEZ (flex-wrap:nowrap) -- .header-auth panelinin altta
+			   kalip h1'in ustunde "boslukmus gibi" durmasindansa, once h1 kendi sutununda
+			   (min-width:150px'e kadar) kuculup 2 satira bolunur, sonra .header-top-right
+			   kendi icinde (tema + .header-auth + ha-row1) sarar (butun zincir boyunca
+			   min-width:0 gerekiyor, yoksa flex-item'lar dogal icerik genisligine
+			   "yapisip" komsu sutuna tasar). Cok dar ekranlarda (~320px, admin+Cikis)
+			   hafif bir yaklasma olabilir -- kullanici bunu ACIKCA kabul etti ("gerekirse
+			   ustune binsin sorun olmaz"), tam donusum yerine bilincli bir tercih. */
+			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:nowrap; }
+			.header-left{ display:flex; flex-direction:column; gap:4px; min-width:150px; flex-shrink:1; }
 			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow-short{ display:none; }
@@ -860,7 +869,7 @@
 				   hatasini tekrarlamamak icin. h1 artik BU satirin solundaki kardesi
 				   (.header-left), .header-auth'un yuksekligi (1 veya 2 satir Cikis dahil)
 				   ondan tamamen bagimsiz -- ikisi ayni satirin iki ucunda, birbirini itmez. */
-				.header-auth{ position:static; display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; font-family:'Roboto',sans-serif; font-size:13px; }
+				.header-auth{ position:static; display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:0; font-family:'Roboto',sans-serif; font-size:13px; }
 				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
 				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
 				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; white-space:nowrap; }
@@ -1059,7 +1068,7 @@
 			[data-theme="dark"] .test-mode-title
 				{ color: var(--brass-light); }
 
-			.header-top-right{ display:flex; align-items:flex-start; gap:8px; flex-shrink:0; }
+			.header-top-right{ display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0; }
 			.theme-toggle{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); border-radius:8px; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
 			.theme-toggle:hover{ background:rgba(255,255,255,.18); }
 		</style>
