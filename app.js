@@ -2144,7 +2144,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// degerden hesaplanir (successorTriggerWrap'in DOM gorunurlugunden DEGIL) ki is
 			// kurali tek yerde acik kalsin.
 			function updateSaveButtonLock() {
-				const locked = editIndex !== null && document.getElementById("f_status").value === "pasif" && document.getElementById("sr_reason").value === "yerine_atama";
+				const locked = editIndex !== null && document.getElementById("f_status").value === "pasif" && reasonRequiresSuccessor(document.getElementById("sr_reason").value);
 				const btn = document.getElementById("saveFormBtn");
 				if (btn) { btn.disabled = locked; btn.title = locked ? "Önce yerine atanacak kişiyi kaydedin." : ""; }
 				const hint = document.getElementById("saveLockHint");
@@ -2172,6 +2172,21 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				}
 				updateSaveButtonLock();
 			}
+			// "yeni_gorev"/"gorev_bitti" (Uygula akisi) ve "yerine_atama" (halef paneli) DISINDAKI
+			// sebepler herhangi bir alt-form ACMAZ -- kisi normal Kaydet ile pasife alinir, TEK
+			// farkli davranislari secilen sebebin GUNLUGE (log'a) dusmesidir. Bu, applyStatusReason()'in
+			// zaten kullandigi lastStatusTransitionNote mekanizmasindan (bkz. saveForm() actionLabel
+			// insasi, ~satir 2498) faydalanir -- ayrica bir persist/alan gerekmez.
+			const SIMPLE_STATUS_REASON_LABELS = { istifa: "İstifa etti", emekli: "Emekli oldu", gorevden_alindi: "Görevden alındı", vefat: "Vefat etti", diger: "Pasife alındı (diğer sebep)" };
+			// "yeni_gorev"/"gorev_bitti" DISINDA secilen HER sebep bir BOSLUK (vekalet/kadro
+			// bosalmasi) yaratir -- kisi ya donmuyor ya da baskasi onun yerine geciyor, dolayisiyla
+			// "yerine_atama" ile AYNI kurala tabi: halef paneli acilir, yerine biri kaydedilmeden ana
+			// Kaydet kilitli kalir (kullanici: "kişinin yerine biri atanması gereken bir durumdan
+			// dolayı pasif oluyorsa ... kaydetme kitlensin"). Tek istisna "yeni_gorev"/"gorev_bitti" --
+			// bunlarda kisi AYNI kurumda baska bir role/duruma donuyor, bosluk olusmuyor.
+			function reasonRequiresSuccessor(val) {
+				return !!val && val !== "yeni_gorev" && val !== "gorev_bitti";
+			}
 			function onStatusReasonChange() {
 				const val = document.getElementById("sr_reason").value;
 				const isArchiveReason = (val === "yeni_gorev" || val === "gorev_bitti");
@@ -2179,9 +2194,13 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				if (isArchiveReason) {
 					document.getElementById("sr_transitionDate").value = document.getElementById("f_end").value || dKey(new Date());
 				}
-				const showSuccessor = (val === "yerine_atama");
+				const showSuccessor = reasonRequiresSuccessor(val);
 				document.getElementById("successorTriggerWrap").style.display = showSuccessor ? "block" : "none";
 				if (!showSuccessor) closeSuccessorPanel(); // masaustunde acik kalmis olabilir, savunmaci kapatma
+				// Basit sebepler (Uygula/halef akisina girmeyenler): secilince hemen not olarak
+				// hazirlanir, Kaydet'e basildiginda actionLabel'a otomatik eklenir. Baska bir sebebe
+				// (veya bos secime) gecilirse eski not gecerliligini yitirir, temizlenir.
+				lastStatusTransitionNote = SIMPLE_STATUS_REASON_LABELS[val] || "";
 				updateSaveButtonLock();
 			}
 			// Reason1/2 ("Uygula"): eski unvan+tarih araligi otomatik Gorev Gecmisi'ne
@@ -2348,7 +2367,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// Buton disabled olsa bile handleFormKeydown() Enter tusuyla bu fonksiyonu dogrudan
 			// cagirabiliyor (disabled sadece tiklama/focus'u engeller) -- ayni kilit kosulu burada
 			// da tekrar kontrol edilir.
-			if (editIndex !== null && document.getElementById("f_status").value === "pasif" && document.getElementById("sr_reason").value === "yerine_atama") {
+			if (editIndex !== null && document.getElementById("f_status").value === "pasif" && reasonRequiresSuccessor(document.getElementById("sr_reason").value)) {
 				showToast("Bu kayıt yerine biri atanmadan pasife alınamaz. Önce 'Yerine Yeni Kişi Ata' panelini kaydedin.", "error");
 				return;
 			}
@@ -3225,10 +3244,22 @@ function renderWeekView(body){
 	body.innerHTML='<div class="cal-tg">'+head+allday+
 		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+nowFull+'</div></div></div>';
 
-	// Tum-gun seridi + saat izgarasi TEK ortak grup -- bir chip ikisi arasinda veya baska bir
-	// gune suruklenebilir (bkz. calSortableOptions/calOnDragEnd).
-	body.querySelectorAll(".cal-allday-col, .cal-daycol").forEach(function(col){
-		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeek")));
+	// ESKIDEN tum-gun seridi + saat izgarasi TEK ortak grup'tu (bir chip ikisi arasinda da
+	// suruklenebiliyordu) -- ama .cal-block'un saat izgarasi icin hesaplanan position:absolute
+	// left/width/top/height (yuzde/piksel, .cal-daycol'un kendi genislik/yuksekligine gore) HALA
+	// UYGULANIRKEN dugum SortableJS tarafindan .cal-allday-col'un (kisa, yatay flex satiri) icine
+	// TASINIYORDU -- yuzdeler tamamen FARKLI bir kap boyutuna gore hesaplanip ekranda devasa/bozuk
+	// bir "hayalet" olusturuyordu, surukleme bazen hic bitmeyip kullaniciyi sayfayi YENILEMEYE
+	// zorluyordu (kullanici: "tum gune eklenen etkinlik icin orda uygulama sapitiyor", "kapatip
+	// acmadiktan sonra gitmiyor"). Ayri iki grup: ayni tipteki sutunlar arasinda (gun->gun VEYA
+	// tum-gun->tum-gun) suruklemeye devam izin verilir, ama saat izgarasi<->tum-gun seridi CAPRAZ
+	// surukleme ARTIK MUMKUN DEGIL -- bir etkinligi tum-gun yapmak icin duzenleme formundan saati
+	// bosaltmak gerekir (zaten desteklenen bir yol).
+	body.querySelectorAll(".cal-daycol").forEach(function(col){
+		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeekTimed")));
+	});
+	body.querySelectorAll(".cal-allday-col").forEach(function(col){
+		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeekAllDay")));
 	});
 
 	// açılışta (veya BAŞKA bir haftaya/güne geçince) sabah 07:00 hizasına kaydır; bugün görünüyorsa
