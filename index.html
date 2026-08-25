@@ -4592,7 +4592,8 @@ let calAttendees = [];           // etkinlik formunda seçili katılımcılar
 let calPressStaff = [];          // etkinlik formunda seçili basın görevlileri (isim dizisi)
 let pressOfficerPool = [];       // admin tarafından "basın görevlisi" işaretlenmiş kullanıcılar: {uid,name}
 let gorevliLoadToken = 0;        // ardışık modal açılışlarında eski bir yüklemenin geç gelip güncel seçimi ezmesini önler
-let calDragId = null;
+let calSortableInstances = [];  // renderWeekView/renderMonthView'in olusturdugu Sortable orneklerinin yasam dongusu (person-list'teki sortableInstances'tan AYRI -- ayri IIFE kapsaminda)
+let calDragLastXY = null;       // Sortable onMove sirasinda surekli guncellenen son bilinen isaretci konumu, onEnd'de yedek kaynak
 let eventDeleteTargetId = null;   // peek + duzenleme formu ortak silme onay modalinin hedef id'si
 let undoStack = [];               // { type:'move'|'edit'|'create'|'delete', id, before, after, ts }
 let undoCount = 0;                // bu oturumda kacinci Ctrl+Z geri almasi yapildigi (log metnine yazilir)
@@ -4856,6 +4857,10 @@ function calJumpTo(v){
 function calGoToDay(dateKey){ const d=parseKey(dateKey); if(!d) return; calAnchor=d; calSetView("day"); }
 
 function renderCalendar(){
+	// Her renderCalendar() cagrisi ilgili view'i BASTAN cizer -- eski Sortable ornekleri
+	// (varsa) DOM'dan once temizlenir, aksi halde artik var olmayan elemanlara bagli
+	// "zombi" Sortable ornekleri birikir (bkz. person-list'teki ayni desen).
+	calSortableInstances.forEach(function(inst){ inst.destroy(); }); calSortableInstances=[];
 	renderCalMini(); renderCalLegend(); renderCalTopbar();
 	const body=document.getElementById("calMainBody"); if(!body) return;
 	if(calView==="week" || calView==="day") renderWeekView(body);
@@ -5044,10 +5049,10 @@ function renderWeekView(body){
 	days.forEach(function(d){
 		const k=dKey(d);
 		const evs=calEventsOn(k).filter(function(e){ return hmToMin(e.saat)===null; });
-		allday+='<div class="cal-allday-col" data-date="'+k+'" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,\''+k+'\')">'+
+		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';" onclick="openEventPeek(\''+e._id+'\')"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';" onclick="openEventPeek(\''+e._id+'\')"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -5075,16 +5080,22 @@ function renderWeekView(body){
 			const e=it.ev; const top=(it.s/60)*CAL_HOUR_H; const hgt=Math.max(18,((it.e-it.s)/60)*CAL_HOUR_H-2);
 			const w=100/it.total; const left=w*it.col;
 			const compact=hgt<34?" compact":"";
-			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" '+
+			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" '+
 				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
 				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+lockIconHtml(e)+'</button>';
 		});
 		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;" '+
-			'ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,\''+k+'\')" onclick="calGridClick(event,\''+k+'\')">'+inner+'</div>';
+			'onclick="calGridClick(event,\''+k+'\')">'+inner+'</div>';
 	});
 
 	body.innerHTML='<div class="cal-tg">'+head+allday+
 		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+nowFull+'</div></div></div>';
+
+	// Tum-gun seridi + saat izgarasi TEK ortak grup -- bir chip ikisi arasinda veya baska bir
+	// gune suruklenebilir (bkz. calSortableOptions/calOnDragEnd).
+	body.querySelectorAll(".cal-allday-col, .cal-daycol").forEach(function(col){
+		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeek")));
+	});
 
 	// açılışta sabah 07:00 hizasına kaydır; bugün görünüyorsa şu ankı saate
 	const sc=document.getElementById("calTgScroll");
@@ -5129,16 +5140,21 @@ function renderMonthView(body){
 		const shown=evs.slice(0,3);
 		let chips=shown.map(function(e){
 			const ty=evType(e.tur);
-			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" draggable="true" ondragstart="calDragStart(event,\''+e._id+'\')" ondragend="calDragEnd(event)" style="position:relative; '+calBlockStyle(e)+'" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
+			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+e._id+'" style="position:relative; '+calBlockStyle(e)+'" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
 				(e.saat?'<span class="bh">'+escapeHtml(e.saat)+'</span>':'')+'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 		}).join("");
 		if(evs.length>shown.length) chips+='<button type="button" class="cal-more" onclick="event.stopPropagation(); calGoToDayWeek(\''+k+'\')">+'+(evs.length-shown.length)+' tane daha</button>';
-		cells+='<div class="'+cls+'" data-date="'+k+'" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,\''+k+'\')">'+
+		cells+='<div class="'+cls+'" data-date="'+k+'">'+
 			'<div class="cal-mdayhead"><span class="cal-mdaynum">'+d.getDate()+'</span>'+
 			'<button type="button" class="cal-mdayadd" title="Bu güne etkinlik ekle" onclick="event.stopPropagation(); openEventModal(null,\''+k+'\')">+</button></div>'+
-			'<div style="display:flex; flex-direction:column; gap:2px; overflow:hidden;">'+chips+'</div></div>';
+			'<div class="cal-mday-chips" data-date="'+k+'" style="display:flex; flex-direction:column; gap:2px; overflow:hidden;">'+chips+'</div></div>';
 	}
 	body.innerHTML='<div class="cal-m">'+dow+'<div class="cal-m-grid">'+cells+'</div></div>';
+	// Ay gorunumunde her gun hucresinin KENDI ic chip-sarmalayicisi Sortable konteyneri --
+	// .cal-mday'in kendisi degil, cunku o hucre basligi/+ butonunu da iceriyor (sadece chip'ler suruklenebilir olmali).
+	body.querySelectorAll(".cal-mday-chips").forEach(function(wrap){
+		calSortableInstances.push(new Sortable(wrap, calSortableOptions("calMonth")));
+	});
 }
 function calGoToDayWeek(k){ const d=parseKey(k); if(!d) return; calAnchor=d; calSetView("day"); }
 
@@ -5194,36 +5210,56 @@ function renderListView(body){
 	body.innerHTML='<div class="cal-list-wrap">'+html+'</div></div>';
 }
 
-/* --- Sürükleyerek başka güne taşıma --- */
-function calDragStart(e, id){
-	if(!canEditData()){ e.preventDefault(); return; }
-	if(calEvents[id] && calEvents[id].locked){ e.preventDefault(); showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error"); return; }
-	calDragId=id; e.dataTransfer.effectAllowed="move";
-	try{ e.dataTransfer.setData("text/plain", id); }catch(err){}
-	e.currentTarget.classList.add("dragging");
+/* --- Sürükleyerek başka güne taşıma (SortableJS -- dokunmatik cihazlarda da çalışır, HTML5
+   native drag&drop mobilde HİÇ desteklenmiyordu) --- */
+// SortableJS'in evt.originalEvent'i, surukleme mouse mi dokunmatik-fallback mi bitirdigine gore
+// FARKLI sekildedir: mouse bir MouseEvent'tir (clientX/clientY dogrudan ustte), dokunmatik ise
+// TouchEvent'tir (clientX/clientY YOKTUR, changedTouches[0]'dan okunur). Ikisini de kapsar.
+function pointerXY(nativeEvt){
+	if(!nativeEvt) return null;
+	if(nativeEvt.touches && nativeEvt.touches.length) return {x:nativeEvt.touches[0].clientX, y:nativeEvt.touches[0].clientY};
+	if(nativeEvt.changedTouches && nativeEvt.changedTouches.length) return {x:nativeEvt.changedTouches[0].clientX, y:nativeEvt.changedTouches[0].clientY};
+	if(typeof nativeEvt.clientY === "number") return {x:nativeEvt.clientX, y:nativeEvt.clientY};
+	return null;
 }
-function calDragEnd(e){ calDragId=null; e.currentTarget.classList.remove("dragging"); document.querySelectorAll(".drop-target").forEach(function(x){ x.classList.remove("drop-target"); }); }
-function calDragOver(e){ if(!calDragId) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; e.currentTarget.classList.add("drop-target"); }
-function calDragLeave(e){ e.currentTarget.classList.remove("drop-target"); }
-async function calDrop(e, dateKey){
-	e.preventDefault(); e.currentTarget.classList.remove("drop-target");
-	const id=calDragId; calDragId=null;
+// requireEdit()/canEditData() gorsel olarak "surukle" hi butonunu gizler ama Sortable'in kendi
+// engelleme mekanizmasi budur -- filter true donerse surukleme hic BASLAMAZ (calDragStart'taki
+// e.preventDefault() ile ayni davranis). Kilitli etkinlikte toast icin onFilter kullanilir.
+function calSortableFilter(evt, item){
+	if(!canEditData()) return true;
+	const id=item.dataset.evid;
+	if(id && calEvents[id] && calEvents[id].locked) return true;
+	return false;
+}
+function calSortableOnFilter(evt){
+	const item=evt.item; const id=item && item.dataset.evid;
+	if(id && calEvents[id] && calEvents[id].locked) showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
+}
+// onMove her surukleme adiminda tekrar tekrar tetiklenir (dragover/touchmove) -- burada sadece
+// son bilinen isaretci konumu izlenir, onEnd'de asil kaynak (evt.originalEvent) basarisiz olursa yedek olsun diye.
+function calOnDragMove(evt){
+	const xy=pointerXY(evt.originalEvent); if(xy) calDragLastXY=xy;
+	return true; // engelleme yok, sadece izliyoruz
+}
+async function calMoveEvent(id, dateKey, timeInfo){
 	if(!id || !calEvents[id] || !requireEdit()) return;
-	// calDragStart zaten kilitliyse suruklemeyi baslatmiyor; bu, surukleme basladiktan HEMEN
+	// calSortableFilter zaten kilitliyse suruklemeyi baslatmiyor; bu, surukleme basladiktan HEMEN
 	// sonra baskasi kilitlerse diye ikinci bir savunma hatti.
 	if(calEvents[id].locked){ showToast("Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.", "error"); return; }
 	const ev=calEvents[id];
 	const before=Object.assign({}, ev);
 	const patch={ tarih: dateKey };
 	// Hafta görünümünde saat ızgarasına bırakıldıysa saat de güncellenir (yarım saate yuvarlanır).
-	if(calView==="week" && e.currentTarget.classList.contains("cal-daycol") && hmToMin(ev.saat)!==null){
-		const rect=e.currentTarget.getBoundingClientRect();
-		let mins=Math.round(((e.clientY-rect.top)/CAL_HOUR_H)*60/30)*30;
-		mins=Math.max(0,Math.min(23*60+30,mins));
+	// Isaretci konumu (timeInfo.xy) hicbir kaynaktan (native/touch/izlenen son konum) cozulemediyse
+	// -- son derece nadir -- saat SESSIZCE degistirilmez, sadece tarih guncellenir (yanlis bir
+	// saate tahmin yurutmek, hic degistirmemekten daha kotu).
+	if(timeInfo && timeInfo.isDayCol && timeInfo.xy && hmToMin(ev.saat)!==null){
+		const mins0=Math.round(((timeInfo.xy.y-timeInfo.rectTop)/CAL_HOUR_H)*60/30)*30;
+		const mins=Math.max(0,Math.min(23*60+30,mins0));
 		const dur=(hmToMin(ev.bitisSaat)!==null && hmToMin(ev.bitisSaat)>hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat)-hmToMin(ev.saat) : 60;
 		patch.saat=minToHm(mins);
 		patch.bitisSaat=minToHm(Math.min(24*60-1, mins+dur));
-	} else if(calView==="week" && e.currentTarget.classList.contains("cal-allday-col")){
+	} else if(timeInfo && timeInfo.isAllDayCol){
 		patch.saat=""; patch.bitisSaat="";
 	}
 	if(ev.tarih===patch.tarih && patch.saat===undefined) return;
@@ -5231,6 +5267,29 @@ async function calDrop(e, dateKey){
 	const moveChanges=describeEventChanges(ev, moved);
 	const res=await persistEvent(id, moved, evLogName(ev.ad)+" etkinliği takvimde taşındı ("+fmtTrDate(dateKey)+")"+(moveChanges.length?" · "+moveChanges.join(" · "):""));
 	if(res){ calEvents[id]=moved; pushUndo({ type:"move", id:id, before:before, after:Object.assign({},moved) }); renderCalendar(); }
+}
+// SortableJS onEnd adaptoru -- ince katman, sadece Sortable'in evt seklinden gerekli bilgiyi
+// (id/hedef tarih/isaretci konumu) cikarip calMoveEvent()'e devreder. Testler calMoveEvent()'i
+// dogrudan cagirabilir, sahte bir Sortable evt'si kurmaya gerek kalmadan.
+function calOnDragEnd(evt){
+	calDragLastXY=null; // her surukleme sonunda sifirla, bir sonraki icin yeni izlemeye basla
+	const id=evt.item && evt.item.dataset.evid;
+	const to=evt.to; if(!id || !to) return;
+	const dateKey=to.dataset.date; if(!dateKey) return;
+	const isDayCol=to.classList.contains("cal-daycol");
+	const isAllDayCol=to.classList.contains("cal-allday-col");
+	const xy=pointerXY(evt.originalEvent) || calDragLastXY;
+	const timeInfo={ isDayCol:isDayCol, isAllDayCol:isAllDayCol, xy:xy, rectTop: isDayCol ? to.getBoundingClientRect().top : 0 };
+	calMoveEvent(id, dateKey, timeInfo);
+}
+function calSortableOptions(groupName){
+	return {
+		group: { name: groupName, pull: true, put: true },
+		animation: 150, ghostClass: "dragging",
+		delay: 150, delayOnTouchOnly: true, // person-list reorder ile ayni dokunmatik-guvenli kalip (bkz. Sortable kullanimi render()'da)
+		filter: calSortableFilter, onFilter: calSortableOnFilter,
+		onMove: calOnDragMove, onEnd: calOnDragEnd
+	};
 }
 
 /* --- Etkinlik detay paneli (sağdan açılan peek) --- */

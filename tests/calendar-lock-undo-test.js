@@ -75,26 +75,18 @@ function serve() {
 	// SENARYO 1: Kilit -> surukleme engelleniyor, ikon DOM'da dogru gorunuyor
 	// =====================================================================
 	const lockTest = await page.evaluate(() => {
-		const lockBlock = document.querySelector('[ondragstart*="evLock"]');
+		const lockBlock = document.querySelector('[data-evid="evLock"]');
 		const lockIco = lockBlock ? lockBlock.querySelector('.cal-lock-ico') : null;
 		const iconLockedClass = lockIco ? lockIco.classList.contains('is-locked') : null;
-		// calDragStart: kilitliyken preventDefault edilmeli, calDragId null kalmali.
-		let prevented1 = false;
-		const fake1 = { preventDefault: () => { prevented1 = true; } };
-		calDragId = null;
-		calDragStart(fake1, 'evLock');
-		const blockedWhileLocked = prevented1 === true && calDragId === null;
+		// calSortableFilter: kilitli bir etkinlik icin true (surukleme BASLAMAZ) donmeli --
+		// SortableJS'in kendi "filter" mekanizmasi, eski calDragStart'taki e.preventDefault() ile ayni is.
+		const blockedWhileLocked = calSortableFilter({}, { dataset: { evid: 'evLock' } }) === true;
 		return { iconFound: !!lockIco, iconLockedClass, blockedWhileLocked };
 	});
 	const unlockTest = await page.evaluate(async () => {
 		await toggleEventLock('evLock');
 		const nowUnlocked = calEvents['evLock'].locked === false;
-		let prevented2 = false;
-		const fake2 = { preventDefault: () => { prevented2 = true; }, dataTransfer: { setData: () => {}, effectAllowed: '' }, currentTarget: { classList: { add: () => {} } } };
-		calDragId = null;
-		calDragStart(fake2, 'evLock');
-		const allowedAfterUnlock = prevented2 === false && calDragId === 'evLock';
-		calDragId = null;
+		const allowedAfterUnlock = calSortableFilter({}, { dataset: { evid: 'evLock' } }) === false;
 		// Geri kilitle: hem "kilitlendi" log satirini de uretsin (asagida dogrulanacak) hem de
 		// tekrar-kilitlemenin de calisir kaldigini teyit etsin (sadece acmanin degil).
 		await toggleEventLock('evLock');
@@ -128,7 +120,7 @@ function serve() {
 	// unlockTest az once evLock'u tekrar kilitledi (relockedOk); DOM'u yeniden ciz ve dogrula.
 	const lockIconDomTest = await page.evaluate(() => {
 		renderCalendar();
-		const lockBlock = document.querySelector('[ondragstart*="evLock"]');
+		const lockBlock = document.querySelector('[data-evid="evLock"]');
 		const ico = lockBlock ? lockBlock.querySelector('.cal-lock-ico') : null;
 		const cs = ico ? getComputedStyle(ico) : null;
 		return {
@@ -194,14 +186,32 @@ function serve() {
 
 	const moveUndoTest = await page.evaluate(async () => {
 		const before = Object.assign({}, calEvents['evMove']);
-		calDragId = 'evMove';
-		const fakeDrop = { preventDefault: () => {}, currentTarget: { classList: { remove: () => {}, add: () => {}, contains: () => false } } };
-		await calDrop(fakeDrop, '2026-01-16');
+		// calMoveEvent: SortableJS onEnd adaptorunun (calOnDragEnd) devrettigi cekirdek fonksiyon,
+		// sahte bir Sortable evt'si kurmaya gerek kalmadan dogrudan test edilebilir.
+		await calMoveEvent('evMove', '2026-01-16', null);
 		const movedOk = calEvents['evMove'].tarih === '2026-01-16';
 		const entry = undoStack[undoStack.length - 1];
 		const entryOk = entry.type === 'move' && entry.id === 'evMove' && entry.before.tarih === '2026-01-12';
 		await undoLastCalendarAction();
 		return { movedOk, entryOk, undoneOk: calEvents['evMove'].tarih === before.tarih };
+	});
+
+	// =====================================================================
+	// SENARYO 3b: calOnDragEnd -- SortableJS'in gercek onEnd sekliyle (evt.item/evt.to/
+	// evt.originalEvent) saat-izgarasina birakma, isaretci konumundan saat hesabini dogru yapiyor mu.
+	// CAL_HOUR_H=48, rectTop=0, clientY=180 icin beklenen: round((180/48)*60/30)*30 = 240dk = "04:00".
+	// =====================================================================
+	const timeRecomputeTest = await page.evaluate(async () => {
+		calEvents['evMove'] = { ad: 'Saat Testi', tur: 'diger', durum: 'planlandi', tarih: '2026-01-12', saat: '10:00', bitisSaat: '11:00', locked: false, yer: '', birim: '', planlayan: '', gorevli: '', not: '' };
+		const fakeEvt = {
+			item: { dataset: { evid: 'evMove' } },
+			to: { dataset: { date: '2026-01-13' }, classList: { contains: (c) => c === 'cal-daycol' }, getBoundingClientRect: () => ({ top: 0 }) },
+			originalEvent: { clientY: 180 }
+		};
+		calOnDragEnd(fakeEvt);
+		// calOnDragEnd async calMoveEvent'i AWAIT ETMEDEN cagirir (Sortable onEnd sync bir callback) -- test de ayni sekilde bekler.
+		await new Promise((r) => setTimeout(r, 50));
+		return { newTarih: calEvents['evMove'].tarih, newSaat: calEvents['evMove'].saat, newBitis: calEvents['evMove'].bitisSaat };
 	});
 
 	const editUndoTest = await page.evaluate(async () => {
@@ -231,9 +241,7 @@ function serve() {
 	// =====================================================================
 	const concurrentAbortTest = await page.evaluate(async () => {
 		const before = Object.assign({}, calEvents['evConc']);
-		calDragId = 'evConc';
-		const fakeDrop = { preventDefault: () => {}, currentTarget: { classList: { remove: () => {}, add: () => {}, contains: () => false } } };
-		await calDrop(fakeDrop, '2026-01-16'); // undo yigina "move" entry'si eklenir
+		await calMoveEvent('evConc', '2026-01-16', null); // undo yigina "move" entry'si eklenir
 		const stackBefore = undoStack.length;
 		// Baska bir kullanicinin bu arada kaydi degistirdigini simule et:
 		calEvents['evConc'] = Object.assign({}, calEvents['evConc'], { yer: 'Baskasi Degistirdi' });
@@ -317,7 +325,7 @@ function serve() {
 
 	const combined = {
 		setupResult, lockTest, unlockTest, lockCssTest, lockIconDomTest, deleteFlowTest,
-		createUndoTest, deleteUndoTest, moveUndoTest, editUndoTest, quickStampUndoTest,
+		createUndoTest, deleteUndoTest, moveUndoTest, timeRecomputeTest, editUndoTest, quickStampUndoTest,
 		concurrentAbortTest, inputFocusGuardTest, logTest, defaultTabTest
 	};
 	console.log(JSON.stringify(combined, null, 2));
@@ -325,6 +333,9 @@ function serve() {
 	pageErrors.forEach(e => console.log(' -', e));
 
 	const __boolFails = collectBooleanFailures(combined, ['defaultTabTest.ilButtonHasActive']);
+	// timeRecomputeTest string alanlari dondurdugu icin collectBooleanFailures'a yakalanmaz, elle kontrol edilir.
+	const __timeOk = timeRecomputeTest.newTarih === '2026-01-13' && timeRecomputeTest.newSaat === '04:00' && timeRecomputeTest.newBitis === '05:00';
+	if (!__timeOk) __boolFails.push('timeRecomputeTest (beklenen tarih=2026-01-13 saat=04:00 bitis=05:00, gelen: ' + JSON.stringify(timeRecomputeTest) + ')');
 	const __allPassed = pageErrors.length === 0 && __boolFails.length === 0;
 	console.log('ALL_TESTS_PASSED:', __allPassed);
 	if (__boolFails.length) console.log('BASARISIZ ALANLAR:', JSON.stringify(__boolFails));
