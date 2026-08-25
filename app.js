@@ -635,6 +635,33 @@
 				if (dayCol) calGridClick(e, dayCol.dataset.date, dayCol);
 			});
 
+			// Gun/hafta gorunumunde sola/saga kaydirarak gune-haftaya gecis -- kullanici usttteki
+			// ok butonlarini "efektif degil, hizli aksiyon alamiyorsun" olarak degerlendirdi.
+			// Sadece #calTgScroll ICINDE baslayan gercekten YATAY (dikeyden belirgin sekilde daha
+			// buyuk) ve yeterince hizli/uzun bir jest calShift() tetikler; SortableJS'in kendi
+			// surukleme algilamasiyla (150ms delay + kucuk hareket toleransi) CAKISMAZ -- bir
+			// surukleme zaten basladiysa (calDragActive) swipe hic devreye girmez.
+			(function(){
+				let sx=0, sy=0, st=0, tracking=false;
+				const overlay=document.getElementById('calendarOverlay');
+				overlay.addEventListener('touchstart', function(e){
+					if(calDragActive){ tracking=false; return; }
+					const scroller=e.target.closest('#calTgScroll');
+					if(!scroller || (calView!=="day" && calView!=="week")){ tracking=false; return; }
+					const t=e.touches[0]; if(!t) return;
+					sx=t.clientX; sy=t.clientY; st=Date.now(); tracking=true;
+				}, { passive:true });
+				overlay.addEventListener('touchend', function(e){
+					if(!tracking) return; tracking=false;
+					if(calDragActive) return;
+					const t=e.changedTouches[0]; if(!t) return;
+					const dx=t.clientX-sx, dy=t.clientY-sy, dt=Date.now()-st;
+					if(dt>700) return; // cok yavas -- kasitli kaydirma degil, birakildi
+					if(Math.abs(dx)<60 || Math.abs(dx)<Math.abs(dy)*1.5) return; // yeterince yatay/uzun degil
+					calShift(dx<0 ? 1 : -1);
+				}, { passive:true });
+			})();
+
 			function clearFacultyFilter() {
 				selectedFaculties.clear(); selectedCentralAdminIdx.clear(); renderFacultySidebar(); render();
 			}
@@ -3180,6 +3207,10 @@ async function toggleEventLock(id){
 	const res=await persistEvent(id, patch, label);
 	if(!res) return;
 	calEvents[id]=patch;
+	// Kilit acilinca deneme sayaci da sifirlanir -- yoksa onceki (kilitliyken biriken) sayi
+	// kalip bir SONRAKI kilitlemede kullanici "taze" bir denemede beklenmedik sekilde direkt
+	// esprili/israrci mesaji goruyordu (kullanici: "taşınamaz uyarısı ve sonraki uyarıyı goruyorum").
+	if(wasLocked) delete calLockedAttemptCounts[id];
 	renderCalendar();
 	showToast(wasLocked?"Kilit açıldı, etkinlik artık sürüklenebilir.":"Etkinlik kilitlendi, artık sürüklenemez.", "success");
 }
@@ -3489,7 +3520,11 @@ function calOnDragMove(evt){
 // "elimin altindaki noktayi degil, imlecin bulundugu saati baz aliyor" seklinde bildirdigi hata).
 // Simdi bu fark cikarilarak blogun KENDI ust kenarinin nereye tasindigi hesaplaniyor.
 let calDragGrabOffsetY = 0;
+// calDragActive: bir etkinlik suruklemesi gercekten basladiginda true -- gun/hafta swipe-ile-gezinme
+// dinleyicisi (bkz. calendarOverlay touchstart/touchend) bununla cakismamak icin bu bayragi kontrol eder.
+let calDragActive = false;
 function calOnDragStart(evt){
+	calDragActive = true;
 	calDragGrabOffsetY = 0;
 	const xy = pointerXY(evt.originalEvent);
 	if (xy && evt.item) {
@@ -3529,6 +3564,7 @@ async function calMoveEvent(id, dateKey, timeInfo){
 // (id/hedef tarih/isaretci konumu) cikarip calMoveEvent()'e devreder. Testler calMoveEvent()'i
 // dogrudan cagirabilir, sahte bir Sortable evt'si kurmaya gerek kalmadan.
 function calOnDragEnd(evt){
+	calDragActive = false;
 	calDragLastXY=null; // her surukleme sonunda sifirla, bir sonraki icin yeni izlemeye basla
 	const id=evt.item && evt.item.dataset.evid;
 	const to=evt.to; if(!id || !to) return;
