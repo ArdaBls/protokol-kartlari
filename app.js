@@ -3444,9 +3444,27 @@ function calSortableFilter(evt, item){
 	if(id && calEvents[id] && calEvents[id].locked) return true;
 	return false;
 }
+// onFilter, TEK bir dokunuş/surukleme jesti sirasinda SortableJS tarafindan defalarca (her
+// touchmove'da) tekrar tetiklenebiliyordu -- kullanici parmagini kaldirmadan bir sure basili
+// tutarsa ayni toast art arda "yaniyordu" (kullanici: "bu uyari hem mobilde hem webde 1 kere
+// çıksın"). calLockedToastTimer, KISA bir sure (700ms) icinde tekrar gosterimi engelleyen bir
+// debounce -- gercekten AYRI bir sonraki deneme (parmagi kaldirip tekrar deneme) icin toast yine
+// gosterilir. calLockedAttemptCounts ise kullanicinin AYNI kilitli etkinlikte ISRAR ettigini
+// sayar -- kullanici istegiyle 6-7. denemeden sonra normal mesaj yerine daha "ısrarcı"/esprili
+// bir mesaja geciliyor.
+let calLockedToastTimer = null;
+let calLockedAttemptCounts = {};
 function calSortableOnFilter(evt){
 	const item=evt.item; const id=item && item.dataset.evid;
-	if(id && calEvents[id] && calEvents[id].locked) showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
+	if(!id || !calEvents[id] || !calEvents[id].locked) return;
+	if(calLockedToastTimer) return;
+	calLockedToastTimer = setTimeout(function(){ calLockedToastTimer=null; }, 700);
+	calLockedAttemptCounts[id] = (calLockedAttemptCounts[id] || 0) + 1;
+	if(calLockedAttemptCounts[id] >= 6){
+		showToast("Tamam tamam, kilidi aç artık 😄 taşınamaz.", "error");
+	} else {
+		showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
+	}
 }
 // onMove her surukleme adiminda tekrar tekrar tetiklenir (dragover/touchmove) -- burada sadece
 // son bilinen isaretci konumu izlenir, onEnd'de asil kaynak (evt.originalEvent) basarisiz olursa yedek olsun diye.
@@ -3517,6 +3535,14 @@ function calSortableOptions(groupName){
 		group: { name: groupName, pull: true, put: true },
 		animation: 150, ghostClass: "dragging",
 		delay: 150, delayOnTouchOnly: true, // person-list reorder ile ayni dokunmatik-guvenli kalip (bkz. Sortable kullanimi render()'da)
+		// preventOnFilter varsayilani true -- filter eslesince SortableJS otomatik olarak
+		// touchstart/mousedown'a preventDefault() cagirir. Kilit ikonu icin bu ISTENMEYEN bir
+		// yan etki yaratiyordu: preventDefault() edilen bir touchstart'tan SONRA bazi mobil
+		// tarayicilar sentezlenmis "click" olayini HIC ATESLEMIYOR, yani ikonun KENDI onclick'i
+		// (toggleEventLock) hicbir zaman calismiyordu -- filter dogru calisip suruklemeyi
+		// engellese bile, ikon "tiklanamaz" gibi hissettiriyordu. false yapilarak dokunusun
+		// normal click-sonrasi davranisi korunuyor.
+		preventOnFilter: false,
 		filter: calSortableFilter, onFilter: calSortableOnFilter,
 		onStart: calOnDragStart, onMove: calOnDragMove, onEnd: calOnDragEnd
 	};

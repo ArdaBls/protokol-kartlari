@@ -95,6 +95,30 @@ function serve() {
 	});
 
 	// =====================================================================
+	// SENARYO 1c: calSortableOnFilter -- ayni jest icinde tekrar tekrar tetiklenirse
+	// (700ms throttle) toast SPAMLANMAMALI, ama 6. GERCEK denemede daha israrci bir mesaja gecmeli.
+	// evLock bu noktada tekrar KILITLI (unlockTest sonunda relockedOk=true).
+	// =====================================================================
+	const lockToastTest = await page.evaluate(async () => {
+		const fakeEvt = { item: { dataset: { evid: 'evLock' } } };
+		const before = document.querySelectorAll('#toastContainer .toast').length;
+		calSortableOnFilter(fakeEvt); // deneme 1
+		calSortableOnFilter(fakeEvt); // ayni jest icinde ANINDA tekrar -- THROTTLE edilmeli
+		const afterRapid = document.querySelectorAll('#toastContainer .toast').length;
+		for (let i = 0; i < 5; i++) {
+			await new Promise((r) => setTimeout(r, 750)); // throttle penceresi (700ms) gecsin
+			calSortableOnFilter(fakeEvt); // deneme 2,3,4,5,6
+		}
+		const toasts = Array.from(document.querySelectorAll('#toastContainer .toast'));
+		const lastToast = toasts[toasts.length - 1];
+		return {
+			rapidCallThrottled: afterRapid === before + 1,
+			totalToastsAdded: toasts.length - before,
+			escalatedMessageShown: lastToast ? /kilidi aç/i.test(lastToast.textContent) : false
+		};
+	});
+
+	// =====================================================================
 	// SENARYO 1b: Kilit ikonu CSS - konum (sağ ALT, sağ ÜST değil) ve
 	// açık/kapalı durumun renkli halka ile (emoji şekline ek olarak) net ayrılması
 	// =====================================================================
@@ -324,7 +348,7 @@ function serve() {
 	});
 
 	const combined = {
-		setupResult, lockTest, unlockTest, lockCssTest, lockIconDomTest, deleteFlowTest,
+		setupResult, lockTest, unlockTest, lockToastTest, lockCssTest, lockIconDomTest, deleteFlowTest,
 		createUndoTest, deleteUndoTest, moveUndoTest, timeRecomputeTest, editUndoTest, quickStampUndoTest,
 		concurrentAbortTest, inputFocusGuardTest, logTest, defaultTabTest
 	};
@@ -336,6 +360,7 @@ function serve() {
 	// timeRecomputeTest string alanlari dondurdugu icin collectBooleanFailures'a yakalanmaz, elle kontrol edilir.
 	const __timeOk = timeRecomputeTest.newTarih === '2026-01-13' && timeRecomputeTest.newSaat === '04:00' && timeRecomputeTest.newBitis === '05:00';
 	if (!__timeOk) __boolFails.push('timeRecomputeTest (beklenen tarih=2026-01-13 saat=04:00 bitis=05:00, gelen: ' + JSON.stringify(timeRecomputeTest) + ')');
+	if (lockToastTest.totalToastsAdded !== 6) __boolFails.push('lockToastTest.totalToastsAdded (beklenen 6, gelen: ' + lockToastTest.totalToastsAdded + ')');
 	const __allPassed = pageErrors.length === 0 && __boolFails.length === 0;
 	console.log('ALL_TESTS_PASSED:', __allPassed);
 	if (__boolFails.length) console.log('BASARISIZ ALANLAR:', JSON.stringify(__boolFails));
