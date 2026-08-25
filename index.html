@@ -361,7 +361,7 @@
 			   zaten yaptığı gibi küçük tekrar, erken soyutlamaya tercih ediliyor. */
 			.history-panel{ display:none; }
 			.history-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
-			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
+			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
 			@media (min-width: 900px) {
 			.history-panel.open{ position:absolute; top:0; left:auto; bottom:0; right:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.history-panel.open .history-panel-inner{ max-width:none; width:100%; padding:16px; }
@@ -767,13 +767,21 @@
 			   birlikte TUM bildirim-centikli telefonlarda calisir, sadece iPhone'a ozel degil. */
 			.modal-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
 			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
-			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; }
+			/* overflow-x:hidden guvenlik agi: dikey scroll zaten disaridaki .modal-bg'de (overflow-y:auto),
+			   burada sadece yatay eksen kilitleniyor -- ios Safari native input[type=date] kontrolu
+			   CSS genislik kisitlarina ragmen tasarsa bile karta gorsel olarak SIZMASIN diye. */
+			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; overflow-x:hidden; }
 			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
 			   metni dar ekranda bu alana kadar uzayip X'in ALTINA/UZERINE biniyordu. */
 			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
 			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
 			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
 			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); }
+			/* iOS Safari'nin native input[type=date] kontrolu bazen width:100%'u yok sayip kendi
+			   intrinsik genisligini dayatiyor (input[type=file]'daki v2.3.7 vakasiyla ayni aile).
+			   max-width:100%+min-width:0 ile bu dayatma KOSULSUZ eziliyor -- headless Chromium'da
+			   olcum farksiz cikiyor ama gercek cihazda tek basarili sinir bu olabilir. */
+			.field input[type=date]{ max-width:100%; min-width:0; }
 			/* iOS Safari, dolu bir metin kutusuna kendi native "temizle" X'ini ekleyebiliyor;
 			   bu, bizim ozel .clear-btn X'imizle CAKISIP yanlis hizali gorunmesine yol aciyordu
 			   (masaustu Chrome'da bu sorun hic gorunmuyor cunku Chrome boyle bir seyi yapmiyor).
