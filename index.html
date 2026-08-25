@@ -44,7 +44,7 @@
 		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
 
 		<style>
@@ -246,11 +246,23 @@
 			.actions-right { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 			
 			.btn{ font-family:'Roboto',sans-serif; font-weight:600; font-size:14px; border-radius:9px; padding:10px 16px; cursor:pointer; border:1px solid transparent; transition: background 0.2s;}
-			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:hover{ background:var(--navy-2); } .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
-			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); } .btn-ghost:hover{ background:var(--paper); }
-			.btn-danger{ background:#a33; color:#fff; } .btn-danger:hover{ background:#8a2727; }
-			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; } .btn-danger-outline:hover{ background:#fff0f0; }
-			.btn-news { background: var(--news); color: #fff; } .btn-news:hover { background: #004494; }
+			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
+			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); }
+			.btn-danger{ background:#a33; color:#fff; }
+			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; }
+			.btn-news { background: var(--news); color: #fff; }
+			/* Denetim maddesi #4: dokunmatik cihazlarda :hover, dokunulan butonda "basili" gorunumde
+			   TAKILI kalabiliyordu (bir sonraki dokunusa kadar hover sinifi temizlenmiyor). Gercek
+			   fare/imlecli cihazlarda hover zaten calissin diye bu kural sadece (hover:hover) VE
+			   (pointer:fine) eslesiyorsa (yani gercekten fare varsa) uygulanir -- proje takvim
+			   butonlarinda (.cal-mdayadd) zaten kullanilan ayni desen. */
+			@media (hover: hover) and (pointer: fine){
+				.btn-primary:hover{ background:var(--navy-2); }
+				.btn-ghost:hover{ background:var(--paper); }
+				.btn-danger:hover{ background:#8a2727; }
+				.btn-danger-outline:hover{ background:#fff0f0; }
+				.btn-news:hover { background: #004494; }
+			}
 			
 			/* margin-top:auto -- .info flex-column'da SON oge; icerik (isim/unvan/birim/not)
 			   kart kart degistigi icin butonun konumu ONCEDEN sabit 12px ust bosluktan
@@ -258,7 +270,8 @@
 			   ustte kimi altta gorunmesine yol aciyordu (grid ayni satiri esitliyor ama
 			   icerigin kendisi esit yukseklikte degil). auto, kalan tum bosluga yayilip
 			   butonu HER ZAMAN kartin en altina sabitler. */
-			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; } .card-edit:hover{ background:var(--paper); }
+			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; }
+			@media (hover: hover) and (pointer: fine){ .card-edit:hover{ background:var(--paper); } }
 			
 			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:'Roboto',sans-serif; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
 			.btn-restore-card { background: #e3efe6; color: #2f6f4e; } .btn-restore-card:hover { background: #cce0d3; }
@@ -472,6 +485,13 @@
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
 			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			/* Denetim maddesi #4: modern tarayicilarda dvh, --vh JS degiskenine (visualViewport
+			   izleyen, resize olayina bagli) gore daha DOGRU/aninda tepki verir (araç çubuğu
+			   animasyonu sirasinda JS henuz --vh'i guncellemeden bir kare "eski" boyut kalabiliyor).
+			   --vh SISTEMI SILINMEDI: dvh DESTEKLENMEYEN tarayicilarda (eski Safari/WebView) eski
+			   davranis @supports not ile AYNEN korunuyor, sadece destekleyenlerde ustune yazilir. */
+			@supports (height: 100dvh){ .cal-overlay{ height:100dvh; } }
+			@supports not (height: 100dvh){ .cal-overlay{ height:calc(var(--vh, 1vh) * 100); } }
 			.cal-overlay.open{ display:block; }
 			.cal-launch-backdrop{ position:fixed; inset:0; z-index:89; background:rgba(22,35,61,.42); display:none; opacity:0; pointer-events:none; transition:opacity .32s ease; }
 			.cal-launch-backdrop.show{ display:block; }
@@ -723,6 +743,12 @@
 			.cal-peek-foot .peek-row .btn{ flex:1; }
 			.cal-quick-btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:7px; }
 			body.is-readonly .cal-quick-btn{ display:none; }
+			/* Denetim maddesi #4: "Haber Taslağı Oluştur"/"Düzenle" gibi flex:1 buton ciftleri dar
+			   telefonlarda (cal-peek zaten max-width:94vw ile daralmis) yan yana sikisiyordu --
+			   bu genislikte alt alta dizilir, metinler kirpilmaz. */
+			@media (max-width: 420px){
+				.cal-peek-foot .peek-row{ flex-direction:column; }
+			}
 
 			/* ---- Etkinlik formundaki katılımcı seçici ---- */
 			.ev-attendee-box{ max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card); padding:6px; }
@@ -895,6 +921,12 @@
 				.reorder-header-bar { flex-direction: column; align-items: stretch; gap: 10px; }
 				.reorder-toolbar { justify-content: space-between; }
 				.reorder-toolbar button { flex: 1; text-align: center; }
+			}
+			/* Denetim maddesi #4: 320-375px gibi cok dar telefonlarda kullanici "4 sutun" secse bile
+			   kartlar asiri sikisiyordu -- bu genislikte en fazla 3 sutuna dusuruluyor. min() ile
+			   kullanicinin 2/3 secimi (zaten <=3) DEGISMEZ, sadece 4 secimi 3'e sinirlanir. */
+			@media (max-width: 380px) {
+				.grid:not(.is-reorder) { grid-template-columns: repeat(min(var(--mobile-cols, 4), 3), 1fr) !important; }
 			}
 			/* === GİRİŞ / KAYIT FORMU (Uiverse.io by ammarsaa, brass temaya uyarlandı) === */
 				.authform-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:60; }
@@ -1177,7 +1209,7 @@
 	</head>
 	<body class="is-readonly">
 
-		<div id="testModeBanner">Test Modu Açık — bu sahte/deneme verisi, gerçek veri değişmiyor</div>
+		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — bu sahte/deneme verisi, gerçek veri değişmiyor</div>
 
 								<div class="loading-overlay" id="loadingOverlay">
 			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
@@ -1237,7 +1269,7 @@
 				<button class="btn btn-ghost edit-only" id="reorderBtn" onclick="toggleReorderMode()">Sıralamayı Düzenle</button>
 				
 				<button class="btn btn-ghost" id="newsModeBtn" onclick="toggleNewsMode()">Haber Çıktısı Al</button>
-				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Metni Oluştur (0)</button>
+				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Taslağı Oluştur (0)</button>
 				<button class="btn btn-ghost" id="cancelNewsBtn" style="display:none;" onclick="toggleNewsMode()">İptal</button>
 
 				<button class="btn btn-ghost edit-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
@@ -1364,7 +1396,7 @@
 			<div class="cal-peek-foot">
 				<button class="btn btn-primary cal-quick-btn" id="calPeekQuickBtn" onclick="eventQuickStamp()">Şimdi Bitir</button>
 				<div class="peek-row">
-					<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Metni Üret</button>
+					<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Taslağı Oluştur</button>
 					<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
 				</div>
 				<div class="peek-row">
@@ -1830,11 +1862,11 @@
 					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')">Geçmiş</button>
 					<button class="btn btn-ghost" id="adminTabBackupBtn" onclick="switchAdminTab('backup')">Yedekleme</button>
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')">Test</button>
-					<button class="btn btn-ghost" id="adminTabDebugBtn" onclick="switchAdminTab('debug')">Debug</button>
+					<button class="btn btn-ghost" id="adminTabDebugBtn" onclick="switchAdminTab('debug')">Geliştirici Araçları</button>
 				</div>
 				<div class="test-mode-row">
 					<div>
-						<b class="test-mode-title">Test Modu</b>
+						<b class="test-mode-title">Paylaşımlı Test Ortamı</b>
 						<p class="hint" style="margin:2px 0 0;">Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz -- kişi/etkinlik kaydı, Debug butonları dahil. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. <b>Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!</b></p>
 					</div>
 					<label class="ios-switch">
@@ -2213,7 +2245,7 @@
 			// editorlere acmadan, sadece "kimler basin gorevlisi" listesini herkese okutmak icin.
 			async function toggleUserBasinGorevlisi(uid, checked) {
 				if (!requireAdmin()) return;
-				if (testModeEnabled) { showToast("Test Modu açıkken bu işlem yapılamaz.", "error"); loadAdminUsers(); return; }
+				if (testModeEnabled) { showToast("Paylaşımlı Test Ortamı açıkken bu işlem yapılamaz.", "error"); loadAdminUsers(); return; }
 				try {
 					await database.ref("users/" + uid + "/basinGorevlisi").set(checked);
 					// Log mesajı için isim her iki durumda (işaretlense de kaldırılsa da) gerekiyor.
@@ -2331,7 +2363,17 @@
 			}
 			
 			let people = [];
-			let mode = "aktif"; 
+			// Denetim maddesi #1: Fuse.js her tuş vuruşunda (render() -> oninput) yeniden kurulmasın diye
+			// oncekinden farkli bir "people" referansi gorulunce indeks yeniden kurulur, ayni referans
+			// icin (yani sadece arama kutusuna yazarken) onceki indeks tekrar kullanilir. people; hem
+			// attachListener()'in on("value") callback'inde hem de undo/geri-alma/tazeleme noktalarinda
+			// (satir ~3167,3178,3710,4013,4124) HER SEFERINDE yeni/degisen bir referansla degistirildigi
+			// icin, tek tek o noktalari yakalamak yerine referans karsilastirmasi ayni sonucu daha guvenli
+			// verir -- veri degisen HER yerde otomatik gecersiz olur, currentListKey degisiminde de
+			// (switchList() people'i once [] yapip sonra yeni veriyle degistiriyor) kendiliginden yenilenir.
+			let globalFuse = null;
+			let globalFuseSourceRef = null;
+			let mode = "aktif";
 			let editIndex = null;
 			// Duzenleme modali acildiginda hedef kaydin kimlik imzasi (ad+unvan). Kisiler dizi
 			// INDEKSIYLE tutuldugu icin, baska bir editor arada kayit silerse indeksler kayar ve
@@ -2393,7 +2435,7 @@
 					if (!isBulkMode && !isNewsMode && !isReorderMode) render();
 				};
 				activeListenerRef.on('value', activeListenerCallback, function() {
-					document.getElementById("countLabel").textContent = "Bağlantı Hatası!"; showToast("Veritabanına bağlanılamadı!", "error");
+					document.getElementById("countLabel").textContent = "Verilere ulaşılamadı"; showToast("Veritabanına bağlanılamadı!", "error");
 				});
 			}
 
@@ -2579,7 +2621,7 @@
 					if (on) { showLoading("Test ortamı hazırlanıyor…"); await cloneRealDataToTestMode(); hideLoading(); }
 					await database.ref("ayarlar/testModuAcik").set(!!on);
 				}
-				catch (err) { hideLoading(); console.error("Test modu değiştirilemedi:", err); showToast("Test modu değiştirilemedi.", "error"); updateTestModeBanner(); }
+				catch (err) { hideLoading(); console.error("Test modu değiştirilemedi:", err); showToast("Paylaşımlı Test Ortamı değiştirilemedi.", "error"); updateTestModeBanner(); }
 			}
 
 			// targetName ayrı tutulur ki log listesinde "kim yaptı" (by) ile "kime yapıldı" (target)
@@ -2696,6 +2738,10 @@
 				if (!requireEdit()) return false;
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
 				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
+				// people bu noktaya kadar caginin dogrudan mutasyonuyla (push/splice/index atamasi)
+				// degismis olabilir, referansi AYNI kalabilir -- Fuse onbellegi bu yuzden burada
+				// da acikca gecersiz kilinir (bkz. "globalFuseSourceRef" tanimindaki uzun yorum).
+				globalFuseSourceRef = null;
 				try { await database.ref(dbPath(LIST_PATHS[currentListKey])).set(people); peopleNeedsFullSave = false; logAction(actionLabel || "Liste güncellendi", targetName); return true; }
 				catch (err) { showToast("Buluta kaydedilemedi.", "error"); return false; }
 			}
@@ -2706,6 +2752,7 @@
 				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return false; }
 				if (!LIST_PATHS[currentListKey]) { showToast("Liste yolu geçersiz, kaydedilmedi.", "error"); return false; }
 				if (!people[idx]) { showToast("Kayıt bulunamadı, sayfayı yenileyin.", "error"); return false; }
+				globalFuseSourceRef = null; // bkz. saveData() -- ayni sebep, tek kayit guncellense bile arama alaninda degisiklik olabilir
 				// Dizide boşluk vardı ve yerel kopya sıkıştırıldıysa indeksler kaymıştır; tek kayıt yerine tüm liste yazılır.
 				if (peopleNeedsFullSave) { const ok = await saveData(actionLabel, targetName); if (ok) peopleNeedsFullSave = false; return ok; }
 				try {
@@ -2986,17 +3033,35 @@
 			function updateNewsSelection(idx, isChecked, cardElement) {
 				if (isChecked) { if (!newsSelection.includes(idx)) newsSelection.push(idx); cardElement.classList.add("news-selected"); } 
 				else { newsSelection = newsSelection.filter(i => i !== idx); cardElement.classList.remove("news-selected"); }
-				document.getElementById("executeNewsBtn").textContent = "Metni Oluştur (" + newsSelection.length + ")";
+				document.getElementById("executeNewsBtn").textContent = "Taslağı Oluştur (" + newsSelection.length + ")";
+			}
+
+			// Denetim maddesi #2: "OMÜ"/"TBMM"/"AVM" gibi TAMAMEN BUYUK harfli kisaltmalarda ek uyumu,
+			// YAZILI son harfe gore degil, o harfin TURKCE ADININ (okunusunun) son sesine gore secilir.
+			// Ornek: "TBMM" yazi olarak unsuz "M" ile biter ama soylenisi "...em" oldugu icin ek ince/on
+			// sese gore secilir: dogrusu "TBMM'nin"/"TBMM'ye", "TBMM'ın"/"TBMM'a" DEGIL. Turkce alfabede
+			// neredeyse her unsuz harfin adi bir unluyle BITER (be/ce/de/ke/me/... gibi), bu yuzden asil
+			// yazi bir unsuzle bitse de kisaltmalar ekler acisindan HER ZAMAN bir unluyle bitiyormus gibi
+			// davranir -- asagidaki tablo her harfin Turkce adindaki o unluyu tutar.
+			const ABBR_LETTER_VOWEL = { A:"a", B:"e", C:"e", "Ç":"e", D:"e", E:"e", F:"e", G:"e", "Ğ":"e", H:"e", I:"ı", "İ":"i", J:"e", K:"e", L:"e", M:"e", N:"e", O:"o", "Ö":"ö", P:"e", Q:"e", R:"e", S:"e", "Ş":"e", T:"e", U:"u", "Ü":"ü", V:"e", W:"e", X:"e", Y:"e", Z:"e" };
+			function abbrevPronunciationVowel(token) {
+				const t = String(token || "");
+				// En az 2 harf, TAMAMI buyuk harf olmali -- tek harf ya da kucuk harf iceren kelimeler kisaltma sayilmaz.
+				if (!/^[A-ZÇĞİÖŞÜ]{2,}$/.test(t)) return null;
+				return ABBR_LETTER_VOWEL[t[t.length - 1]] || null;
 			}
 
 			function turkishGenitiveSuffix(fullName) {
 				const name = (fullName || "").trim(); if(!name) return name;
 				const toLowerTr = ch => { if(ch === "İ") return "i"; if(ch === "I") return "ı"; return ch.toLocaleLowerCase("tr-TR"); };
-				const vowelSet = "aıoueiöü"; let lastVowel = null;
-				for(let i = name.length - 1; i >= 0; i--){ const ch = toLowerTr(name[i]); if(vowelSet.includes(ch)){ lastVowel = ch; break; } }
+				const vowelSet = "aıoueiöü";
+				const words = name.split(/\s+/); const lastWord = words[words.length - 1];
+				const abbrevVowel = abbrevPronunciationVowel(lastWord);
+				let lastVowel = abbrevVowel;
+				if (!abbrevVowel) { lastVowel = null; for(let i = name.length - 1; i >= 0; i--){ const ch = toLowerTr(name[i]); if(vowelSet.includes(ch)){ lastVowel = ch; break; } } }
 				let sVowel = "ı";
 				if(lastVowel){ if("aı".includes(lastVowel)) sVowel = "ı"; else if("ei".includes(lastVowel)) sVowel = "i"; else if("ou".includes(lastVowel)) sVowel = "u"; else if("öü".includes(lastVowel)) sVowel = "ü"; }
-				const lastChar = toLowerTr(name[name.length - 1]); const endsWithVowel = vowelSet.includes(lastChar);
+				const lastChar = toLowerTr(name[name.length - 1]); const endsWithVowel = abbrevVowel ? true : vowelSet.includes(lastChar);
 				return name + "'" + (endsWithVowel ? "n" : "") + sVowel + "n";
 			}
 
@@ -3005,10 +3070,12 @@
 				const s=String(word||"").trim(); if(!s) return "";
 				const words=s.split(/\s+/); const last=words[words.length-1];
 				const lower=function(ch){ if(ch==="İ") return "i"; if(ch==="I") return "ı"; return ch.toLocaleLowerCase("tr-TR"); };
-				const vowels="aeıioöuü"; let lastVowel="";
-				for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } }
+				const vowels="aeıioöuü";
+				const abbrevVowel = abbrevPronunciationVowel(last);
+				let lastVowel = abbrevVowel || "";
+				if (!abbrevVowel) { for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } } }
 				const back="aıou".indexOf(lastVowel)>-1;
-				const lastCh=lower(last[last.length-1]); const endsWithVowel=vowels.indexOf(lastCh)>-1;
+				const lastCh=lower(last[last.length-1]); const endsWithVowel = abbrevVowel ? true : vowels.indexOf(lastCh)>-1;
 				const needsN = words.length>1 && "ıiuü".indexOf(lastCh)>-1;
 				const ek=back?"a":"e";
 				if(!endsWithVowel) return s+"'"+ek;
@@ -3019,11 +3086,13 @@
 				const s=String(word||"").trim(); if(!s) return "";
 				const words=s.split(/\s+/); const last=words[words.length-1];
 				const lower=function(ch){ if(ch==="İ") return "i"; if(ch==="I") return "ı"; return ch.toLocaleLowerCase("tr-TR"); };
-				const vowels="aeıioöuü"; let lastVowel="";
-				for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } }
+				const vowels="aeıioöuü";
+				const abbrevVowel = abbrevPronunciationVowel(last);
+				let lastVowel = abbrevVowel || "";
+				if (!abbrevVowel) { for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } } }
 				let ek="ı";
 				if(lastVowel){ if("aı".indexOf(lastVowel)>-1) ek="ı"; else if("ei".indexOf(lastVowel)>-1) ek="i"; else if("ou".indexOf(lastVowel)>-1) ek="u"; else if("öü".indexOf(lastVowel)>-1) ek="ü"; }
-				const lastCh=lower(last[last.length-1]); const endsWithVowel=vowels.indexOf(lastCh)>-1;
+				const lastCh=lower(last[last.length-1]); const endsWithVowel = abbrevVowel ? true : vowels.indexOf(lastCh)>-1;
 				const needsN = words.length>1 && "ıiuü".indexOf(lastCh)>-1;
 				if(!endsWithVowel) return s+"'"+ek;
 				return s+"'"+(needsN?"n":"y")+ek;
@@ -3088,7 +3157,21 @@
 			}
 
 			function closeNewsModal() { document.getElementById("newsModalBg").classList.remove("open"); newsPeopleOverride = null; newsEventContext = null; setNewsOutputMode("template"); const rawEl=document.getElementById("newsRawInput"); if(rawEl) rawEl.value=""; const poEl=document.getElementById("newsPromptOutput"); if(poEl) poEl.value=""; }
-			function copyNewsText() { document.getElementById("newsOutputText").select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success"); }
+			// Denetim maddesi #6: Clipboard API destekleniyorsa (https bağlam, GitHub Pages'te
+			// zaten öyle) onunla kopyalanır -- eski document.execCommand("copy") bazı mobil
+			// tarayıcılarda güvenilmez. API yoksa/başarısız olursa eski yönteme geri düşülür.
+			function copyToClipboardWithToast(text) {
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					navigator.clipboard.writeText(text).then(function(){ showToast("Panoya kopyalandı!", "success"); }).catch(function(){ showToast("Kopyalanamadı, elle seçip kopyalayın.", "error"); });
+				} else {
+					showToast("Kopyalanamadı, elle seçip kopyalayın.", "error");
+				}
+			}
+			function copyNewsText() {
+				const el = document.getElementById("newsOutputText");
+				if (navigator.clipboard && navigator.clipboard.writeText) { copyToClipboardWithToast(el.value); return; }
+				el.select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success");
+			}
 
 			// Yapay zekaya hazirlama modu: uygulama HICBIR AI servisine baglanmaz, sadece kopyalanabilir bir komut metni uretir.
 			const NEWS_PROMPT_COMMON_RULES = [
@@ -3134,7 +3217,11 @@
 				promptLines.push(""); promptLines.push("HAM NOTLAR:"); promptLines.push(raw.trim());
 				document.getElementById("newsPromptOutput").value = promptLines.join("\n");
 			}
-			function copyNewsPrompt() { const el=document.getElementById("newsPromptOutput"); if(!el.value.trim()){ showToast("Önce komut oluşturun.", "error"); return; } el.select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success"); }
+			function copyNewsPrompt() {
+				const el=document.getElementById("newsPromptOutput"); if(!el.value.trim()){ showToast("Önce komut oluşturun.", "error"); return; }
+				if (navigator.clipboard && navigator.clipboard.writeText) { copyToClipboardWithToast(el.value); return; }
+				el.select(); document.execCommand("copy"); showToast("Panoya kopyalandı!", "success");
+			}
 
 			async function restoreSingle(idx) {
 				if (!requireEdit()) return;
@@ -3165,7 +3252,7 @@
 					const spOk = await saveData(name + " kişisi kalıcı olarak silindi", name);
 					closeSinglePermDelete();
 					if (!spOk) { people = prevPeople; render(); return; }
-					render(); showToast("Kayıt kalıcı olarak yok edildi.", "warn");
+					render(); showToast("Kayıt kalıcı olarak silindi.", "warn");
 				}
 			}
 
@@ -3280,9 +3367,12 @@
 				// Turkce-duyarli kucuk harfe cevrilir -- Fuse'un kendi kucuk-harf donusumu
 				// Turkce İ/ı harflerini yanlis isler, ona guvenilmez. Siralama (protokol rutbesi)
 				// asagida AYRI yapiliyor, Fuse'un alaka sirasi onemsiz -- sadece ESLESEN KUME lazim.
-				const searchable = listAll.map(p => ({ p: p, _search: ((p.name||"")+" "+(p.prefix||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr") }));
-				const fuse = new Fuse(searchable, { keys: ["_search"], threshold: 0.35, ignoreLocation: true });
-				list = fuse.search(q).map(r => r.item.p);
+				if (globalFuseSourceRef !== people) {
+					const searchable = listAll.map(p => ({ p: p, _search: ((p.name||"")+" "+(p.prefix||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr") }));
+					globalFuse = new Fuse(searchable, { keys: ["_search"], threshold: 0.35, ignoreLocation: true });
+					globalFuseSourceRef = people;
+				}
+				list = globalFuse.search(q).map(r => r.item.p);
 			}
 
 			// Beklenmeyen/gecersiz bir status degeri (ör. Firebase Console'dan elle girilmis bir
@@ -3397,12 +3487,13 @@
 					const fresh = getFreshnessInfo(p);
 					const freshTitle = p.sonDogrulamaTs ? ("Son doğrulama: " + fmtDate(dKey(new Date(p.sonDogrulamaTs))) + " · " + (VERIFICATION_SOURCES[p.dogrulamaKaynak] || p.dogrulamaKaynak || "") + (p.dogrulayan ? " · " + p.dogrulayan : "")) : "Bu kayıt hiç doğrulanmadı.";
 					if (isBulkMode || isNewsMode) {
-						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:#f0f0f0; border-radius:7px;">SEÇİM MODU AKTİF</div>';
+						const selectionHint = isBulkMode ? "Silmek istediğiniz kayıtları seçin." : "Habere dahil etmek istediğiniz kişileri seçin.";
+						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:#f0f0f0; border-radius:7px;">' + selectionHint + '</div>';
 					}
 					else if (mode === "silindi") {
 						actionHtml = canEditData() ? `
 							<div style="display:flex; gap:8px; margin-top:auto;">
-								<button class="card-action-btn btn-restore-card" onclick="restoreSingle(${p._realIdx}); event.stopPropagation();">Kurtar</button>
+								<button class="card-action-btn btn-restore-card" onclick="restoreSingle(${p._realIdx}); event.stopPropagation();">Geri Yükle</button>
 								<button class="card-action-btn btn-permdel-card" onclick="openSinglePermDelete(${p._realIdx}); event.stopPropagation();">Kalıcı Sil</button>
 							</div>
 						` : "";
@@ -3755,6 +3846,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						const updates = {};
 						updates[String(newIdx)] = record;
 						updates[String(successorEditingIndex)] = oldUpdated;
+						globalFuseSourceRef = null; // saveData()/savePerson() disinda kalan tek yazma yolu -- bkz. tanim yorumu
 						await database.ref(dbPath(LIST_PATHS[currentListKey])).update(updates);
 						people[successorEditingIndex] = oldUpdated;
 						logAction(actionLabel, name);
@@ -4222,7 +4314,7 @@ const EVENT_STATUS = [
 	// Eski #8a8f98 beyaz üstünde 3.25:1 idi (WCAG AA metin hedefi 4.5:1'in altında). #6b7280 ~4.83:1 verir,
 	// aynı nötr gri tonunu korur (görsel fark minimal).
 	{ key:"planlandi",  ad:"Planlandı",     renk:"#6b7280" },
-	{ key:"cekildi",    ad:"Çekildi",       renk:"#1d4ed8" },
+	{ key:"cekildi",    ad:"Gerçekleşti",       renk:"#1d4ed8" },
 	{ key:"haber",      ad:"Haber Yazıldı", renk:"#b45309" },
 	{ key:"yayinlandi", ad:"Yayınlandı",    renk:"#15803d" },
 	{ key:"iptal",      ad:"İptal",         renk:"#b03a3a" }
@@ -5549,11 +5641,17 @@ function turkishLocative(place){
 	const s=String(place||"").trim(); if(!s) return "";
 	const words=s.split(/\s+/); const last=words[words.length-1];
 	const lower=function(ch){ if(ch==="İ") return "i"; if(ch==="I") return "ı"; return ch.toLocaleLowerCase("tr-TR"); };
-	const vowels="aeıioöuü"; let lastVowel="";
-	for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } }
+	const vowels="aeıioöuü";
+	// Denetim maddesi #2: "OMÜ"/"TBMM" gibi TAMAMEN BUYUK harfli kisaltmalarda ek uyumu yazili son
+	// harfe degil, o harfin Turkce okunusuna gore secilir (bkz. abbrevPronunciationVowel() tanimi).
+	const abbrevVowel = (typeof abbrevPronunciationVowel === "function") ? abbrevPronunciationVowel(last) : null;
+	let lastVowel = abbrevVowel || "";
+	if (!abbrevVowel) { for(let i=last.length-1;i>=0;i--){ const c=lower(last[i]); if(vowels.indexOf(c)>-1){ lastVowel=c; break; } } }
 	const back="aıou".indexOf(lastVowel)>-1;
 	const lastCh=lower(last[last.length-1]);
-	const hard="fstkçşhp".indexOf(lastCh)>-1;
+	// Kisaltmanin yazili son harfi sert unsuz OLSA BILE (ör. TBMM'nin son harfi "M" yumusak), sert
+	// unsuz benzesmesi YAZIYA degil OKUNUSA bakar -- kisaltmalarda gercek harf esas alinir (M sert degil).
+	const hard=!abbrevVowel && "fstkçşhp".indexOf(lastCh)>-1;
 	// Çok kelimeli ve son kelimesi i/ı/u/ü ile biten adlar genelde tamlamadır: Merkezi, Salonu, Fakültesi…
 	const needsN = words.length>1 && "ıiuü".indexOf(lastCh)>-1;
 	const ek=(hard?"t":"d")+(back?"a":"e");
