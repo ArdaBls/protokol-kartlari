@@ -418,6 +418,14 @@
 							<input type="date" id="sr_transitionDate">
 							<button class="btn btn-ghost" type="button" style="width:100%; margin-top:10px;" onclick="applyStatusReason()">Uygula</button>
 						</div>
+						<!-- Halef tetikleyicisi ESKIDEN formun EN ALTINDA, Kaydet/Sil butonlarindan
+						     SONRA duruyordu -- "Uygula" (yukarida) ile ayni sebebin iki bagimsiz
+						     parcasi olmasina ragmen birbirinden kopuk gorunuyordu (kullanici: sistemi
+						     "daha kullanilabilir kompakt hale getirelim"). Artik Pasife Alma Sebebi
+						     bloguyla AYNI kart icinde, hemen altinda -- tek tutarli adim gibi okunur. -->
+						<div id="successorTriggerWrap" style="display:none; margin-top:10px;">
+							<button class="btn btn-ghost" type="button" style="width:100%;" onclick="openSuccessorPanel()">Yerine Yeni Kişi Ata</button>
+						</div>
 					</div>
 					<div class="field-row date-pair-row">
 						<div class="field">
@@ -466,9 +474,6 @@
 					<div id="editDeleteActions" style="display:none; gap:10px; margin-top:10px;">
 						<button class="btn btn-danger-outline" type="button" style="flex:1; padding:8px;" onclick="openConfirmModal()">Çöpe At</button>
 						<button class="btn btn-danger" type="button" style="flex:1; padding:8px;" onclick="openSinglePermDelete(editIndex)">Kalıcı Sil</button>
-					</div>
-					<div id="successorTriggerWrap" style="display:none; margin-top:10px;">
-						<button class="btn btn-ghost" type="button" style="width:100%;" onclick="openSuccessorPanel()">Yerine Yeni Kişi Ata</button>
 					</div>
 					</form>
 			</div>

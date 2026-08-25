@@ -1959,7 +1959,10 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				document.getElementById("sf_title").value = old.title || "";
 				document.getElementById("sf_unit").value = old.unit || "";
 				document.getElementById("sf_rank").value = (old.rank !== undefined && old.rank !== null && old.rank !== "") ? old.rank : "";
-				document.getElementById("sf_start").value = document.getElementById("f_end").value || "";
+				// "active" turde (yeni_gorev/gorev_bitti) f_end genelde BOS kalir (kisi pasife
+				// dusmuyor) -- bu durumda sr_transitionDate (Uygula'nin gecis tarihi) veya bugune
+				// dusulur, "passive" turde oldugu gibi f_end'e guvenilemez.
+				document.getElementById("sf_start").value = document.getElementById("f_end").value || document.getElementById("sr_transitionDate").value || dKey(new Date());
 				document.getElementById("sf_note").value = "";
 				document.getElementById("sf_photo_url").value = ""; document.getElementById("sf_photoPreview").style.display = "none"; document.getElementById("sf_photoPreview").dataset.value = "";
 				// Bu paneli acmanin butun amaci yerine gecme: soldaki kayit otomatik "Pasif"e
@@ -2104,8 +2107,12 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				if (!name || !title) { showToast("Yeni kişi için isim ve unvan zorunlu!", "error"); return; }
 				const rankRaw = document.getElementById("sf_rank").value.trim();
 				if (rankRaw !== "" && !/^\d+$/.test(rankRaw)) { showToast("Protokol sırası sadece rakam olmalı.", "error"); return; }
-				// saveForm()'daki AYNI kural burada da gecerli: eski kaydin pasife alinmasi icin bitis tarihi sart.
-				if (!document.getElementById("f_end").value) { showToast("Eski kaydın bitiş tarihini girin (soldaki formda).", "error"); return; }
+				// "passive" turde (gercek ayrilis) eski kaydin pasife alinmasi icin bitis tarihi
+				// SART; "active" turde (yeni_gorev/gorev_bitti) eski kayit bu akista HIC
+				// GUNCELLENMIYOR (kisi "Uygula" ile kendi unvanini AYRICA degistirip normal Kaydet
+				// ile persist edecek), o yuzden bitis tarihi burada gerekmiyor.
+				const kind = reasonKind(document.getElementById("sr_reason").value);
+				if (kind === "passive" && !document.getElementById("f_end").value) { showToast("Eski kaydın bitiş tarihini girin (soldaki formda).", "error"); return; }
 				// Diğer editörler arada kayıt eklemiş/silmiş olabilir; yazmadan hemen önce güncel liste okunur.
 				if (database && LIST_PATHS[currentListKey]) {
 					try { const fresh = await database.ref(dbPath(LIST_PATHS[currentListKey])).once("value"); people = normalizePeopleSnapshot(fresh.val()); }
@@ -2132,61 +2139,71 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				people[newId] = record;
 				const actionLabel = name + " kişisi, " + (oldP.name || "eski kayıt") + " yerine atandı" + (record.rank !== "" ? ", " + record.rank + ". sıra" : "");
 
-				// Eski kaydi (successorEditingIndex) da AYNI islemde pasife cekiyoruz -- aksi
-				// halde yeni kisi eklenip eski kayit sunucuda "aktif" kalabiliyordu (bilinen
+				// "passive" turde eski kaydi (successorEditingIndex) AYNI islemde pasife cekiyoruz --
+				// aksi halde yeni kisi eklenip eski kayit sunucuda "aktif" kalabiliyordu (bilinen
 				// tutarlilik acigi: eskiden bu sadece f_status'un DOM degerini degistiriyordu,
 				// veritabanina yazilmasi icin ayrica sol formda Kaydet'e basilmasi gerekiyordu).
 				// oldP fresh() okumadan gelen DOGRULANMIS kopya -- DOM'daki olasi kaydedilmemis
 				// diger alan degisikliklerini (unit/not/gorevGecmisi vb.) KASITLI OLARAK almiyoruz,
 				// sadece status+end degisiyor; boylece stale-write riski yok, editor diger
 				// degisiklikleri istiyorsa ayrica sol formda Kaydet'e basar.
-				const oldUpdated = Object.assign({}, oldP, { status: "pasif", end: document.getElementById("f_end").value });
-				const oldActionLabel = (oldP.name || "Kayıt") + " kişisi pasife alındı (yerine " + name + " atandı)";
+				// "active" turde eski kayit bu akista HIC guncellenmiyor (bkz. yukaridaki not) --
+				// oldUpdated/oldActionLabel sadece "passive" icin hesaplanir.
+				const oldUpdated = kind === "passive" ? Object.assign({}, oldP, { status: "pasif", end: document.getElementById("f_end").value }) : null;
+				const oldActionLabel = kind === "passive" ? ((oldP.name || "Kayıt") + " kişisi pasife alındı (yerine " + name + " atandı)") : null;
 
 				let saved = false;
 				if (peopleNeedsFullSave || !database || !LIST_PATHS[currentListKey]) {
 					// Kacis yolu: savePerson()'un da kullandigi ayni bayrak -- snapshot ESKİ (dizi
 					// tabanlı) bir yedekten yerel ID'lere cevrildiyse tek-yol yazimi guvenli degil,
 					// tum nesneyi tek .set() ile yaz (saveData() zaten atomik).
-					people[successorEditingIndex] = oldUpdated;
-					saved = await saveData(actionLabel + " · " + oldActionLabel, name);
-					if (!saved) people[successorEditingIndex] = oldP;
+					if (kind === "passive") people[successorEditingIndex] = oldUpdated;
+					saved = await saveData(kind === "passive" ? (actionLabel + " · " + oldActionLabel) : actionLabel, name);
+					if (!saved && kind === "passive") people[successorEditingIndex] = oldP;
 				} else {
-					// Firebase'in cok-yollu update()'i: TEK istekte iki ID'ye (yeni push-ID + eski
-					// kaydin push-ID'si) birden yazar, native olarak atomik -- iki ayri savePerson()
-					// cagrisinin arasinda kalan tutarsizlik penceresini tamamen kapatir.
+					// Firebase'in cok-yollu update()'i: TEK istekte (kind==="passive" ise) iki ID'ye
+					// (yeni push-ID + eski kaydin push-ID'si), "active" ise SADECE yeni push-ID'ye
+					// yazar, native olarak atomik -- iki ayri savePerson() cagrisinin arasinda kalan
+					// tutarsizlik penceresini tamamen kapatir.
 					try {
-						// Kayit + IKI log satiri (yeni kisi + eski kaydin pasife alinmasi) TEK atomik
-						// root().update() istegine tasindi -- once ayri ayri (ates-et-unut) push()
-						// cagrilariydi, veri basariyla yazilsa bile loglardan biri sessizce kaybolabiliyordu.
+						// Kayit + log satir(lar)i TEK atomik root().update() istegine tasindi -- once
+						// ayri ayri (ates-et-unut) push() cagrilariydi, veri basariyla yazilsa bile
+						// loglardan biri sessizce kaybolabiliyordu.
 						const listPath = dbPath(LIST_PATHS[currentListKey]);
 						const updates = {};
 						updates[listPath + "/" + newId] = record;
-						updates[listPath + "/" + successorEditingIndex] = oldUpdated;
-						let logKey1 = null, logKey2 = null;
+						if (kind === "passive") updates[listPath + "/" + successorEditingIndex] = oldUpdated;
+						let logKey1 = null;
 						if (currentUser) {
 							const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
 							const logsPath = dbPath("logs/" + currentListKey);
 							logKey1 = database.ref(logsPath).push().key;
-							logKey2 = database.ref(logsPath).push().key;
 							updates[logsPath + "/" + logKey1] = { by: who, email: currentUser.email, action: actionLabel, target: name, timestamp: firebase.database.ServerValue.TIMESTAMP };
-							updates[logsPath + "/" + logKey2] = { by: who, email: currentUser.email, action: oldActionLabel, target: oldP.name || "", timestamp: firebase.database.ServerValue.TIMESTAMP };
+							if (kind === "passive") {
+								const logKey2 = database.ref(logsPath).push().key;
+								updates[logsPath + "/" + logKey2] = { by: who, email: currentUser.email, action: oldActionLabel, target: oldP.name || "", timestamp: firebase.database.ServerValue.TIMESTAMP };
+							}
 						}
 						globalFuseSourceRef = null; // saveData()/savePerson() disinda kalan tek yazma yolu -- bkz. tanim yorumu
 						await database.ref("/").update(updates);
-						people[successorEditingIndex] = oldUpdated;
+						if (kind === "passive") people[successorEditingIndex] = oldUpdated;
 						if (!logKey1) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
 						saved = true;
 					} catch (err) {
 						console.error("Kaydedilemedi:", err);
-						showToast("Buluta kaydedilemedi (yeni kişi ve eski kayıt birlikte yazılamadı).", "error");
+						showToast(kind === "passive" ? "Buluta kaydedilemedi (yeni kişi ve eski kayıt birlikte yazılamadı)." : "Buluta kaydedilemedi.", "error");
 						saved = false;
 					}
 				}
-				if (!saved) { delete people[newId]; people[successorEditingIndex] = oldP; return; }
-				// Halef basariyla kaydedildi -- ana Kaydet'i kilitleyen kosul artik gecmis, kilit acilir.
-				document.getElementById("sr_reason").value = ""; onStatusReasonChange();
+				if (!saved) { delete people[newId]; if (kind === "passive") people[successorEditingIndex] = oldP; return; }
 				showToast("Yeni kişi eklendi: " + name);
+				if (kind === "passive") {
+					// Halef basariyla kaydedildi -- ana Kaydet'i kilitleyen kosul artik gecmis, kilit acilir.
+					document.getElementById("sr_reason").value = ""; onStatusReasonChange();
+				}
+				// "active" turde sr_reason BILEREK SIFIRLANMAZ -- admin "Uygula"ya (kendi unvan
+				// degisikligi) henuz basmamis olabilir, secim kalsin ki hem Uygula hem (gerekirse)
+				// tekrar halef eklemek hala mumkun olsun.
 				closeSuccessorPanel();
 				render();
 			}
@@ -2204,7 +2221,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// degerden hesaplanir (successorTriggerWrap'in DOM gorunurlugunden DEGIL) ki is
 			// kurali tek yerde acik kalsin.
 			function updateSaveButtonLock() {
-				const locked = editIndex !== null && document.getElementById("f_status").value === "pasif" && reasonRequiresSuccessor(document.getElementById("sr_reason").value);
+				const locked = editIndex !== null && document.getElementById("f_status").value === "pasif" && reasonKind(document.getElementById("sr_reason").value) === "passive";
 				const btn = document.getElementById("saveFormBtn");
 				if (btn) { btn.disabled = locked; btn.title = locked ? "Önce yerine atanacak kişiyi kaydedin." : ""; }
 				const hint = document.getElementById("saveLockHint");
@@ -2238,14 +2255,15 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// zaten kullandigi lastStatusTransitionNote mekanizmasindan (bkz. saveForm() actionLabel
 			// insasi, ~satir 2498) faydalanir -- ayrica bir persist/alan gerekmez.
 			const SIMPLE_STATUS_REASON_LABELS = { istifa: "İstifa etti", emekli: "Emekli oldu", gorevden_alindi: "Görevden alındı", vefat: "Vefat etti", diger: "Pasife alındı (diğer sebep)" };
-			// "yeni_gorev"/"gorev_bitti" DISINDA secilen HER sebep bir BOSLUK (vekalet/kadro
-			// bosalmasi) yaratir -- kisi ya donmuyor ya da baskasi onun yerine geciyor, dolayisiyla
-			// "yerine_atama" ile AYNI kurala tabi: halef paneli acilir, yerine biri kaydedilmeden ana
-			// Kaydet kilitli kalir (kullanici: "kişinin yerine biri atanması gereken bir durumdan
-			// dolayı pasif oluyorsa ... kaydetme kitlensin"). Tek istisna "yeni_gorev"/"gorev_bitti" --
-			// bunlarda kisi AYNI kurumda baska bir role/duruma donuyor, bosluk olusmuyor.
-			function reasonRequiresSuccessor(val) {
-				return !!val && val !== "yeni_gorev" && val !== "gorev_bitti";
+			// HER sebep (bos secim haric) bir BOSLUK (vekalet/kadro bosalmasi) yaratir -- kisi ya
+			// AYNI kurumda baska bir role geciyor ("active") ya da gercekten ayriliyor ("passive").
+			// Ikisinde de "kim yerine geldi" bilgisi (halef paneli) faydali, ama SADECE "passive"de
+			// ZORUNLU (ana Kaydet kilitlenir) -- kullanici: "pasife yani arsive cikma durumu cok
+			// elzem ... olmali", yani zorunluluk sadece gercek ayrilislarda, ic-kurum gecislerinde
+			// (yeni_gorev/gorev_bitti) halef atamasi OPSIYONEL kalir.
+			function reasonKind(val) {
+				if (!val) return null;
+				return (val === "yeni_gorev" || val === "gorev_bitti") ? "active" : "passive";
 			}
 			function onStatusReasonChange() {
 				const val = document.getElementById("sr_reason").value;
@@ -2254,7 +2272,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				if (isArchiveReason) {
 					document.getElementById("sr_transitionDate").value = document.getElementById("f_end").value || dKey(new Date());
 				}
-				const showSuccessor = reasonRequiresSuccessor(val);
+				const showSuccessor = reasonKind(val) !== null;
 				document.getElementById("successorTriggerWrap").style.display = showSuccessor ? "block" : "none";
 				if (!showSuccessor) closeSuccessorPanel(); // masaustunde acik kalmis olabilir, savunmaci kapatma
 				// Basit sebepler (Uygula/halef akisina girmeyenler): secilince hemen not olarak
@@ -2427,7 +2445,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// Buton disabled olsa bile handleFormKeydown() Enter tusuyla bu fonksiyonu dogrudan
 			// cagirabiliyor (disabled sadece tiklama/focus'u engeller) -- ayni kilit kosulu burada
 			// da tekrar kontrol edilir.
-			if (editIndex !== null && document.getElementById("f_status").value === "pasif" && reasonRequiresSuccessor(document.getElementById("sr_reason").value)) {
+			if (editIndex !== null && document.getElementById("f_status").value === "pasif" && reasonKind(document.getElementById("sr_reason").value) === "passive") {
 				showToast("Bu kayıt yerine biri atanmadan pasife alınamaz. Önce 'Yerine Yeni Kişi Ata' panelini kaydedin.", "error");
 				return;
 			}
@@ -3304,22 +3322,19 @@ function renderWeekView(body){
 	body.innerHTML='<div class="cal-tg">'+head+allday+
 		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+nowFull+'</div></div></div>';
 
-	// ESKIDEN tum-gun seridi + saat izgarasi TEK ortak grup'tu (bir chip ikisi arasinda da
-	// suruklenebiliyordu) -- ama .cal-block'un saat izgarasi icin hesaplanan position:absolute
-	// left/width/top/height (yuzde/piksel, .cal-daycol'un kendi genislik/yuksekligine gore) HALA
-	// UYGULANIRKEN dugum SortableJS tarafindan .cal-allday-col'un (kisa, yatay flex satiri) icine
-	// TASINIYORDU -- yuzdeler tamamen FARKLI bir kap boyutuna gore hesaplanip ekranda devasa/bozuk
-	// bir "hayalet" olusturuyordu, surukleme bazen hic bitmeyip kullaniciyi sayfayi YENILEMEYE
-	// zorluyordu (kullanici: "tum gune eklenen etkinlik icin orda uygulama sapitiyor", "kapatip
-	// acmadiktan sonra gitmiyor"). Ayri iki grup: ayni tipteki sutunlar arasinda (gun->gun VEYA
-	// tum-gun->tum-gun) suruklemeye devam izin verilir, ama saat izgarasi<->tum-gun seridi CAPRAZ
-	// surukleme ARTIK MUMKUN DEGIL -- bir etkinligi tum-gun yapmak icin duzenleme formundan saati
-	// bosaltmak gerekir (zaten desteklenen bir yol).
-	body.querySelectorAll(".cal-daycol").forEach(function(col){
-		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeekTimed")));
-	});
-	body.querySelectorAll(".cal-allday-col").forEach(function(col){
-		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeekAllDay")));
+	// Tum-gun seridi + saat izgarasi TEK ortak grup -- bir etkinlik ikisi arasinda suruklenebilir
+	// (kullanici: "tum güne eklenen bir etkinliği de aşağıya almama izin vermen lazım"). v2.9.39'da
+	// bu GECICI olarak IKI ayri gruba bolunup capraz surukleme TAMAMEN kapatilmisti, cunku
+	// .cal-block'un saat izgarasi icin hesaplanan position:absolute left/width/top/height (yuzde/
+	// piksel, .cal-daycol'un kendi genislik/yuksekligine gore) surukleme SIRASINDA dugum
+	// .cal-allday-col'un (kisa, yatay flex satiri) icine tasinirken HALA uygulaniyor, tamamen
+	// FARKLI bir kap boyutuna gore hesaplanip ekranda devasa/bozuk bir "hayalet" olusturuyordu.
+	// GERCEK duzeltme: calOnDragMove() artik surukleme SIRASINDA hedefin turunu izleyip
+	// .cal-block-cross-preview sinifini takiyor/cikariyor (bkz. asagi + style.css) -- bu sinif
+	// saat-izgarasina-ozel mutlak konumlandirmayi SADECE tum-gun seridi uzerindeyken gecici
+	// olarak etkisiz kilar, boylece capraz surukleme artik GUVENLI ve tekrar MUMKUN.
+	body.querySelectorAll(".cal-allday-col, .cal-daycol").forEach(function(col){
+		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeek")));
 	});
 
 	// açılışta (veya BAŞKA bir haftaya/güne geçince) sabah 07:00 hizasına kaydır; bugün görünüyorsa
@@ -3515,10 +3530,20 @@ function calSortableOnFilter(evt){
 		showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
 	}
 }
-// onMove her surukleme adiminda tekrar tekrar tetiklenir (dragover/touchmove) -- burada sadece
-// son bilinen isaretci konumu izlenir, onEnd'de asil kaynak (evt.originalEvent) basarisiz olursa yedek olsun diye.
+// onMove her surukleme adiminda tekrar tekrar tetiklenir (dragover/touchmove) -- burada hem
+// son bilinen isaretci konumu izlenir (onEnd'de asil kaynak (evt.originalEvent) basarisiz
+// olursa yedek olsun diye) HEM DE surukelenen dugumun o an HANGI tur sutunun (saat izgarasi mi
+// tum-gun seridi mi) uzerinde oldugu takip edilir -- .cal-block'un saat-izgarasina-ozel
+// position:absolute yuzdeleri, dugum gecici olarak .cal-allday-col icine tasindiginda TAMAMEN
+// yanlis bir kap boyutuna gore hesaplanip devasa/bozuk gorunuyordu (bkz. calSortableOptions
+// cagrisindaki uzun not). .cal-block-cross-preview sinifi SADECE bu gecis aninda mutlak
+// konumlandirmayi etkisiz kilar (style.css), .cal-daycol'a geri donunce kaldirilir.
 function calOnDragMove(evt){
 	const xy=pointerXY(evt.originalEvent); if(xy) calDragLastXY=xy;
+	if(evt.dragged){
+		const overAllDay = evt.to && evt.to.classList.contains("cal-allday-col");
+		evt.dragged.classList.toggle("cal-block-cross-preview", !!overAllDay);
+	}
 	return true; // engelleme yok, sadece izliyoruz
 }
 // Suruklenen blogun KENDI ust kenari ile isaretcinin o anki dikey konumu arasindaki fark --
@@ -3574,6 +3599,10 @@ async function calMoveEvent(id, dateKey, timeInfo){
 function calOnDragEnd(evt){
 	calDragActive = false;
 	calDragLastXY=null; // her surukleme sonunda sifirla, bir sonraki icin yeni izlemeye basla
+	// calMoveEvent() bazen ERKEN doner (gercek bir degisiklik yoksa) ve renderCalendar()
+	// CAGIRMAZ -- bu durumda calOnDragMove()'un son eklemis olabilecegi .cal-block-cross-preview
+	// sinifi kalici kalmasin diye burada da guvenlik agi olarak temizlenir.
+	if(evt.item && evt.item.classList) evt.item.classList.remove("cal-block-cross-preview");
 	const id=evt.item && evt.item.dataset.evid;
 	const to=evt.to; if(!id || !to) return;
 	const dateKey=to.dataset.date; if(!dateKey) return;

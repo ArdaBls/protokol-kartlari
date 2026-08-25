@@ -585,6 +585,14 @@
 			.cal-block.done .bt{ text-decoration:line-through; opacity:.7; }
 			.cal-block.cancelled .bt{ text-decoration:line-through; }
 			.cal-block.dragging{ opacity:.4; }
+			/* Surukleme SIRASINDA gecici olarak .cal-allday-col (kisa/yatay flex satiri) icine
+			   giren .cal-block icin -- KENDI saat-izgarasina-ozel position:absolute left/width/
+			   top/height yuzdeleri TAMAMEN FARKLI bir kap boyutuna gore hesaplanip devasa/bozuk
+			   bir "hayalet" olusturuyordu (kullanici: "uygulama sapıtıyor"). calOnDragMove() bu
+			   sinifi SADECE o an tum-gun seridi uzerindeyken ekler/kaldirir (bkz. app.js) -- bu
+			   sinif aktifken mutlak konumlandirma etkisiz kilinir, .cal-allday-chip'e benzer
+			   basit/guvenli bir onizleme gorunur. */
+			.cal-block.cal-block-cross-preview{ position:static !important; display:inline-flex !important; flex-direction:row !important; align-items:center !important; gap:5px !important; width:auto !important; height:auto !important; left:auto !important; top:auto !important; max-width:200px; }
 			.cal-allday-chip{ display:flex; align-items:center; gap:5px; border-radius:5px; padding:2.5px 7px; font-size:11px; font-weight:600; cursor:pointer; border:none; border-left:3px solid; text-align:left; font-family:inherit; overflow:hidden; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
 			.cal-allday-chip .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 			.cal-allday-chip .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; opacity:.55; border-radius:3px; }

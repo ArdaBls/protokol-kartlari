@@ -121,15 +121,17 @@ async function newPage(browser, width, height, mobile) {
 		return { blockVisible, hasAllOptions };
 	});
 
-	// --- ST-5: reason="yeni_gorev" secilince yeni-unvan alt-blogu gorunur, successor GORUNMEZ ---
+	// --- ST-5: reason="yeni_gorev" secilince yeni-unvan alt-blogu GORUNUR, successor da GORUNUR
+	// (v2.9.42: yeni_gorev/gorev_bitti de eski koltugu bosaltiyor, halef ataması artik bu
+	// sebeplerde de erisilebilir -- sadece OPSIYONEL, ana Kaydet'i KILITLEMEZ) ---
 	const st5 = await page.evaluate(() => {
 		const sel = document.getElementById('sr_reason');
 		sel.value = 'yeni_gorev';
 		sel.dispatchEvent(new Event('change'));
 		const applyVisible = document.getElementById('sr_applyRow').style.display === 'block';
-		const successorStillHidden = document.getElementById('successorTriggerWrap').style.display === 'none';
+		const successorAlsoVisible = document.getElementById('successorTriggerWrap').style.display === 'block';
 		const transitionDatePrefilled = document.getElementById('sr_transitionDate').value !== '';
-		return { applyVisible, successorStillHidden, transitionDatePrefilled };
+		return { applyVisible, successorAlsoVisible, transitionDatePrefilled };
 	});
 
 	// --- ST-6: "Uygula" -- eski unvan+tarih tempGorevGecmisi'ye arsivlenir, form Aktif'e doner ---
@@ -386,7 +388,7 @@ async function newPage(browser, width, height, mobile) {
 		st11_hasCurrentBadge: st11_12.hasCurrentBadge, st11_showsOngoing: st11_12.showsOngoing, st11_showsCurrentTitle: st11_12.showsCurrentTitle,
 		st12_liveUpdatedOnTitleInput: st11_12.liveUpdatedOnTitleInput,
 		st4_blockVisible: st4.blockVisible, st4_hasAllOptions: st4.hasAllOptions,
-		st5_applyVisible: st5.applyVisible, st5_successorStillHidden: st5.successorStillHidden, st5_transitionDatePrefilled: st5.transitionDatePrefilled,
+		st5_applyVisible: st5.applyVisible, st5_successorAlsoVisible: st5.successorAlsoVisible, st5_transitionDatePrefilled: st5.transitionDatePrefilled,
 		st6_archivedCorrectly: st6.archivedCorrectly, st6_titleUpdated: st6.titleUpdated, st6_startMovedToTransitionDate: st6.startMovedToTransitionDate,
 		st6_statusBackToAktif: st6.statusBackToAktif, st6_endCleared: st6.endCleared, st6_blockHiddenAfterApply: st6.blockHiddenAfterApply,
 		st7_noteInLog: st7.noteInLog, st7_savedTitle: st7.savedTitle, st7_savedStatusAktif: st7.savedStatusAktif, st7_savedHistLen1: st7.savedHistLen1,
