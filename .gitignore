@@ -3,3 +3,4 @@ tests/package-lock.json
 tests/smoke-screenshot.png
 .claude/
 CLAUDE.md
+scripts/*-migrated.json
