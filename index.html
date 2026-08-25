@@ -2056,7 +2056,9 @@
 					showToast("İnternet bağlantısı yok — sınırlı (salt okunur) modda görüntüleniyor.", "warn");
 					applyPermissions();
 				}
-				auth.onAuthStateChanged(function(user) {
+				// Adi verilip disariya cikarildi ki hem onAuthStateChanged'in normal tetiklenmesinde
+				// hem de asagidaki "online" dinleyicisinde AYNI mantik tekrar cagirilabilsin.
+				function resolveAuthUser(user) {
 					if (userProfileRef && userProfileCallback) { userProfileRef.off("value", userProfileCallback); userProfileRef = null; }
 					if (!user) { currentUser = null; renderAuthUI(); applyPermissions(); return; }
 					// navigator.onLine, ucak modunda tarayici/OS tarafindan guvenilir sekilde false
@@ -2103,6 +2105,14 @@
 						renderAuthUI(); applyPermissions(); hideLoading();
 					};
 					userProfileRef.on("value", userProfileCallback);
+				}
+				auth.onAuthStateChanged(resolveAuthUser);
+				// Cevrimdisi salt-okunur moddan (enterOfflineReadonlyMode -> currentUser=null kalir)
+				// baglanti geri gelince KENDILIGINDEN cikilsin -- eskiden kullanici sayfayi ELLE
+				// yenilemek zorundaydi, cunku Firebase Auth durumu zaten "giris yapilmis" kaldigi icin
+				// onAuthStateChanged baglanti kesilip-donmesinde YENIDEN tetiklenmiyor.
+				window.addEventListener("online", function () {
+					if (!currentUser && auth.currentUser) resolveAuthUser(auth.currentUser);
 				});
 			}
 
@@ -4133,7 +4143,16 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				const btn = document.getElementById("saveFormBtn");
 				if (btn) { btn.disabled = locked; btn.title = locked ? "Önce yerine atanacak kişiyi kaydedin." : ""; }
 				const hint = document.getElementById("saveLockHint");
-				if (hint) hint.style.display = locked ? "block" : "none";
+				if (hint) {
+					// KAPALIYDI->ACILDI gecisinde ipucunu gorunur alana kaydir -- kullanici "Yerine
+					// Yeni Kisi Ata" panelini gormeden Kaydet'in neden pasif oldugunu anlayamayip
+					// sayfanin donduguna karar verebiliyordu (mobil sorunlar.docx bulgusu). Her
+					// cagrida degil, SADECE gizliden-gorunur GECISINDE kaydirilir (tekrar tekrar
+					// sicramasin diye).
+					const wasHidden = hint.style.display === "none" || hint.style.display === "";
+					hint.style.display = locked ? "block" : "none";
+					if (locked && wasHidden) hint.scrollIntoView({ behavior: "smooth", block: "nearest" });
+				}
 			}
 			function refreshStatusReasonBlock() {
 				// SADECE mevcut bir kaydi duzenlerken (editIndex!==null) -- yeni kayit eklerken
@@ -4705,6 +4724,18 @@ function attachEventsListener(){
 	activeEventsListenerCallback = function(snap){
 		const v = snap.val();
 		calEvents = (v && typeof v === "object") ? v : {};
+		// "Zombie event": peek paneli acikken kayit baska bir editor tarafindan silinirse, panel
+		// eskiden ACIK ve ESKI verilerle kalirdi -- kullanici "Simdi Baslat/Bitir" gibi bir hizli-damga
+		// tusuna basarsa persistEvent() o eski veriyi TEKRAR yazip silinen kaydi DIRILTIRDI. Simdi
+		// panel/duzenleme formu, arkasindaki kayit kaybolunca kendiliginden kapatilip kullanici bilgilendiriliyor.
+		if(calPeekedId && !calEvents[calPeekedId]){
+			closeEventPeek();
+			showToast("Bu etkinlik başka bir kullanıcı tarafından silindi.", "warn");
+		}
+		if(calEditingId && !calEvents[calEditingId] && document.getElementById("eventModalBg").classList.contains("open")){
+			closeEventModal();
+			showToast("Düzenlediğiniz etkinlik başka bir kullanıcı tarafından silindi.", "warn");
+		}
 		renderCalendarRail();
 		if(document.getElementById("calendarOverlay").classList.contains("open")) renderCalendar();
 	};
@@ -5939,6 +5970,30 @@ document.addEventListener("keydown", function(e){
 	if(!overlay || !overlay.classList.contains("open")) return;
 	e.preventDefault();
 	undoLastCalendarAction();
+});
+
+// Modal focus-trap (erisilebilirlik): acik bir modal varken Tab tusu modal DISINA cikmamali --
+// klavye kullanicisi Tab'a basip basip arka plandaki (gorunmez/karartilmis) sayfa icerigine
+// odaklanamaz. TUM .modal-bg ailesi (kisi/etkinlik/admin/hukuki metin modalleri, onay modalleri)
+// tek bir delegated dinleyiciyle kapsanir -- ic ice acilan onay modallerinde (ornegin duzenleme
+// modali acikken uzerine "Kalici Sil" onay modali) sadece EN USTTEKI (en yuksek z-index'li) modal
+// hedef alinir, alttaki modal'a Tab ile kacilmaz.
+document.addEventListener("keydown", function(e){
+	if(e.key!=="Tab") return;
+	const openModals=Array.from(document.querySelectorAll(".modal-bg.open"));
+	if(!openModals.length) return;
+	const topModal=openModals.reduce(function(top,m){
+		const z=parseInt(getComputedStyle(m).zIndex)||0;
+		const topZ=top?(parseInt(getComputedStyle(top).zIndex)||0):-1;
+		return z>=topZ?m:top;
+	}, null);
+	const focusables=Array.from(topModal.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+		.filter(function(el){ return el.offsetParent!==null; });
+	if(!focusables.length) return;
+	const first=focusables[0], last=focusables[focusables.length-1];
+	if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+	else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+	else if(!topModal.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
 });
 
 /* ================= HABER ŞABLONLARI ================= */
