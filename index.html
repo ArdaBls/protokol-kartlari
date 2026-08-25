@@ -119,21 +119,21 @@
 
 			header{ background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #24406e 100%); color:#f3efe6; padding:28px 20px 24px; position:relative; overflow:hidden; }
 			header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 40px); pointer-events:none; }
-			/* .header-top: dikey (column) duzen -- ust satirda ince eyebrow/tema/auth seridi,
-			   basaligin (h1+.sub) ise min-height sayesinde acilan bosluga "yaslanmasi" icin
-			   justify-content:space-between kullanilir. min-height, ust satirin dogal
-			   yuksekliginden buyuk tutulur ki bosluk gercekten olussun; icerik (orn. admin
-			   girisinde 2 satirli .header-auth) min-height'i asarsa header dogal olarak
-			   uzar, hicbir tasma/kirpma olmaz. */
-			.header-top{ display:flex; flex-direction:column; justify-content:space-between; min-height:108px; }
-			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-			.header-title-block{ margin:0; }
+			/* .header-top-row: h1 artik eyebrow'un ALTINDA, ayni sol sutunda (.header-left)
+			   -- bu sutun satirin solunda, sagdaki tema/.header-auth (Cikis dahil) ile
+			   karsilikli. Onceki tasarimda h1 ayri, alttaki bir satirdaydi ve sabit
+			   min-height+justify-content:space-between hack'i ile "yaslaniyordu" -- bu,
+			   ust satir kisayken (orn. cikis yapilmamis "Giris Yap") h1 ile arasinda
+			   gorsel bosluk birakiyordu. Artik h1 dogrudan satirin icinde oldugu icin
+			   min-height hack'ine gerek yok, icerik (2 satirli .header-auth dahil) header'i
+			   dogal olarak buyutur. */
+			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+			.header-left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
 			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow-short{ display:none; }
 			@media (max-width: 600px) { .eyebrow-full{ display:none; } .eyebrow-short{ display:inline; } }
-			h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0 0 4px; letter-spacing:-.01em; }
-			.sub{ color:#c9d0dd; font-size:14px; max-width:520px; line-height:1.4; margin:0; }
+			h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0; letter-spacing:-.01em; }
 
 			.list-switch-wrap { max-width:1040px; margin: 16px auto; padding:0 20px; position:relative; z-index:10; }
 			.list-switch { display:flex; gap:8px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; padding:4px; box-shadow:var(--shadow); }
@@ -856,10 +856,10 @@
 				   biniyordu (akistan cikmis absolute kutuydu). Sonra eyebrow ile baslik
 				   arasinda, akis icinde, ortalanmis kucuk bir serit haline getirilmisti.
 				   Simdi kullanicinin istegiyle sag-ust koseye tasindi ama YINE akis icinde
-				   (.header-top flex row) -- eski absolute'un basligin USTUNE binme hatasini
-				   tekrarlamamak icin. 1. satir (isim rozeti + Admin Paneli) eyebrow ile AYNI
-				   satirda sagda; 2. satir (Cikis) onun altinda, h1 akista dogal olarak asagi
-				   itiliyor, cakisma olmuyor. */
+				   (.header-top-row flex row) -- eski absolute'un basligin USTUNE binme
+				   hatasini tekrarlamamak icin. h1 artik BU satirin solundaki kardesi
+				   (.header-left), .header-auth'un yuksekligi (1 veya 2 satir Cikis dahil)
+				   ondan tamamen bagimsiz -- ikisi ayni satirin iki ucunda, birbirini itmez. */
 				.header-auth{ position:static; display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; font-family:'Roboto',sans-serif; font-size:13px; }
 				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
 				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
@@ -1075,17 +1075,14 @@
 
 		<header>
 			<div style="max-width:1040px;margin:0 auto;">
-				<div class="header-top">
-					<div class="header-top-row">
+				<div class="header-top-row">
+					<div class="header-left">
 						<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
-						<div class="header-top-right">
-							<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
-							<div class="header-auth" id="headerAuth"></div>
-						</div>
-					</div>
-					<div class="header-title-block">
 						<h1>Protokol Kartları</h1>
-						<p class="sub" id="listSubtitle">Bulut Veritabanına (Firebase) Bağlı Sürüm.</p>
+					</div>
+					<div class="header-top-right">
+						<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
+						<div class="header-auth" id="headerAuth"></div>
 					</div>
 				</div>
 			</div>

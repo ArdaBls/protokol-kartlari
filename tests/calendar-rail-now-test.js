@@ -38,6 +38,22 @@ function serve() {
 	// Gerçek "şu an" saatine göre göreli test etkinlikleri kur (test hangi saatte
 	// çalışırsa çalışsın gerçekçi olsun diye sabit bir saat yerine ofset kullanılıyor).
 	const result = await page.evaluate(() => {
+		// Once gece yarisina yakin calistirilinca flaky'di: hm() ofseti gun sinirini
+		// sarabiliyordu ("23:xx"e donebiliyordu) ama etkinligin tarih alani hep sabit
+		// "today" kaliyordu -- gercekte var olmayan (tarih,saat) kombinasyonu olusuyordu.
+		// Artik Date, o gunun GERCEK tarihinde ama SABIT ogle 12:00 saatine sabitleniyor
+		// -- hem bu test hem uygulamanin (calEventTimeState) kendi `new Date()` cagrilari
+		// ayni saati gorur, +-120dk'lik ofsetler asla gun sinirini asmaz, test hangi
+		// gercek saatte calistirilirsa calistirilsin deterministik olur.
+		const OrigDate = Date;
+		const _real = new OrigDate();
+		const _fixed = new OrigDate(_real.getFullYear(), _real.getMonth(), _real.getDate(), 12, 0, 0, 0);
+		class FixedDate extends OrigDate {
+			constructor(...args) { if (args.length === 0) { super(_fixed.getTime()); return; } super(...args); }
+			static now() { return _fixed.getTime(); }
+		}
+		window.Date = FixedDate;
+
 		function fmt(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 		function hm(mins){ const m=((mins%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); }
 		const now = new Date();
