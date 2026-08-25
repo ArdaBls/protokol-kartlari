@@ -116,11 +116,15 @@ function serve() {
 			endGesture();
 		}
 		calSortableOnFilter(fakeEvt); // deneme 6 -- esik asilmali
+		// v2.9.43: AYRI denemelerde bile artik ekranda EN FAZLA TEK kilit-uyarisi toast'i kalir --
+		// yeni deneme, bir onceki (hala ekranda olan 4sn'lik) toast'i kaldirip yerine gecer (bkz.
+		// calLockedToastEl). Onceden her AYRI deneme kendi toast'ini birikiyordu (6 deneme ->
+		// 6 toast ekranda), gercek cihazda "ust uste yigilma" olarak bildirilmisti.
 		const toasts = Array.from(document.querySelectorAll('#toastContainer .toast'));
 		const lastToast = toasts[toasts.length - 1];
 		return {
 			sameGestureThrottled: afterSameGesture === before + 1,
-			totalToastsAdded: toasts.length - before,
+			atMostOneVisibleAfterSeparateAttempts: (toasts.length - before) <= 1,
 			escalatedMessageShown: lastToast ? /kilidi aç/i.test(lastToast.textContent) : false
 		};
 	});
@@ -367,7 +371,6 @@ function serve() {
 	// timeRecomputeTest string alanlari dondurdugu icin collectBooleanFailures'a yakalanmaz, elle kontrol edilir.
 	const __timeOk = timeRecomputeTest.newTarih === '2026-01-13' && timeRecomputeTest.newSaat === '04:00' && timeRecomputeTest.newBitis === '05:00';
 	if (!__timeOk) __boolFails.push('timeRecomputeTest (beklenen tarih=2026-01-13 saat=04:00 bitis=05:00, gelen: ' + JSON.stringify(timeRecomputeTest) + ')');
-	if (lockToastTest.totalToastsAdded !== 6) __boolFails.push('lockToastTest.totalToastsAdded (beklenen 6, gelen: ' + lockToastTest.totalToastsAdded + ')');
 	const __allPassed = pageErrors.length === 0 && __boolFails.length === 0;
 	console.log('ALL_TESTS_PASSED:', __allPassed);
 	if (__boolFails.length) console.log('BASARISIZ ALANLAR:', JSON.stringify(__boolFails));

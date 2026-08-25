@@ -1060,11 +1060,14 @@
 			function toggleFieldClear(id) { const input = document.getElementById(id); const btn = document.getElementById("clear_" + id); if(btn) { btn.style.display = input.value.length > 0 ? "flex" : "none"; } }
 			function clearFieldInput(id) { const input = document.getElementById(id); input.value = ""; input.focus(); toggleFieldClear(id); }
 
+			// DOM elemanini geri dondurur -- cagiran taraf (bkz. calSortableOnFilter) isterse
+			// AYNI mesajin bir onceki gorunumunu manuel kaldirip yerine yenisini koyabilsin diye.
 			function showToast(msg, type) {
 				type = type || "success"; const container = document.getElementById("toastContainer"); const toast = document.createElement("div");
 				toast.className = "toast " + type; toast.textContent = msg; container.appendChild(toast);
 				requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("show")));
 				setTimeout(() => { toast.classList.remove("show"); setTimeout(() => toast.remove(), 300); }, 4000);
+				return toast;
 			}
 
 
@@ -3220,6 +3223,7 @@ async function toggleEventLock(id){
 	// gorunuyordu (kullanici: "acik/kapali yaptigimda uyari ile tasinabilir oldu uyarisi
 	// birlikte cikiyor"). Durumu degistiren bu aksiyon, eski/gecersiz kalan toast'lari temizler.
 	document.querySelectorAll("#toastContainer .toast").forEach(function(t){ t.remove(); });
+	calLockedToastEl = null; // yukarida kaldirilan toast'lardan biri buysa referans askida kalmasin
 	calEvents[id]=patch;
 	// Kilit acilinca deneme sayaci da sifirlanir -- yoksa onceki (kilitliyken biriken) sayi
 	// kalip bir SONRAKI kilitlemede kullanici "taze" bir denemede beklenmedik sekilde direkt
@@ -3509,6 +3513,15 @@ function calSortableFilter(evt, item){
 // baslayinca (parmagi kaldirip tekrar deneme) toast tekrar gosterilir.
 let calLockedToastActive = false;
 let calLockedAttemptCounts = {}; // AYRI denemeleri sayar (kullanici istegiyle 6. denemeden sonra daha "israrci"/espirili bir mesaja gecilir)
+// AYRI (birbirini takip eden, aralarinda parmak/mouse kaldirilan) denemelerde her biri kendi
+// toast'ini GERCEKTEN hak ediyor (gesture-bazli throttle YUKARIDA zaten calisiyor) -- ama
+// mobilde kisa surede birkac kez ust uste denenince (gercekci bir senaryo: kilitli oldugunu
+// gorup HEMEN tekrar deneme) toast'lar 4sn boyunca ekranda kalip UST USTE yigiliyordu
+// (kullanici videosunda AYNI ANDA 3 toast: "kilitlendi" + iki "kilitli, tasinamaz" -- "kilidin
+// acilip kapanirkenki hatasi devam ediyor"). Bir onceki kilit-uyarisi toast'i HALA ekranda ise
+// yeni denemede o hemen kaldirilip yerine YENISI konur -- ekranda ayni turden en fazla TEK
+// kilit-uyarisi toast'i olur, digerleri (kilitlendi/acildi basari mesaji gibi) etkilenmez.
+let calLockedToastEl = null;
 function calLockedToastGestureEnd(){
 	calLockedToastActive = false;
 	document.removeEventListener("touchend", calLockedToastGestureEnd);
@@ -3524,11 +3537,10 @@ function calSortableOnFilter(evt){
 	document.addEventListener("touchcancel", calLockedToastGestureEnd, { once:true });
 	document.addEventListener("mouseup", calLockedToastGestureEnd, { once:true });
 	calLockedAttemptCounts[id] = (calLockedAttemptCounts[id] || 0) + 1;
-	if(calLockedAttemptCounts[id] >= 6){
-		showToast("Tamam tamam, kilidi aç artık 😄 taşınamaz.", "error");
-	} else {
-		showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
-	}
+	if(calLockedToastEl && calLockedToastEl.parentNode) calLockedToastEl.remove();
+	calLockedToastEl = (calLockedAttemptCounts[id] >= 6)
+		? showToast("Tamam tamam, kilidi aç artık 😄 taşınamaz.", "error")
+		: showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
 }
 // onMove her surukleme adiminda tekrar tekrar tetiklenir (dragover/touchmove) -- burada hem
 // son bilinen isaretci konumu izlenir (onEnd'de asil kaynak (evt.originalEvent) basarisiz
