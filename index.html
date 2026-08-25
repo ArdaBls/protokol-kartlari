@@ -969,11 +969,22 @@
 			body.scroll-locked .calendar-fab, body.scroll-locked .faculty-fab{ display:none !important; }
 			/* iOS'ta kisi duzenleme ekrani acikken alttaki "Fakulte Filtrele" cekmecesi hala
 			   dokunuslari kapip surukleniyordu (kullanici: "sadece onu oynatiyorum, asagi
-			   inemiyorum"). openEditModal/openAddModal artik closeFacultySheet() de cagiriyor
-			   (JS tarafinda guvenli sifirlama) AMA CSS tarafinda da kesin olarak gizlenir:
-			   kisi formu (#modalBg) acikken cekmece + tetikleyici buton + arka plani tamamen
-			   devre disi (pointer-events:none GEREKMEZ, display:none zaten dokunuşu da keser). */
-			body:has(#modalBg.open) .faculty-fab, body:has(#modalBg.open) .faculty-sheet, body:has(#modalBg.open) .faculty-sheet-backdrop{ display:none !important; }
+			   inemiyorum"). openEditModal/openAddModal/openCalendar/openHistoryPanel/
+			   openSuccessorPanel artik closeFacultySheet() de cagiriyor (JS tarafinda guvenli
+			   sifirlama) AMA CSS tarafinda da kesin olarak gizlenir: kisi formu (#modalBg),
+			   takvim (#calendarOverlay), Gorev/Etkinlik Gecmisi paneli (#historyPanel) veya
+			   "Yerine Yeni Kisi Ata" paneli (#successorPanel) acikken cekmece + tetikleyici
+			   buton + arka plani tamamen devre disi (pointer-events:none GEREKMEZ, display:none
+			   zaten dokunuşu da keser). Kullanici bildirimi: cekmece takvimde/Gorev Gecmisi'nde
+			   de "gitmiyor" gorunmustu -- tek basina #modalBg kosulu (modal, bu panellerin
+			   ARKASINDA acik kalsa bile) yeterli olmasi gerekirdi ama olasi bir eski servis
+			   worker onbellegi/yarisma durumu ihtimaline karsi her yuzey ayri ayri da kosula
+			   eklendi, tek noktaya guvenilmiyor. */
+			body:has(#modalBg.open) .faculty-fab, body:has(#modalBg.open) .faculty-sheet, body:has(#modalBg.open) .faculty-sheet-backdrop,
+			body:has(#calendarOverlay.open) .faculty-fab, body:has(#calendarOverlay.open) .faculty-sheet, body:has(#calendarOverlay.open) .faculty-sheet-backdrop,
+			body:has(#historyPanel.open) .faculty-fab, body:has(#historyPanel.open) .faculty-sheet, body:has(#historyPanel.open) .faculty-sheet-backdrop,
+			body:has(#successorPanel.open) .faculty-fab, body:has(#successorPanel.open) .faculty-sheet, body:has(#successorPanel.open) .faculty-sheet-backdrop
+			{ display:none !important; }
 
 			/* =====================================================================
 			   MOBIL DUZELTMELERI
@@ -3476,6 +3487,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			function openSuccessorPanel(){
 				if (!requireEdit()) return;
 				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
+				closeFacultySheet(); // mobil fakulte cekmecesi acik/yarim suruklenmis kalmasin diye guvenli sifirlama
 				if (window.innerWidth < 900) closeHistoryPanel();
 				successorEditingIndex = editIndex;
 				const old = people[editIndex];
@@ -3511,6 +3523,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			function openHistoryPanel(){
 				if (!requireEdit()) return;
 				if (editIndex === null || !people[editIndex]) { showToast("Önce mevcut bir kaydı düzenleyin.", "error"); return; }
+				closeFacultySheet(); // mobil fakulte cekmecesi acik/yarim suruklenmis kalmasin diye guvenli sifirlama
 				if (window.innerWidth < 900) closeSuccessorPanel();
 				renderHistoryPanel();
 				document.getElementById("historyPanel").classList.add("open");
@@ -4335,6 +4348,7 @@ function calClearAnim(ov, shell){
 function openCalendar(){
 	const ov=document.getElementById("calendarOverlay");
 	if(calAnimating || ov.classList.contains("open")) return;
+	closeFacultySheet(); // mobil fakulte cekmecesi acik/yarim suruklenmis kalmasin diye guvenli sifirlama
 	const shell=ov.querySelector(".cal-shell");
 	const bd=document.getElementById("calLaunchBackdrop");
 	const origin=calOriginRect();
