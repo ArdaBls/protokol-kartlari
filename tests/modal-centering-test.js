@@ -134,7 +134,34 @@ function serve() {
 		};
 	});
 
+	// --- Escape tuşu ile modal kapatma (yeni: topmostOpenModal() + MODAL_CLOSE_FNS registry,
+	// bkz. app.js "Modal kayıt defteri" bölümü) -- gerçek bir klavye olayı gönderip (page.keyboard,
+	// dispatchEvent DEĞİL) delegated dinleyicinin de tetiklendiğini doğrular, sadece close
+	// fonksiyonlarının kendisini değil.
+	async function checkEscapeCloses(openExpr, modalBgId) {
+		await page.evaluate(openExpr);
+		await page.waitForTimeout(150);
+		const openedOk = await page.evaluate((id) => document.getElementById(id).classList.contains('open'), modalBgId);
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(150);
+		const closedOk = await page.evaluate((id) => !document.getElementById(id).classList.contains('open'), modalBgId);
+		return { openedOk, closedOk };
+	}
+	// İki FARKLI modal id'siyle test edilir -- registry'nin tek bir hardcoded id'ye değil,
+	// gerçekten id->close-fonksiyonu eşlemesine göre çalıştığını kanıtlar.
+	const escapeModal1 = await checkEscapeCloses('openAddModal()', 'modalBg');
+	const escapeModal2 = await checkEscapeCloses("openLegalModal('kvkk')", 'legalModalBg');
+	// Hiçbir modal açık değilken Escape'in hata FIRLATMADIĞINI (sessizce no-op olduğunu) doğrular.
+	const escapeNoModalSafe = await page.evaluate(async () => {
+		try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true; } catch (e) { return false; }
+	});
+
 	const results = {
+		escapeTest: {
+			modal1Opened: escapeModal1.openedOk, modal1ClosedByEscape: escapeModal1.closedOk,
+			modal2Opened: escapeModal2.openedOk, modal2ClosedByEscape: escapeModal2.closedOk,
+			noModalSafe: escapeNoModalSafe
+		},
 		personModal: {
 			alignItemsIsCenter: personModal.alignItems === 'center' || personModal.alignItems === 'safe center',
 			// Kısa içerikte üst/alt boşluk kabaca eşit olmalı (tam 0 olmayan bir tolerans:

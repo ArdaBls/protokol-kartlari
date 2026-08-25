@@ -4058,13 +4058,8 @@ document.addEventListener("keydown", function(e){
 // hedef alinir, alttaki modal'a Tab ile kacilmaz.
 document.addEventListener("keydown", function(e){
 	if(e.key!=="Tab") return;
-	const openModals=Array.from(document.querySelectorAll(".modal-bg.open"));
-	if(!openModals.length) return;
-	const topModal=openModals.reduce(function(top,m){
-		const z=parseInt(getComputedStyle(m).zIndex)||0;
-		const topZ=top?(parseInt(getComputedStyle(top).zIndex)||0):-1;
-		return z>=topZ?m:top;
-	}, null);
+	const topModal=topmostOpenModal();
+	if(!topModal) return;
 	const focusables=Array.from(topModal.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
 		.filter(function(el){ return el.offsetParent!==null; });
 	if(!focusables.length) return;
@@ -4309,6 +4304,48 @@ function generateNewsFromEvent(){
 			watched.forEach(function(el){ observer.observe(el, { attributes: true, attributeFilter: ["class"] }); });
 			recomputeLock();
 		})();
+
+		// ---- Modal kayıt defteri + Escape tuşu ile kapatma (merkezi) ----
+		// Su ana kadar HICBIR .modal-bg (10 modal) Escape ile kapanmiyordu. Her modalin kendi
+		// close*() fonksiyonu FARKLI ek islemler yapabildigi icin (ornegin closeConfirmModal()
+		// duzenleme modaline GERI DONER, closeModal() successor/history panellerini de kapatir,
+		// closeSinglePermDelete() singlePermDeleteIdx'i temizler) burada asla dogrudan
+		// classList.remove("open") YAPILMAZ -- ilgili modalin KENDI close fonksiyonu cagrilir,
+		// boylece TUM yan etkiler korunur, bu sadece mevcut sistemin UZERINE ek bir yetenek katar.
+		// Bu kayit defteri (id -> close fonksiyonu), "hangi modal su an acik" sorusunun DOM'un
+		// kendisinden (source of truth) okunabilmesi (querySelector('.modal-bg.open')) sayesinde
+		// ayrica bir JS state degiskeni TUTMUYOR -- yukaridaki scroll-lock gozlemcisiyle ayni
+		// felsefe: durumu DOM'da tekrarlamak yerine DOM'dan okumak.
+		const MODAL_CLOSE_FNS = {
+			eventDeleteConfirmModalBg: closeEventDeleteConfirm,
+			eventModalBg: closeEventModal,
+			modalBg: closeModal,
+			confirmModalBg: closeConfirmModal,
+			bulkConfirmModalBg: closeBulkConfirmModal,
+			emptyTrashModalBg: closeEmptyTrashModal,
+			singlePermDeleteModalBg: closeSinglePermDelete,
+			newsModalBg: closeNewsModal,
+			adminPanelBg: closeAdminPanel,
+			legalModalBg: closeLegalModal
+		};
+		// En USTTEKI (en yuksek z-index'li) acik modal hedef alinir -- ayni tespit mantigi zaten
+		// Tab focus-trap dinleyicisinde kullaniliyor (bkz. asagida), ic ice acilma ihtimaline karsi.
+		function topmostOpenModal(){
+			const openModals = Array.from(document.querySelectorAll(".modal-bg.open"));
+			if (!openModals.length) return null;
+			return openModals.reduce(function(top, m){
+				const z = parseInt(getComputedStyle(m).zIndex) || 0;
+				const topZ = top ? (parseInt(getComputedStyle(top).zIndex) || 0) : -1;
+				return z >= topZ ? m : top;
+			}, null);
+		}
+		document.addEventListener("keydown", function(e){
+			if (e.key !== "Escape") return;
+			const top = topmostOpenModal();
+			if (!top) return;
+			const fn = MODAL_CLOSE_FNS[top.id];
+			if (fn) fn();
+		});
 
 		// ---- --vh: iOS Safari'de adres/arac cubugu acilip kapaninca GERCEK gorunur
 		// yuksekligi takip eden degisken (bkz. :root'taki --vh yorumu). position:fixed;inset:0
