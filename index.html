@@ -212,8 +212,8 @@
 						<button type="button" class="cal-textbtn" onclick="calToday()">Bugün</button>
 						<input type="date" class="cal-jump" id="calJumpDate" onchange="calJumpTo(this.value)" title="İstediğin tarihe git" aria-label="Tarihe git">
 						<span class="cal-spacer"></span>
-						<button type="button" class="cal-iconbtn admin-only" onclick="exportEventsJSON()" title="Etkinlik takvimi JSON yedeği indir">⬇</button>
-						<button type="button" class="cal-iconbtn admin-only" onclick="document.getElementById('eventsRestoreFile').click()" title="JSON yedekten geri yükle">⬆</button>
+						<button type="button" class="cal-textbtn admin-only" onclick="exportEventsJSON()" title="Etkinlik takvimi JSON yedeği indir">JSON İndir</button>
+						<button type="button" class="cal-textbtn admin-only" onclick="document.getElementById('eventsRestoreFile').click()" title="JSON yedekten geri yükle">JSON Yükle</button>
 						<input type="file" id="eventsRestoreFile" accept="application/json" style="display:none;" onchange="importEventsJSON(event)">
 						<div class="cal-viewtabs" id="calViewTabs">
 							<button type="button" class="cal-viewbtn" data-view="day" onclick="calSetView('day')">Gün</button>
