@@ -77,17 +77,77 @@
 				return false;
 			}
 
+			// ESKIDEN header sagi iki ayri satirdi (rozet+Admin ustte, Cikis altta) -- dar ekranda
+			// 2 satira bolunup kalabalik/tutarsiz gorunuyordu (kullanici: header'i bastan
+			// tasarla, ergonomik ve kullanici dostu olsun). Artik TEK bir "profil" butonu
+			// (avatar + isim) tum admin/cikis secenklerini acilir bir menude toplar -- hem
+			// webde hem mobilde AYNI kompakt tek satirlik alan, dropdown ise tikla-ac/disari
+			// tikla-kapa (bkz. setupHeaderMenu()).
 			function renderAuthUI() {
 				const wrap = document.getElementById("headerAuth");
 				if (!currentUser) { wrap.innerHTML = '<button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>'; return; }
 				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
-				const adminBtn = (currentUser.role === "admin") ? '<button class="btn-auth" onclick="openAdminPanel()">Admin Paneli</button>' : "";
+				const displayName = currentUser.firstName || currentUser.email;
+				const initial = escapeHtml((displayName || "?").trim().charAt(0).toUpperCase());
+				const adminItem = (currentUser.role === "admin") ? '<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); openAdminPanel();">🛠️ Admin Paneli</button>' : "";
 				wrap.innerHTML =
-				'<div class="ha-row1">' +
-				'<div class="user-chip ' + (currentUser.role || "pending") + '"><span class="role-dot"></span>' + escapeHtml(currentUser.firstName || currentUser.email) + ' · ' + roleLabel + '</div>' +
-				adminBtn +
+				'<div class="header-profile-wrap">' +
+				'<button type="button" class="header-profile-btn ' + (currentUser.role || "pending") + '" id="headerProfileBtn" onclick="toggleHeaderMenu()" aria-haspopup="true" aria-expanded="false" title="Hesap menüsü">' +
+					'<span class="hp-avatar">' + initial + '</span>' +
+					'<span class="hp-name">' + escapeHtml(displayName) + '</span>' +
+					'<span class="hp-caret" aria-hidden="true">▾</span>' +
+				'</button>' +
+				'<div class="header-menu" id="headerMenu">' +
+					'<div class="header-menu-user"><span class="role-dot ' + (currentUser.role || "pending") + '"></span><span class="hm-name">' + escapeHtml(displayName) + '</span><span class="hm-role">' + roleLabel + '</span></div>' +
+					adminItem +
+					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); handleLogout();">↩ Çıkış</button>' +
 				'</div>' +
-				'<div class="ha-row2"><button class="btn-auth" onclick="handleLogout()">Çıkış</button></div>';
+				'</div>';
+			}
+			let headerMenuOutsideHandler = null;
+			function toggleHeaderMenu() {
+				const menu = document.getElementById("headerMenu");
+				if (!menu) return;
+				menu.classList.contains("open") ? closeHeaderMenu() : openHeaderMenu();
+			}
+			function openHeaderMenu() {
+				const menu = document.getElementById("headerMenu"); const btn = document.getElementById("headerProfileBtn");
+				if (!menu || !btn) return;
+				// position:fixed oldugu icin (bkz. style.css .header-menu notu -- header{overflow:
+				// hidden} kirpmasindan kacinmak icin) konumu butonun GERCEK ekran koordinatina
+				// gore burada JS ile hesaplanip satir ici yazilir; CSS'teki top/right'a guvenilemez.
+				const r = btn.getBoundingClientRect();
+				menu.style.top = (r.bottom + 8) + "px";
+				menu.style.right = (window.innerWidth - r.right) + "px";
+				menu.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+				// Disari tiklama/Escape/kaydirma/yeniden-boyutlandirma ile kapatma -- YALNIZCA menu
+				// acikken dinlenir, kapaninca hemen kaldirilir (gereksiz global dinleyici birikmesin).
+				// Kaydirma/resize'da KAPATILIR (yeniden konumlandirmak yerine) -- basit ve guvenli,
+				// acik bir menuyu sayfa kaydirirken ekranda "yapiskan" birakmak zaten istenmeyen
+				// bir davranis olurdu.
+				headerMenuOutsideHandler = function (e) {
+					if (e.type === "keydown") { if (e.key === "Escape") closeHeaderMenu(); return; }
+					if (e.type === "scroll" || e.type === "resize") { closeHeaderMenu(); return; }
+					if (!menu.contains(e.target) && !btn.contains(e.target)) closeHeaderMenu();
+				};
+				document.addEventListener("mousedown", headerMenuOutsideHandler);
+				document.addEventListener("touchstart", headerMenuOutsideHandler);
+				document.addEventListener("keydown", headerMenuOutsideHandler);
+				window.addEventListener("scroll", headerMenuOutsideHandler, { passive: true, capture: true });
+				window.addEventListener("resize", headerMenuOutsideHandler, { passive: true });
+			}
+			function closeHeaderMenu() {
+				const menu = document.getElementById("headerMenu"); const btn = document.getElementById("headerProfileBtn");
+				if (menu) menu.classList.remove("open");
+				if (btn) btn.setAttribute("aria-expanded", "false");
+				if (headerMenuOutsideHandler) {
+					document.removeEventListener("mousedown", headerMenuOutsideHandler);
+					document.removeEventListener("touchstart", headerMenuOutsideHandler);
+					document.removeEventListener("keydown", headerMenuOutsideHandler);
+					window.removeEventListener("scroll", headerMenuOutsideHandler, { capture: true });
+					window.removeEventListener("resize", headerMenuOutsideHandler);
+					headerMenuOutsideHandler = null;
+				}
 			}
 
 			function applyPermissions() {

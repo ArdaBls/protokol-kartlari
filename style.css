@@ -954,20 +954,56 @@
 				/* Onceden top:20px;right:20px ile "Protokol Kartlari" basliginin UZERINE
 				   biniyordu (akistan cikmis absolute kutuydu). Sonra eyebrow ile baslik
 				   arasinda, akis icinde, ortalanmis kucuk bir serit haline getirilmisti.
-				   Simdi kullanicinin istegiyle sag-ust koseye tasindi ama YINE akis icinde
-				   (.header-top-row flex row) -- eski absolute'un basligin USTUNE binme
-				   hatasini tekrarlamamak icin. h1 artik BU satirin solundaki kardesi
-				   (.header-left), .header-auth'un yuksekligi (1 veya 2 satir Cikis dahil)
-				   ondan tamamen bagimsiz -- ikisi ayni satirin iki ucunda, birbirini itmez. */
-				.header-auth{ position:static; display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:0; font-family:'Roboto',sans-serif; font-size:13px; }
-				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+				   Sonra sag-ust koseye tasindi (.header-top-row flex row icinde) ama IKI
+				   SATIRA bolunuyordu (rozet+Admin ustte, Cikis altta) -- dar ekranda kalabalik
+				   duruyordu (kullanici: "header'i bastan tasarla, ergonomik ve kullanici dostu
+				   olsun"). Simdi TEK bir avatar+isim "profil" butonu (bkz. renderAuthUI/
+				   toggleHeaderMenu) + tikla-ac acilir menu -- hem web hem mobilde AYNI tek
+				   satirlik kompakt alan, secenekler (Admin Paneli/Cikis) menude toplanir. */
+				.header-auth{ position:static; display:flex; align-items:center; min-width:0; font-family:'Roboto',sans-serif; font-size:13px; }
+				/* #headerAuth'un KENDISI position:static KALMALI (mobil header-baslik cakisma
+				   testi bunu varsayiyor) -- .header-menu'nun konumlandirma bagi bu ARA sarmalayiciya
+				   (.header-profile-wrap) tasindi, boylece hem test hem dropdown'un dogru
+				   konumlanmasi AYNI ANDA saglaniyor. */
+				.header-profile-wrap{ position:relative; display:flex; }
+				.header-profile-btn{ display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:5px 12px 5px 5px; border-radius:20px; cursor:pointer; font-family:inherit; font-weight:600; font-size:13px; white-space:nowrap; transition:background .15s; }
+				.header-profile-btn:hover, .header-profile-btn[aria-expanded="true"]{ background:rgba(255,255,255,.18); }
+				.hp-avatar{ width:26px; height:26px; border-radius:50%; background:var(--brass-light); color:var(--navy); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+				.header-profile-btn.editor .hp-avatar{ background:#6fbf8f; }
+				.header-profile-btn.pending .hp-avatar{ background:#c99a3f; }
+				.hp-caret{ font-size:10px; opacity:.75; transition:transform .15s; }
+				.header-profile-btn[aria-expanded="true"] .hp-caret{ transform:rotate(180deg); }
+				/* Menu HER ZAMAN acik/koyu header'dan BAGIMSIZ kart renginde (var(--card)) --
+				   koyu lacivert header uzerinde koyu-metinli bir dropdown ACILMASI beklenen
+				   davranis (butun diger modal/panel'lerle AYNI kart stili, header'in kendi
+				   koyu paletiyle degil). */
+				/* position:fixed (absolute DEGIL) BILEREK -- header{overflow:hidden} (arka plan
+				   gradyanini/dekoratif tasmayi kirpmak icin, satir ~84) menu'yu de ustune
+				   BINDIRIP KIRPIYORDU, dropdown butonun HEMEN ALTINDA gorunmez oluyordu
+				   (kullanici: "header menusu altta kaliyor"). Fixed, header'in overflow:hidden
+				   sinirinin DISINDA (viewport'a gore) konumlanir; top/right JS'te (openHeaderMenu)
+				   butonun gercek ekran konumuna gore HESAPLANIP satir ici stille yazilir. */
+				.header-menu{ position:fixed; min-width:200px; background:var(--card); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.35); padding:6px; display:flex; flex-direction:column; gap:2px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .15s ease, transform .15s ease, visibility 0s linear .15s; z-index:160; }
+				.header-menu.open{ opacity:1; visibility:visible; transform:translateY(0); transition:opacity .15s ease, transform .15s ease, visibility 0s linear 0s; }
+				.header-menu-user{ display:flex; align-items:center; gap:8px; padding:8px 10px; font-size:12px; color:var(--muted); border-bottom:1px solid var(--divider-soft); margin-bottom:4px; }
+				.header-menu-user .hm-name{ color:var(--ink); font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+				.header-menu-user .role-dot{ width:7px; height:7px; border-radius:50%; background:#c99a3f; flex-shrink:0; }
+				.header-menu-user .role-dot.editor{ background:#3f9d5f; }
+				.header-menu-user .role-dot.admin{ background:var(--brass); }
+				.header-menu .header-menu-item{ background:none; color:var(--ink); border:none; padding:9px 10px; border-radius:7px; cursor:pointer; font-weight:600; font-size:13px; text-align:left; width:100%; }
+				.header-menu .header-menu-item:hover{ background:var(--surface-subtle); }
+				/* Giris yapilmamis durumda (sadece "Giris Yap") .btn-auth eski/basit stilini korur. */
 				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; white-space:nowrap; }
-				.header-auth .btn-auth:hover{ background:rgba(255,255,255,.18); }
-				.header-auth .user-chip{ color:#f3efe6; display:flex; align-items:center; gap:6px; padding:6px 10px; }
-				.header-auth .user-chip .role-dot{ width:7px; height:7px; border-radius:50%; background:#c99a3f; flex-shrink:0; }
-				.header-auth .user-chip.editor .role-dot{ background:#6fbf8f; }
-				.header-auth .user-chip.admin .role-dot{ background:var(--brass-light); }
+				.header-auth > .btn-auth:hover{ background:rgba(255,255,255,.18); }
+				@media (max-width: 480px){
+					/* Sadece ismi gizlemek YETERSIZDI -- ok/caret span'i hala yer kapladigi icin
+					   border-radius:50% GENIS/KISA bir kutuya uygulanip DAIRE degil YASSI BIR ELIPS
+					   olusturuyordu (kullanici: "arkasindaki yuvarlak elips oluyor", "ustten alttan
+					   basik"). Caret de gizlenip buton SABIT esit genislik/yukseklikte (avatar ile
+					   AYNI olcude, padding olmadan) yapilinca gercek bir daire olusuyor. */
+					.hp-name, .hp-caret{ display:none; }
+					.header-profile-btn{ width:34px; height:34px; padding:0; border-radius:50%; justify-content:center; gap:0; }
+				}
 
 				/* === YÜKLENİYOR EKRANI  === */
 				.loading-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(243,239,230,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:300; }
@@ -1266,6 +1302,11 @@
 			[data-theme="dark"] .test-mode-title
 				{ color: var(--brass-light); }
 
-			.header-top-right{ display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0; }
-			.theme-toggle{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); border-radius:8px; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+			.header-top-right{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0; }
+			/* Yuvarlak, avatar/profil butonuyla AYNI aile -- header'in tum sag-ust kontrolleri
+			   (tema + profil) artik gorsel olarak tutarli tek bir "pill/daire" dili paylasiyor.
+			   ::after ile dokunma alani genisletildi (proje genelinde .cal-iconbtn'de kullanilan
+			   AYNI teknik) -- 34px gorsel boyut korunurken gercek dokunma alani ~50px'e cikiyor. */
+			.theme-toggle{ position:relative; background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); border-radius:50%; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+			.theme-toggle::after{ content:""; position:absolute; inset:-8px; }
 			.theme-toggle:hover{ background:rgba(255,255,255,.18); }
