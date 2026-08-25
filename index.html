@@ -2508,6 +2508,46 @@
 				const btn = e.target.closest('button'); if (!btn) return; switchList(btn.dataset.list);
 			});
 
+			// Kart aksiyon butonlari (Duzenle/Geri Yukle/Kalici Sil) -- id, inline onclick string'ine
+			// gomulmek yerine karta zaten atanmis card.dataset.pid'den okunur (bkz. render()'daki not).
+			document.getElementById('grid').addEventListener('click', function(e) {
+				const btn = e.target.closest('.card-edit, .btn-restore-card, .btn-permdel-card'); if (!btn) return;
+				const card = btn.closest('.card'); if (!card) return;
+				e.stopPropagation();
+				const pid = card.dataset.pid;
+				if (btn.classList.contains('card-edit')) openEditModal(pid);
+				else if (btn.classList.contains('btn-restore-card')) restoreSingle(pid);
+				else if (btn.classList.contains('btn-permdel-card')) openSinglePermDelete(pid);
+			});
+
+			// "Şimdi/Sıradaki" rail'i (renderCalendarRail) -- tarih/etkinlik id'si dataset'ten okunur.
+			document.getElementById('calRailNext').addEventListener('click', function(e) {
+				const item = e.target.closest('[data-evid]'); if (!item) return;
+				openCalendarAt(item.dataset.date, item.dataset.evid);
+			});
+
+			// Takvim overlay'i (renderWeekView/renderMonthView/renderListView) -- kucuk bir
+			// data-act sozlugu (peek/edit/add/more) tum tikanma noktalarini tek dinleyicide toplar.
+			// evid, tiklanan elemanin KENDI data-evid'i yoksa en yakin [data-evid] atasindan okunur
+			// (ornegin liste gorunumundeki kalem ikonu, evid'i tasiyan .cal-ev butonunun icinde).
+			document.getElementById('calendarOverlay').addEventListener('click', function(e) {
+				const actEl = e.target.closest('[data-act]');
+				if (actEl) {
+					e.stopPropagation();
+					const act = actEl.dataset.act;
+					const evidEl = actEl.dataset.evid !== undefined ? actEl : e.target.closest('[data-evid]');
+					const evid = evidEl ? evidEl.dataset.evid : null;
+					const date = actEl.dataset.date;
+					if (act === 'peek' && evid) openEventPeek(evid);
+					else if (act === 'edit' && evid) openEventModal(evid);
+					else if (act === 'add' && date) openEventModal(null, date);
+					else if (act === 'more' && date) calGoToDayWeek(date);
+					return;
+				}
+				const dayCol = e.target.closest('.cal-daycol');
+				if (dayCol) calGridClick(e, dayCol.dataset.date, dayCol);
+			});
+
 			function clearFacultyFilter() {
 				selectedFaculties.clear(); selectedCentralAdminIdx.clear(); renderFacultySidebar(); render();
 			}
@@ -3652,17 +3692,19 @@
 						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:#f0f0f0; border-radius:7px;">' + selectionHint + '</div>';
 					}
 					else if (mode === "silindi") {
-						// Kimlik (push-ID) bir DIZE oldugu icin JS cagrisina TIRNAK ICINDE gecirilir --
-						// aksi halde ornegin "-Oabc123" gibi bir ID sayi gibi ayristirilmaya calisilip
-						// gecersiz JS (eksi isareti + tanimlayici) uretir.
+						// Kimlik (push-ID) inline JS string'e degil, karta zaten atanmis card.dataset.pid'e
+						// gore delegated listener'da okunur (bkz. #grid click listener'i) -- escapeHtml()
+						// HTML-attribut baglaminda kacisi cozer ama inline JS-string baglaminda kacisi
+						// COZMEZ (tarayici HTML-decode ETTIKTEN SONRA JS parse eder), bu yuzden id'yi hic
+						// inline handler string'ine gomulmemek asil guvenli yol.
 						actionHtml = canEditData() ? `
 							<div style="display:flex; gap:8px; margin-top:auto;">
-								<button class="card-action-btn btn-restore-card" onclick="restoreSingle('${p._id}'); event.stopPropagation();">Geri Yükle</button>
-								<button class="card-action-btn btn-permdel-card" onclick="openSinglePermDelete('${p._id}'); event.stopPropagation();">Kalıcı Sil</button>
+								<button class="card-action-btn btn-restore-card">Geri Yükle</button>
+								<button class="card-action-btn btn-permdel-card">Kalıcı Sil</button>
 							</div>
 						` : "";
 					}
-					else { actionHtml = canEditData() ? '<button class="card-edit" onclick="openEditModal(\'' + p._id + '\'); event.stopPropagation();">Düzenle</button>' : ""; }
+					else { actionHtml = canEditData() ? '<button class="card-edit">Düzenle</button>' : ""; }
 
 					card.innerHTML = bulkHtml + newsHtml +
 					'<div class="photo-wrap"><div class="avatar-fallback">' + escapeHtml(initials(p.name)) + '</div>' + imgHtml +
@@ -4699,7 +4741,7 @@ function renderCalendarRail(){
 	const next=futureItems.slice(0,4);
 	function renderNextItem(e, first){
 		const d=parseKey(e.tarih); const ty=evType(e.tur);
-		return '<div class="cal-next-item"'+(first?' style="border-top:none;"':'')+' onclick="openCalendarAt(\''+escapeHtml(e.tarih)+'\',\''+escapeHtml(e._id)+'\')">'+
+		return '<div class="cal-next-item"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+e._id+'">'+
 			'<span class="cal-next-date"><span class="d">'+d.getDate()+'</span><span class="m">'+CAL_MONTHS[d.getMonth()].slice(0,3)+'</span></span>'+
 			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-next-meta" style="display:block;">'+(e.saat?escapeHtml(e.saat)+' · ':'')+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
@@ -4707,7 +4749,7 @@ function renderCalendarRail(){
 	function renderNowItem(e, first){
 		const ty=evType(e.tur);
 		const saatTxt=e.saat?(escapeHtml(e.saat)+(e.bitisSaat?'–'+escapeHtml(e.bitisSaat):'')+' · '):'';
-		return '<div class="cal-next-item cal-next-item-now"'+(first?' style="border-top:none;"':'')+' onclick="openCalendarAt(\''+escapeHtml(e.tarih)+'\',\''+escapeHtml(e._id)+'\')">'+
+		return '<div class="cal-next-item cal-next-item-now"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+e._id+'">'+
 			'<span class="cal-now-dot" aria-hidden="true"></span>'+
 			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-next-meta" style="display:block;">'+saatTxt+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
@@ -5052,7 +5094,7 @@ function renderWeekView(body){
 		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';" onclick="openEventPeek(\''+e._id+'\')"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" data-act="peek" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -5080,12 +5122,11 @@ function renderWeekView(body){
 			const e=it.ev; const top=(it.s/60)*CAL_HOUR_H; const hgt=Math.max(18,((it.e-it.s)/60)*CAL_HOUR_H-2);
 			const w=100/it.total; const left=w*it.col;
 			const compact=hgt<34?" compact":"";
-			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" '+
-				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
+			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" data-act="peek" '+
+				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);">'+
 				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+lockIconHtml(e)+'</button>';
 		});
-		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;" '+
-			'onclick="calGridClick(event,\''+k+'\')">'+inner+'</div>';
+		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;">'+inner+'</div>';
 	});
 
 	body.innerHTML='<div class="cal-tg">'+head+allday+
@@ -5114,10 +5155,12 @@ function renderWeekView(body){
 }
 
 // Boş ızgaraya tıklayınca o saate yeni etkinlik açılır (Notion'daki gibi).
-function calGridClick(e, dateKey){
+// col: gercek .cal-daycol elemani -- delegated listener'dan geldigi icin artik e.currentTarget'a
+// GUVENILEMEZ (o, dinleyicinin baglandigi #calendarOverlay olur), col acikca parametre olarak gecilir.
+function calGridClick(e, dateKey, col){
 	if(!canEditData()) return;
 	if(e.target.closest(".cal-block")) return;
-	const col=e.currentTarget; const rect=col.getBoundingClientRect();
+	const rect=col.getBoundingClientRect();
 	const y=e.clientY-rect.top+col.parentElement.parentElement.scrollTop*0;
 	let mins=Math.round((y/CAL_HOUR_H)*60/30)*30;
 	mins=Math.max(0,Math.min(23*60+30,mins));
@@ -5140,13 +5183,13 @@ function renderMonthView(body){
 		const shown=evs.slice(0,3);
 		let chips=shown.map(function(e){
 			const ty=evType(e.tur);
-			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+e._id+'" style="position:relative; '+calBlockStyle(e)+'" onclick="event.stopPropagation(); openEventPeek(\''+e._id+'\')">'+
+			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+e._id+'" data-act="peek" style="position:relative; '+calBlockStyle(e)+'">'+
 				(e.saat?'<span class="bh">'+escapeHtml(e.saat)+'</span>':'')+'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 		}).join("");
-		if(evs.length>shown.length) chips+='<button type="button" class="cal-more" onclick="event.stopPropagation(); calGoToDayWeek(\''+k+'\')">+'+(evs.length-shown.length)+' tane daha</button>';
+		if(evs.length>shown.length) chips+='<button type="button" class="cal-more" data-date="'+k+'" data-act="more">+'+(evs.length-shown.length)+' tane daha</button>';
 		cells+='<div class="'+cls+'" data-date="'+k+'">'+
 			'<div class="cal-mdayhead"><span class="cal-mdaynum">'+d.getDate()+'</span>'+
-			'<button type="button" class="cal-mdayadd" title="Bu güne etkinlik ekle" onclick="event.stopPropagation(); openEventModal(null,\''+k+'\')">+</button></div>'+
+			'<button type="button" class="cal-mdayadd" data-date="'+k+'" data-act="add" title="Bu güne etkinlik ekle">+</button></div>'+
 			'<div class="cal-mday-chips" data-date="'+k+'" style="display:flex; flex-direction:column; gap:2px; overflow:hidden;">'+chips+'</div></div>';
 	}
 	body.innerHTML='<div class="cal-m">'+dow+'<div class="cal-m-grid">'+cells+'</div></div>';
@@ -5199,12 +5242,12 @@ function renderListView(body){
 		const meta=[]; if(e.yer) meta.push(escapeHtml(e.yer)); if(e.birim) meta.push(escapeHtml(e.birim));
 		if(e.gorevli) meta.push("📷 "+escapeHtml(e.gorevli));
 		if(Array.isArray(e.katilimcilar)&&e.katilimcilar.length) meta.push(e.katilimcilar.length+" katılımcı");
-		html+='<button type="button" class="cal-ev" onclick="openEventPeek(\''+e._id+'\')">'+
+		html+='<button type="button" class="cal-ev" data-evid="'+e._id+'" data-act="peek">'+
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
 			'<span class="cal-ev-time">'+escapeHtml(e.saat||"—")+'</span>'+
 			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span>'+
-			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" onclick="event.stopPropagation(); openEventModal(\''+e._id+'\')">✎</span>' : '')+
+			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" data-act="edit">✎</span>' : '')+
 			'</button>';
 	});
 	body.innerHTML='<div class="cal-list-wrap">'+html+'</div></div>';
