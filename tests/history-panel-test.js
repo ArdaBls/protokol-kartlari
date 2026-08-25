@@ -87,10 +87,17 @@ async function newPage(browser, width, height, mobile) {
 		const panelRect = document.getElementById('historyPanel').getBoundingClientRect();
 		const modalRect = document.querySelector('#modalBg .modal').getBoundingClientRect();
 		const cs = getComputedStyle(document.getElementById('historyPanel'));
+		// NOT: getComputedStyle() CANLI (live) bir nesne dondurur -- deger ".position" OKUNDUGU ANDA
+		// hesaplanir, cs OLUSTURULDUGU anda degil. Bu yuzden closeHistoryPanel() cagrilmadan ONCE
+		// deger somut bir degiskene alinmali, yoksa asagida return icinde okundugunda panel zaten
+		// kapanmis (.open sinifi kalkmis, position tekrar 'static'e donmus) olur.
+		const isAbsoluteWhileOpen = cs.position === 'absolute';
+		// NOT: panel artik #modalBg'nin degil #modalCenterWrap'in position:absolute cocugu (.modal
+		// TEK basina ortalansin diye) -- eskiden 'static' bekleniyordu, artik 'absolute' beklenmeli.
 		const toggleHiddenWhileOpen = document.getElementById('historyToggleBtn').style.display === 'none';
 		closeHistoryPanel();
 		const toggleVisibleAfterClose = document.getElementById('historyToggleBtn').style.display !== 'none';
-		return { isStatic: cs.position === 'static', panelIsLeftOfModal: panelRect.right <= modalRect.left + 1, toggleHiddenWhileOpen, toggleVisibleAfterClose };
+		return { isAbsolute: isAbsoluteWhileOpen, panelIsLeftOfModal: panelRect.right <= modalRect.left + 1, toggleHiddenWhileOpen, toggleVisibleAfterClose };
 	});
 
 	// --- H-3: masaustunde history + successor panelleri AYNI ANDA acik kalabilir (kisitlama YOK) ---
@@ -225,7 +232,7 @@ async function newPage(browser, width, height, mobile) {
 
 	const checks = {
 		h1_hiddenOnAdd: h1.hiddenOnAdd, h1_visibleOnEdit: h1.visibleOnEdit,
-		h2_isStatic: h2.isStatic, h2_panelIsLeftOfModal: h2.panelIsLeftOfModal, h2_toggleHiddenWhileOpen: h2.toggleHiddenWhileOpen, h2_toggleVisibleAfterClose: h2.toggleVisibleAfterClose,
+		h2_isAbsolute: h2.isAbsolute, h2_panelIsLeftOfModal: h2.panelIsLeftOfModal, h2_toggleHiddenWhileOpen: h2.toggleHiddenWhileOpen, h2_toggleVisibleAfterClose: h2.toggleVisibleAfterClose,
 		h3_bothOpenOnDesktop: h3.bothOpenOnDesktop,
 		h4_addWorked: h4.afterAdd.count === 1, h4_domUpdated: h4.afterAdd.domHasText, h4_removeWorked: h4.afterRemove.count === 0,
 		h5_rejectedEmpty: h5.rejectedEmpty,

@@ -294,9 +294,25 @@
 
 			/* Modallar */
 			.modal-bg{ gap:16px; }
+			/* #modalBg'nin ESKİ hali: history-panel/.modal/.rank-reference/.successor-panel HEPSİ aynı flex
+			   satırında kardeşti, bu yüzden justify-content:center TÜM satırı (yan panellerin toplam genişliği
+			   dahil) ortalıyordu -- yan panel(ler) açıkken .modal gerçek merkezden kayıyordu. Çözüm: bu dört
+			   öğe artık TEK bir sarmalayıcının (.modal-center-wrap) içinde. Yan paneller (aşağıda, >=900px
+			   bloklarında) position:absolute'a alınıp normal akıştan çıkarılıyor, böylece wrap'in genişliği/
+			   yüksekliği SADECE .modal'a göre belirleniyor (.modal tek "akışta kalan" çocuk) ve #modalBg'nin
+			   justify-content:center'ı artık gerçekten SADECE .modal'ı ortalıyor. Yan paneller .modal'ın
+			   kenarına (position:relative olan wrap'e göre) 16px boşlukla iğnelenir; aynı anda birden fazla
+			   sağ panel (rank-reference + successor-panel) açık olabildiği ender durumda üst üste biner --
+			   bu kabul edilebilir (bkz. görev talebi), önemli olan .modal'ın kendisinin hep merkezde kalması. */
+			/* width/max-width burada .modal'ınkiyle BİREBİR aynı (460px) -- wrap artık #modalBg'nin flex
+			   öğesi olduğu için .modal'ın eskiden sahip olduğu "width:100%; max-width:460px" boyutlandırmasını
+			   BURADA tekrarlamak gerekiyor; aksi halde wrap'in genişliği .modal'ın kendi width:100%'üne göre
+			   shrink-to-fit hesaplanmaya çalışır (döngüsel/belirsiz yüzde -- tarayıcı bunu auto'ymuş gibi
+			   ele alır ve modal beklenenden dar render edilebilir). */
+			.modal-center-wrap{ position:relative; width:100%; max-width:460px; }
 			.rank-reference{ display:none; }
 			@media (min-width: 900px) {
-			.rank-reference{ display:flex; flex-direction:column; align-self:stretch; width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow:hidden; }
+			.rank-reference{ display:flex; flex-direction:column; position:absolute; top:0; bottom:0; left:calc(100% + 16px); width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow:hidden; }
 			/* #modalBg (kişi düzenleme modalı) HER ZAMAN dikey tam ortada kilitli kalsın isteniyor -- paylaşılan
 			   .modal-bg kuralının align-items:safe center'ı (bkz. satır ~719) BİLEREK değiştirilmiyor, çünkü o
 			   sınıfı #adminPanelBg (çok sekmeli/uzun log listeleri) ve #legalModalBg (uzun sözleşme metni) gibi
@@ -322,7 +338,7 @@
 			.successor-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
 			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
-			.successor-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
+			.successor-panel.open{ position:absolute; top:0; right:auto; bottom:0; left:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
 			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
@@ -333,7 +349,9 @@
 			   alt oge, dolayisiyla modalBg display:none olunca successor panel de kayboluyor
 			   ve ekranda hicbir sey kalmiyordu. Sadece ICERIDEKI .modal (eski kayit formu)
 			   gizlenir; #modalBg'nin kendisi acik kalir ki successor panel gorunmeye devam etsin. */
-			.modal-bg.hide-behind-successor > .modal{ display:none !important; }
+			/* .modal artik dogrudan .modal-bg'nin cocugu degil, .modal-center-wrap'in cocugu (bkz. yukarida
+			   .modal-center-wrap notu) -- ">" dogrudan-cocuk secici bu yuzden ".modal-center-wrap > .modal" olarak guncellendi. */
+			.modal-bg.hide-behind-successor .modal-center-wrap > .modal{ display:none !important; }
 
 			/* Görev/Etkinlik Geçmişi paneli -- successor-panel'in AYNASI, ama SOLDA. Genişte
 			   (>=900px) düzenleme ekranının SOLUNDA durur: bu, panelin HTML'de .modal'dan ÖNCE
@@ -345,12 +363,12 @@
 			.history-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
 			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
 			@media (min-width: 900px) {
-			.history-panel.open{ position:static; inset:auto; z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; align-self:stretch; width:260px; flex-shrink:0; }
+			.history-panel.open{ position:absolute; top:0; left:auto; bottom:0; right:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.history-panel.open .history-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
 			.history-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
 			.history-panel h3:first-child{ margin-top:0; }
-			.modal-bg.hide-behind-panel > .modal{ display:none !important; }
+			.modal-bg.hide-behind-panel .modal-center-wrap > .modal{ display:none !important; }
 			.hg-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 8px; border-radius:7px; background:var(--surface-input); margin-bottom:5px; }
 			.hg-row-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
 			.hg-row-text b{ color:var(--ink); }
@@ -1335,6 +1353,7 @@
 
 		<!-- Ekle/Düzenle Modalı -->
 		<div class="modal-bg" id="modalBg">
+		<div class="modal-center-wrap" id="modalCenterWrap">
 		<div class="history-panel" id="historyPanel">
 		<div class="history-panel-inner">
 			<button class="close-x" onclick="closeHistoryPanel()">✕</button>
@@ -1551,6 +1570,7 @@
 				</div>
 			</div>
 			</div>
+		</div>
 		</div>
 
 		<!-- Çöpe At Onay -->
@@ -2803,9 +2823,14 @@
 					showToast("Çöpe atmak istediğiniz kişileri seçin (Arama yapabilirsiniz).", "error");
 				} else {
 					btnToplu.style.display = "inline-flex"; btnExec.style.display = "none"; btnCancel.style.display = "none";
-					actionsLeft.style.display = "flex"; 
+					// "flex" SABIT DEGERI YAZMAK YANLISTI: mobilde .actions-left CSS'te display:grid (2 sutunlu
+					// duzen, bkz. ~satir 823) kullanir; buraya inline "flex" yazmak o grid'i eziyor ve butonlar
+					// mobilde (ozellikle Il listesine gecince, applyModeToolbar() de ayni hatayi yapiyordu)
+					// tek sutun/alt alta diziliyordu. removeProperty ile inline stili tamamen kaldirip
+					// CSS media query'nin (masaustunde flex, mobilde grid) karar vermesine birakiyoruz.
+					actionsLeft.style.removeProperty("display");
 					tabs.forEach(t => t.disabled = false);
-					search.value = ""; 
+					search.value = "";
 				}
 				render();
 			}
@@ -3113,7 +3138,10 @@
 				const trashView = (mode === "silindi");
 				if (emptyTrashBtn) emptyTrashBtn.style.display = trashView ? "inline-flex" : "none";
 				if (bulkDelBtn) bulkDelBtn.style.display = trashView ? "none" : "inline-flex";
-				if (actionsLeft) actionsLeft.style.display = trashView ? "none" : "flex";
+				// bkz. toggleBulkDeleteMode() yorumu -- sabit "flex" mobildeki grid duzenini eziyordu
+				// (Il/Universite listeleri arasinda gecince butonlar tek sutuna dusuyordu). switchList()
+				// her liste degisiminde bunu cagirdigi icin sorun ozellikle liste degistirince ortaya cikiyordu.
+				if (actionsLeft) { if (trashView) actionsLeft.style.display = "none"; else actionsLeft.style.removeProperty("display"); }
 			}
 
 			document.getElementById("statusToggle").addEventListener("click", function(e){
