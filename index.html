@@ -2173,7 +2173,17 @@
 				if (!requireAdmin()) return;
 				// Kendi yetkisini yükseltmeyi engelleyen <select disabled> sadece görseldi, gerçek kontrol burada.
 				if (currentUser && uid === currentUser.uid) { showToast("Kendi yetkinizi değiştiremezsiniz.", "error"); return; }
-				try { await database.ref("users/" + uid + "/role").set(newRole); showToast("Yetki güncellendi.", "success"); loadAdminUsers(); }
+				try {
+					// Eski rolü loga yazabilmek için üzerine yazmadan önce okunur.
+					const snap = await database.ref("users/" + uid).once("value");
+					const u = snap.val() || {};
+					const oldRole = u.role || "pending";
+					const roleLabels = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" };
+					const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || uid;
+					await database.ref("users/" + uid + "/role").set(newRole);
+					logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının rolü değiştirildi · Rol: " + (roleLabels[oldRole] || oldRole) + " → " + (roleLabels[newRole] || newRole), fullName);
+					showToast("Yetki güncellendi.", "success"); loadAdminUsers();
+				}
 				catch (err) { showToast("Yetki güncellenemedi.", "error"); }
 			}
 
@@ -2187,14 +2197,16 @@
 				if (testModeEnabled) { showToast("Test Modu açıkken bu işlem yapılamaz.", "error"); loadAdminUsers(); return; }
 				try {
 					await database.ref("users/" + uid + "/basinGorevlisi").set(checked);
+					// Log mesajı için isim her iki durumda (işaretlense de kaldırılsa da) gerekiyor.
+					const snap = await database.ref("users/" + uid).once("value");
+					const u = snap.val() || {};
+					const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || "(isim yok)";
 					if (checked) {
-						const snap = await database.ref("users/" + uid).once("value");
-						const u = snap.val() || {};
-						const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || "(isim yok)";
 						await database.ref(dbPath("basinGorevlileri/" + uid)).set(fullName);
 					} else {
 						await database.ref(dbPath("basinGorevlileri/" + uid)).remove();
 					}
+					logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının Basın Görevlisi bayrağı " + (checked ? "işaretlendi" : "kaldırıldı"), fullName);
 					showToast(checked ? "Basın görevlisi olarak işaretlendi." : "Basın görevlisi işareti kaldırıldı.", "success");
 				} catch (err) {
 					showToast("İşlem gerçekleştirilemedi.", "error");
