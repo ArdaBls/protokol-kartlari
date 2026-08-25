@@ -494,8 +494,13 @@
 			.cal-mini-title{ flex:1; text-align:center; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); white-space:nowrap; }
 			.cal-mini-head .cal-iconbtn{ width:21px; height:21px; font-size:13px; }
 			.cal-mini-head .cal-iconbtn::after{ inset:-6px; }
-			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu. */
-			.cal-jump{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:13px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; }
+			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu.
+			   native-date-input tasma ailesi (v2.3.7/v2.9.13/v2.9.14 ile ayni kalip): iOS Safari
+			   native input[type=date] kontrolu bazen genislik kisitlarini yok sayip kendi
+			   intrinsik genisligini dayatiyor; .cal-topbar flex-wrap:wrap tek basina yetmez,
+			   cunku flex item'in varsayilan min-width:auto'su intrinsik genislige esitlenip
+			   satiri/sayfayi yatayda tasirabilir. min-width:0 bu dayatmayi engeller. */
+			.cal-jump{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:13px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; min-width:0; }
 			.cal-jump:hover{ border-color:var(--brass); }
 			.cal-mini-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
 			.cal-mini-dow{ text-align:center; font-size:10px; font-weight:600; color:var(--muted); padding-bottom:3px; }
@@ -947,9 +952,11 @@
 
 				/* === ADMIN PANELİ === */
 				.admin-user-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; }
-				.admin-user-row .au-info{ display:flex; flex-direction:column; gap:2px; }
+				/* min-width:0 + overflow-wrap: uzun e-posta adresleri (bosluksuz tek "kelime")
+				   flex satirini/karti disariya tasirmasin diye -- ayni aile: .field-row .field. */
+				.admin-user-row .au-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
 				.admin-user-row .au-name{ font-weight:700; font-size:14px; color:var(--ink); }
-				.admin-user-row .au-email{ font-size:12px; color:var(--muted); }
+				.admin-user-row .au-email{ font-size:12px; color:var(--muted); min-width:0; overflow-wrap:break-word; word-break:break-word; }
 				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:'Roboto',sans-serif; background:var(--surface-input); color:var(--ink); cursor:pointer; }
 				.admin-user-row select:disabled{ background:#f0eee7; color:var(--muted); cursor:not-allowed; }
 				.au-basin-toggle{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; white-space:nowrap; user-select:none; }
@@ -957,7 +964,9 @@
 				.admin-user-empty{ text-align:center; color:var(--muted); font-size:13px; padding:20px; }
 				.admin-log-row{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; background:var(--card); border:1px solid var(--border-soft); border-radius:8px; font-size:13px; }
 				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; }
-				.admin-log-row .al-by{ color:var(--navy); font-weight:600; }
+				/* min-width:0 + overflow-wrap: "kim yaptı" alani genelde e-posta -- bosluksuz
+				   uzun bir dize .al-top'u/karti disariya tasirmasin diye (.au-email ile ayni aile). */
+				.admin-log-row .al-by{ color:var(--navy); font-weight:600; min-width:0; overflow-wrap:break-word; word-break:break-word; }
 				.admin-log-row .al-action{ color:var(--ink); }
 				/* "kim yaptı" (al-by, lacivert/kalın) ile "kime yapıldı" (al-target, altın rozet) birbirine karışmasın diye ayrı stiller */
 				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:var(--warn-text-alt); font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
@@ -1069,14 +1078,21 @@
 				   tamamen gizlenir -- kilit gun/hafta gorunumunden ve detay panelinden
 				   gorulup degistirilmeye devam eder. */
 				.cal-mday .cal-block.compact .cal-lock-ico{ display:none; }
-				/* Takvim ust barindaki "<" ve ">" oklarinin dokunma alanlari (::after inset:-8px)
-				   5px'lik bosluk yuzunden CAKISIYORDU: "onceki ay" okunun sag kenarina basmak
-				   "sonraki ay"i tetikliyordu. Butonlar buyutulup genisletici kaldirilir. */
+				/* Bos esnek bosluk 320px'te tek basina bir satir kaplayip ust bari 5 satira cikariyordu. */
+				.cal-spacer{ display:none; }
+			}
+			/* Takvim ust barindaki "<" ve ">" oklarinin dokunma alanlari (::after inset:-8px)
+			   5px'lik bosluk yuzunden CAKISIYORDU: "onceki ay" okunun sag kenarina basmak
+			   "sonraki ay"i tetikliyordu. Butonlar buyutulup genisletici kaldirilir. Bu kural
+			   eskiden sadece max-width:700px'te calisiyordu; tablet gibi >700px ama dokunmatik
+			   (pointer:coarse) cihazlarda da .cal-iconbtn kucuk kaliyordu -- proje telefon-odakli
+			   oldugu icin oncelik dusuk ama ekran genisliginden BAGIMSIZ, dokunmatik oldugu surece
+			   buyutmek icin sorgu (pointer:coarse) ile OR'lanir (diger max-width:700 kurallari
+			   ustteki bloktaki gibi SADECE genislige bagli kalmaya devam eder). */
+			@media (max-width: 700px), (pointer: coarse){
 				.cal-topbar{ gap:10px; }
 				.cal-iconbtn{ width:38px; height:38px; }
 				.cal-iconbtn::after{ inset:0; }
-				/* Bos esnek bosluk 320px'te tek basina bir satir kaplayip ust bari 5 satira cikariyordu. */
-				.cal-spacer{ display:none; }
 			}
 
 			@media (max-width: 480px){
@@ -1100,9 +1116,10 @@
 			   bu absolute'u eziyordu, iPhone'da (pointer:coarse) X butonlari yanlis yere kayiyordu.
 			   Sadece position tanimi OLMAYAN iki elemana relative eklenir. */
 			@media (pointer: coarse){
-				.cal-ev-edit-ico, .fsheet-close, .header-auth .btn-auth{ position:relative; }
+				.cal-ev-edit-ico, .fsheet-close, .header-auth .btn-auth, .cal-mdayadd, .cal-more{ position:relative; }
 				.cal-ev-edit-ico::after, .clear-btn::after, .fsheet-close::after,
-				.af-close::after, .close-x::after, .header-auth .btn-auth::after{ content:""; position:absolute; inset:-10px; }
+				.af-close::after, .close-x::after, .header-auth .btn-auth::after,
+				.cal-mdayadd::after, .cal-more::after{ content:""; position:absolute; inset:-10px; }
 				.cal-ev-edit-ico{ opacity:.75; }
 				.cal-viewbtn{ padding:9px 11px; }
 				.foot-link{ padding:8px 4px; }
@@ -4170,7 +4187,10 @@ const EVENT_TYPES = [
 	{ key:"diger",     ad:"Diğer",                renk:"#57534e", bg:"#f1efec" }
 ];
 const EVENT_STATUS = [
-	{ key:"planlandi",  ad:"Planlandı",     renk:"#8a8f98" },
+	// renk: .cal-tag'de her zaman beyaz metinle (#fff) kullanılıyor (tema farketmez, bkz. .cal-tag{color:#fff}).
+	// Eski #8a8f98 beyaz üstünde 3.25:1 idi (WCAG AA metin hedefi 4.5:1'in altında). #6b7280 ~4.83:1 verir,
+	// aynı nötr gri tonunu korur (görsel fark minimal).
+	{ key:"planlandi",  ad:"Planlandı",     renk:"#6b7280" },
 	{ key:"cekildi",    ad:"Çekildi",       renk:"#1d4ed8" },
 	{ key:"haber",      ad:"Haber Yazıldı", renk:"#b45309" },
 	{ key:"yayinlandi", ad:"Yayınlandı",    renk:"#15803d" },
