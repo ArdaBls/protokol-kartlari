@@ -1,0 +1,1157 @@
+			:root{
+			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
+			--paper: #f3efe6; --card: #fbf9f4; --ink: #1b1b1b; --muted: #6b6f76;
+			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
+			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #7c5c1f;
+			--border: #dcd6c7; --border-soft: #e7e1d3; --divider: #e2dccb; --divider-soft: #ddd5c2; --divider-faint: #eee6d4;
+			--surface-hover: #f0ece0; --surface-input: #faf8f2; --surface-pill: #efeadd; --surface-subtle: #f4f1e8;
+			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
+			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
+			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
+			/* Acik modda mevcut ham #a33 / #8a6a24 degerleriyle AYNI -- regresyon yok.
+			   Karanlik modda WCAG 4.5:1 esigini gecmek icin asagida yeniden tanimlanir. */
+			--danger-text: #a33; --warn-text-alt: #8a6a24;
+			/* --vh: 1/100'u gercek GORUNUR yukseklik (visualViewport) -- JS tarafindan
+			   guncellenir (asagida syncViewportHeightVar). iOS Safari'de adres/arac cubugu
+			   acilip kapaninca "position:fixed; inset:0" TEK BASINA bunu takip etmiyor,
+			   arac cubugu acikken sabit katmanin (modal-bg, successor-panel) alt kenarinda
+			   sayfanin gercek (krem) arka plani bir sure aciga cikiyordu -- JS bu degiskeni
+			   gercek zamanli guncelleyip .modal-bg/.successor-panel'in height'ini buna
+			   baglayarak cozer. JS calismadan once veya visualViewport desteklenmiyorsa
+			   1vh'a duser (eski davranis, zararsiz fallback). */
+			--vh: 1vh;
+			}
+
+			/* Karanlik mod (data-theme="dark") -- ayni degisken adlarini FARKLI degerlerle
+			   yeniden tanimlar, boylece var(--card) vb. kullanan yuzlerce kural TEK SATIR
+			   degismeden otomatik koyu temaya gecer. --navy/--navy-2/--brass/--brass-light
+			   BILEREK degistirilmedi -- zaten koyu renkler oldugu icin arka plan olarak hem
+			   acik hem koyu temada calisiyorlar; METIN olarak kullanildiklari birkac ozel
+			   secici asagida (degisken degil, dogrudan secici) AYRICA gecersiz kilinir. */
+			[data-theme="dark"]{
+			--paper: #211f1c; --card: #2a2723; --ink: #e9e4d7; --muted: #9a9486;
+			--ok: #6fcf97; --ok-bg: #1f3327; --off: #a5a099; --off-bg: #34322c;
+			--warn: #e0954a; --warn-bg: #3a2c1a; --brass-text: #d9b568;
+			--border: #46423a; --border-soft: #332f29; --divider: #3a362f; --divider-soft: #332f29; --divider-faint: #2c2924;
+			--surface-hover: #35312a; --surface-input: #252220; --surface-pill: #2f2b25; --surface-subtle: #27241f;
+			--surface-hover-2: #38342c; --surface-hover-3: #403b32; --danger-bg: #3a2020; --today: #e2661c;
+			--shadow: 0 10px 30px -12px rgba(0,0,0,.55);
+			--news: #4f9eff; --news-bg: rgba(79,158,255,.16);
+			/* WCAG hesabi (contrast.js, tests disi scratchpad): #ff6b6b -> card/danger-bg/paper/warn-bg
+			   uzerinde 4.87-5.92:1, #d9b568 -> ayni fonlarda 6.92-8.42:1 (esik 4.5:1). */
+			--danger-text: #ff6b6b; --warn-text-alt: #d9b568;
+			}
+
+			*{box-sizing:border-box;}
+			html,body{margin:0;padding:0;}
+			/* NOT (2026-08-24): html/body'ye SITE GENELINDE overscroll-behavior-y:none
+			   denenmisti (iOS'ta modal acikken bile "lastik" sicramanin bir an icin krem
+			   arka plani gostermesi icin) ama Android 16'da SADECE sicramayi degil TUM
+			   DIKEY KAYDIRMAYI devre disi biraktigi bildirildi -- site Android'de tamamen
+			   kullanilamaz hale geliyordu. KALDIRILDI. Modal/duzenle ekrani ACIKKEN arka
+			   planin kaymasini engelleyen asil mekanizma BU DEGIL, ayri bir sistem: asagida
+			   .modal-bg/.successor-panel/.authform-bg'nin kendi overscroll-behavior:contain'i
+			   + body.scroll-locked (bkz. lockBodyScroll(), dosya sonu) -- o sisteme
+			   DOKUNULMADI, hala tam calisiyor. Ayrica krem-arka-plan sorununun asil,
+			   dogrulanmis cozumu zaten --vh/visualViewport takibiydi (bkz. --vh yorumu
+			   yukarida), bu satir o noktada da fazlaydi. */
+			html{ overflow-x:hidden; max-width:100%; }
+			/* body'nin min-height'i ve alt bosluğu (2026-08-25):
+			   - min-height eskiden literal 100vh idi -- iOS Safari'de adres/arac cubugu
+			     acikken bu, gercek gorunur yukseklikten FAZLA oluyor, kullanici asagi
+			     kaydirdiginda (lastik/rubber-band) sayfanin en altinda bos, hareket eden
+			     bir alan aciga cikiyordu ("surunebilir dikdortgen" hissi). --vh zaten
+			     projede JS ile takip ediliyor (bkz. yukaridaki --vh yorumu, syncViewportHeightVar),
+			     ayni cozum buraya da uygulandi.
+			   - padding-bottom:60px KASITLI: .calendar-fab/.faculty-fab position:fixed;
+			     bottom:16px+buton yuksekligi (~44px) ile sayfanin EN ALTINDA sabit duruyor;
+			     bu bosluk olmasa sayfa sonuna kadar kaydirildiginda bu iki buton footer
+			     metninin ustune biniyor. FAB'larin bottom degeri (satir ~1018) mobilde
+			     env(safe-area-inset-bottom) da ekliyor (centikli/home-indicator'lu cihazlarda
+			     FAB daha da yukari kayiyor) -- bu yuzden ayni payi buraya da eklemek gerekiyor,
+			     yoksa home-indicator'lu iPhone'larda 60px yetersiz kalip footer yine ortulebilir. */
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:calc(var(--vh, 1vh) * 100); padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); overflow-x:hidden; max-width:100%; }
+
+			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
+			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
+			.photo-wrap, .meta, .card-edit, .card-action-btn, .status-chip, .rank-badge, .internal-order-badge, .drag-handle, .drag-handle-mini, header, .list-switch-wrap, .controls, .actions-row {
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+
+			header{ background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #24406e 100%); color:#f3efe6; padding:28px 20px 24px; position:relative; overflow:hidden; }
+			header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 40px); pointer-events:none; }
+			/* .header-top-row: h1 artik eyebrow'un ALTINDA, ayni sol sutunda (.header-left)
+			   -- bu sutun satirin solunda, sagdaki tema/.header-auth (Cikis dahil) ile
+			   karsilikli. Onceki tasarimda h1 ayri, alttaki bir satirdaydi ve sabit
+			   min-height+justify-content:space-between hack'i ile "yaslaniyordu" -- bu,
+			   ust satir kisayken (orn. cikis yapilmamis "Giris Yap") h1 ile arasinda
+			   gorsel bosluk birakiyordu. Artik h1 dogrudan satirin icinde oldugu icin
+			   min-height hack'ine gerek yok, icerik (2 satirli .header-auth dahil) header'i
+			   dogal olarak buyutur.
+			   Sikisik genisliklerde (kullanicinin bizzat bildirdigi bir sorun): satir
+			   ASLA alt satira DUSMEZ (flex-wrap:nowrap) -- .header-auth panelinin altta
+			   kalip h1'in ustunde "boslukmus gibi" durmasindansa, once h1 kendi sutununda
+			   (min-width:150px'e kadar) kuculup 2 satira bolunur, sonra .header-top-right
+			   kendi icinde (tema + .header-auth + ha-row1) sarar (butun zincir boyunca
+			   min-width:0 gerekiyor, yoksa flex-item'lar dogal icerik genisligine
+			   "yapisip" komsu sutuna tasar). Cok dar ekranlarda (~320px, admin+Cikis)
+			   hafif bir yaklasma olabilir -- kullanici bunu ACIKCA kabul etti ("gerekirse
+			   ustune binsin sorun olmaz"), tam donusum yerine bilincli bir tercih. */
+			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:nowrap; }
+			.header-left{ display:flex; flex-direction:column; gap:4px; min-width:150px; flex-shrink:1; }
+			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
+			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
+			.eyebrow-short{ display:none; }
+			@media (max-width: 600px) { .eyebrow-full{ display:none; } .eyebrow-short{ display:inline; } }
+			h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0; letter-spacing:-.01em; }
+
+			.list-switch-wrap { max-width:1040px; margin: 16px auto; padding:0 20px; position:relative; z-index:10; }
+			.list-switch { display:flex; gap:8px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; padding:4px; box-shadow:var(--shadow); }
+			.list-switch button { flex:1; font-family:'Roboto',sans-serif; font-weight:700; font-size:13px; padding:9px 10px; border:none; border-radius:7px; background:transparent; color:var(--muted); cursor:pointer; transition: background 0.2s, color 0.2s; }
+			.list-switch button.active { background:var(--navy); color:#fff; }
+
+			.controls { max-width:1040px; margin: 0 auto 16px; padding:0 20px; position:relative; z-index:2; }
+			.controlbar { background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:10px 12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; border:1px solid var(--border-soft); }
+			.search-wrap { flex:1 1 220px; min-width:160px; }
+			.input-wrap { position:relative; width:100%; display:flex; align-items:center; }
+			.input-wrap input, .input-wrap select { width:100%; padding-right:32px !important; }
+			.clear-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:var(--surface-pill); border:none; border-radius:50%; width:20px; height:20px; font-size:12px; color:var(--muted); cursor:pointer; display:none; align-items:center; justify-content:center; }
+			.clear-btn:hover { background:var(--surface-hover-3); color:var(--ink); }
+			#search { border:1px solid var(--border); background:var(--surface-input); border-radius:8px; padding:9px 32px 9px 12px; font-family:'Roboto',sans-serif; font-size:14px; color:var(--ink); outline:none; }
+			#search:focus { border-color:var(--brass); }
+			#search:disabled { background:#f5f5f5; color:#999; cursor:not-allowed; }
+
+			.toggle-group{ display:flex; background:var(--surface-pill); border-radius:8px; padding:3px; gap:2px; }
+			.toggle-group button{ border:none; background:transparent; padding:7px 12px; border-radius:6px; font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; }
+			.toggle-group button.active{ background:var(--navy); color:#fff; }
+			.toggle-group button:disabled { opacity: 0.5; cursor: not-allowed; }
+			
+			.count{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); white-space:nowrap; margin-left:auto; }
+
+			.mobile-layout-toggle { display:none; background:var(--surface-pill); border-radius:8px; padding:3px; gap:2px; }
+			.mobile-layout-toggle button { border:none; background:transparent; padding:6px 10px; border-radius:6px; font-family:'Roboto',sans-serif; font-weight:600; font-size:11px; color:var(--muted); cursor:pointer; }
+			.mobile-layout-toggle button.active { background:var(--navy); color:#fff; }
+
+			/* --- GRID TASARIMI --- */
+			.grid { max-width:1040px; margin:20px auto 0; padding:0 20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:16px; }
+			.grid.is-reorder { display: flex; flex-direction: column; gap: 14px; }
+
+			.card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; border:1px solid var(--border-soft); position:relative; transition:transform .15s ease, box-shadow .15s, border .15s, opacity .15s; display:flex; flex-direction:column; }
+			.card:hover{transform:translateY(-3px);}
+			.card.pasif{ filter:saturate(.55); opacity:.8; }
+			.card.silindi{ filter:grayscale(0.8); opacity:0.7; }
+
+			.card.bulk-mode, .card.news-mode { cursor: pointer; transition: transform 0.1s ease; }
+			.card.bulk-mode:hover, .card.news-mode:hover { transform: scale(0.98); }
+			.card.bulk-selected { border: 2px solid #a33; opacity: 0.9; box-shadow: 0 0 0 3px rgba(170, 51, 51, 0.15); }
+			.card.news-selected { border: 2px solid var(--news); opacity: 0.95; box-shadow: 0 0 0 3px var(--news-bg); }
+			
+			.bulk-cb, .news-cb { position:absolute; top:12px; z-index:10; width:20px; height:20px; cursor:pointer; pointer-events:none; }
+			.bulk-cb { accent-color:#a33; }
+			.news-cb { accent-color:var(--news); }
+
+			.photo-wrap{ position:relative; width:100%; aspect-ratio:1/1; background:linear-gradient(135deg,#243b63,#16233d); overflow:hidden; }
+			.photo-wrap img{ width:100%; height:100%; object-fit:cover; object-position:center top; display:block; position:relative; z-index:2; pointer-events:none; }
+			.avatar-fallback{ position:absolute; inset:0; z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:38px; color:#f3efe6; background: radial-gradient(circle at 30% 20%, rgba(184,146,63,.5), transparent 60%), linear-gradient(135deg,#2a4270,#152036); letter-spacing:.02em; pointer-events:none; }
+			.status-chip{ position:absolute; top:10px; right:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; z-index:3; backdrop-filter: blur(2px); pointer-events:none;}
+			.status-chip.aktif{ background:var(--ok-bg); color:var(--ok); }
+			.status-chip.pasif{ background:var(--off-bg); color:var(--off); }
+			.status-chip.silindi{ background:var(--danger-bg); color:var(--danger-text); }
+			
+			.rank-badge{ position:absolute; top:10px; left:10px; z-index:4; width:26px; height:26px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+
+			/* Veri güncellik rozeti: eski unvan/görev bilgisinin farkedilmeden kalması protokol
+			   sistemlerinde en sık yapılan hatalardan biri, bu yüzden her kartta görünür durur. */
+			/* margin-bottom SABİT tutulur: .card-edit'in margin-top:auto'su SADECE .info
+			   içinde (grid satırındaki daha uzun bir komşu karttan dolayı) boşta kalan
+			   esnek alan varsa boşluk üretir. Kısa içerikli (notu/uzun unvanı olmayan)
+			   kartlarda -- ki en yaygın durum budur -- boşta alan kalmıyor ve auto-margin
+			   0'a çöküyor; rozet ile "Düzenle" butonu birbirine YAPIŞIK görünüyordu.
+			   Sabit alt boşluk, esnek alan olsun olmasın minimum ayrımı garantiler. */
+			.freshness-badge{ display:inline-flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:3px 7px; border-radius:999px; margin-top:6px; margin-bottom:10px; width:fit-content; }
+			.freshness-badge.green{ background:var(--ok-bg); color:var(--ok); }
+			.freshness-badge.yellow{ background:var(--warn-bg); color:var(--warn); }
+			.freshness-badge.red{ background:var(--danger-bg); color:var(--danger-text); }
+			.info{ padding:12px 14px 14px; display:flex; flex-direction:column; flex:1; }
+			.name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:'Roboto', sans-serif; font-weight:500; }
+			.title{ font-size:13px; color:var(--ink); font-weight:600; margin:0 0 2px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			.unit{ font-size:12px; color:var(--muted); margin:0 0 8px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			/* flex-wrap+gap: tarih ve "devam ediyor" dar kartlarda (ozellikle 3'lu mobil
+			   moda) sigmayinca birbirine yapismak yerine alt satira sarar. */
+			.meta{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); border-top:1px dashed var(--divider); padding-top:7px; display:flex; flex-wrap:wrap; gap:2px 8px; justify-content:space-between; }
+			.meta span{ white-space:nowrap; }
+			.note{ font-size:11px; color:var(--muted); font-style:italic; margin-top:5px; margin-bottom:10px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			.empty{ max-width:1040px; margin:60px auto; text-align:center; color:var(--muted); font-family:'Roboto',sans-serif; padding:0 20px; }
+			.empty-icon{ font-size:32px; margin-bottom:8px; opacity:.55; }
+			.empty-title{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+			.empty-sub{ font-size:13px; color:var(--muted); max-width:360px; margin:0 auto; line-height:1.5; }
+
+			/* --- AKSİYON BUTONLARI HİZALAMA --- */
+			.actions-row { max-width:1040px; margin:14px auto 0; padding:0 20px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+			.actions-left { display: flex; gap: 10px; flex-wrap: wrap; flex:1;}
+			.actions-right { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+			
+			.btn{ font-family:'Roboto',sans-serif; font-weight:600; font-size:14px; border-radius:9px; padding:10px 16px; cursor:pointer; border:1px solid transparent; transition: background 0.2s;}
+			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
+			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); }
+			.btn-danger{ background:#a33; color:#fff; }
+			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; }
+			.btn-news { background: var(--news); color: #fff; }
+			/* Denetim maddesi #4: dokunmatik cihazlarda :hover, dokunulan butonda "basili" gorunumde
+			   TAKILI kalabiliyordu (bir sonraki dokunusa kadar hover sinifi temizlenmiyor). Gercek
+			   fare/imlecli cihazlarda hover zaten calissin diye bu kural sadece (hover:hover) VE
+			   (pointer:fine) eslesiyorsa (yani gercekten fare varsa) uygulanir -- proje takvim
+			   butonlarinda (.cal-mdayadd) zaten kullanilan ayni desen. */
+			@media (hover: hover) and (pointer: fine){
+				.btn-primary:hover{ background:var(--navy-2); }
+				.btn-ghost:hover{ background:var(--paper); }
+				.btn-danger:hover{ background:#8a2727; }
+				.btn-danger-outline:hover{ background:#fff0f0; }
+				.btn-news:hover { background: #004494; }
+			}
+			
+			/* margin-top:auto -- .info flex-column'da SON oge; icerik (isim/unvan/birim/not)
+			   kart kart degistigi icin butonun konumu ONCEDEN sabit 12px ust bosluktan
+			   sonra geliyordu, bu da ayni satirdaki kartlarda "Duzenle" butonunun kimi
+			   ustte kimi altta gorunmesine yol aciyordu (grid ayni satiri esitliyor ama
+			   icerigin kendisi esit yukseklikte degil). auto, kalan tum bosluga yayilip
+			   butonu HER ZAMAN kartin en altina sabitler. */
+			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; }
+			@media (hover: hover) and (pointer: fine){ .card-edit:hover{ background:var(--paper); } }
+			
+			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:'Roboto',sans-serif; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
+			.btn-restore-card { background: #e3efe6; color: #2f6f4e; } .btn-restore-card:hover { background: #cce0d3; }
+			.btn-permdel-card { background: var(--danger-bg); color: var(--danger-text); } .btn-permdel-card:hover { background: #fad9d9; }
+
+			/* --- REORDER (Sıralama) ÜST BİLGİ DÜZENİ --- */
+			.reorder-header-bar { display:flex; justify-content:space-between; align-items:center; gap:20px; width: 100%; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow); }
+			.rank-lock-hint { font-family:'Roboto',sans-serif; font-size:13px; color:var(--muted); line-height:1.5; margin:0; flex:1; }
+			.reorder-toolbar { display:flex; gap:8px; flex-shrink:0; }
+			.reorder-toolbar button { font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); background:var(--paper); border:none; border-radius:7px; padding:8px 12px; cursor:pointer; transition: background 0.2s; }
+			.reorder-toolbar button:hover { background:#e4c877; color: #fff; }
+			.az-sort-btn { font-family:'Roboto',sans-serif; font-weight:600; font-size:11px; color:var(--navy); background:var(--paper); border:none; border-radius:6px; padding:5px 9px; cursor:pointer; white-space:nowrap; }
+			.az-sort-btn:hover { background:var(--brass-light); }
+
+			/* --- AKORDİYON & DÖRDERLİ (WRAP) DİZİLİM --- */
+			details.rank-group { width: 100%; background:var(--card); border:1px solid var(--border-soft); border-radius:12px; overflow:hidden; }
+			details.rank-group > summary { list-style:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--navy); user-select:none; }
+			details.rank-group > summary::-webkit-details-marker { display:none; }
+			details.rank-group > summary::before { content:"▸"; color:var(--brass); font-size:15px; transition:transform .15s; }
+			details.rank-group[open] > summary::before { transform:rotate(90deg); }
+			details.rank-group > summary .count-pill { background:var(--navy); color:#fff; border-radius:999px; padding:2px 10px; font-size:11px; margin-left:auto; }
+			
+			.rank-subgrid { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 16px 16px; }
+			.reorder-row { 
+				display:flex; flex-direction:column; align-items:center; 
+				width: calc(25% - 9px); min-width: 140px; 
+				padding:18px 10px 12px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; position: relative;
+			}
+			@media (max-width: 800px) { .reorder-row { width: calc(33.333% - 8px); } }
+			@media (max-width: 550px) { .reorder-row { width: calc(50% - 6px); } }
+			.reorder-row.dragging { opacity:.5; transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.15); border-color:var(--navy); z-index: 99; }
+			
+			.internal-order-badge {
+				position: absolute; top: -8px; right: -8px; background: var(--navy); color: #fff;
+				width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: bold; font-family: 'JetBrains Mono', monospace;
+				display: flex; align-items: center; justify-content: center; border: 2px solid #fff; z-index: 5; box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+			}
+
+			.drag-handle-mini { cursor:grab; color:var(--muted); font-size:18px; padding:4px; width: 100%; text-align: center; background: var(--surface-subtle); border-radius: 6px; margin-bottom: 12px; touch-action:none; }
+			.drag-handle-mini:active { cursor:grabbing; background: var(--surface-hover-3); color: var(--navy); }
+			
+			.row-thumb { width:54px; height:54px; border-radius:50%; overflow:hidden; background:linear-gradient(135deg,#2a4270,#152036); display:flex; align-items:center; justify-content:center; color:#f3efe6; font-family:'Fraunces',serif; font-size:16px; margin-bottom: 10px; }
+			.row-thumb img { width:100%; height:100%; object-fit:cover; }
+			.row-text { display:flex; flex-direction:column; text-align: center; width: 100%; }
+			.row-name { font-family:'Fraunces',serif; font-weight:600; font-size:13px; color:var(--navy); line-height: 1.2; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+			.row-title { font-size:11px; color:var(--muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+			/* Modallar */
+			.modal-bg{ gap:16px; }
+			/* #modalBg'nin ESKİ hali: history-panel/.modal/.rank-reference/.successor-panel HEPSİ aynı flex
+			   satırında kardeşti, bu yüzden justify-content:center TÜM satırı (yan panellerin toplam genişliği
+			   dahil) ortalıyordu -- yan panel(ler) açıkken .modal gerçek merkezden kayıyordu. Çözüm: bu dört
+			   öğe artık TEK bir sarmalayıcının (.modal-center-wrap) içinde. Yan paneller (aşağıda, >=900px
+			   bloklarında) position:absolute'a alınıp normal akıştan çıkarılıyor, böylece wrap'in genişliği/
+			   yüksekliği SADECE .modal'a göre belirleniyor (.modal tek "akışta kalan" çocuk) ve #modalBg'nin
+			   justify-content:center'ı artık gerçekten SADECE .modal'ı ortalıyor. Yan paneller .modal'ın
+			   kenarına (position:relative olan wrap'e göre) 16px boşlukla iğnelenir; aynı anda birden fazla
+			   sağ panel (rank-reference + successor-panel) açık olabildiği ender durumda üst üste biner --
+			   bu kabul edilebilir (bkz. görev talebi), önemli olan .modal'ın kendisinin hep merkezde kalması. */
+			/* width/max-width burada .modal'ınkiyle BİREBİR aynı (460px) -- wrap artık #modalBg'nin flex
+			   öğesi olduğu için .modal'ın eskiden sahip olduğu "width:100%; max-width:460px" boyutlandırmasını
+			   BURADA tekrarlamak gerekiyor; aksi halde wrap'in genişliği .modal'ın kendi width:100%'üne göre
+			   shrink-to-fit hesaplanmaya çalışır (döngüsel/belirsiz yüzde -- tarayıcı bunu auto'ymuş gibi
+			   ele alır ve modal beklenenden dar render edilebilir). */
+			.modal-center-wrap{ position:relative; width:100%; max-width:460px; }
+			.rank-reference{ display:none; }
+			@media (min-width: 900px) {
+			.rank-reference{ display:flex; flex-direction:column; position:absolute; top:0; bottom:0; left:calc(100% + 16px); width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow:hidden; }
+			/* #modalBg (kişi düzenleme modalı) HER ZAMAN dikey tam ortada kilitli kalsın isteniyor -- paylaşılan
+			   .modal-bg kuralının align-items:safe center'ı (bkz. satır ~719) BİLEREK değiştirilmiyor, çünkü o
+			   sınıfı #adminPanelBg (çok sekmeli/uzun log listeleri) ve #legalModalBg (uzun sözleşme metni) gibi
+			   kısa pencerelerde gerçekten taşabilecek diğer modaller de paylaşıyor -- "safe" fallback'i onların
+			   üst kısmının/X butonunun kesilmesini önlüyor. Burada SADECE #modalBg ID seçici (özgüllük 100),
+			   paylaşılan .modal-bg class'ını (özgüllük 10) ezer; diğer 9 modal-bg etkilenmez. */
+			#modalBg{ align-items:center; }
+			}
+			.rank-reference .rr-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
+			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
+			.rank-reference .rr-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 7px; border-radius:7px; background:var(--surface-input); }
+			.rank-reference .rr-num{ font-family:'JetBrains Mono',monospace; font-weight:700; width:22px; height:22px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+			.rank-reference .rr-info{ min-width:0; display:flex; flex-direction:column; }
+			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:normal; line-height:1.3; }
+
+			/* Görevden alma / yerine yeni kişi atama paneli. Genişte (>=900px) mevcut düzenleme
+			   ekranının SAĞINDA küçük bir kart olarak durur. Dar ekranda (mobil/tablet) aynı
+			   panel kendi tam ekran katmanına döner -- iki farklı yerleşim, TEK ortak DOM/JS.
+			   #modalBg'deki gibi (bkz. üst padding notu) üst/alt boşluğa env(safe-area-inset-*)
+			   eklenmiştir -- yoksa çentik/Dynamic Island üstten, ev tuşu şeridi alttaki
+			   Vazgeç/Kaydet butonlarına biner. */
+			.successor-panel{ display:none; }
+			.successor-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
+			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
+			@media (min-width: 900px) {
+			.successor-panel.open{ position:absolute; top:0; right:auto; bottom:0; left:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
+			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; padding:16px; }
+			}
+			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
+			/* Mobilde iki formu ayni anda gostermek (soldaki eski kayit + sagdaki yeni atama)
+			   karisikliga yol aciyordu; dar ekranda successor panel acikken soldaki form
+			   GORSEL olarak tamamen gizlenir (durumu/editIndex korunur, Vazgec ile geri doner). */
+			/* NOT: #modalBg'nin TAMAMINI gizlemek yanlisti -- #successorPanel onun ICINDE bir
+			   alt oge, dolayisiyla modalBg display:none olunca successor panel de kayboluyor
+			   ve ekranda hicbir sey kalmiyordu. Sadece ICERIDEKI .modal (eski kayit formu)
+			   gizlenir; #modalBg'nin kendisi acik kalir ki successor panel gorunmeye devam etsin. */
+			/* .modal artik dogrudan .modal-bg'nin cocugu degil, .modal-center-wrap'in cocugu (bkz. yukarida
+			   .modal-center-wrap notu) -- ">" dogrudan-cocuk secici bu yuzden ".modal-center-wrap > .modal" olarak guncellendi. */
+			.modal-bg.hide-behind-successor .modal-center-wrap > .modal{ display:none !important; }
+
+			/* Görev/Etkinlik Geçmişi paneli -- successor-panel'in AYNASI, ama SOLDA. Genişte
+			   (>=900px) düzenleme ekranının SOLUNDA durur: bu, panelin HTML'de .modal'dan ÖNCE
+			   gelmesiyle sağlanıyor (#modalBg flex satırında DOM sırası = görsel sıra). Dar
+			   ekranda successor-panel ile birebir aynı tam ekran katman mekaniği. Ayrı bir sınıf
+			   (successor-panel ile PAYLAŞILMIYOR) -- dosyanın .rank-reference/.successor-panel'de
+			   zaten yaptığı gibi küçük tekrar, erken soyutlamaya tercih ediliyor. */
+			.history-panel{ display:none; }
+			.history-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
+			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
+			@media (min-width: 900px) {
+			.history-panel.open{ position:absolute; top:0; left:auto; bottom:0; right:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
+			.history-panel.open .history-panel-inner{ max-width:none; width:100%; padding:16px; }
+			}
+			.history-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
+			.history-panel h3:first-child{ margin-top:0; }
+			.modal-bg.hide-behind-panel .modal-center-wrap > .modal{ display:none !important; }
+			.hg-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 8px; border-radius:7px; background:var(--surface-input); margin-bottom:5px; }
+			.hg-row-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
+			.hg-row-text b{ color:var(--ink); }
+			.hg-row .btn{ flex-shrink:0; padding:4px 9px; font-size:11px; }
+			.hg-event-row{ font-size:12px; padding:5px 2px; border-bottom:1px solid var(--divider-faint); }
+			.hg-event-date{ color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10px; }
+			.hg-event-tag{ padding:1px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+			/* Gorev Gecmisi panelindeki "Guncel" satiri: tempGorevGecmisi'nin gercek bir elemani
+			DEGIL, formun o anki f_title/f_start/f_end degerlerinin salt-okunur bir yansimasi
+			(bkz. renderHistoryPanel). Diger satirlardan gorsel olarak ayirt edilsin diye
+			kesikli kenarlik + rozet kullanilir. */
+			.hg-row-current{ background:var(--surface-hover); border:1px dashed var(--brass-light); }
+			.hg-current-badge{ flex-shrink:0; font-size:10px; font-weight:700; color:var(--brass-text); padding:2px 8px; border-radius:20px; background:var(--surface-input); }
+
+			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
+			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
+			.faculty-multiselect .fm-group{ margin-top:6px; }
+			.faculty-multiselect .fm-group:first-child{ margin-top:0; }
+			.faculty-multiselect .fm-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
+			.faculty-multiselect .fm-group-title:hover{ background:var(--surface-hover); }
+			.faculty-multiselect .fm-group-title::-webkit-details-marker{ display:none; }
+			.faculty-multiselect .fm-group-title::after{ content:"▸"; font-size:10px; color:var(--muted); transition:transform .15s ease; }
+			.faculty-multiselect .fm-group[open] > .fm-group-title::after{ transform:rotate(90deg); }
+			.faculty-multiselect .fm-item{ display:flex; align-items:center; gap:7px; font-size:13px; padding:4px 5px 4px 12px; border-radius:6px; cursor:pointer; color:var(--ink); }
+			.faculty-multiselect .fm-item:hover{ background:var(--surface-hover); }
+			.faculty-multiselect .fm-item input{ flex-shrink:0; }
+
+			/* Ana sayfa: üniversite listesinde soldaki fakülte/birim filtre paneli.
+			Kartların HER ZAMAN sayfanın tam ortasında kalması için sağda da sol panelle
+			aynı genişlikte görünmez bir "ayna" sütun bırakıyoruz (simetrik 3 sütunlu grid). */
+			.main-layout{ display:block; }
+			.faculty-sidebar{ display:none; }
+			@media (min-width: 1050px) {
+			/* Sağ rayda takvim her iki listede de durduğu için grid daima 3 sütunlu; sol sütun boşken
+			görünmez kalır ama genişliğini korur, böylece kartlar her zaman tam ortada durur. */
+			.main-layout{ display:grid; grid-template-columns: 250px minmax(0,1040px) 250px; column-gap:20px; justify-content:center; padding:20px 20px 0; }
+			/* Sütunlar açıkça sabitlenir: sol panel display:none olduğunda kartlar 1. sütuna kayıyordu. */
+			.main-layout .faculty-sidebar{ grid-column:1; }
+			.main-layout .main-content{ grid-column:2; min-width:0; }
+			.main-layout .calendar-rail{ grid-column:3; }
+			.main-layout .grid, .main-layout .empty{ max-width:none; margin:0; padding:0; }
+			.main-layout.with-sidebar .faculty-sidebar{ display:flex; flex-direction:column; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,.12); font-family:'Roboto',sans-serif; }
+			.calendar-rail{ display:flex; }
+			}
+			.fs-scope .fs-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); font-weight:600; margin-bottom:8px; }
+			.fs-scope .fs-central-list{ display:flex; flex-direction:column; gap:4px; margin-bottom:6px; }
+			.fs-scope .fs-item{ display:flex; align-items:center; gap:8px; font-size:13px; padding:5px 7px; border-radius:7px; background:var(--surface-input); cursor:pointer; }
+			.fs-scope .fs-item:hover{ background:var(--surface-hover); }
+			.fs-scope .fs-item input{ flex-shrink:0; }
+			.fs-scope .fs-item-sub{ color:var(--muted); font-size:11px; }
+			.fs-scope .fs-clear-btn{ width:100%; margin:2px 0 10px; padding:6px; border:1px solid var(--border); background:var(--surface-input); border-radius:7px; font-size:12px; color:var(--muted); cursor:pointer; font-family:'Roboto',sans-serif; }
+			.fs-scope .fs-clear-btn:hover{ background:var(--surface-hover); color:var(--ink); }
+			.fs-scope .fs-group{ margin-top:8px; }
+			.fs-scope .fs-group:first-of-type{ margin-top:0; }
+			.fs-scope .fs-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
+			.fs-scope .fs-group-title:hover{ background:var(--surface-hover); }
+			.fs-scope .fs-group-title::-webkit-details-marker{ display:none; }
+			.fs-scope .fs-group-title::after{ content:"▸"; font-size:10px; color:var(--muted); transition:transform .15s ease; }
+			.fs-scope .fs-group[open] > .fs-group-title::after{ transform:rotate(90deg); }
+
+			/* ================= ETKİNLİK TAKVİMİ (Notion Calendar tarzı saat ızgarası) ================= */
+			/* Sağ ray: kapalı hâlde sadece takvim düğmesi + sıradaki birkaç etkinlik durur. */
+			.calendar-rail{ display:none; flex-direction:column; gap:10px; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; font-family:'Roboto',sans-serif; }
+			@media (min-width: 1050px) { .calendar-rail{ display:flex; } }
+			.cal-rail-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:16px 12px; border:1px solid var(--border-soft); border-radius:16px; background:var(--card); box-shadow:0 8px 30px rgba(0,0,0,.12); cursor:pointer; font-family:inherit; }
+			.cal-rail-btn:hover{ background:#fffdf8; border-color:var(--brass-light); }
+			.cal-rail-icon{ font-size:26px; line-height:1; }
+			.cal-rail-label{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); }
+			.cal-rail-count{ font-size:12px; color:var(--muted); }
+			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
+			.cal-rail-next{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:12px; }
+			.cal-rail-next h4{ margin:0 0 8px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; }
+			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid var(--surface-hover); cursor:pointer; }
+			.cal-next-item:first-of-type{ border-top:none; }
+			.cal-next-item:hover .cal-next-name{ color:var(--brass-text); }
+			.cal-next-date{ flex-shrink:0; width:34px; text-align:center; background:var(--surface-subtle); border-radius:7px; padding:3px 0; }
+			.cal-next-date .d{ display:block; font-size:14px; font-weight:700; color:var(--navy); line-height:1.1; }
+			.cal-next-date .m{ display:block; font-size:9px; color:var(--muted); text-transform:uppercase; }
+			.cal-next-name{ font-size:12px; font-weight:600; color:var(--ink); line-height:1.3; }
+			.cal-next-meta{ font-size:11px; color:var(--muted); }
+			.cal-rail-empty{ font-size:12px; color:var(--muted); text-align:center; padding:6px 0; }
+			.cal-now-heading{ color:var(--today); }
+			.cal-next-item-now{ background:#ffedd5; border-radius:8px; padding:6px 8px; margin:0 0 2px; }
+			.cal-now-dot{ width:8px; height:8px; border-radius:50%; background:var(--today); box-shadow:0 0 0 3px rgba(194,65,12,.18); flex-shrink:0; margin-top:4px; }
+
+			/* ---- Tam ekran kabuk ---- */
+			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
+			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
+			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			/* Denetim maddesi #4: modern tarayicilarda dvh, --vh JS degiskenine (visualViewport
+			   izleyen, resize olayina bagli) gore daha DOGRU/aninda tepki verir (araç çubuğu
+			   animasyonu sirasinda JS henuz --vh'i guncellemeden bir kare "eski" boyut kalabiliyor).
+			   --vh SISTEMI SILINMEDI: dvh DESTEKLENMEYEN tarayicilarda (eski Safari/WebView) eski
+			   davranis @supports not ile AYNEN korunuyor, sadece destekleyenlerde ustune yazilir. */
+			@supports (height: 100dvh){ .cal-overlay{ height:100dvh; } }
+			@supports not (height: 100dvh){ .cal-overlay{ height:calc(var(--vh, 1vh) * 100); } }
+			.cal-overlay.open{ display:block; }
+			.cal-launch-backdrop{ position:fixed; inset:0; z-index:89; background:rgba(22,35,61,.42); display:none; opacity:0; pointer-events:none; transition:opacity .32s ease; }
+			.cal-launch-backdrop.show{ display:block; }
+			.cal-launch-backdrop.show.on{ opacity:1; }
+			.cal-shell{ display:flex; height:100%; will-change:transform,opacity; }
+			/* Karta basınca "kalkıyor" hissi, açılışın devamı gibi okunsun diye */
+			.cal-rail-btn{ transition:transform .18s ease, box-shadow .18s ease; }
+			.cal-rail-btn:hover{ transform:translateY(-2px); box-shadow:0 14px 38px rgba(22,35,61,.2); }
+			.cal-rail-btn:active{ transform:scale(.97); }
+			.calendar-fab{ transition:transform .18s ease; }
+			.calendar-fab:active{ transform:scale(.94); }
+			@media (prefers-reduced-motion: reduce){
+				.cal-overlay, .cal-shell, .cal-launch-backdrop, .cal-rail-btn, .calendar-fab{ transition:none !important; }
+			}
+			.cal-rail-left{ flex:0 0 232px; border-right:1px solid var(--divider-soft); background:rgba(22,35,61,.045); padding:16px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
+			.cal-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+			/* ---- Mini ay takvimi (sol ray) ---- */
+			.cal-mini-head{ display:flex; align-items:center; justify-content:space-between; gap:1px; margin-bottom:8px; }
+			.cal-mini-title{ flex:1; text-align:center; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); white-space:nowrap; }
+			.cal-mini-head .cal-iconbtn{ width:21px; height:21px; font-size:13px; }
+			.cal-mini-head .cal-iconbtn::after{ inset:-6px; }
+			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu.
+			   native-date-input tasma ailesi (v2.3.7/v2.9.13/v2.9.14 ile ayni kalip): iOS Safari
+			   native input[type=date] kontrolu bazen genislik kisitlarini yok sayip kendi
+			   intrinsik genisligini dayatiyor; .cal-topbar flex-wrap:wrap tek basina yetmez,
+			   cunku flex item'in varsayilan min-width:auto'su intrinsik genislige esitlenip
+			   satiri/sayfayi yatayda tasirabilir. min-width:0 bu dayatmayi engeller. */
+			.cal-jump{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:13px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; min-width:0; }
+			.cal-jump:hover{ border-color:var(--brass); }
+			.cal-mini-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+			.cal-mini-dow{ text-align:center; font-size:10px; font-weight:600; color:var(--muted); padding-bottom:3px; }
+			.cal-mini-day{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11px; border:none; background:none; border-radius:6px; cursor:pointer; color:var(--ink); font-family:inherit; }
+			.cal-mini-day:hover{ background:var(--surface-hover-2); }
+			.cal-mini-day.other{ color:#87806f; }
+			.cal-mini-day.in-view{ background:var(--surface-hover-3); box-shadow:inset 0 0 0 2px var(--navy); font-weight:700; }
+			.cal-mini-day.today{ background:var(--brass); color:#fff; font-weight:700; }
+			.cal-mini-day .hasdot{ position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:var(--navy); }
+			.cal-mini-day.today .hasdot{ background:#fff; }
+
+			/* ---- Sol raydaki tür/durum listesi (Notion'daki takvim listesi gibi) ---- */
+			.cal-legend h4{ margin:0 0 7px; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+			.cal-legend-item{ display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 5px; border-radius:6px; cursor:pointer; color:var(--ink); }
+			.cal-legend-item:hover{ background:var(--surface-hover-2); }
+			.cal-legend-item input{ display:none; }
+			.cal-legend-swatch{ flex-shrink:0; width:13px; height:13px; border-radius:4px; border:2px solid transparent; }
+			.cal-legend-item.off .cal-legend-swatch{ background:transparent !important; border-color:#cfcabb; }
+			.cal-legend-item.off{ color:var(--muted); }
+			.cal-legend-count{ margin-left:auto; font-size:10px; color:var(--muted); }
+
+			/* ---- Üst bar ---- */
+			/* iPhone centik/Dynamic Island: takvim tam ekran oldugu icin (position:fixed;inset:0)
+			   ust bar dogrudan centigin altinda kalip "Kapat" ve "Bugun" butonlarina dokunulamiyordu. */
+			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px; border-bottom:1px solid var(--divider-soft); background:transparent; }
+			.cal-month-label{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--navy); }
+			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
+			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+			.cal-iconbtn::after{ content:""; position:absolute; inset:-8px; }
+			.cal-iconbtn:hover{ background:var(--surface-subtle); color:var(--navy); }
+			.cal-textbtn{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+			.cal-textbtn:hover{ background:var(--surface-subtle); }
+			.cal-spacer{ flex:1; }
+			.cal-viewtabs{ display:flex; gap:2px; background:rgba(22,35,61,.07); border-radius:8px; padding:2px; }
+			.cal-viewbtn{ background:none; border:none; color:var(--muted); border-radius:6px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+			.cal-viewbtn.active{ background:var(--card); color:var(--navy); box-shadow:0 1px 2px rgba(22,35,61,.16); }
+			.cal-addbtn{ background:var(--navy); border:none; color:#f3efe6; border-radius:7px; padding:6px 13px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+			.cal-addbtn:hover{ background:var(--navy-2); }
+			.cal-addbtn .ab-short{ display:none; }
+			body.is-readonly .cal-addbtn{ display:none; }
+			.cal-main-body{ flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+
+			/* ---- Hafta / gün: saat ızgarası ---- */
+			.cal-tg{ display:flex; flex-direction:column; height:100%; min-height:0; }
+			.cal-tg-head{ flex-shrink:0; display:grid; border-bottom:1px solid var(--divider-soft); background:transparent; }
+			.cal-gutter-cell{ border-right:1px solid var(--surface-hover); }
+			.cal-dhead{ text-align:center; padding:7px 4px 8px; border-right:1px solid var(--divider); }
+			.cal-dhead:last-child{ border-right:none; }
+			.cal-dhead .dw{ display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+			.cal-dhead .dn{ display:inline-flex; align-items:center; justify-content:center; min-width:25px; height:25px; padding:0 5px; font-size:15px; font-weight:600; color:var(--ink); border-radius:7px; margin-top:2px; }
+			.cal-dhead.is-today .dw{ color:var(--today); }
+			.cal-dhead.is-today .dn{ background:var(--today); color:#fff; }
+			.cal-dhead.is-weekend .dw, .cal-dhead.is-weekend .dn{ color:var(--muted); }
+			.cal-dhead.is-today.is-weekend .dn{ color:#fff; }
+
+			/* tüm gün şeridi */
+			.cal-allday{ flex-shrink:0; display:grid; border-bottom:1px solid var(--divider-soft); background:transparent; max-height:104px; overflow-y:auto; }
+			.cal-allday-label{ font-size:10px; color:var(--muted); text-align:right; padding:5px 7px 0 0; border-right:1px solid var(--divider); text-transform:uppercase; letter-spacing:.03em; }
+			.cal-allday-col{ border-right:1px solid var(--divider); padding:3px; display:flex; flex-direction:column; gap:2px; min-height:24px; }
+			.cal-allday-col:last-child{ border-right:none; }
+
+			.cal-tg-scroll{ flex:1; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; position:relative; }
+			.cal-tg-body{ display:grid; position:relative; }
+			.cal-gutter{ border-right:1px solid var(--divider); position:relative; background:transparent; }
+			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; transform:translateY(-50%); }
+			.cal-daycol{ position:relative; border-right:1px solid var(--divider); background:transparent; }
+			.cal-daycol:last-child{ border-right:none; }
+			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
+			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
+			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid #e6dfcd; pointer-events:none; }
+			.cal-nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; }
+			/* Şu anki saat: tüm günleri kesen tek çizgi, dakikada bir kendini günceller. */
+			.cal-nowline-full{ position:absolute; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; transition:top .4s linear; }
+			.cal-nowline-full::before{ content:''; position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%; background:var(--today); box-shadow:0 0 0 3px rgba(194,65,12,.18); }
+			.cal-nowline::before{ content:""; position:absolute; left:-4px; top:-5px; width:8px; height:8px; border-radius:50%; background:var(--today); }
+			.cal-nowlabel{ position:absolute; z-index:7; font-size:10px; font-weight:600; font-family:'JetBrains Mono',monospace; color:#fff; background:var(--today); border-radius:4px; padding:1px 4px; transform:translateY(-50%); pointer-events:none; transition:top .4s linear; }
+
+			/* ---- Etkinlik bloğu (pastel zemin + koyu sol kenar) ---- */
+			.cal-block{ position:absolute; border-radius:6px; padding:3px 6px; overflow:hidden; cursor:pointer; border:none; border-left:3px solid; text-align:left; font-family:inherit; z-index:3; display:flex; flex-direction:column; gap:1px; }
+			.cal-block:hover{ filter:brightness(.96); z-index:5; }
+			.cal-block .bt{ font-size:12px; font-weight:600; line-height:1.25; overflow:hidden; text-overflow:ellipsis; }
+			.cal-block .bh{ font-size:10px; opacity:.75; font-family:'JetBrains Mono',monospace; }
+			.cal-block.compact{ flex-direction:row; align-items:center; gap:5px; padding:1px 5px; }
+			.cal-block.compact .bt{ font-size:11px; }
+			.cal-block.compact .bh{ font-size:9px; }
+			/* ---- Kilit ikonu: tiklaninca suruklemeyi engeller/acar ---- */
+			.cal-lock-ico{ position:absolute; bottom:2px; right:2px; z-index:4; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; padding:0; border-radius:4px; background:rgba(255,255,255,.7); cursor:pointer; opacity:.55; }
+			.cal-lock-ico:hover{ opacity:1; }
+			/* Dokunmatikte hover yok: taban opaklik yukseltilir, dokunma alani buyutulur. */
+			@media (pointer: coarse){ .cal-lock-ico{ opacity:.8; } .cal-lock-ico::after{ content:""; position:absolute; inset:-10px; } }
+			/* Kilitliyken sadece 🔒/🔓 sekline guvenmiyoruz: kirmizi halka + belirgin
+			   arka plan ikinci bir gorsel kanal olarak durumu acikca ayirt ettiriyor. */
+			.cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
+			/* Kisa/kompakt bloklarda (ay gorunumu + 1 saatlik hafta bloklari) koseye degil kenara. */
+			.cal-block.compact .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; border-radius:3px; }
+			.cal-block.compact .cal-lock-ico.is-locked{ background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
+			.cal-block.past{ border-style:dashed; border-left-style:solid; opacity:.75; }
+			.cal-block.done .bt{ text-decoration:line-through; opacity:.7; }
+			.cal-block.cancelled .bt{ text-decoration:line-through; }
+			.cal-block.dragging{ opacity:.4; }
+			.cal-allday-chip{ display:flex; align-items:center; gap:5px; border-radius:5px; padding:2.5px 7px; font-size:11px; font-weight:600; cursor:pointer; border:none; border-left:3px solid; text-align:left; font-family:inherit; overflow:hidden; }
+			.cal-allday-chip .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+			.cal-allday-chip .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; opacity:.55; border-radius:3px; }
+			.cal-allday-chip .cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
+
+			/* ---- Ay görünümü ---- */
+			.cal-m{ display:flex; flex-direction:column; height:100%; min-height:0; }
+			.cal-m-dow{ flex-shrink:0; display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid var(--divider-soft); background:transparent; }
+			.cal-m-dow span{ text-align:left; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:7px 8px; }
+			.cal-m-grid{ flex:1; min-height:0; overflow-y:auto; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(112px,1fr); }
+			.cal-mday{ border-right:1px solid var(--divider); border-bottom:1px solid var(--divider); padding:4px 5px 6px; display:flex; flex-direction:column; gap:2px; overflow:hidden; background:transparent; min-width:0; }
+			.cal-mday:nth-child(7n){ border-right:none; }
+			.cal-mday.other{ background:rgba(22,35,61,.05); }
+			.cal-mday.other .cal-mdaynum{ color:#87806f; }
+			.cal-mday.weekend{ background:rgba(22,35,61,.035); }
+			.cal-mday.today{ background:rgba(184,146,63,.11); }
+			.cal-mday.drop-target{ box-shadow:inset 0 0 0 2px var(--brass-light); background:rgba(184,146,63,.16); }
+			.cal-mdayhead{ display:flex; align-items:center; justify-content:space-between; height:21px; flex-shrink:0; }
+			.cal-mdaynum{ font-size:12px; font-weight:600; color:var(--ink); padding:0 3px; }
+			.cal-mday.today .cal-mdaynum{ background:var(--today); color:#fff; border-radius:50%; width:21px; height:21px; display:flex; align-items:center; justify-content:center; font-size:12px; }
+			/* Dokunmatik cihazda :hover hic tetiklenmez; opacity:0 kalirsa buton KALICI
+			   olarak gorunmez olur ve ay gorunumunden gune etkinlik eklenemez. Bu yuzden
+			   taban gorunur, gizleme yalnizca gercek fareli cihazlara uygulanir. */
+			.cal-mdayadd{ opacity:.5; background:none; border:none; color:var(--muted); font-size:15px; line-height:1; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; padding:0; border-radius:4px; flex-shrink:0; }
+			@media (hover: hover) and (pointer: fine){
+				.cal-mdayadd{ opacity:0; }
+				.cal-mday:hover .cal-mdayadd{ opacity:1; }
+			}
+			.cal-mdayadd:hover{ background:var(--surface-hover); color:var(--navy); }
+			body.is-readonly .cal-mdayadd{ display:none; }
+			.cal-more{ font-size:11px; color:var(--muted); font-weight:600; padding:1px 5px; cursor:pointer; background:none; border:none; text-align:left; font-family:inherit; }
+			.cal-more:hover{ color:var(--navy); }
+
+			/* ---- Yıl görünümü ---- */
+			.cal-year-grid{ max-width:1040px; margin:0 auto; width:100%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; align-content:start; }
+			.cal-year-month{ border:1px solid var(--divider); border-radius:10px; padding:10px; }
+			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; grid-template-columns:repeat(7,minmax(0,1fr)); }
+			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
+			.cal-year-month-title:hover{ text-decoration:underline; }
+			.cal-year-day{ position:relative; min-width:0; height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; border:none; background:none; border-radius:5px; cursor:pointer; color:var(--ink); font-family:inherit; padding:0; }
+			.cal-year-day:hover{ background:var(--surface-hover-2); }
+			.cal-year-day.today{ background:var(--today); color:#fff; font-weight:700; }
+			.cal-year-day.empty{ visibility:hidden; cursor:default; }
+			.cal-year-dot{ position:absolute; bottom:1px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; }
+			.cal-year-day.today .cal-year-dot{ background:#fff; }
+
+			/* ---- Liste görünümü ---- */
+			.cal-list{ max-width:780px; margin:0 auto; width:100%; display:flex; flex-direction:column; padding:18px 16px 60px; }
+			.cal-list-wrap{ flex:1; min-height:0; overflow-y:auto; }
+			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid var(--divider); }
+			.cal-list-daysep:first-child{ margin-top:0; }
+			.cal-list-daysep .dow{ font-family:'Roboto',sans-serif; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; }
+			.cal-list-daysep.is-today{ color:var(--today); }
+			.cal-ev{ display:flex; gap:11px; align-items:flex-start; border-radius:8px; padding:9px 10px; cursor:pointer; border:none; background:none; text-align:left; font-family:inherit; width:100%; }
+			.cal-ev:hover{ background:rgba(22,35,61,.05); }
+			.cal-ev-dot{ flex-shrink:0; width:9px; height:9px; border-radius:3px; margin-top:4px; }
+			.cal-ev-time{ flex-shrink:0; width:44px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--muted); padding-top:2px; }
+			.cal-ev-main{ min-width:0; flex:1; }
+			.cal-ev-name{ display:block; font-size:14px; font-weight:600; color:var(--ink); }
+			.cal-ev-name.done{ color:var(--muted); text-decoration:line-through; }
+			.cal-ev-meta{ display:block; font-size:12px; color:var(--muted); margin-top:2px; line-height:1.45; }
+			.cal-tag{ display:inline-block; font-size:10px; font-weight:700; padding:1.5px 8px; border-radius:20px; color:#fff; margin-right:5px; }
+			.cal-tag.ghost{ background:var(--surface-hover); color:var(--muted); }
+			.cal-detail-row .cal-tag{ font-size:13px; padding:3px 11px; }
+			.cal-ev-meta .cal-tag{ font-size:13px; padding:3px 11px; }
+			.cal-empty{ text-align:center; color:var(--muted); font-size:13px; padding:56px 16px; }
+			.cal-ev-edit-ico{ flex-shrink:0; align-self:center; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:14px; color:var(--muted); opacity:.4; transition:opacity .15s, background-color .15s; }
+			.cal-ev-edit-ico:hover{ opacity:1; background:var(--surface-hover-2); }
+
+			/* ---- Yan detay paneli ---- */
+			.cal-peek-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.28); z-index:91; display:none; }
+			.cal-peek-backdrop.open{ display:block; }
+			.cal-peek{ position:fixed; top:0; right:0; bottom:0; width:400px; max-width:94vw; background:var(--card); box-shadow:-12px 0 44px rgba(0,0,0,.22); z-index:92; transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.8,.32,1); display:flex; flex-direction:column; font-family:'Roboto',sans-serif; }
+			.cal-peek.open{ transform:translateX(0); }
+			.cal-peek-head{ flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:16px 18px 12px; border-bottom:1px solid var(--border-soft); }
+			.cal-peek-head h3{ margin:0; font-family:'Fraunces',serif; font-size:17px; color:var(--navy); font-weight:600; line-height:1.3; }
+			.cal-peek-body{ flex:1; overflow-y:auto; padding:14px 18px 18px; }
+			.cal-peek-foot{ flex-shrink:0; display:flex; gap:8px; padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--surface-hover); }
+			body.is-readonly .cal-peek-foot .btn-ghost{ display:none; }
+			.cal-detail-row{ display:flex; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid #f7f4ec; }
+			.cal-detail-row:last-child{ border-bottom:none; }
+			.cal-detail-row .k{ flex:0 0 92px; color:var(--muted); font-weight:600; font-size:12px; padding-top:1px; }
+			.cal-detail-row .v{ flex:1; min-width:0; color:var(--ink); line-height:1.5; word-break:break-word; }
+			.cal-att-chip{ display:inline-block; background:var(--paper); border:1px solid var(--divider); border-radius:20px; padding:2px 9px; font-size:11px; margin:0 3px 4px 0; }
+
+			/* Tarih + başlangıç + bitiş dar ekranda üst üste biniyordu; artık sarıyor. */
+			/* Özgüllük .field-row .field{flex:1} kuralını geçmeli, yoksa tarih satırı sarmıyor. */
+			.field-row.ev-datetime-row{ flex-wrap:wrap; }
+			.field-row.ev-datetime-row .field.ev-date{ flex:1 1 100%; }
+			.field-row.ev-datetime-row .field.ev-time{ flex:1 1 calc(50% - 5px); min-width:0; }
+			@media (min-width: 620px){
+				.field-row.ev-datetime-row .field.ev-date{ flex:1 1 150px; }
+				.field-row.ev-datetime-row .field.ev-time{ flex:0 0 142px; }
+			}
+
+			/* Baslangic/Bitis tarih ciftleri (kisi formu f_start/f_end + Gorev Gecmisi paneli
+			   hg_baslangic/hg_bitis): ayni kok sebep -- iOS Safari'de native <input type=date>
+			   kontrolu, .field-row .field{flex:1;min-width:0} yuzunden flex-basis:0 olunca ASLA
+			   sarmiyordu (flex-wrap:wrap tek basina yetmiyor, cunku min-width:0 hipotetik ana
+			   boyutu 0'a indirip tasma hic tetiklenmiyor) ve dar alanda komsu alanin uzerine
+			   biniyordu (Chromium'un kendi <input type=date> UI'si native olmadigi icin
+			   headless'ta ayni sekilde uretilemiyor, gorsel dogrulama iOS cihazda yapilmali).
+			   Cozum yukaridaki .ev-datetime-row ile AYNI teknik: 3 sinifli ozgullukle sarilip
+			   dar ekranda tam genislikte alt alta, genis ekranda yan yana. */
+			.field-row.date-pair-row{ flex-wrap:wrap; }
+			.field-row.date-pair-row .field{ flex:1 1 100%; min-width:0; }
+			@media (min-width: 620px){
+				.field-row.date-pair-row .field{ flex:1 1 150px; }
+			}
+			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
+			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
+			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
+			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:var(--warn-text-alt); border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:'Roboto',sans-serif; white-space:nowrap; }
+			.ev-now-btn:hover{ background:rgba(184,146,63,.26); }
+			.ev-now-btn:active{ transform:scale(.94); }
+
+			/* Detay panelindeki büyük "şimdi başlat / şimdi bitir" tuşu */
+			.cal-peek-foot{ flex-direction:column; }
+			.cal-peek-foot .peek-row{ display:flex; gap:8px; width:100%; }
+			.cal-peek-foot .peek-row .btn{ flex:1; }
+			.cal-quick-btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:7px; }
+			body.is-readonly .cal-quick-btn{ display:none; }
+			/* Denetim maddesi #4: "Haber Taslağı Oluştur"/"Düzenle" gibi flex:1 buton ciftleri dar
+			   telefonlarda (cal-peek zaten max-width:94vw ile daralmis) yan yana sikisiyordu --
+			   bu genislikte alt alta dizilir, metinler kirpilmaz. */
+			@media (max-width: 420px){
+				.cal-peek-foot .peek-row{ flex-direction:column; }
+			}
+
+			/* ---- Etkinlik formundaki katılımcı seçici ---- */
+			.ev-attendee-box{ max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card); padding:6px; }
+			.ev-att-item{ display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 6px; border-radius:6px; cursor:pointer; }
+			.ev-att-item:hover{ background:#f6f2e8; }
+			.ev-att-item .sub{ color:var(--muted); font-size:11px; }
+			.ev-att-search{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; margin-bottom:6px; box-sizing:border-box; background:var(--surface-input); color:var(--ink); }
+
+			/* ---- Mobil ---- */
+			.calendar-fab{ display:none; position:fixed; left:16px; bottom:16px; z-index:70; align-items:center; gap:7px; background:var(--brass); color:var(--navy); border:2px solid var(--navy); border-radius:30px; padding:12px 18px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.35); cursor:pointer; }
+			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
+			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
+			@media (max-width: 700px) {
+				.cal-topbar{ padding:calc(9px + env(safe-area-inset-top,0px)) 10px 9px; gap:5px; }
+				.cal-month-label{ font-size:16px; flex:1 1 auto; }
+				.cal-topbar .cal-close{ order:-1; }
+				.cal-addbtn .ab-full{ display:none; }
+				.cal-addbtn .ab-short{ display:inline; font-size:16px; line-height:1; }
+				.cal-addbtn{ padding:5px 12px; }
+				.cal-jump{ padding:0 4px; height:27px; max-width:120px; }
+				.cal-viewbtn{ padding:4px 9px; font-size:12px; }
+				.cal-addbtn{ padding:5px 10px; font-size:12px; }
+				.cal-m-grid{ grid-auto-rows:minmax(74px,1fr); }
+				.cal-mday{ padding:2px 3px 4px; }
+				.cal-peek{ width:100%; max-width:100%; }
+				.cal-dhead .dn{ font-size:13px; min-width:22px; height:22px; }
+				.cal-block .bt{ font-size:10px; }
+				.cal-block .bh{ display:none; }
+			}
+			/* ---------- TAKVİM SONU ---------- */
+			/* Mobil/tablet (<1050px): sol panel yerine alttan yukarı açılan filtre çekmecesi */
+			.faculty-fab{ display:none; position:fixed; right:16px; bottom:16px; z-index:70; align-items:center; gap:7px; background:var(--navy); color:#f3efe6; border:2px solid var(--brass-light); border-radius:30px; padding:12px 18px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.35); cursor:pointer; }
+			.faculty-fab .fab-count{ background:var(--brass); color:var(--navy); border-radius:50%; min-width:19px; height:19px; font-size:11px; align-items:center; justify-content:center; padding:0 4px; }
+			.faculty-sheet-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.55); z-index:80; display:none; }
+			.faculty-sheet-backdrop.open{ display:block; }
+			.faculty-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:81; background:var(--card); border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.4); max-height:calc(var(--vh, 1vh) * 82); display:flex; flex-direction:column; transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear .28s; }
+			.faculty-sheet.open{ transform:translateY(0); visibility:visible; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear 0s; }
+			.faculty-sheet.dragging{ transition:none; }
+			.fsheet-handle-wrap{ display:flex; justify-content:center; padding:10px 0 6px; cursor:grab; touch-action:none; }
+			.fsheet-handle{ width:42px; height:5px; border-radius:3px; background:#d8d2c2; }
+			.fsheet-header{ display:flex; align-items:center; justify-content:space-between; padding:0 18px 10px; border-bottom:1px solid var(--divider-faint); font-family:'Fraunces',serif; font-size:15px; color:var(--navy); font-weight:600; flex-shrink:0; }
+			.fsheet-close{ background:none; border:none; font-size:16px; color:var(--muted); cursor:pointer; padding:4px; }
+			.fsheet-body{ overflow-y:auto; padding:14px 18px 18px; -webkit-overflow-scrolling:touch; font-family:'Roboto',sans-serif; }
+			.fsheet-footer{ padding:10px 18px calc(14px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--divider-faint); flex-shrink:0; }
+			.fsheet-apply-btn{ width:100%; padding:11px; border:none; border-radius:10px; background:var(--navy); color:#f3efe6; font-weight:600; font-size:14px; cursor:pointer; font-family:'Roboto',sans-serif; }
+			@media (max-width: 1049px) {
+			.faculty-fab.active-list{ display:flex; }
+			}
+			@media (min-width: 1050px) {
+			.faculty-fab, .faculty-sheet, .faculty-sheet-backdrop{ display:none !important; }
+			}
+			/* align-items: safe center -- kisa icerikte dikey ortalar (kullanicinin istedigi),
+			   ama modal viewport'tan uzun oldugunda "safe" anahtar kelimesi flex-start'a
+			   geriler: yoksa oversized bir modal ortalaninca ustu/altti esit miktarda
+			   viewport disina tasip acilista kullanici formun NE basligini NE kaydet
+			   butonunu goremeden ortasina dusuyordu (Playwright'ta olculup boyle bulundu). */
+			/* Ustteki padding'e env(safe-area-inset-top) eklenir -- yoksa centik/Dynamic Island'i
+			   (iPhone) veya kamera kesigi olan Android telefonlari olan cihazlarda, viewport'tan
+			   uzun (safe center -> flex-start'a gerileyen) modallerin kapat (X) tusu durum
+			   cubugunun (saat/pil) altina/uzerine biniyordu. viewport-fit=cover meta etiketiyle
+			   birlikte TUM bildirim-centikli telefonlarda calisir, sadece iPhone'a ozel degil. */
+			.modal-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter: blur(4px); display:flex; align-items:safe center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:50; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility 0s linear .18s; }
+			.modal-bg.open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .18s ease, visibility 0s linear; animation: fadeIn 0.2s ease; }
+			/* overflow-x:hidden guvenlik agi: dikey scroll zaten disaridaki .modal-bg'de (overflow-y:auto),
+			   burada sadece yatay eksen kilitleniyor -- ios Safari native input[type=date] kontrolu
+			   CSS genislik kisitlarina ragmen tasarsa bile karta gorsel olarak SIZMASIN diye. */
+			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; overflow-x:hidden; }
+			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
+			   metni dar ekranda bu alana kadar uzayip X'in ALTINA/UZERINE biniyordu. */
+			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
+			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
+			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); }
+			/* iOS Safari'nin native input[type=date] kontrolu bazen width:100%'u yok sayip kendi
+			   intrinsik genisligini dayatiyor (input[type=file]'daki v2.3.7 vakasiyla ayni aile).
+			   max-width:100%+min-width:0 ile bu dayatma KOSULSUZ eziliyor -- headless Chromium'da
+			   olcum farksiz cikiyor ama gercek cihazda tek basarili sinir bu olabilir. */
+			.field input[type=date]{ max-width:100%; min-width:0; }
+			/* iOS Safari, dolu bir metin kutusuna kendi native "temizle" X'ini ekleyebiliyor;
+			   bu, bizim ozel .clear-btn X'imizle CAKISIP yanlis hizali gorunmesine yol aciyordu
+			   (masaustu Chrome'da bu sorun hic gorunmuyor cunku Chrome boyle bir seyi yapmiyor).
+			   -webkit-appearance:none Safari'nin kendi dekorasyonunu kapatir, tek X kalir. */
+			.field input[type=text], #search{ -webkit-appearance:none; appearance:none; }
+			/* min-width:0 SART: flex ogeleri varsayilan olarak min-width:auto tasir, yani icindeki
+			   <select>in en uzun secenegi (orn. "Dr. Ogr. Uyesi") kadar kuculmeyi REDDEDER --
+			   bu da satiri, modal'i ve sonunda TUM SAYFAYI mobilde yatayda tasiriyordu. */
+			.field-row{ display:flex; gap:10px; } .field-row .field{ flex:1; min-width:0; }
+			/* GERCEK SUCLU (canli testle bulundu): native <input type=file>'in "Dosya Sec" dugmesi
+			   + "Secilmedi" metni epey genis bir min-content'e sahip ve flex satirinda varsayilan
+			   min-width:auto ile bundan asla kucuk olmuyor -- mobilde modali (ve dolayisiyla
+			   sayfayi) sabit sekilde yatayda tasiran, "duzenle her acildiginda" tekrar eden buydu. */
+			.photo-input-row{ display:flex; align-items:center; gap:10px; } .photo-input-row input[type=file]{ min-width:0; flex:1; } .photo-preview{ width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; border:1px solid var(--border); flex-shrink:0; }
+			.modal-actions{ display:flex; gap:10px; margin-top:18px; } .modal-actions .btn{ flex:1; text-align:center; }
+			.close-x{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:var(--muted); cursor:pointer; }
+			/* Gorev/etkinlik gecmisi tetikleyicisi -- SADECE kisi duzenleme modalinde (#modalBg),
+			   .close-x'in aynasi. .modal sinifi projede 9 BASKA modalde de kullanildigi icin
+			   padding-left genel .modal h2'ye DEGIL, bu ozel #modalBg kapsamina eklenir. */
+			/* Disari-cikintili "sekme": .history-panel .modal'dan HEMEN ONCE gelen bir flex
+			   kardes oldugu icin (panel kapaliyken display:none, akistan tamamen cikiyor),
+			   sekme SADECE panel KAPALIYKEN gorunur -- acilinca panelin kendisi o bosluga
+			   oturuyor, sekme ile CAKISMASIN diye gizleniyor (kapatma isini panelin kendi
+			   ✕'i goruyor). Masaustunde sol kenardan disari tasar; mobilde (.modal neredeyse
+			   tam genislik oldugu icin sola tasacak yer olmadigindan) AYNI "kenardan cikinti"
+			   fikri UST kenara tasinir. */
+			#modalBg .history-toggle{ position:absolute; top:40px; left:-32px; width:32px; height:44px; background:var(--card); border:1px solid var(--border-soft); border-right:none; border-radius:10px 0 0 10px; display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--muted); cursor:pointer; box-shadow:-3px 0 10px rgba(0,0,0,.12); }
+			#modalBg .history-toggle:hover{ color:var(--navy); }
+			@media (max-width: 899px){
+				#modalBg .history-toggle{ top:22px; left:14px; width:22px; height:22px; border-radius:6px; border:1px solid var(--border-soft); box-shadow:none; font-size:13px; }
+			}
+			#modalBg .modal h2{ padding-left:24px; }
+			@keyframes fadeIn { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
+
+			#toastContainer { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+			.toast { background:var(--navy); color:#fff; font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; padding:12px 20px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; opacity:0; }
+			.toast.show { transform: translateX(0); opacity:1; }
+			.toast.error { background: #b03a3a; }
+			.toast.warn { background: var(--warn); }
+
+			footer{ max-width:1040px; margin:40px auto 0; padding:0 20px 28px; font-size:12px; color:var(--muted); text-align:center; }
+			.foot-copy{ margin:0 0 6px; font-size:13px; color:var(--ink); }
+			.foot-copy strong{ font-weight:600; }
+			.foot-links{ margin:0 0 8px; display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; }
+			.foot-link{ background:none; border:none; padding:0; font-family:inherit; font-size:12px; color:var(--navy); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+			.foot-link:hover{ color:var(--brass-text); }
+			.foot-sep{ color:#cfc6b2; }
+			.foot-note{ margin:0; font-size:11px; line-height:1.6; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto; }
+			.foot-version{ margin:6px 0 0; font-size:11px; color:var(--muted); }
+			/* Kullanım Şartları / Gizlilik Politikası penceresi */
+			.legal-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+			.legal-tabs .btn{ flex:1; font-size:13px; padding:8px 10px; }
+			.legal-body{ max-height:52vh; overflow-y:auto; padding-right:6px; font-size:13px; line-height:1.7; color:var(--ink); }
+			.legal-body h3{ font-family:'Fraunces',serif; font-size:15px; margin:16px 0 6px; color:var(--navy); }
+			.legal-body h3:first-child{ margin-top:0; }
+			.legal-body p{ margin:0 0 8px; }
+			.legal-body ul{ margin:0 0 10px; padding-left:18px; }
+			.legal-body li{ margin-bottom:5px; }
+			.legal-body .lg-meta{ font-size:12px; color:var(--muted); border-top:1px solid var(--divider-faint); padding-top:8px; margin-top:14px; }
+
+			/* --- MOBİL UYUMLULUK --- */
+			@media (max-width: 600px) {
+				header { padding-bottom: 16px; }
+				.header-auth .btn-auth, .header-auth .user-chip { font-size: 12px; padding: 6px 9px; }
+				/* Guncellik rozeti ("Guncel" / "Hic Dogrulanmadi" vb.) sadece masaustunde gorunur;
+				   mobilde uzun metni dar karti zorlayip yatay tasmaya yol acabiliyordu. */
+				.freshness-badge { display: none; }
+
+				.controlbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 12px; }
+				.search-wrap { grid-column: span 2; min-width: unset; width: 100%; }
+				.toggle-group { grid-column: span 2; display: flex; width: 100%; justify-content: center; }
+				.toggle-group button { flex: 1; text-align: center; }
+				
+				.mobile-layout-toggle { display: flex; width: 100%; margin: 0; background: var(--surface-pill); padding: 3px; border-radius: 8px; justify-content: space-between; }
+				.mobile-layout-toggle button { flex: 1; text-align: center; font-size: 11px; padding: 6px; }
+				
+				.count { margin: 0; display: flex; align-items: center; justify-content: flex-end; text-align: right; font-size: 11px; white-space: nowrap; }
+
+				.actions-row { flex-direction: column; align-items: stretch; gap: 10px; }
+				.actions-left, .actions-right { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-left: 0; justify-content: stretch; }
+				.actions-left .btn, .actions-right .btn { width: 100%; padding: 10px 4px; font-size: 12px; margin: 0; display: flex; align-items: center; justify-content: center; text-align:center;}
+				
+				#addBtn { grid-column: span 2; font-size: 14px; padding: 12px 4px; } 
+				#executeNewsBtn, #cancelNewsBtn, #executeBulkDeleteBtn, #emptyTrashBtn { grid-column: span 2; } 
+				
+				.grid:not(.is-reorder) { grid-template-columns: repeat(var(--mobile-cols, 4), 1fr) !important; gap: 8px; }
+				.grid:not(.is-reorder).grid-cols-2 .info { padding: 10px; }
+				.grid:not(.is-reorder).grid-cols-3 .info { padding: 8px; } .grid:not(.is-reorder).grid-cols-3 .name { font-size: 12px; margin-bottom: 2px;} .grid:not(.is-reorder).grid-cols-3 .title { font-size: 10px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-3 .unit { font-size: 9px; } .grid:not(.is-reorder).grid-cols-3 .card-edit { padding: 5px; font-size: 10px; } .grid:not(.is-reorder).grid-cols-3 .rank-badge { width:22px; height:22px; font-size:10px; top:6px; left:6px;} .grid:not(.is-reorder).grid-cols-3 .avatar-fallback { font-size:24px; }
+				.grid:not(.is-reorder).grid-cols-4 .info { padding: 6px; } .grid:not(.is-reorder).grid-cols-4 .name { font-size: 11px; margin-bottom: 2px; line-height: 1.1;} .grid:not(.is-reorder).grid-cols-4 .title { font-size: 9px; margin-bottom: 1px;} .grid:not(.is-reorder).grid-cols-4 .unit { font-size: 8px; } .grid:not(.is-reorder).grid-cols-4 .card-edit { padding: 4px; font-size: 9px; } .grid:not(.is-reorder).grid-cols-4 .meta, .grid:not(.is-reorder).grid-cols-4 .note { display: none; } .grid:not(.is-reorder).grid-cols-4 .rank-badge { width:18px; height:18px; font-size:9px; top:4px; left:4px;} .grid:not(.is-reorder).grid-cols-4 .status-chip { display: none; } .grid:not(.is-reorder).grid-cols-4 .avatar-fallback { font-size:18px; }
+				.grid:not(.is-reorder).grid-cols-4 .bulk-cb, .grid:not(.is-reorder).grid-cols-4 .news-cb { width: 16px; height: 16px; top: 5px; }
+
+				.reorder-header-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+				.reorder-toolbar { justify-content: space-between; }
+				.reorder-toolbar button { flex: 1; text-align: center; }
+			}
+			/* Denetim maddesi #4: 320-375px gibi cok dar telefonlarda kullanici "4 sutun" secse bile
+			   kartlar asiri sikisiyordu -- bu genislikte en fazla 3 sutuna dusuruluyor. min() ile
+			   kullanicinin 2/3 secimi (zaten <=3) DEGISMEZ, sadece 4 secimi 3'e sinirlanir. */
+			@media (max-width: 380px) {
+				.grid:not(.is-reorder) { grid-template-columns: repeat(min(var(--mobile-cols, 4), 3), 1fr) !important; }
+			}
+			/* === GİRİŞ / KAYIT FORMU (Uiverse.io by ammarsaa, brass temaya uyarlandı) === */
+				.authform-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:60; }
+				.authform-bg.open{ display:flex; animation: fadeIn 0.2s ease; }
+				.af-wrap{ position:relative; }
+				.af-close{ position:absolute; top:14px; right:14px; background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.7; z-index:2; }
+				.af-close:hover{ opacity:1; }
+				.af-form{ display:flex; flex-direction:column; gap:10px; max-width:350px; width:100%; padding:26px; border-radius:20px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+				.af-title{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; letter-spacing:-1px; position:relative; display:flex; align-items:center; padding-left:26px; color:var(--brass-light); margin:0; }
+				.af-title::before,.af-title::after{ position:absolute; content:""; height:14px; width:14px; border-radius:50%; left:0; background-color:var(--brass-light); }
+				.af-title::after{ animation: afPulse 1s linear infinite; }
+				.af-message,.af-signin{ font-size:14px; color:rgba(255,255,255,.65); margin:0; }
+				.af-signin{ text-align:center; }
+				.af-signin a{ color:var(--brass-light); cursor:pointer; } .af-signin a:hover{ text-decoration:underline; }
+				.af-flex{ display:flex; width:100%; gap:6px; }
+				.af-form label{ position:relative; display:block; }
+				.af-input{ background:rgba(255,255,255,.08); color:#fff; width:100%; padding:19px 10px 6px; outline:0; border:1px solid rgba(255,255,255,.15); border-radius:10px; font-size:14px; font-family:'Roboto',sans-serif; }
+				.af-input + span{ color:rgba(255,255,255,.5); position:absolute; left:11px; top:0; font-size:.9em; cursor:text; transition:.2s ease; pointer-events:none; }
+				.af-input:placeholder-shown + span{ top:13px; font-size:.9em; }
+				.af-input:focus + span, .af-input:valid + span{ color:var(--brass-light); top:0; font-size:.7em; font-weight:600; }
+				.af-submit{ border:none; outline:0; padding:11px; border-radius:10px; color:var(--navy); font-weight:700; font-size:15px; background:var(--brass-light); cursor:pointer; transition:background .2s; margin-top:4px; }
+				.af-submit:hover{ background:#f0dca0; } .af-submit:disabled{ opacity:.6; cursor:not-allowed; }
+				.af-error{ color:#ff9a9a; font-size:13px; min-height:16px; margin:0; }
+				@keyframes afPulse{ from{ transform:scale(.9); opacity:1;} to{ transform:scale(1.8); opacity:0;} }
+
+				/* === HEADER GİRİŞ ALANI === */
+				/* Onceden top:20px;right:20px ile "Protokol Kartlari" basliginin UZERINE
+				   biniyordu (akistan cikmis absolute kutuydu). Sonra eyebrow ile baslik
+				   arasinda, akis icinde, ortalanmis kucuk bir serit haline getirilmisti.
+				   Simdi kullanicinin istegiyle sag-ust koseye tasindi ama YINE akis icinde
+				   (.header-top-row flex row) -- eski absolute'un basligin USTUNE binme
+				   hatasini tekrarlamamak icin. h1 artik BU satirin solundaki kardesi
+				   (.header-left), .header-auth'un yuksekligi (1 veya 2 satir Cikis dahil)
+				   ondan tamamen bagimsiz -- ikisi ayni satirin iki ucunda, birbirini itmez. */
+				.header-auth{ position:static; display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:0; font-family:'Roboto',sans-serif; font-size:13px; }
+				.header-auth .ha-row1{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+				.header-auth .ha-row2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; white-space:nowrap; }
+				.header-auth .btn-auth:hover{ background:rgba(255,255,255,.18); }
+				.header-auth .user-chip{ color:#f3efe6; display:flex; align-items:center; gap:6px; padding:6px 10px; }
+				.header-auth .user-chip .role-dot{ width:7px; height:7px; border-radius:50%; background:#c99a3f; flex-shrink:0; }
+				.header-auth .user-chip.editor .role-dot{ background:#6fbf8f; }
+				.header-auth .user-chip.admin .role-dot{ background:var(--brass-light); }
+
+				/* === YÜKLENİYOR EKRANI  === */
+				.loading-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(243,239,230,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:300; }
+				.loading-overlay.open{ display:flex; }
+				.loading-overlay .loading-label{ font-family:'Roboto',sans-serif; font-size:13px; color:var(--muted); font-weight:600; }
+
+				.simple-spinner { width: 3.5em; height: 3.5em; border: 5px solid var(--surface-hover-3); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
+				@keyframes spin { to { transform: rotate(360deg); } }
+
+				/* === YETKİ BAZLI GİZLEME === */
+				body.is-readonly .edit-only{ display:none !important; }
+
+				/* === ADMIN PANELİ === */
+				.admin-user-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; }
+				/* min-width:0 + overflow-wrap: uzun e-posta adresleri (bosluksuz tek "kelime")
+				   flex satirini/karti disariya tasirmasin diye -- ayni aile: .field-row .field. */
+				.admin-user-row .au-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+				.admin-user-row .au-name{ font-weight:700; font-size:14px; color:var(--ink); }
+				.admin-user-row .au-email{ font-size:12px; color:var(--muted); min-width:0; overflow-wrap:break-word; word-break:break-word; }
+				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:'Roboto',sans-serif; background:var(--surface-input); color:var(--ink); cursor:pointer; }
+				.admin-user-row select:disabled{ background:#f0eee7; color:var(--muted); cursor:not-allowed; }
+				.au-basin-toggle{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; white-space:nowrap; user-select:none; }
+				.au-basin-toggle input{ cursor:pointer; }
+				.admin-user-empty{ text-align:center; color:var(--muted); font-size:13px; padding:20px; }
+				.admin-log-row{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; background:var(--card); border:1px solid var(--border-soft); border-radius:8px; font-size:13px; }
+				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; }
+				/* min-width:0 + overflow-wrap: "kim yaptı" alani genelde e-posta -- bosluksuz
+				   uzun bir dize .al-top'u/karti disariya tasirmasin diye (.au-email ile ayni aile). */
+				.admin-log-row .al-by{ color:var(--navy); font-weight:600; min-width:0; overflow-wrap:break-word; word-break:break-word; }
+				.admin-log-row .al-action{ color:var(--ink); }
+				/* "kim yaptı" (al-by, lacivert/kalın) ile "kime yapıldı" (al-target, altın rozet) birbirine karışmasın diye ayrı stiller */
+				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:var(--warn-text-alt); font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
+				.admin-log-row .al-time{ font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; font-weight:500; white-space:nowrap; }
+				/* Hangi alanın değiştiği ("Protokol Sırası: 2. sıradan 4. sıraya düşürüldü") alt satırlar hâlinde listelenir */
+				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:12px; line-height:1.55; color:var(--muted); }
+				.admin-log-row .al-detail b{ color:var(--ink); font-weight:600; }
+
+			/* Klavye ile gezinirken hangi öğenin odakta olduğu her zaman görünür olsun (erişilebilirlik). */
+			:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; border-radius:3px; }
+			#search:focus-visible{ outline:2px solid var(--brass); outline-offset:1px; }
+			.af-input:focus-visible, .af-submit:focus-visible{ outline:2px solid var(--brass-light); outline-offset:2px; }
+
+			/* Herhangi bir panel (kişi ekle/düzenle, admin, haber çıktısı, onay pencereleri, takvim, giriş formu,
+				mobil fakülte çekmecesi) açıkken arka plandaki kart listesi kaydırılamasın diye body sabitlenir.
+				Sadece overflow:hidden mobilde (özellikle iOS Safari) dokunmatik kaydırmayı engellemeye yetmiyor;
+				position:fixed ise body'yi akıştan tamamen çıkarıp gerçekten kilitliyor. */
+			body.scroll-locked{ position:fixed; left:0; right:0; overflow:hidden; }
+			/* Sol-alt takvim ve sag-alt fakulte filtrele dugmeleri z-index:70 ile HER acik
+			   panelin (z-index<=55) UZERINDE duruyordu; duzenleme formunun alt kismini
+			   (Kaydet, "Yerine Yeni Kisi Ata" vb.) kapatiyordu. Herhangi bir panel acikken
+			   (scroll-locked ile ayni kosul) bu iki buton gizlenir. */
+			body.scroll-locked .calendar-fab, body.scroll-locked .faculty-fab{ display:none !important; }
+			/* UCUNCU DENEME (2026-08-25): v2.9.15 (faculty-sheet gizleme) ve v2.9.16
+			   (--vh + safe-area padding-bottom) tek basina yetmedi, kullanici iPhone 16
+			   Pro'da hala herhangi bir panel acikken sayfanin en altinda "gitmeyen,
+			   tutup oynatilabilen bir dikdortgen" gorduğunu bildirdi. Bu üçüncü katman:
+			   panel acikken (body.scroll-locked, bkz. yukarida) sayfanin en alt kenarina
+			   dar, sabit bir "temizleme seridi" eklenir -- iOS Safari'nin kendi adres/
+			   arac cubugunu gizleyemeyiz ama en azindan altta gorunen kismin SITE
+			   icerigi degil duz --paper rengi olmasini saglariz. Sadece dar bir serit
+			   (env(safe-area-inset-bottom)+8px), TUM ekrani KAPLAMAZ -- boyle olsaydi
+			   ayni z-index katmanindaki modal/panel backdrop'unu (karartmayi) da
+			   kapatirdi. z-index:49 KASITLI: en dusuk panel olan .modal-bg'nin (50)
+			   BIR ALTINDA, boylece hicbir modal/panel/backdrop'un uzerine binmez veya
+			   butonlarini (Kaydet, Vazgec vb.) tiklanamaz yapmaz; normal sayfa
+			   iceriginin (z-index:auto) ise USTUNDE kalir. pointer-events:none ile de
+			   hicbir dokunusu kapmaz. Dogrulanmamis nokta: headless Chromium iOS'un
+			   gercek native lastik-sicrama/adres cubugu davranisini simule edemiyor,
+			   bu yuzden bu katmanin gercekten cozup cozmedigi SADECE gercek cihazda
+			   dogrulanabilir. */
+			body.scroll-locked::after{ content:""; position:fixed; left:0; right:0; bottom:0; height:calc(env(safe-area-inset-bottom, 0px) + 8px); background:var(--paper); z-index:49; pointer-events:none; }
+			/* iOS'ta kisi duzenleme ekrani acikken alttaki "Fakulte Filtrele" cekmecesi hala
+			   dokunuslari kapip surukleniyordu (kullanici: "sadece onu oynatiyorum, asagi
+			   inemiyorum"). openEditModal/openAddModal/openCalendar/openHistoryPanel/
+			   openSuccessorPanel artik closeFacultySheet() de cagiriyor (JS tarafinda guvenli
+			   sifirlama) AMA CSS tarafinda da kesin olarak gizlenir: kisi formu (#modalBg),
+			   takvim (#calendarOverlay), Gorev/Etkinlik Gecmisi paneli (#historyPanel) veya
+			   "Yerine Yeni Kisi Ata" paneli (#successorPanel) acikken cekmece + tetikleyici
+			   buton + arka plani tamamen devre disi (pointer-events:none GEREKMEZ, display:none
+			   zaten dokunuşu da keser). Kullanici bildirimi: cekmece takvimde/Gorev Gecmisi'nde
+			   de "gitmiyor" gorunmustu -- tek basina #modalBg kosulu (modal, bu panellerin
+			   ARKASINDA acik kalsa bile) yeterli olmasi gerekirdi ama olasi bir eski servis
+			   worker onbellegi/yarisma durumu ihtimaline karsi her yuzey ayri ayri da kosula
+			   eklendi, tek noktaya guvenilmiyor. */
+			body:has(#modalBg.open) .faculty-fab, body:has(#modalBg.open) .faculty-sheet, body:has(#modalBg.open) .faculty-sheet-backdrop,
+			body:has(#calendarOverlay.open) .faculty-fab, body:has(#calendarOverlay.open) .faculty-sheet, body:has(#calendarOverlay.open) .faculty-sheet-backdrop,
+			body:has(#historyPanel.open) .faculty-fab, body:has(#historyPanel.open) .faculty-sheet, body:has(#historyPanel.open) .faculty-sheet-backdrop,
+			body:has(#successorPanel.open) .faculty-fab, body:has(#successorPanel.open) .faculty-sheet, body:has(#successorPanel.open) .faculty-sheet-backdrop
+			{ display:none !important; }
+
+			/* =====================================================================
+			   MOBIL DUZELTMELERI
+			   Asagidaki kurallar, gercek cihaz genisliklerinde (320/360/375/414/768)
+			   olculerek tespit edilen somut kirilmalari giderir. Her blok, neyi
+			   duzelttigini acikca soyler ki ileride yanlislikla kaldirilmasin.
+			   ===================================================================== */
+
+			/* Admin paneli sekmeleri: dort Turkce etiket <=360px'te satira sigmiyor ve
+			   "Test" sekmesi ekranin disinda kaliyordu (ulasilamaz). 2x2 izgara cozer. */
+			.field-row .field.f-prefix{ flex:0 0 140px; }
+			.admin-tabs{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+			.admin-tabs .btn{ padding:10px 6px; font-size:13px; min-width:0; }
+			@media (min-width: 560px){ .admin-tabs{ grid-template-columns:repeat(5,minmax(0,1fr)); } }
+
+			/* ---- Test Modu: admin panelinde HER sekmede görünen sabit anahtar + site geneli şerit ---- */
+			.test-mode-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; margin-bottom:14px; background:var(--paper); border:1px solid var(--divider); border-radius:10px; }
+			.test-mode-title{ font-size:13px; color:var(--navy); }
+			.test-mode-log-section{ margin-bottom:16px; }
+			.ios-switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+			.ios-switch input{ opacity:0; width:0; height:0; }
+			.ios-switch-slider{ position:absolute; cursor:pointer; inset:0; background:#ccc; transition:.2s; border-radius:24px; }
+			.ios-switch-slider::before{ content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
+			.ios-switch input:checked + .ios-switch-slider{ background:var(--navy); }
+			.ios-switch input:checked + .ios-switch-slider::before{ transform:translateX(18px); }
+			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:150; background:var(--navy); color:#f3efe6; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
+			body.test-mode-active{ padding-top:calc(26px + env(safe-area-inset-top,0px)); }
+
+			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */
+			header{ padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
+			.calendar-fab, .faculty-fab{ bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+
+			/* Kart "kalkma" efekti dokunmatikte YAPISKAN kalir (dokunulan kart kalkik durur).
+			   Bu yuzden yalnizca gercek fareli cihazlarda uygulanir. */
+			@media (hover: none){
+				.card:hover{ transform:none; }
+				.card.bulk-mode:hover{ transform:none; }
+			}
+
+			@media (max-width: 900px){
+				/* iOS Safari, font-size < 16px olan bir alana odaklaninca sayfayi otomatik
+				   yakinlastirir ve GERI UZAKLASTIRMAZ. Etkinlik formunda 12+ alan var; her
+				   dokunusta sayfa ziplayip yakinlasmis kaliyordu. Haber modalindaki alanlar
+				   satir ici style kullandigi icin !important gerekiyor. */
+				input, select, textarea, .af-input, .ev-att-search, .cal-jump{ font-size:16px !important; }
+			}
+
+			@media (max-width: 760px){
+				/* YIL GORUNUMU: 4 sutun mobilde her ay kartini ~36px tasitiyor, aylar
+				   ust uste biniyor ve gun hucreleri 11px genislige dusuyordu (dokunulamaz). */
+				.cal-year-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px 12px 60px; }
+				.cal-year-month .cal-mini-grid{ grid-auto-rows:32px; }
+				.cal-year-day{ height:32px; font-size:12px; }
+			}
+			@media (max-width: 430px){
+				.cal-year-grid{ grid-template-columns:minmax(0,1fr); }
+			}
+
+			@media (max-width: 700px){
+				/* AY GORUNUMU: dar hucrede etkinlik adi harf harf sariyor ("B / O / T")
+				   ve hicbir etkinlik okunamiyordu. Tek satir + ucu uc nokta olmali. */
+				.cal-block.compact .bt{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1; }
+				/* 16px kilit ikonu, 44px genisligindeki cipin ucte birini yiyordu ve yeni
+				   etkinlikler artik VARSAYILAN kilitli geldigi icin neredeyse her cipte
+				   cikip basligi "B.." gibi okunamaz hale getiriyordu. Kilidin tek amaci
+				   yanlislikla SURUKLEMEYI engellemek; HTML5 surukle-birak ise dokunmatik
+				   cihazlarda zaten hic calismiyor. Bu yuzden yogun ay gorunumunde mobilde
+				   tamamen gizlenir -- kilit gun/hafta gorunumunden ve detay panelinden
+				   gorulup degistirilmeye devam eder. */
+				.cal-mday .cal-block.compact .cal-lock-ico{ display:none; }
+				/* Bos esnek bosluk 320px'te tek basina bir satir kaplayip ust bari 5 satira cikariyordu. */
+				.cal-spacer{ display:none; }
+			}
+			/* Takvim ust barindaki "<" ve ">" oklarinin dokunma alanlari (::after inset:-8px)
+			   5px'lik bosluk yuzunden CAKISIYORDU: "onceki ay" okunun sag kenarina basmak
+			   "sonraki ay"i tetikliyordu. Butonlar buyutulup genisletici kaldirilir. Bu kural
+			   eskiden sadece max-width:700px'te calisiyordu; tablet gibi >700px ama dokunmatik
+			   (pointer:coarse) cihazlarda da .cal-iconbtn kucuk kaliyordu -- proje telefon-odakli
+			   oldugu icin oncelik dusuk ama ekran genisliginden BAGIMSIZ, dokunmatik oldugu surece
+			   buyutmek icin sorgu (pointer:coarse) ile OR'lanir (diger max-width:700 kurallari
+			   ustteki bloktaki gibi SADECE genislige bagli kalmaya devam eder). */
+			@media (max-width: 700px), (pointer: coarse){
+				.cal-topbar{ gap:10px; }
+				.cal-iconbtn{ width:38px; height:38px; }
+				.cal-iconbtn::after{ inset:0; }
+			}
+
+			@media (max-width: 480px){
+				/* "Unvan On Eki" sabit 140px aldigi icin 320px'te "Isim Soyisim" alanina
+				   yalnizca 94px kaliyordu. Dar ekranda alt alta gecerler. */
+				.field-row{ flex-wrap:wrap; }
+				.field-row .field{ min-width:0; }
+				/* Dar ekranda on ek tam genislik alip alt satira gecer; boylece
+				   "Isim Soyisim" alani 94px yerine tam genislikte olur. */
+				.field-row .field.f-prefix{ flex:1 1 100%; }
+			}
+			@media (max-width: 400px){
+				/* min-width:140px yuzunden siralama modu 320px'te tek sutuna dusuyordu. */
+				.reorder-row{ min-width:0; }
+			}
+
+			/* Dokunmatik cihazlarda kucuk ikonlarin gorsel boyutu degistirilmeden
+			   dokunma alani buyutulur (dosyada .cal-iconbtn icin zaten kullanilan teknik).
+			   ONEMLI: .clear-btn/.close-x/.af-close zaten kendi kurallarinda position:absolute
+			   ile konumlaniyor -- burada hepsine kosulsuz position:relative vermek (eski hali)
+			   bu absolute'u eziyordu, iPhone'da (pointer:coarse) X butonlari yanlis yere kayiyordu.
+			   Sadece position tanimi OLMAYAN iki elemana relative eklenir. */
+			@media (pointer: coarse){
+				.cal-ev-edit-ico, .fsheet-close, .header-auth .btn-auth, .cal-mdayadd, .cal-more{ position:relative; }
+				.cal-ev-edit-ico::after, .clear-btn::after, .fsheet-close::after,
+				.af-close::after, .close-x::after, .header-auth .btn-auth::after,
+				.cal-mdayadd::after, .cal-more::after{ content:""; position:absolute; inset:-10px; }
+				.cal-ev-edit-ico{ opacity:.75; }
+				.cal-viewbtn{ padding:9px 11px; }
+				.foot-link{ padding:8px 4px; }
+			}
+
+			/* Karanlik modda METIN olarak kullanilan var(--navy) secicileri: --navy degiskeni
+			   BILEREK sabit kaldigi icin (yukarida :root sonrasindaki [data-theme=dark] bloguna
+			   bkz.), bu secicilerin rengi burada TEK TEK altin/brass tonuna cevrilir -- aksi
+			   halde koyu lacivert yazi koyu kartin (var(--card)/var(--paper)) uzerinde okunmaz
+			   olurdu. Navy'nin ARKA PLAN olarak kullanildigi yerlere (header, butonlar, brass
+			   zeminli .af-submit/.calendar-fab/.faculty-fab-count) DOKUNULMADI -- onlar zaten
+			   koyu bir zemin oldugu icin her iki temada da calisiyor. */
+			[data-theme="dark"] .name, [data-theme="dark"] .empty-title,
+			[data-theme="dark"] .btn-ghost, [data-theme="dark"] .card-edit,
+			[data-theme="dark"] .reorder-toolbar button, [data-theme="dark"] .az-sort-btn,
+			[data-theme="dark"] details.rank-group > summary, [data-theme="dark"] .drag-handle-mini:active,
+			[data-theme="dark"] .row-name, [data-theme="dark"] .rank-reference .rr-title,
+			[data-theme="dark"] .successor-panel h3, [data-theme="dark"] .history-panel h3, [data-theme="dark"] .faculty-multiselect .fm-group-title,
+			[data-theme="dark"] .fs-scope .fs-title, [data-theme="dark"] .fs-scope .fs-group-title,
+			[data-theme="dark"] .cal-rail-label, [data-theme="dark"] .cal-rail-next h4,
+			[data-theme="dark"] .cal-next-date .d, [data-theme="dark"] .cal-mini-title,
+			[data-theme="dark"] .cal-month-label, [data-theme="dark"] .cal-iconbtn:hover,
+			[data-theme="dark"] .cal-viewbtn.active, [data-theme="dark"] .cal-mdayadd:hover,
+			[data-theme="dark"] .cal-more:hover, [data-theme="dark"] .cal-year-month-title,
+			[data-theme="dark"] .cal-list-daysep, [data-theme="dark"] .cal-peek-head h3,
+			[data-theme="dark"] .fsheet-header, [data-theme="dark"] .modal h2,
+			[data-theme="dark"] .field label, [data-theme="dark"] .foot-link,
+			[data-theme="dark"] .legal-body h3, [data-theme="dark"] .admin-log-row .al-by,
+			[data-theme="dark"] .test-mode-title
+				{ color: var(--brass-light); }
+
+			.header-top-right{ display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0; }
+			.theme-toggle{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); border-radius:8px; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+			.theme-toggle:hover{ background:rgba(255,255,255,.18); }

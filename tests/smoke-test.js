@@ -36,7 +36,7 @@ function serve() {
 		fs.readFile(fp, (err, data) => {
 			if (err) { res.writeHead(404); res.end('not found: ' + p); return; }
 			const ext = path.extname(fp);
-			const type = ext === '.html' ? 'text/html' : ext === '.js' ? 'application/javascript' : ext === '.json' ? 'application/json' : ext === '.png' ? 'image/png' : 'text/plain';
+			const type = ext === '.html' ? 'text/html' : ext === '.js' ? 'application/javascript' : ext === '.css' ? 'text/css' : ext === '.json' ? 'application/json' : ext === '.png' ? 'image/png' : 'text/plain';
 			res.writeHead(200, { 'Content-Type': type });
 			res.end(data);
 		});

@@ -27,7 +27,7 @@ function serve() {
 		const fp = path.join(SITE_ROOT, p);
 		fs.readFile(fp, (err, data) => {
 			if (err) { res.writeHead(404); res.end('not found'); return; }
-			res.writeHead(200, { 'Content-Type': path.extname(fp) === '.html' ? 'text/html' : 'text/plain' });
+			res.writeHead(200, { 'Content-Type': path.extname(fp) === '.html' ? 'text/html' : path.extname(fp) === '.css' ? 'text/css' : path.extname(fp) === '.js' ? 'application/javascript' : 'text/plain' });
 			res.end(data);
 		});
 	});
