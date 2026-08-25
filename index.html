@@ -106,7 +106,21 @@
 			   dogrulanmis cozumu zaten --vh/visualViewport takibiydi (bkz. --vh yorumu
 			   yukarida), bu satir o noktada da fazlaydi. */
 			html{ overflow-x:hidden; max-width:100%; }
-			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:100vh; padding-bottom:60px; overflow-x:hidden; max-width:100%; }
+			/* body'nin min-height'i ve alt bosluğu (2026-08-25):
+			   - min-height eskiden literal 100vh idi -- iOS Safari'de adres/arac cubugu
+			     acikken bu, gercek gorunur yukseklikten FAZLA oluyor, kullanici asagi
+			     kaydirdiginda (lastik/rubber-band) sayfanin en altinda bos, hareket eden
+			     bir alan aciga cikiyordu ("surunebilir dikdortgen" hissi). --vh zaten
+			     projede JS ile takip ediliyor (bkz. yukaridaki --vh yorumu, syncViewportHeightVar),
+			     ayni cozum buraya da uygulandi.
+			   - padding-bottom:60px KASITLI: .calendar-fab/.faculty-fab position:fixed;
+			     bottom:16px+buton yuksekligi (~44px) ile sayfanin EN ALTINDA sabit duruyor;
+			     bu bosluk olmasa sayfa sonuna kadar kaydirildiginda bu iki buton footer
+			     metninin ustune biniyor. FAB'larin bottom degeri (satir ~1018) mobilde
+			     env(safe-area-inset-bottom) da ekliyor (centikli/home-indicator'lu cihazlarda
+			     FAB daha da yukari kayiyor) -- bu yuzden ayni payi buraya da eklemek gerekiyor,
+			     yoksa home-indicator'lu iPhone'larda 60px yetersiz kalip footer yine ortulebilir. */
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:calc(var(--vh, 1vh) * 100); padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); overflow-x:hidden; max-width:100%; }
 
 			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
 			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
