@@ -3,4 +3,6 @@ tests/package-lock.json
 tests/smoke-screenshot.png
 .claude/
 CLAUDE.md
+# migrate-people-to-object.js'in ürettiği örnek çıktılar GERÇEK KİŞİSEL VERİ içerebilir (fotoğraf dahil) -- asla commit edilmez.
 scripts/*-migrated.json
+scripts/*.output.json

@@ -93,11 +93,18 @@
 		currentUser: null
 	};
 
+	function mockDatabase() {
+		return { ref: function (path) { return makeRef(path); } };
+	}
+	// Gercek compat SDK'da firebase.database.ServerValue.TIMESTAMP bir "sentinel" nesnedir --
+	// index.html artik Date.now() yerine bunu kullaniyor (bkz. audit maddesi #1), bu yuzden mock'ta
+	// da tanimli olmasi gerekiyor; aksi halde her yazma yolu "Cannot read properties of undefined"
+	// hatasiyla patlardi.
+	mockDatabase.ServerValue = { TIMESTAMP: { ".sv": "timestamp" } };
+
 	window.firebase = {
 		initializeApp: function (config) { console.log("[mock] firebase.initializeApp çağrıldı"); },
-		database: function () {
-			return { ref: function (path) { return makeRef(path); } };
-		},
+		database: mockDatabase,
 		auth: function () { return mockAuth; }
 	};
 })();
