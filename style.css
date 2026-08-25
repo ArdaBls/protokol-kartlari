@@ -1034,7 +1034,18 @@
 			.ios-switch-slider::before{ content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
 			.ios-switch input:checked + .ios-switch-slider{ background:var(--navy); }
 			.ios-switch input:checked + .ios-switch-slider::before{ transform:translateX(18px); }
-			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:150; background:var(--navy); color:#f3efe6; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
+			/* z-index eskiden 150 idi -- TUM modal/panel/takvim katmanlarindan (en dusugu .modal-bg=50)
+			   DAHA YUKSEKTI, bu yuzden Test Modu acikken herhangi bir modal/takvim acildiginda banner
+			   onlarin USTUNE biniyor, ustteki kontrolleri (ornegin takvimin kapatma X butonunu)
+			   TIKLANAMAZ hale getiriyordu (kullanici: "çarpıya basamıyorum ... tamamen kapatıyor").
+			   body'ye eklenen padding-top (asagida .test-mode-active) SADECE normal-akis icerigi
+			   iter -- position:fixed modaller/panel body padding'inden ETKILENMEZ, o yuzden bu sorunu
+			   COZMEZ. Duzeltme: banner artik en dusuk panel katmaninin (.modal-bg=50) BIR ALTINDA
+			   (49, tipki asagidaki body.scroll-locked::after seridiyle ayni kasitli deger) -- boylece
+			   herhangi bir modal/panel/takvim acildiginda banner onun (yari saydam da olsa) arka
+			   planinin ALTINDA kalir, hicbir kontrolu kapatmaz; ana liste ekraninda (hicbir modal
+			   yokken) hala normal sayfa icerigi USTUNDE gorunur durumda kalir. */
+			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:49; background:var(--navy); color:#f3efe6; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
 			body.test-mode-active{ padding-top:calc(26px + env(safe-area-inset-top,0px)); }
 
 			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */

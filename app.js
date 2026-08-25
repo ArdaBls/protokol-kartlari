@@ -2750,6 +2750,8 @@ let pressOfficerPool = [];       // admin tarafından "basın görevlisi" işare
 let gorevliLoadToken = 0;        // ardışık modal açılışlarında eski bir yüklemenin geç gelip güncel seçimi ezmesini önler
 let calSortableInstances = [];  // renderWeekView/renderMonthView'in olusturdugu Sortable orneklerinin yasam dongusu (person-list'teki sortableInstances'tan AYRI -- ayri IIFE kapsaminda)
 let calDragLastXY = null;       // Sortable onMove sirasinda surekli guncellenen son bilinen isaretci konumu, onEnd'de yedek kaynak
+let calWeekScrollKey = null;    // renderWeekView'in en son "hangi hafta/gun" icin kaydirma konumu uyguladigi -- ayni anahtar tekrar gelirse (ornegin bir surukleme sonrasi renderCalendar() TEKRAR cagrildiginda) konum SIFIRLANMAZ, kullanicinin bulundugu yerde kalir
+let calWeekScrollTopPreserved = null; // body.innerHTML ile eski DOM silinmeden HEMEN once yakalanan scrollTop -- ayni gorunum tekrar render edilirse geri yuklenir
 let eventDeleteTargetId = null;   // peek + duzenleme formu ortak silme onay modalinin hedef id'si
 let undoStack = [];               // { type:'move'|'edit'|'create'|'delete', id, before, after, ts }
 let undoCount = 0;                // bu oturumda kacinci Ctrl+Z geri almasi yapildigi (log metnine yazilir)
@@ -3267,6 +3269,11 @@ function renderWeekView(body){
 		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;">'+inner+'</div>';
 	});
 
+	// Eski DOM silinmeden HEMEN once mevcut kaydirma konumu yakalanir -- asagida ayni
+	// hafta/gun icin tekrar render ediliyorsa (bkz. calWeekScrollKey) geri yuklenecek.
+	const prevSc = document.getElementById("calTgScroll");
+	calWeekScrollTopPreserved = prevSc ? prevSc.scrollTop : null;
+
 	body.innerHTML='<div class="cal-tg">'+head+allday+
 		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+nowFull+'</div></div></div>';
 
@@ -3276,12 +3283,29 @@ function renderWeekView(body){
 		calSortableInstances.push(new Sortable(col, calSortableOptions("calWeek")));
 	});
 
-	// açılışta sabah 07:00 hizasına kaydır; bugün görünüyorsa şu ankı saate
+	// açılışta (veya BAŞKA bir haftaya/güne geçince) sabah 07:00 hizasına kaydır; bugün görünüyorsa
+	// şu anki saate. AMA renderCalendar() her çağrıldığında (ör. bir etkinlik sürüklenip
+	// bırakıldığında, hızlı-damga ile saat işaretlendiğinde, başka bir editörün değişikliği
+	// listener'dan geldiğinde) bu fonksiyon YENİDEN çalışır -- eskiden bu kaydırma her seferinde
+	// KOŞULSUZ tekrarlanıp kullanıcıyı bulunduğu yerden "şu anki saate" fırlatıyordu (kullanıcı:
+	// "taşıma yaptığımda sayfanın üstüne atıyor biraz"). Şimdi sadece GERÇEKTEN farklı bir
+	// hafta/gün görünümüne geçildiğinde (scrollKey değiştiğinde) uygulanıyor; aynı görünümün
+	// tekrar render edilmesinde kullanıcının o anki kaydırma konumu KORUNUYOR.
+	const scrollKey = calView + "|" + dKey(start);
+	const isFreshView = scrollKey !== calWeekScrollKey;
+	calWeekScrollKey = scrollKey;
 	const sc=document.getElementById("calTgScroll");
 	if(sc){
-		const hasToday=days.some(function(d){ return isSameDay(d,today); });
-		const target=hasToday ? Math.max(0,(new Date().getHours()-2)*CAL_HOUR_H) : 7*CAL_HOUR_H;
-		sc.scrollTop=Math.max(0,target-12);
+		if(!isFreshView && calWeekScrollTopPreserved!==null){
+			// Ayni hafta/gun -- korunan konum geri yuklenir (surukleme/hizli-damga sonrasi fircalama YOK).
+			sc.scrollTop=calWeekScrollTopPreserved;
+		} else {
+			// Yeni bir hafta/gune gecildi (veya baska bir gorunumden -- ay/liste/yil -- donuldugu icin
+			// korunacak bir konum yoktu): sabah 07:00'a, bugun gorunuyorsa su anki saate kaydir.
+			const hasToday=days.some(function(d){ return isSameDay(d,today); });
+			const target=hasToday ? Math.max(0,(new Date().getHours()-2)*CAL_HOUR_H) : 7*CAL_HOUR_H;
+			sc.scrollTop=Math.max(0,target-12);
+		}
 		// Izgara, kaydırma çubuğu kadar dar kalıyor; sütunlar hizalansın diye başlık satırları da aynı kadar daraltılır.
 		const sbw=sc.offsetWidth-sc.clientWidth;
 		if(sbw>0){
@@ -3407,6 +3431,14 @@ function pointerXY(nativeEvt){
 // engelleme mekanizmasi budur -- filter true donerse surukleme hic BASLAMAZ (calDragStart'taki
 // e.preventDefault() ile ayni davranis). Kilitli etkinlikte toast icin onFilter kullanilir.
 function calSortableFilter(evt, item){
+	// Kilit ikonu, suruklenebilir etkinlik blogunun ICINDE -- dokunma hedefi genisletmesi
+	// (bkz. @media(pointer:coarse) .cal-lock-ico::after) olsa bile SortableJS bu dokunusu
+	// "surukleme baslangici olabilir" diye YAKALAYIP 150ms boyunca bekletiyordu (delayOnTouchOnly),
+	// bu da ikonun HIC TIKLANAMIYORMUS gibi hissettiriyordu (kullanici: "kilit simgesine dokunmak
+	// mobilde cok zor"). Ikon zaten kendi tiklama isleyicisinde event.stopPropagation() yapiyor
+	// (bkz. lockIconHtml()) ama bu SONRAKI bir "click" olayi icin -- SortableJS'in kendi
+	// touchstart/mousedown yakalamasini engellemez, o yuzden BURADA da ayrica halledilmesi gerekiyor.
+	if(evt && evt.target && evt.target.closest && evt.target.closest(".cal-lock-ico")) return true;
 	if(!canEditData()) return true;
 	const id=item.dataset.evid;
 	if(id && calEvents[id] && calEvents[id].locked) return true;
@@ -3422,6 +3454,21 @@ function calOnDragMove(evt){
 	const xy=pointerXY(evt.originalEvent); if(xy) calDragLastXY=xy;
 	return true; // engelleme yok, sadece izliyoruz
 }
+// Suruklenen blogun KENDI ust kenari ile isaretcinin o anki dikey konumu arasindaki fark --
+// surukleme BASLARKEN (blok henuz eski yerindeyken) bir kere olculur. Bu olculmeden onceki halde
+// zaman hesabi DOGRUDAN isaretci konumundan yapiliyordu: kullanici bir etkinligin ORTASINDAN ya da
+// ALTINDAN tutup suruklerse, blogun USTU isaretcinin oldugu saate ZIPLIYORDU (kullanicinin
+// "elimin altindaki noktayi degil, imlecin bulundugu saati baz aliyor" seklinde bildirdigi hata).
+// Simdi bu fark cikarilarak blogun KENDI ust kenarinin nereye tasindigi hesaplaniyor.
+let calDragGrabOffsetY = 0;
+function calOnDragStart(evt){
+	calDragGrabOffsetY = 0;
+	const xy = pointerXY(evt.originalEvent);
+	if (xy && evt.item) {
+		const r = evt.item.getBoundingClientRect();
+		calDragGrabOffsetY = xy.y - r.top;
+	}
+}
 async function calMoveEvent(id, dateKey, timeInfo){
 	if(!id || !calEvents[id] || !requireEdit()) return;
 	// calSortableFilter zaten kilitliyse suruklemeyi baslatmiyor; bu, surukleme basladiktan HEMEN
@@ -3435,7 +3482,8 @@ async function calMoveEvent(id, dateKey, timeInfo){
 	// -- son derece nadir -- saat SESSIZCE degistirilmez, sadece tarih guncellenir (yanlis bir
 	// saate tahmin yurutmek, hic degistirmemekten daha kotu).
 	if(timeInfo && timeInfo.isDayCol && timeInfo.xy && hmToMin(ev.saat)!==null){
-		const mins0=Math.round(((timeInfo.xy.y-timeInfo.rectTop)/CAL_HOUR_H)*60/30)*30;
+		const grabOffset = timeInfo.grabOffsetY || 0;
+		const mins0=Math.round(((timeInfo.xy.y-timeInfo.rectTop-grabOffset)/CAL_HOUR_H)*60/30)*30;
 		const mins=Math.max(0,Math.min(23*60+30,mins0));
 		const dur=(hmToMin(ev.bitisSaat)!==null && hmToMin(ev.bitisSaat)>hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat)-hmToMin(ev.saat) : 60;
 		patch.saat=minToHm(mins);
@@ -3460,7 +3508,8 @@ function calOnDragEnd(evt){
 	const isDayCol=to.classList.contains("cal-daycol");
 	const isAllDayCol=to.classList.contains("cal-allday-col");
 	const xy=pointerXY(evt.originalEvent) || calDragLastXY;
-	const timeInfo={ isDayCol:isDayCol, isAllDayCol:isAllDayCol, xy:xy, rectTop: isDayCol ? to.getBoundingClientRect().top : 0 };
+	const timeInfo={ isDayCol:isDayCol, isAllDayCol:isAllDayCol, xy:xy, rectTop: isDayCol ? to.getBoundingClientRect().top : 0, grabOffsetY: calDragGrabOffsetY };
+	calDragGrabOffsetY = 0;
 	calMoveEvent(id, dateKey, timeInfo);
 }
 function calSortableOptions(groupName){
@@ -3469,7 +3518,7 @@ function calSortableOptions(groupName){
 		animation: 150, ghostClass: "dragging",
 		delay: 150, delayOnTouchOnly: true, // person-list reorder ile ayni dokunmatik-guvenli kalip (bkz. Sortable kullanimi render()'da)
 		filter: calSortableFilter, onFilter: calSortableOnFilter,
-		onMove: calOnDragMove, onEnd: calOnDragEnd
+		onStart: calOnDragStart, onMove: calOnDragMove, onEnd: calOnDragEnd
 	};
 }
 
