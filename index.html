@@ -2078,6 +2078,26 @@
 						profileResolved = true;
 						clearTimeout(offlineFallbackTimer);
 						window.removeEventListener("offline", onGoOffline);
+						if (!snap.exists()) {
+							// "Yetim hesap" onarimi: Auth kaydi basarili olup users/{uid} yazimi (signup
+							// sirasinda aginin kopmasi, ya da veritabaninin tamamen silinmesi gibi) hic
+							// gerceklesmemis/kaybolmussa, kullanici sonsuza kadar rolsuz/GORUNMEZ kalirdi --
+							// admin panelindeki kullanici listesi bile users/ dugumunun cocuklarindan
+							// olusuyor, yani admin bu kisiyi role atamak icin GOREMEZDI bile. Rules zaten
+							// bu yazima izin veriyor (auth.uid===$uid && !data.exists() && newData.val()
+							// ==='pending') -- signup'taki AYNI kosul, sadece "kayit aninda" degil "ilk
+							// basarili girisin herhangi bir aninda" calisacak sekilde genisletiliyor.
+							database.ref("users/" + user.uid).set({ firstName: "", lastName: "", email: user.email || "", role: "pending", createdAt: firebase.database.ServerValue.TIMESTAMP })
+								.catch(function(err) {
+									console.error("Yetim hesap onarimi basarisiz:", err);
+									// Onarim yazimi basarisiz olsa bile kullanici SONSUZA kadar yukleme
+									// ekraninda kalmasin -- yerel/kalicilastirilmamis "pending" ile devam eder,
+									// bir sonraki basarili girishte tekrar denenir.
+									currentUser = { uid: user.uid, email: user.email, firstName: "", lastName: "", role: "pending" };
+									renderAuthUI(); applyPermissions(); hideLoading();
+								});
+							return; // basarili olursa bu callback zaten YENI veriyle tekrar tetiklenir
+						}
 						const profile = snap.val() || {};
 						currentUser = { uid: user.uid, email: user.email, firstName: profile.firstName || "", lastName: profile.lastName || "", role: profile.role || "pending" };
 						renderAuthUI(); applyPermissions(); hideLoading();
@@ -3539,10 +3559,19 @@
 			function escapeHtml(str) { return String((str === undefined || str === null) ? "" : str).replace(/[&<>"']/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]; }); }
 			// Fotoğraf değeri doğrudan <img src="..."> içine yazıldığı için, sadece güvenli şemalara izin verilir.
 			// Aksi hâlde kayda yazılmış bir metin, tırnaktan kaçıp herkesin tarayıcısında kod çalıştırabilir.
+			// Dosya SEÇEREK yüklenen fotoğraflar zaten previewPhoto()/previewSuccessorPhoto() içinde canvas ile
+			// 480px'e ve JPEG 0.75'e sıkıştırılıyor (küçük kalır) -- ama JSON İÇE AKTARMA bu adımı ATLAYIP
+			// harici bir kaynaktan (ör. başka bir cihazda hiç sıkıştırılmamış orijinal bir fotoğraf) gelen
+			// data: URI'yi doğrudan buraya verebilir. Firebase RTDB'de tek bir düğüm ~10MB ile sınırlı ve büyük
+			// bir kayıt TÜM listeyi indiren her istemcinin performansını etkiler -- bu yüzden burada da bir
+			// üst sınır uygulanır (2MB base64 metin ~1.5MB gerçek görsel veriye denk gelir, sıkıştırılmış bir
+			// portre fotoğrafı için bolca yeterli).
+			const MAX_PHOTO_DATA_URL_LENGTH = 2 * 1024 * 1024;
 			function safePhotoUrl(u) {
 				const s = String(u === undefined || u === null ? "" : u).trim();
 				if (!s) return "";
-				if (/^https?:\/\//i.test(s) || /^data:image\//i.test(s)) return s;
+				if (/^https?:\/\//i.test(s)) return s;
+				if (/^data:image\//i.test(s)) return s.length <= MAX_PHOTO_DATA_URL_LENGTH ? s : "";
 				return "";
 			}
 			function fmtDate(d) { if(!d) return "—"; const parts = d.split("-"); return parts.length === 3 ? parts[2] + "." + parts[1] + "." + parts[0] : d; }
@@ -4016,7 +4045,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				const record = {
 					prefix: document.getElementById("sf_prefix").value, name: name, title: title,
 					unit: document.getElementById("sf_unit").value.trim(), status: "aktif",
-					rank: rankRaw === "" ? "" : Number(rankRaw), photo: document.getElementById("sf_photoPreview").dataset.value || "",
+					rank: rankRaw === "" ? "" : Number(rankRaw), photo: safePhotoUrl(document.getElementById("sf_photoPreview").dataset.value),
 					start: document.getElementById("sf_start").value, end: "",
 					note: document.getElementById("sf_note").value.trim()
 				};
@@ -4311,7 +4340,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			const record = {
 				prefix: document.getElementById("f_prefix").value, name: name, title: title, unit: document.getElementById("f_unit").value.trim(), status: status,
 				rank: rankRaw === "" ? "" : Number(rankRaw),
-				photo: document.getElementById("photoPreview").dataset.value || "", start: document.getElementById("f_start").value, end: document.getElementById("f_end").value, note: document.getElementById("f_note").value.trim()
+				photo: safePhotoUrl(document.getElementById("photoPreview").dataset.value), start: document.getElementById("f_start").value, end: document.getElementById("f_end").value, note: document.getElementById("f_note").value.trim()
 			};
 			if (currentListKey === "universite") {
 				record.faculties = Array.from(document.querySelectorAll("#facultyMultiSelect .fm-cb:checked")).map(function(cb) { return cb.value; });
