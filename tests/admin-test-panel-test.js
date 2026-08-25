@@ -60,7 +60,7 @@ function serve() {
 		switchAdminTab('test');
 		return {
 			viewVisible: document.getElementById('adminTestView').style.display === 'block',
-			otherViewsHidden: document.getElementById('adminUsersView').style.display === 'none' && document.getElementById('adminLogsView').style.display === 'none' && document.getElementById('adminEventsBackupView').style.display === 'none',
+			otherViewsHidden: document.getElementById('adminUsersView').style.display === 'none' && document.getElementById('adminLogsView').style.display === 'none',
 			tabBtnActive: document.getElementById('adminTabTestBtn').classList.contains('btn-primary')
 		};
 	});

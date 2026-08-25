@@ -114,8 +114,8 @@
 				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Taslağı Oluştur (0)</button>
 				<button class="btn btn-ghost" id="cancelNewsBtn" style="display:none;" onclick="toggleNewsMode()">İptal</button>
 
-				<button class="btn btn-ghost edit-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
-				<button class="btn btn-ghost edit-only" id="importBtn" onclick="document.getElementById('importFile').click()">JSON Yükle</button>
+				<button class="btn btn-ghost admin-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
+				<button class="btn btn-ghost admin-only" id="importBtn" onclick="document.getElementById('importFile').click()">JSON Yükle</button>
 				<input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">
 			</div>
 			
@@ -212,6 +212,9 @@
 						<button type="button" class="cal-textbtn" onclick="calToday()">Bugün</button>
 						<input type="date" class="cal-jump" id="calJumpDate" onchange="calJumpTo(this.value)" title="İstediğin tarihe git" aria-label="Tarihe git">
 						<span class="cal-spacer"></span>
+						<button type="button" class="cal-iconbtn admin-only" onclick="exportEventsJSON()" title="Etkinlik takvimi JSON yedeği indir">⬇</button>
+						<button type="button" class="cal-iconbtn admin-only" onclick="document.getElementById('eventsRestoreFile').click()" title="JSON yedekten geri yükle">⬆</button>
+						<input type="file" id="eventsRestoreFile" accept="application/json" style="display:none;" onchange="importEventsJSON(event)">
 						<div class="cal-viewtabs" id="calViewTabs">
 							<button type="button" class="cal-viewbtn" data-view="day" onclick="calSetView('day')">Gün</button>
 							<button type="button" class="cal-viewbtn active" data-view="week" onclick="calSetView('week')">Hafta</button>
@@ -702,26 +705,17 @@
 				<div class="admin-tabs">
 					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')">Kullanıcılar</button>
 					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')">Geçmiş</button>
-					<button class="btn btn-ghost" id="adminTabBackupBtn" onclick="switchAdminTab('backup')">Yedekleme</button>
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')">Test</button>
-					<button class="btn btn-ghost" id="adminTabDebugBtn" onclick="switchAdminTab('debug')">Geliştirici Araçları</button>
 				</div>
 				<div class="test-mode-row">
 					<div>
 						<b class="test-mode-title">Paylaşımlı Test Ortamı</b>
-						<p class="hint" style="margin:2px 0 0;">Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz -- kişi/etkinlik kaydı, Debug butonları dahil. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. <b>Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!</b></p>
+						<p class="hint" style="margin:2px 0 0;">Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. <b>Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!</b></p>
 					</div>
 					<label class="ios-switch">
 						<input type="checkbox" id="testModeSwitch" onchange="setTestMode(this.checked)">
 						<span class="ios-switch-slider"></span>
 					</label>
-				</div>
-				<div class="test-mode-log-section">
-					<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-						<span class="hint" style="margin:0;">Test Günlüğü (son 50)</span>
-						<button type="button" class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="loadTestModeLog()">Yenile</button>
-					</div>
-					<div id="adminTestModeLogList" style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
 				</div>
 				<div id="adminUsersView">
 					<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
@@ -730,15 +724,13 @@
 				<div id="adminLogsView" style="display:none;">
 					<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
 					<div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
-				</div>
-				<div id="adminEventsBackupView" style="display:none;">
-					<p class="hint">Etkinlik takvimindeki tüm kayıtların JSON yedeğini indir, ya da daha önce indirdiğin bir yedeği geri yükle. <b>Geri yükleme veritabanındaki mevcut tüm etkinliklerin yerine geçer</b> — bir şey denerken yanlışlıkla etkinlik silinir/eklenirse buradan eski hâline dönebilirsin.</p>
-					<div style="display:flex; gap:8px; margin-bottom:14px;">
-						<button type="button" class="btn btn-primary" style="flex:1;" onclick="exportEventsJSON()">JSON Yedeği İndir</button>
-						<button type="button" class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('eventsRestoreFile').click()">Yedekten Geri Yükle</button>
-						<input type="file" id="eventsRestoreFile" accept="application/json" style="display:none;" onchange="importEventsJSON(event)">
+					<div class="test-mode-log-section">
+						<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+							<span class="hint" style="margin:0;">Test Günlüğü (son 50)</span>
+							<button type="button" class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="loadTestModeLog()">Yenile</button>
+						</div>
+						<div id="adminTestModeLogList" style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
 					</div>
-					<div id="adminEventsBackupInfo" class="hint"></div>
 				</div>
 				<div id="adminTestView" style="display:none;">
 					<p class="hint">Takvim/haber kodundaki Playwright regresyon testlerini GitHub Actions üzerinden çalıştırır. "Testi Çalıştır" GitHub'ın kendi sayfasını yeni sekmede açar — orada bir kere "Run workflow" demen yeterli. Sonuç birkaç dakika içinde burada görünür, "Son Sonucu Yenile" ile tekrar kontrol edebilirsin.</p>
@@ -747,19 +739,6 @@
 						<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
 					</div>
 					<div id="adminTestResult" class="hint">Yükleniyor…</div>
-				</div>
-				<div id="adminDebugView" style="display:none;">
-					<p class="hint">Bu araçlar test/deneme amaçlıdır. Yaptıkları değişiklikler GERÇEK protokol verisini etkiler, ama kaydı normal değişiklik geçmişine değil, buradaki ayrı <b>Debug Günlüğü</b>'ne yazılır — asıl geçmişi kirletmez, istediğinde aşağıdan temizleyebilirsin.</p>
-					<p class="hint" style="margin-top:-8px;">Şu an aktif liste: <b id="debugActiveListLabel">—</b></p>
-					<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
-						<button type="button" class="btn btn-primary" onclick="debugVerifyAllCurrent()">Aktif Listedeki Tüm Kayıtları "Güncel" Yap</button>
-						<button type="button" class="btn btn-ghost" onclick="debugResetVerificationAllCurrent()">Aktif Listedeki Tüm Kayıtların Doğrulamasını Sıfırla</button>
-					</div>
-					<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-						<span class="hint" style="margin:0;">Debug Günlüğü (son 50)</span>
-						<button type="button" class="btn btn-danger-outline" style="padding:5px 10px; font-size:12px;" onclick="clearDebugLog()">Günlüğü Temizle</button>
-					</div>
-					<div id="adminDebugLogList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
 				</div>
 			</div>
 		</div>

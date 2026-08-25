@@ -760,7 +760,6 @@
 				.cal-addbtn{ padding:5px 10px; font-size:12px; }
 				.cal-m-grid{ grid-auto-rows:minmax(74px,1fr); }
 				.cal-mday{ padding:2px 3px 4px; }
-				.cal-peek{ width:100%; max-width:100%; }
 				.cal-dhead .dn{ font-size:13px; min-width:22px; height:22px; }
 				.cal-block .bt{ font-size:10px; }
 				.cal-block .bh{ display:none; }
@@ -968,6 +967,11 @@
 
 				/* === YETKİ BAZLI GİZLEME === */
 				body.is-readonly .edit-only{ display:none !important; }
+				/* JSON içe/dışa aktarma butonları (kişi listesi + takvim yedekleme) editörlerden de
+				   gizlenir -- kötü niyetli/hatalı bir JSON içe aktarma tüm veritabanını degistirebilir,
+				   bu riski sadece admin üstlenir (fonksiyonlar zaten requireAdmin() ile de korunuyor,
+				   bu sadece butonu YETKISIZ role hiç GÖSTERMEME katmanı). */
+				body:not(.is-admin) .admin-only{ display:none !important; }
 
 				/* === ADMIN PANELİ === */
 				.admin-user-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; }
@@ -1095,6 +1099,44 @@
 			}
 			@supports (height: 100dvh){
 				body.test-mode-active .cal-overlay{ height: calc(100dvh - var(--test-banner-h)); }
+			}
+			/* Yukaridaki kural katmanlarin KENDISINI banner kadar asagi cekiyor (top:var(--test-banner-h)),
+			   ve --test-banner-h zaten env(safe-area-inset-top)'u ICINDE barindiriyor. Ama bu katmanlarin
+			   ICINDEKI bazi elemanlar (topbar/peek-head/modal padding'i) AYRICA kendi env(safe-area-inset-top)
+			   payini ekliyordu -- sonuc CIFT sayilan bir bosluk (kullanici: "takvim ust tarafta cok
+			   bosluklu kaldi"). Test Modu acikken bu elemanlarin kendi ekstra ust payi sifirlanir. */
+			body.test-mode-active .cal-topbar{ padding-top:12px; }
+			body.test-mode-active .cal-peek-head{ padding-top:16px; }
+			body.test-mode-active .modal-bg{ padding-top:24px; }
+			body.test-mode-active .authform-bg{ padding-top:24px; }
+
+			/* Mobilde etkinlik detay paneli artik kenardan kenara TAM EKRAN kaplayan bir sayfa gibi
+			   degil, kisi duzenleme ekrani (.modal-bg/.modal) ile AYNI hissi veren ORTALANMIS bir
+			   kart olarak acilir (kullanici: "anasayfadaki duzenle secenegine bastigimizda cikan
+			   ekran gibi bir ekran ciksin, butun ekrani kaplayan bir sey cikmasin"). Masaustunde
+			   davranis DEGISMEDI (sagdan kayarak acilir, kullanici tarafindan ayrica onaylanmisti).
+			   Ic yapi (head/body/foot flex sutunu + .cal-peek-body{min-height:0}) AYNEN korunur --
+			   uzun icerikte govde kendi icinde kayar, footer (Simdi Bitir/Duzenle/Sil) HER ZAMAN
+			   gorunur/sabit kalir; onceki "butonlari cektikce geliyor" hissi zaten panelin TAM
+			   EKRAN/degisken-yukseklik olmasindan kaynaklaniyordu, sinirli max-height'li kucuk bir
+			   kartta bu belirsizlik ortadan kalkar.
+			   Bu kurallar Test Modu banner'inin YUKARIDAKI .cal-peek top/height override'inden DAHA
+			   SONRA geldigi icin (ayni ozgullukte, kaynak sirasi kazanir) Test Modu acikken de
+			   dogru calisir -- ayrica ayni ozgullukte bir test-modu varyanti da asagida tekrarlanir. */
+			@media (max-width: 700px){
+				.cal-peek{
+					top:50%; right:auto; left:50%; bottom:auto;
+					width:calc(100% - 32px); max-width:460px;
+					height:auto; max-height:calc(var(--vh, 1vh) * 100 - 48px);
+					border-radius:16px;
+					transform:translate(-50%, calc(-50% + 16px)); opacity:0; pointer-events:none;
+					transition:transform .22s cubic-bezier(.22,.8,.32,1), opacity .18s ease;
+				}
+				.cal-peek.open{ transform:translate(-50%, -50%); opacity:1; pointer-events:auto; }
+				.cal-peek-head{ padding-top:16px; border-radius:16px 16px 0 0; }
+				.cal-peek-foot{ padding-bottom:14px; }
+				.cal-peek-backdrop{ background:rgba(22,35,61,.75); }
+				body.test-mode-active .cal-peek{ top:50%; height:auto; max-height:calc(var(--vh, 1vh) * 100 - 48px); }
 			}
 
 			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */

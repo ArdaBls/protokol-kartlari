@@ -93,6 +93,7 @@
 			function applyPermissions() {
 				const editable = canEditData();
 				document.body.classList.toggle("is-readonly", !editable);
+				document.body.classList.toggle("is-admin", isAdminUser());
 				// Yetki gelmeden önce açılmış bir modal veya seçim modu, yetki düşünce ekranda kalmasın.
 				if (!editable) {
 					closeModal();
@@ -186,20 +187,14 @@
 				if (!requireAdmin()) return;
 				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
 				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
-				document.getElementById("adminEventsBackupView").style.display = (tab === "backup") ? "block" : "none";
 				document.getElementById("adminTestView").style.display = (tab === "test") ? "block" : "none";
-				document.getElementById("adminDebugView").style.display = (tab === "debug") ? "block" : "none";
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
-				document.getElementById("adminTabBackupBtn").classList.toggle("btn-primary", tab === "backup");
-				document.getElementById("adminTabBackupBtn").classList.toggle("btn-ghost", tab !== "backup");
 				document.getElementById("adminTabTestBtn").classList.toggle("btn-primary", tab === "test");
 				document.getElementById("adminTabTestBtn").classList.toggle("btn-ghost", tab !== "test");
-				document.getElementById("adminTabDebugBtn").classList.toggle("btn-primary", tab === "debug");
-				document.getElementById("adminTabDebugBtn").classList.toggle("btn-ghost", tab !== "debug");
-				if (tab === "users") loadAdminUsers(); else if (tab === "backup") { document.getElementById("adminEventsBackupInfo").textContent = "Takvimde şu an " + Object.keys(calEvents).length + " etkinlik kayıtlı."; } else if (tab === "test") loadAdminTestPanel(); else if (tab === "debug") loadAdminDebugPanel(); else loadAdminLogs();
+				if (tab === "users") loadAdminUsers(); else if (tab === "test") loadAdminTestPanel(); else { loadAdminLogs(); loadTestModeLog(); }
 }
 
 			// GitHub Actions ile regresyon testi: repo/workflow adi tek yerden - baska bir repoya
@@ -863,70 +858,6 @@
 					.then(function(){ return true; })
 					.catch(function(err){ console.error("Debug log kaydı yazılamadı:", err); showToast("İşlem yapıldı ancak debug günlüğüne yazılamadı.", "warn"); return false; });
 			}
-			// NOT: aşağıdaki iki fonksiyon BİLEREK saveData()/savePerson() kullanmıyor -- onlar
-			// gerçek logs/{currentListKey} dalına yazar. Debug butonları veriyi gerçekten
-			// değiştirir (test amaçlı olsa da), sadece logu ayrı tutulur.
-			async function debugVerifyAllCurrent() {
-				if (!requireAdmin()) return;
-				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); return; }
-				if (!confirm(LIST_LABELS[currentListKey] + " listesindeki TÜM kayıtlar \"Güncel\" doğrulanmış olarak işaretlenecek. Bu GERÇEK veriyi değiştirir. Devam edilsin mi?")) return;
-				const who = ((currentUser.firstName||"") + " " + (currentUser.lastName||"")).trim() || currentUser.email;
-				const now = Date.now();
-				// Tüm listeyi .set() ile YENİDEN YAZMAK yerine, sadece dokunulan alanlar id/field
-				// bazında .update() ile yazılır -- bu sayede debug butonuna basılırken ARADA başka
-				// bir editörün eklediği yeni bir kayıt sessizce kaybolmaz (bkz. people nesne modeli).
-				const patch1 = {};
-				Object.keys(people).forEach(function(id) {
-					// Yerelde ANINDA gorunum icin istemci zamani (now) kullanilir; Firebase'e yazilan
-					// deger ise sunucu saatiyle (ServerValue.TIMESTAMP) belirlenir -- istemci saati
-					// yanlis ayarlanmis olsa bile "sonDogrulamaTs" gercek/tutarli sunucu zamanini tasir.
-					people[id].dogrulamaKaynak = "manuel"; people[id].sonDogrulamaTs = now; people[id].dogrulayan = who;
-					patch1[id + "/dogrulamaKaynak"] = "manuel"; patch1[id + "/sonDogrulamaTs"] = firebase.database.ServerValue.TIMESTAMP; patch1[id + "/dogrulayan"] = who;
-				});
-				const count1 = Object.keys(people).length;
-				try {
-					await database.ref(dbPath(LIST_PATHS[currentListKey])).update(patch1);
-					globalFuseSourceRef = null;
-					await logDebugAction("Tüm kayıtlar \"Güncel\" olarak işaretlendi (" + count1 + " kayıt)", LIST_LABELS[currentListKey]);
-					showToast("Tüm kayıtlar güncel olarak işaretlendi.", "success");
-					render();
-				} catch (err) { console.error("Kaydedilemedi:", err); showToast("Kaydedilemedi.", "error"); }
-			}
-			async function debugResetVerificationAllCurrent() {
-				if (!requireAdmin()) return;
-				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); return; }
-				if (!confirm(LIST_LABELS[currentListKey] + " listesindeki TÜM kayıtların doğrulama bilgisi silinip \"Hiç Doğrulanmadı\" yapılacak. Bu GERÇEK veriyi değiştirir. Devam edilsin mi?")) return;
-				const patch2 = {};
-				Object.keys(people).forEach(function(id) {
-					delete people[id].dogrulamaKaynak; delete people[id].sonDogrulamaTs; delete people[id].dogrulayan;
-					patch2[id + "/dogrulamaKaynak"] = null; patch2[id + "/sonDogrulamaTs"] = null; patch2[id + "/dogrulayan"] = null;
-				});
-				const count2 = Object.keys(people).length;
-				try {
-					await database.ref(dbPath(LIST_PATHS[currentListKey])).update(patch2);
-					globalFuseSourceRef = null;
-					await logDebugAction("Tüm kayıtların doğrulaması sıfırlandı (" + count2 + " kayıt)", LIST_LABELS[currentListKey]);
-					showToast("Doğrulama bilgisi sıfırlandı.", "warn");
-					render();
-				} catch (err) { console.error("Kaydedilemedi:", err); showToast("Kaydedilemedi.", "error"); }
-			}
-			function loadAdminDebugPanel() {
-				if (!requireAdmin()) return;
-				const label = document.getElementById("debugActiveListLabel"); if (label) label.textContent = LIST_LABELS[currentListKey] || currentListKey;
-				const listEl = document.getElementById("adminDebugLogList");
-				listEl.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
-				if (!database) { listEl.innerHTML = '<p class="admin-user-empty">Veritabanı bağlı değil.</p>'; return; }
-				database.ref(dbPath("logs/debug")).limitToLast(50).once("value").then(function(snap) {
-					const obj = snap.val() || {};
-					const entries = Object.values(obj).sort(function(a, b) { return (b.timestamp||0) - (a.timestamp||0); });
-					if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Debug günlüğü boş.</p>'; return; }
-					listEl.innerHTML = entries.map(function(e) {
-						const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
-						const targetHtml = e.target ? ('<span class="al-target">' + escapeHtml(e.target) + '</span> ') : "";
-						return '<div class="admin-log-row"><div class="al-top"><span class="al-by">' + escapeHtml(e.by || e.email || "?") + '</span><span class="al-time">' + timeStr + '</span></div><div class="al-action">' + targetHtml + escapeHtml(e.action || "") + '</div></div>';
-					}).join("");
-				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Günlük yüklenemedi.</p>'; });
-			}
 			// Test Modu anahtarı admin panelinde her sekmede görünür (bkz. adminPanelBg HTML'i);
 			// bu yüzden günlüğü de switchAdminTab'a bağlı değil, panel her açıldığında yüklenir.
 			// Loglar artık düz bir logs/test yerine, gerçek yapı birebir test/ altında yansıdığı
@@ -952,25 +883,6 @@
 					}).join("");
 				}).catch(function() { listEl.innerHTML = '<p class="admin-user-empty">Günlük yüklenemedi.</p>'; });
 			}
-			async function clearDebugLog() {
-				if (!requireAdmin()) return;
-				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return; }
-				if (!confirm("Debug günlüğündeki TÜM kayıtlar kalıcı olarak silinecek (asıl değişiklik geçmişi etkilenmez). Devam edilsin mi?")) return;
-				try {
-					// logs/debug DUGUMUNUN KENDISINDE .write kurali yok, sadece HER BIR logId
-					// yaprağinda var -- bu yuzden tek seferde remove() PERMISSION_DENIED veriyordu.
-					// Her kaydi TEK TEK silmek, mevcut kurallarla (yeni Firebase kurali gerekmeden) calisir.
-					const snap = await database.ref(dbPath("logs/debug")).once("value");
-					const obj = snap.val() || {};
-					const keys = Object.keys(obj);
-					if (!keys.length) { showToast("Debug günlüğü zaten boş.", "success"); loadAdminDebugPanel(); return; }
-					await Promise.all(keys.map(function(k) { return database.ref(dbPath("logs/debug/" + k)).remove(); }));
-					showToast("Debug günlüğü temizlendi (" + keys.length + " kayıt).", "warn");
-					loadAdminDebugPanel();
-				}
-				catch (err) { showToast("Günlük temizlenemedi.", "error"); }
-			}
-
 			// actionLabel/targetName standart tam kayıt; opsiyonel "patch" verilirse (id veya
 			// "id/alan" -> deger, silme için null) TÜM listeyi değil, sadece dokunulan yol(lar)ı
 			// .update() ile yazar -- eş zamanlı olarak başka bir editörün eklediği kayıt kaybolmaz.
@@ -2534,9 +2446,9 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			// people artık push-ID -> kayıt şeklinde bir NESNE; dışa aktarım bu nesneyi ID'leriyle
 			// BİRLİKTE indirir. Eski (dizi tabanlı) yedeklerle geriye dönük uyumluluk importJSON()'da
 			// sağlanır (Array.isArray kontrolü ile hem eski hem yeni format kabul edilir).
-			function exportJSON(){ const fileName = currentListKey === "universite" ? "Üniversite-Protokol-Listesi.json" : "İl-Protokol-Listesi.json"; downloadFile(JSON.stringify(people, null, 2), fileName, "application/json"); showToast("JSON yedeği indirildi."); }
+			function exportJSON(){ if (!requireAdmin()) return; const fileName = currentListKey === "universite" ? "Üniversite-Protokol-Listesi.json" : "İl-Protokol-Listesi.json"; downloadFile(JSON.stringify(people, null, 2), fileName, "application/json"); showToast("JSON yedeği indirildi."); }
 			function importJSON(e){
-			if (!requireEdit()) { e.target.value = ""; return; }
+			if (!requireAdmin()) { e.target.value = ""; return; }
 			if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil!", "error"); e.target.value = ""; return; }
 			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
 			reader.onload = async function(ev) {
@@ -2709,7 +2621,6 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						}
 						const skipNote = skipped ? (" " + skipped + " geçersiz satır atlandı.") : "";
 						showToast(kept + " etkinlik geri yüklendi." + skipNote);
-						document.getElementById("adminEventsBackupInfo").textContent = kept + " etkinlik geri yüklendi." + skipNote;
 					}catch(err){ showToast("Dosya hatalı veya bozuk!", "error"); }
 					e.target.value = "";
 				}; reader.readAsText(file);
@@ -3206,6 +3117,12 @@ async function toggleEventLock(id){
 	const label=evLogName(e.ad)+" etkinliği "+(wasLocked?"kilidi açıldı":"kilitlendi");
 	const res=await persistEvent(id, patch, label);
 	if(!res) return;
+	// Kilit acilirken/kapanirken, hemen ONCESINDE (ornegin kilitliyken suruklemeye calisinca)
+	// gosterilmis "kilitli, tasinamaz" toast'i HALA ekranda olabilir (4sn gorunur kalir) --
+	// silinmeden yeni "kilit acildi" toast'i eklenince ikisi CELISKILI sekilde AYNI ANDA
+	// gorunuyordu (kullanici: "acik/kapali yaptigimda uyari ile tasinabilir oldu uyarisi
+	// birlikte cikiyor"). Durumu degistiren bu aksiyon, eski/gecersiz kalan toast'lari temizler.
+	document.querySelectorAll("#toastContainer .toast").forEach(function(t){ t.remove(); });
 	calEvents[id]=patch;
 	// Kilit acilinca deneme sayaci da sifirlanir -- yoksa onceki (kilitliyken biriken) sayi
 	// kalip bir SONRAKI kilitlemede kullanici "taze" bir denemede beklenmedik sekilde direkt
