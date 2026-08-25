@@ -290,13 +290,17 @@
 			.rank-reference{ display:none; }
 			@media (min-width: 900px) {
 			.rank-reference{ display:flex; flex-direction:column; position:absolute; top:0; bottom:0; left:calc(100% + 16px); width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow:hidden; }
-			/* #modalBg (kişi düzenleme modalı) HER ZAMAN dikey tam ortada kilitli kalsın isteniyor -- paylaşılan
-			   .modal-bg kuralının align-items:safe center'ı (bkz. satır ~719) BİLEREK değiştirilmiyor, çünkü o
-			   sınıfı #adminPanelBg (çok sekmeli/uzun log listeleri) ve #legalModalBg (uzun sözleşme metni) gibi
-			   kısa pencerelerde gerçekten taşabilecek diğer modaller de paylaşıyor -- "safe" fallback'i onların
-			   üst kısmının/X butonunun kesilmesini önlüyor. Burada SADECE #modalBg ID seçici (özgüllük 100),
-			   paylaşılan .modal-bg class'ını (özgüllük 10) ezer; diğer 9 modal-bg etkilenmez. */
-			#modalBg{ align-items:center; }
+			/* ESKİDEN #modalBg (kişi düzenleme modalı) BİLEREK plain align-items:center kullanıyordu
+			   ("her zaman dikey tam ortada kilitli kalsın" isteği, v2.9.9) -- ama uzun formda (birçok
+			   fakülte checkbox'ı + tarih + foto + not alanı, pencere yüksekliği yetmediğinde) plain
+			   center, taşan içeriğin ÜST kısmını viewport'un DIŞINA/ERİŞİLEMEZ hale itiyordu: modal
+			   1105px, görünür alan 918px iken modal'ın üstü y=-38px'te render oluyordu VE overflow-y:auto
+			   olsa bile bu üste kaydırılamıyordu (plain center'ın scroll-inaccessibility problemi tam
+			   olarak budur, "safe" anahtar kelimesi bunun için var). Sonuç: Görev Geçmişi sekmesi
+			   (modal'ın üst kısmına, top:40px'e iğnelenmiş) tamamen erişilemez hale geliyordu (kullanıcı:
+			   "Görev Geçmişi sol tarafta görünmeyi bırakmış"). Diğer modallerle AYNI "safe center"
+			   davranışına dönüldü -- kısa formlarda görsel fark yok (zaten ortada), uzun formlarda
+			   artık üstten (X/başlık dahil) erişilebilir ve kaydırılabilir. */
 			}
 			.rank-reference .rr-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
 			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
@@ -313,7 +317,7 @@
 			   Vazgeç/Kaydet butonlarına biner. */
 			.successor-panel{ display:none; }
 			.successor-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
-			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; }
+			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
 			@media (min-width: 900px) {
 			.successor-panel.open{ position:absolute; top:0; right:auto; bottom:0; left:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; padding:16px; }
@@ -810,9 +814,17 @@
 			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); }
 			/* iOS Safari'nin native input[type=date] kontrolu bazen width:100%'u yok sayip kendi
 			   intrinsik genisligini dayatiyor (input[type=file]'daki v2.3.7 vakasiyla ayni aile).
-			   max-width:100%+min-width:0 ile bu dayatma KOSULSUZ eziliyor -- headless Chromium'da
-			   olcum farksiz cikiyor ama gercek cihazda tek basarili sinir bu olabilir. */
-			.field input[type=date]{ max-width:100%; min-width:0; }
+			   v2.9.14'te denenen max-width:100%+min-width:0 tek basina YETERSIZ kaldi -- kullanici
+			   gercek iPhone'da hala tasma bildirdi (kisi duzenleme ANA sekmesi + Gorev Gecmisi +
+			   Yerine Atanan Kisi paneli, hepsinde). Daha ISRARCI bir teknige gecildi: width:1px
+			   ONCE tarayicinin native kontrol icin uygulamaya calistigi "intrinsik/varsayilan"
+			   genisligi GECERSIZ kilar (kucuk bir deger verilince tarayici artik "auto"ymus gibi
+			   kendi tercih ettigi genisligi DAYATMAZ), min-width:100% ise container genisligine
+			   ZORLA geri getirir -- max-width tek basina bazi WebKit surumlerinde native kontrolun
+			   dayattigi genisligi layout SONRASI kirpiyor (bu da satir ~805 .modal{overflow-x:hidden}
+			   guvenlik agina ihtiyac doguruyordu), width:1px+min-width:100% ise BASLANGICTAN genislik
+			   hesabina karismasini engelleyip gercekten container'a gore boyutlandiriyor. */
+			.field input[type=date]{ width:1px; min-width:100%; max-width:100%; }
 			/* iOS Safari, dolu bir metin kutusuna kendi native "temizle" X'ini ekleyebiliyor;
 			   bu, bizim ozel .clear-btn X'imizle CAKISIP yanlis hizali gorunmesine yol aciyordu
 			   (masaustu Chrome'da bu sorun hic gorunmuyor cunku Chrome boyle bir seyi yapmiyor).
