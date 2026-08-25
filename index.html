@@ -3644,13 +3644,20 @@
 			grid.innerHTML = ""; document.getElementById("countLabel").textContent = list.length + " Kayıt";
 			if(list.length === 0){ document.getElementById("emptyState").style.display = "block"; return; } document.getElementById("emptyState").style.display = "none";
 
+			// DOM thrashing onlenir: kartlar/gruplar tek tek zaten DOM'a EKLENMIS "grid"e degil,
+			// once bagimsiz (detached) bir DocumentFragment'e eklenir -- tarayici her appendChild'da
+			// ayri bir reflow/layout hesabi yapmak yerine, asagida TEK bir grid.appendChild(frag)
+			// ile hepsini birden, tek reflow'da yerlestirir. Buyuk listelerde (120+ kayit) etkisi
+			// daha belirgindir.
+			const frag = document.createDocumentFragment();
+
 			if (isReorderMode) {
 				grid.classList.add("is-reorder");
 
 				const topBar = document.createElement("div"); topBar.className = "reorder-header-bar";
 				topBar.innerHTML = `<p class="rank-lock-hint"><b>SABİT KAT:</b> Her kişi <u>sadece</u> kendi protokol sırası içinde sürüklenip taşınabilir. Kişinin asıl sıra numarası değişmez, sadece o sıradaki yatay dizilim değişir. <b>Ayrıca</b> her sıranın içinde de unvan katmanına göre bir kilit vardır: örn. bir "Dr." unvanlı kişi, aynı sıradaki bir "Prof. Dr." veya "Rektör Yardımcısı" gibi daha üst unvanlı birinin önüne geçemez, sadece kendi unvan katmanı içinde yer değiştirebilir. Sırayı açmak için başlığına tıkla.</p>
 					<div class="reorder-toolbar"><button type="button" onclick="document.querySelectorAll('details.rank-group').forEach(d=>d.open=true)">Hepsini Aç</button> <button type="button" onclick="document.querySelectorAll('details.rank-group').forEach(d=>d.open=false)">Hepsini Kapat</button></div>`;
-				grid.appendChild(topBar);
+				frag.appendChild(topBar);
 
 				const groupsOrder = []; const groupsMap = {};
 				list.forEach(p => { const key = (p.rank === "" || p.rank == null) ? "__none__" : String(p.rank); if (!groupsMap[key]) { groupsMap[key] = { key: key, rank: p.rank, items: [] }; groupsOrder.push(key); } groupsMap[key].items.push(p); });
@@ -3671,8 +3678,9 @@
 					<span class="row-text"><span class="row-name">${p.prefix ? '<span style="color:var(--off);font-size:11px;">'+escapeHtml(p.prefix)+'</span><br>' : ''}${escapeHtml(p.name)}</span><span class="row-title">${escapeHtml(p.title)}</span></span>`;
 					subgrid.appendChild(row);
 				});
-				section.appendChild(subgrid); grid.appendChild(section);
+				section.appendChild(subgrid); frag.appendChild(section);
 				});
+				grid.appendChild(frag); // tek reflow: butun reorder DOM'u burada BIRDEN yerlesir
 
 				sortableInstances.forEach(inst => inst.destroy()); sortableInstances = [];
 				document.querySelectorAll(".rank-subgrid").forEach(subgrid => {
@@ -3762,8 +3770,9 @@
 					if (isBulkMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateBulkSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.bulk-cb'); cb.checked = !cb.checked; updateBulkSelection(personIdx, cb.checked, crd); };})(p._id, card); }
 					else if (isNewsMode) { card.onclick = (function(personIdx, crd) { return function(e) { if(e.target.type === "checkbox") { updateNewsSelection(personIdx, e.target.checked, crd); return; } const cb = crd.querySelector('.news-cb'); cb.checked = !cb.checked; updateNewsSelection(personIdx, cb.checked, crd); };})(p._id, card); }
 
-					grid.appendChild(card);
+					frag.appendChild(card);
 				});
+				grid.appendChild(frag); // tek reflow: butun kart listesi burada BIRDEN yerlesir
 			}
 			}
 
