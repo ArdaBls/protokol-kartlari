@@ -4873,6 +4873,18 @@ function calClearAnim(ov, shell){
 	ov.style.transition=""; ov.style.clipPath=""; ov.style.opacity="";
 	shell.style.transition=""; shell.style.transform=""; shell.style.opacity=""; shell.style.transformOrigin="";
 }
+// Animasyon bitince cb() cagirir -- ONCELIKLE gercek "transitionend" olayini dinler (CSS suresi
+// ileride degisirse elle senkronize edilmis bir setTimeout ms degeri gibi SESSIZCE eskimez), ama
+// transitionend'in hic tetiklenmedigi nadir durumlara (display degisimi, transition'in kesilmesi
+// vb.) karsi biraz daha uzun bir YEDEK setTimeout de tutulur -- ikisinden HANGISI once gelirse cb()
+// TAM BIR KEZ calisir, kalici "calAnimating=true" takilmasi olmaz.
+function afterCalTransition(el, propName, fallbackMs, cb){
+	let done=false;
+	function fire(){ if(done) return; done=true; el.removeEventListener("transitionend", onEnd); cb(); }
+	function onEnd(e){ if(e.target===el && e.propertyName===propName) fire(); }
+	el.addEventListener("transitionend", onEnd);
+	setTimeout(fire, fallbackMs);
+}
 
 function openCalendar(){
 	const ov=document.getElementById("calendarOverlay");
@@ -4905,7 +4917,7 @@ function openCalendar(){
 		shell.style.transition="transform .46s cubic-bezier(.22,.9,.26,1), opacity .3s ease .06s";
 		shell.style.transform="scale(1)";
 		shell.style.opacity="1";
-		setTimeout(function(){ calClearAnim(ov, shell); calAnimating=false; }, 490);
+		afterCalTransition(ov, "clip-path", 600, function(){ calClearAnim(ov, shell); calAnimating=false; });
 	});
 }
 
@@ -4932,7 +4944,7 @@ function closeCalendar(){
 	shell.style.transformOrigin=(origin.left+origin.width/2)+"px "+(origin.top+origin.height/2)+"px";
 	shell.style.transform="scale(.94)";
 	shell.style.opacity="0";
-	setTimeout(finish, 350);
+	afterCalTransition(ov, "clip-path", 500, finish);
 }
 function openCalendarAt(dateKey, evId){
 	const d=parseKey(dateKey); if(d) calAnchor=d;
