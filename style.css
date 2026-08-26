@@ -572,6 +572,20 @@
 			   birlikte kaliyor, tam kirpilmiyorsa fayda saglar). */
 			@media (pointer: coarse){
 				.cal-lock-ico{ opacity:.8; width:24px; height:24px; font-size:14px; }
+				/* 🔴 KRITIK (2026-08-26): Bu ::after position:absolute -- yani kapsayici blogu, en
+				   yakin KONUMLANDIRILMIS atasidir. Ikonun kendisi bazi baglamlarda position:static
+				   yapiliyordu (.cal-allday-chip, .cal-block.compact, cross-preview -- asagida);
+				   static bir oge kapsayici blok OLUSTURMAZ, bu yuzden ::after ikona degil, agacta
+				   yukarida bulunan ilk konumlandirilmis ataya (tam ekran takvim katmani) gore
+				   yayiliyordu. Sonuc: inset:-6px ile TUM EKRANI kaplayan gorunmez bir dokunma
+				   katmani. Kullanici tarifi birebir buydu: "tam gün kısmında bir etkinlik varsa
+				   kilit işareti sayfayı kilitliyor, sadece kilit işareti ile etkileşime girebiliyorsun,
+				   sağa sola günlere hareket etmiyor, çarpı ile de çıkamıyorsun." Ayrica onceki bir
+				   oturumda elementFromPoint'in bambaska koordinattaki .cal-lock-ico'yu dondurmesi
+				   "Playwright hatasi" saniliyordu -- MESELE BUYDU, gercek bir hataymis.
+				   Cozum: ikonun static yapildigi her baglamda position:relative kullanilir (flex
+				   akisinda static ile GORSEL OLARAK BIREBIR AYNI, ama kapsayici blok olusturur) --
+				   bkz. asagidaki .cal-block.compact / .cal-allday-chip / cross-preview kurallari. */
 				.cal-lock-ico::after{ content:""; position:absolute; inset:-6px; }
 				.cal-block.compact .cal-lock-ico{ width:20px; height:20px; font-size:13px; }
 			}
@@ -579,7 +593,10 @@
 			   arka plan ikinci bir gorsel kanal olarak durumu acikca ayirt ettiriyor. */
 			.cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
 			/* Kisa/kompakt bloklarda (ay gorunumu + 1 saatlik hafta bloklari) koseye degil kenara. */
-			.cal-block.compact .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; border-radius:3px; }
+			/* position:relative (static DEGIL) -- flex akisinda gorunum birebir ayni, ama dokunma
+			   alanini genisleten ::after'in kapsayici blogu ikonun KENDISI olur. static birakilirsa
+			   ::after tam ekran katmana gore yayilip her seyi kapatiyor (bkz. yukaridaki not). */
+			.cal-block.compact .cal-lock-ico{ position:relative; margin-left:auto; background:none; flex-shrink:0; border-radius:3px; }
 			.cal-block.compact .cal-lock-ico.is-locked{ background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
 			.cal-block.past{ border-style:dashed; border-left-style:solid; opacity:.75; }
 			.cal-block.done .bt{ text-decoration:line-through; opacity:.7; }
@@ -593,9 +610,16 @@
 			   sinif aktifken mutlak konumlandirma etkisiz kilinir, .cal-allday-chip'e benzer
 			   basit/guvenli bir onizleme gorunur. */
 			.cal-block.cal-block-cross-preview{ position:static !important; display:inline-flex !important; flex-direction:row !important; align-items:center !important; gap:5px !important; width:auto !important; height:auto !important; left:auto !important; top:auto !important; max-width:200px; }
+			/* Blok bu onizleme sirasinda static olduguna gore, ICINDEKI mutlak konumlu kilit ikonu
+			   da kapsayici blogunu kaybedip ust katmana kacardi (ve ::after ile birlikte ekrani
+			   kaplardi) -- surukleme suresince de olsa engellenir. */
+			.cal-block.cal-block-cross-preview .cal-lock-ico{ position:relative !important; bottom:auto !important; right:auto !important; margin-left:auto; }
 			.cal-allday-chip{ display:flex; align-items:center; gap:5px; border-radius:5px; padding:2.5px 7px; font-size:11px; font-weight:600; cursor:pointer; border:none; border-left:3px solid; text-align:left; font-family:inherit; overflow:hidden; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
 			.cal-allday-chip .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-			.cal-allday-chip .cal-lock-ico{ position:static; margin-left:auto; background:none; flex-shrink:0; opacity:.55; border-radius:3px; }
+			/* position:relative -- static OLMAMALI (bkz. .cal-lock-ico::after notu). Bu kural tam
+			   olarak kullanicinin bildirdigi "tüm gün kısmında etkinlik varsa kilit işareti sayfayı
+			   kilitliyor" hatasinin kaynagiydi. */
+			.cal-allday-chip .cal-lock-ico{ position:relative; margin-left:auto; background:none; flex-shrink:0; opacity:.55; border-radius:3px; }
 			.cal-allday-chip .cal-lock-ico.is-locked{ opacity:1; background:rgba(255,255,255,.92); box-shadow:0 0 0 1.5px #a33; }
 
 			/* ---- Ay görünümü ---- */
@@ -864,6 +888,13 @@
 			@media (max-width: 899px){
 				#modalBg .history-toggle{ top:22px; left:14px; width:22px; height:22px; border-radius:6px; border:1px solid var(--border-soft); box-shadow:none; font-size:13px; }
 			}
+			/* z-index ZORUNLU (2026-08-26): .modal DOM'da bu butondan SONRA geliyor ve ikisi de
+			   ayni yigin baglaminda z-index:auto ile konumlandirilmis -- bu durumda boyama sirasi
+			   DOM sirasidir, yani .modal butonun UZERINE biniyor. Masaustunde buton modalin
+			   DISINDA (left:-32px) durdugu icin sorun gorunmuyordu; mobilde ise (left:14px) tam
+			   modalin uzerine denk geliyor ve TAMAMEN kayboluyordu (kullanici: "ios ve mobilde
+			   kaydı düzenle yanındaki ok gitti, geçmiş görevleri göremiyorum"). */
+			#modalBg .history-toggle{ z-index:2; }
 			#modalBg .modal h2{ padding-left:24px; }
 			@keyframes fadeIn { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
 
