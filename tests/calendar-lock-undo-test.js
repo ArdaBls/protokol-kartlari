@@ -104,28 +104,70 @@ function serve() {
 	const lockToastTest = await page.evaluate(async () => {
 		const fakeEvt = { item: { dataset: { evid: 'evLock' } } };
 		function endGesture() { document.dispatchEvent(new Event('mouseup')); }
+		// Sayac, GERCEKTEN kac uyari uretildigini olcer. DOM'daki toast SAYISINI saymak artik
+		// gecerli bir olcut degil: kilit bildirimleri "cal-lock" etiketli oldugu icin yenisi
+		// eskisinin YERINE geciyor, yani ekrandaki adet her zaman <=1 kaliyor.
+		calLockGestureEnd(); delete calLock.attempts['evLock'];
 		const before = document.querySelectorAll('#toastContainer .toast').length;
 		calSortableOnFilter(fakeEvt); // deneme 1
 		calSortableOnFilter(fakeEvt); // AYNI jest icinde ANINDA tekrar (parmak hala basili) -- engellenmeli
-		await new Promise((r) => setTimeout(r, 900)); // uzun sure basili tutulsa BILE (sabit zaman asimi YOK artik) hala TEK toast
+		await new Promise((r) => setTimeout(r, 900)); // uzun sure basili tutulsa BILE (sabit zaman asimi YOK artik) hala TEK uyari
 		calSortableOnFilter(fakeEvt); // hala AYNI jest -- yine engellenmeli
-		const afterSameGesture = document.querySelectorAll('#toastContainer .toast').length;
+		const warningsAfterSameGesture = calLock.attempts['evLock'];
 		endGesture(); // parmak KALKTI -- bir sonraki deneme YENI bir jest sayilmali
 		for (let i = 0; i < 4; i++) {
 			calSortableOnFilter(fakeEvt); // deneme 2,3,4,5
 			endGesture();
 		}
 		calSortableOnFilter(fakeEvt); // deneme 6 -- esik asilmali
-		// v2.9.43: AYRI denemelerde bile artik ekranda EN FAZLA TEK kilit-uyarisi toast'i kalir --
-		// yeni deneme, bir onceki (hala ekranda olan 4sn'lik) toast'i kaldirip yerine gecer (bkz.
-		// calLockedToastEl). Onceden her AYRI deneme kendi toast'ini birikiyordu (6 deneme ->
-		// 6 toast ekranda), gercek cihazda "ust uste yigilma" olarak bildirilmisti.
+		// AYRI denemelerde bile ekranda EN FAZLA TEK kilit bildirimi kalir -- yeni bildirim,
+		// bir oncekinin (hala ekranda olan 4sn'lik) YERINE gecer. Bu artik showToast'un
+		// "cal-lock" etiketiyle garanti ediliyor (bkz. CAL_LOCK_TOAST_TAG).
 		const toasts = Array.from(document.querySelectorAll('#toastContainer .toast'));
 		const lastToast = toasts[toasts.length - 1];
+		const lockTagged = document.querySelectorAll('#toastContainer [data-toast-tag="cal-lock"]').length;
 		return {
-			sameGestureThrottled: afterSameGesture === before + 1,
+			// AYNI jest icinde ne kadar cok tetiklenirse tetiklensin SADECE TEK uyari uretilmeli.
+			sameGestureThrottled: warningsAfterSameGesture === 1,
 			atMostOneVisibleAfterSeparateAttempts: (toasts.length - before) <= 1,
+			exactlyOneLockTaggedToast: lockTagged === 1,
 			escalatedMessageShown: lastToast ? /kilidi aç/i.test(lastToast.textContent) : false
+		};
+	});
+
+	// =====================================================================
+	// SENARYO 1d: Kilit IKONUNA dokunmak asla "kilitli, tasinamaz" uyarisi
+	// cikarmamali (kullanici kilidi ACMAYA calisiyor). Ayrica ilgisiz
+	// bildirimler kilit degisiminde SILINMEMELI.
+	// =====================================================================
+	const lockIconBehaviourTest = await page.evaluate(async () => {
+		document.querySelectorAll('#toastContainer .toast').forEach((t) => t.remove());
+		calLockGestureEnd(); // temiz jest durumu
+		// (a) Ikona dokunma: filter true dondurur AMA uyari CIKMAZ.
+		const iconTarget = { closest: (sel) => (sel === '.cal-lock-ico' ? {} : null) };
+		const filterBlocked = calSortableFilter({ target: iconTarget }, { dataset: { evid: 'evLock' } }) === true;
+		calSortableOnFilter({ item: { dataset: { evid: 'evLock' } } });
+		const noWarnOnIconTap = document.querySelectorAll('#toastContainer [data-toast-tag="cal-lock"]').length === 0;
+
+		// (b) Govdeden surukleme denemesi: uyari CIKAR.
+		calLockGestureEnd();
+		calSortableFilter({ target: { closest: () => null } }, { dataset: { evid: 'evLock' } });
+		calSortableOnFilter({ item: { dataset: { evid: 'evLock' } } });
+		const warnsOnBodyDrag = document.querySelectorAll('#toastContainer [data-toast-tag="cal-lock"]').length === 1;
+
+		// (c) Ilgisiz bir bildirim ekranda dururken kilit degistir -- O bildirim KALMALI,
+		//     sadece kilit bildirimi tazelenmeli (eskiden hepsi birden siliniyordu).
+		showToast('Alakasız bir bildirim', 'success');
+		await toggleEventLock('evLock'); // kilidi ac
+		const unrelatedSurvived = Array.from(document.querySelectorAll('#toastContainer .toast'))
+			.some((t) => t.textContent === 'Alakasız bir bildirim');
+		const lockToastsAfterToggle = document.querySelectorAll('#toastContainer [data-toast-tag="cal-lock"]').length;
+		await toggleEventLock('evLock'); // geri kilitle (sonraki senaryolar kilitli bekliyor)
+		return {
+			filterBlocked, noWarnOnIconTap, warnsOnBodyDrag,
+			unrelatedSurvived,
+			exactlyOneLockToastAfterToggle: lockToastsAfterToggle === 1,
+			attemptCounterResetOnUnlock: !calLock.attempts['evLock']
 		};
 	});
 
@@ -359,7 +401,7 @@ function serve() {
 	});
 
 	const combined = {
-		setupResult, lockTest, unlockTest, lockToastTest, lockCssTest, lockIconDomTest, deleteFlowTest,
+		setupResult, lockTest, unlockTest, lockToastTest, lockIconBehaviourTest, lockCssTest, lockIconDomTest, deleteFlowTest,
 		createUndoTest, deleteUndoTest, moveUndoTest, timeRecomputeTest, editUndoTest, quickStampUndoTest,
 		concurrentAbortTest, inputFocusGuardTest, logTest, defaultTabTest
 	};

@@ -1069,14 +1069,29 @@
 			function toggleFieldClear(id) { const input = document.getElementById(id); const btn = document.getElementById("clear_" + id); if(btn) { btn.style.display = input.value.length > 0 ? "flex" : "none"; } }
 			function clearFieldInput(id) { const input = document.getElementById(id); input.value = ""; input.focus(); toggleFieldClear(id); }
 
-			// DOM elemanini geri dondurur -- cagiran taraf (bkz. calSortableOnFilter) isterse
-			// AYNI mesajin bir onceki gorunumunu manuel kaldirip yerine yenisini koyabilsin diye.
-			function showToast(msg, type) {
-				type = type || "success"; const container = document.getElementById("toastContainer"); const toast = document.createElement("div");
-				toast.className = "toast " + type; toast.textContent = msg; container.appendChild(toast);
+			// tag: ayni "konuya" ait bildirimleri tekilleştirmek icin opsiyonel bir etiket. Ayni
+			// tag ile yeni bir bildirim gelirse ONCEKI hemen kaldirilir -- ekranda o konudan
+			// EN FAZLA TEK bildirim kalir. Kilit sistemi bunu "cal-lock" etiketiyle kullanir
+			// (bkz. calLockNotify): eskiden ekranda ayni anda 3 celiskili kilit uyarisi
+			// birikebiliyordu. Etiketsiz cagrilar (varsayilan) eskisi gibi yigilir.
+			function showToast(msg, type, tag) {
+				type = type || "success"; const container = document.getElementById("toastContainer");
+				if (tag) container.querySelectorAll('[data-toast-tag="' + tag + '"]').forEach(function(t){ t.remove(); });
+				const toast = document.createElement("div");
+				toast.className = "toast " + type; toast.textContent = msg;
+				if (tag) toast.dataset.toastTag = tag;
+				container.appendChild(toast);
 				requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("show")));
 				setTimeout(() => { toast.classList.remove("show"); setTimeout(() => toast.remove(), 300); }, 4000);
 				return toast;
+			}
+			// Belirli bir etikete ait TUM bildirimleri aninda kaldirir (bkz. toggleEventLock --
+			// kilit durumu degisince ekranda kalmis eski kilit uyarilari artik GECERSIZDIR ve
+			// yeni mesajla celiskili gorunur; ama ILGISIZ bildirimlere -- "kayit kaydedildi" gibi --
+			// DOKUNULMAZ, eskiden hepsi birden siliniyordu).
+			function clearToastsByTag(tag) {
+				const container = document.getElementById("toastContainer"); if (!container) return;
+				container.querySelectorAll('[data-toast-tag="' + tag + '"]').forEach(function(t){ t.remove(); });
 			}
 
 
@@ -3233,20 +3248,19 @@ async function toggleEventLock(id){
 	const label=evLogName(e.ad)+" etkinliği "+(wasLocked?"kilidi açıldı":"kilitlendi");
 	const res=await persistEvent(id, patch, label);
 	if(!res) return;
-	// Kilit acilirken/kapanirken, hemen ONCESINDE (ornegin kilitliyken suruklemeye calisinca)
-	// gosterilmis "kilitli, tasinamaz" toast'i HALA ekranda olabilir (4sn gorunur kalir) --
-	// silinmeden yeni "kilit acildi" toast'i eklenince ikisi CELISKILI sekilde AYNI ANDA
-	// gorunuyordu (kullanici: "acik/kapali yaptigimda uyari ile tasinabilir oldu uyarisi
-	// birlikte cikiyor"). Durumu degistiren bu aksiyon, eski/gecersiz kalan toast'lari temizler.
-	document.querySelectorAll("#toastContainer .toast").forEach(function(t){ t.remove(); });
-	calLockedToastEl = null; // yukarida kaldirilan toast'lardan biri buysa referans askida kalmasin
+	// Durum degisti: ekranda kalmis eski kilit uyarilari ("kilitli, tasinamaz") artik
+	// GECERSIZ ve birazdan gosterilecek mesajla celiskili. Sadece kilit etiketli bildiriler
+	// temizlenir -- eskiden ekrandaki TUM bildirimler siliniyordu, ilgisiz olanlar dahil.
+	clearToastsByTag(CAL_LOCK_TOAST_TAG);
 	calEvents[id]=patch;
-	// Kilit acilinca deneme sayaci da sifirlanir -- yoksa onceki (kilitliyken biriken) sayi
-	// kalip bir SONRAKI kilitlemede kullanici "taze" bir denemede beklenmedik sekilde direkt
-	// esprili/israrci mesaji goruyordu (kullanici: "taşınamaz uyarısı ve sonraki uyarıyı goruyorum").
-	if(wasLocked) delete calLockedAttemptCounts[id];
+	// Kilit acilinca deneme sayaci sifirlanir; yoksa bir SONRAKI kilitlemede kullanici daha
+	// ilk denemesinde dogrudan esprili/israrci mesaji goruyordu.
+	if(wasLocked) delete calLock.attempts[id];
+	// Devam eden bir jestin uyari bayragi askida kalmasin -- ikona dokunmak da bir jesttir ve
+	// bittiginde bir sonraki gercek surukleme denemesi kendi uyarisini hak eder.
+	calLockGestureEnd();
 	renderCalendar();
-	showToast(wasLocked?"Kilit açıldı, etkinlik artık sürüklenebilir.":"Etkinlik kilitlendi, artık sürüklenemez.", "success");
+	calLockNotify(wasLocked?"Kilit açıldı, etkinlik artık sürüklenebilir.":"Etkinlik kilitlendi, artık sürüklenemez.", "success");
 }
 // Aynı saate denk gelen etkinlikler yan yana dizilir.
 function layoutDay(evs){
@@ -3504,72 +3518,92 @@ function pointerXY(nativeEvt){
 // requireEdit()/canEditData() gorsel olarak "surukle" hi butonunu gizler ama Sortable'in kendi
 // engelleme mekanizmasi budur -- filter true donerse surukleme hic BASLAMAZ (calDragStart'taki
 // e.preventDefault() ile ayni davranis). Kilitli etkinlikte toast icin onFilter kullanilir.
-// calSortableFilter'in kendi (evt, item) argumanlarinda GERCEK dokunma/tiklama hedefi (evt.target)
-// var, ama SortableJS'in hemen ardindan senkron olarak cagirdigi onFilter'a (calSortableOnFilter)
-// gonderdigi evt objesinde bu bilgi YOK (SortableJS kaynagi: filter dispatch'i icin originalEvent
-// aktarilmiyor, evt.item sadece hedef DOM elemani). Bu yuzden "kilit ikonuna mi tiklandi" bilgisi
-// burada bir modul degiskenine yazilip bir sonraki onFilter cagrisinda okunup sifirlaniyor.
-let calLastFilterWasLockIcon = false;
+/* =====================================================================================
+   KILIT SISTEMI (2026-08-26'da bastan yazildi)
+   -------------------------------------------------------------------------------------
+   Onceki hali dort ayri modul degiskenine (calLastFilterWasLockIcon / calLockedToastActive /
+   calLockedAttemptCounts / calLockedToastEl) ve el ile eklenip kaldirilan global dinleyicilere
+   dagilmisti; her yeni hata icin ustune bir yama daha binmisti ve web/mobil/iOS'ta farkli
+   sekillerde bozuluyordu. Tum durum artik TEK bir nesnede (calLock) toplandi ve kurallar
+   acikca yazildi:
+
+     1) Kilit ikonuna dokunmak HER ZAMAN sadece kilidi acar/kapatir -- asla surukleme
+        baslatmaz, asla "kilitli, tasinamaz" uyarisi cikarmaz.
+     2) Kilitli bir etkinligi GOVDESINDEN suruklemeye calismak uyari verir; ama TEK bir
+        dokunus/tiklama jesti boyunca yalnizca BIR KEZ (parmak basili tutuldugu surece
+        SortableJS onFilter'i defalarca tetikler).
+     3) Ekranda ayni anda EN FAZLA TEK kilit bildirimi bulunur (showToast'un "cal-lock"
+        etiketi bunu garanti eder) -- eskiden ust uste 3 celiskili bildirim birikebiliyordu.
+     4) Kilit durumu degistiginde onceki kilit bildirimleri artik GECERSIZ oldugu icin
+        hemen kaldirilir; ilgisiz bildirilere (kayit kaydedildi vb.) DOKUNULMAZ.
+     5) Ayni etkinlikte israrla denenirse 6. denemede daha esprili bir mesaja gecilir
+        (kullanici istegi); kilit acilinca o sayac sifirlanir.
+   ===================================================================================== */
+const CAL_LOCK_TOAST_TAG = "cal-lock";
+const calLock = {
+	iconTapped: false,   // calSortableFilter -> calSortableOnFilter arasinda tek adimlik bayrak
+	warnedThisGesture: false, // ayni jest icinde uyari zaten gosterildi mi
+	attempts: {},        // etkinlik id -> ayri (parmak kaldirilan) deneme sayisi
+	gestureBound: false  // jest-bitisi dinleyicileri su an bagli mi
+};
+// SortableJS'in filter dispatch'i onFilter'a orijinal olayi (dolayisiyla gercek dokunma
+// hedefini) AKTARMIYOR -- sadece evt.item veriyor. "Kilit ikonuna mi dokunuldu" bilgisi bu
+// yuzden filter asamasinda yakalanip tek adimlik bir bayrakla onFilter'a tasinmak zorunda.
 function calSortableFilter(evt, item){
-	// Kilit ikonu, suruklenebilir etkinlik blogunun ICINDE -- dokunma hedefi genisletmesi
-	// (bkz. @media(pointer:coarse) .cal-lock-ico::after) olsa bile SortableJS bu dokunusu
-	// "surukleme baslangici olabilir" diye YAKALAYIP 150ms boyunca bekletiyordu (delayOnTouchOnly),
-	// bu da ikonun HIC TIKLANAMIYORMUS gibi hissettiriyordu (kullanici: "kilit simgesine dokunmak
-	// mobilde cok zor"). Ikon zaten kendi tiklama isleyicisinde event.stopPropagation() yapiyor
-	// (bkz. lockIconHtml()) ama bu SONRAKI bir "click" olayi icin -- SortableJS'in kendi
-	// touchstart/mousedown yakalamasini engellemez, o yuzden BURADA da ayrica halledilmesi gerekiyor.
-	if(evt && evt.target && evt.target.closest && evt.target.closest(".cal-lock-ico")){ calLastFilterWasLockIcon=true; return true; }
-	calLastFilterWasLockIcon=false;
+	// Kilit ikonu suruklenebilir blogun ICINDE oldugu icin SortableJS dokunusu "surukleme
+	// olabilir" diye yakalayip delayOnTouchOnly ile 150ms bekletiyor; bu, ikonu mobilde
+	// "tiklanamaz" hissettiriyordu. filter true donerek surukleme daha basIamadan kesilir
+	// (preventOnFilter:false oldugu icin ikonun kendi click'i normal calismaya devam eder).
+	if(evt && evt.target && evt.target.closest && evt.target.closest(".cal-lock-ico")){
+		calLock.iconTapped = true;
+		return true;
+	}
+	calLock.iconTapped = false;
 	if(!canEditData()) return true;
-	const id=item.dataset.evid;
+	const id=item && item.dataset ? item.dataset.evid : null;
 	if(id && calEvents[id] && calEvents[id].locked) return true;
 	return false;
 }
-// onFilter, TEK bir dokunuş/surukleme jesti sirasinda SortableJS tarafindan defalarca (her
-// touchmove'da) tekrar tetiklenebiliyordu -- kullanici parmagini kaldirmadan bir sure basili
-// tutarsa ayni toast art arda "yaniyordu" (kullanici: "bu uyari 1 kere çıksın"). ILK denemede
-// SABIT bir sure (700ms) ile debounce edilmisti ama kullanici 700ms'den UZUN sure basili
-// tutarsa (gercekci bir surukleme denemesinde gayet olasi) sure dolup ayni jest icinde IKINCI
-// bir toast cikabiliyordu (kullanici: "hala spamlanıyor"). Dogru cozum: sabit bir sureye
-// guvenmek yerine, jest GERCEKTEN bitene (touchend/mouseup/touchcancel) kadar bayragi acik
-// tutmak -- ne kadar uzun basili tutulursa tutulsun TEK toast cikar, jest bitip YENIDEN
-// baslayinca (parmagi kaldirip tekrar deneme) toast tekrar gosterilir.
-let calLockedToastActive = false;
-let calLockedAttemptCounts = {}; // AYRI denemeleri sayar (kullanici istegiyle 6. denemeden sonra daha "israrci"/espirili bir mesaja gecilir)
-// AYRI (birbirini takip eden, aralarinda parmak/mouse kaldirilan) denemelerde her biri kendi
-// toast'ini GERCEKTEN hak ediyor (gesture-bazli throttle YUKARIDA zaten calisiyor) -- ama
-// mobilde kisa surede birkac kez ust uste denenince (gercekci bir senaryo: kilitli oldugunu
-// gorup HEMEN tekrar deneme) toast'lar 4sn boyunca ekranda kalip UST USTE yigiliyordu
-// (kullanici videosunda AYNI ANDA 3 toast: "kilitlendi" + iki "kilitli, tasinamaz" -- "kilidin
-// acilip kapanirkenki hatasi devam ediyor"). Bir onceki kilit-uyarisi toast'i HALA ekranda ise
-// yeni denemede o hemen kaldirilip yerine YENISI konur -- ekranda ayni turden en fazla TEK
-// kilit-uyarisi toast'i olur, digerleri (kilitlendi/acildi basari mesaji gibi) etkilenmez.
-let calLockedToastEl = null;
-function calLockedToastGestureEnd(){
-	calLockedToastActive = false;
-	document.removeEventListener("touchend", calLockedToastGestureEnd);
-	document.removeEventListener("touchcancel", calLockedToastGestureEnd);
-	document.removeEventListener("mouseup", calLockedToastGestureEnd);
+// Bir dokunus/tiklama jestinin GERCEKTEN bittigini yakalar. Sabit bir sureye (debounce)
+// guvenmek yetmiyordu: kullanici o sureden uzun basili tutunca ayni jest icinde ikinci bir
+// uyari cikiyordu. Uc olay turu de dinlenir -- mobilde jest touchcancel ile de bitebilir.
+function calLockGestureEnd(){
+	calLock.warnedThisGesture = false;
+	if(!calLock.gestureBound) return;
+	calLock.gestureBound = false;
+	document.removeEventListener("touchend", calLockGestureEnd);
+	document.removeEventListener("touchcancel", calLockGestureEnd);
+	document.removeEventListener("mouseup", calLockGestureEnd);
+}
+function calLockBindGestureEnd(){
+	if(calLock.gestureBound) return;
+	calLock.gestureBound = true;
+	document.addEventListener("touchend", calLockGestureEnd);
+	document.addEventListener("touchcancel", calLockGestureEnd);
+	document.addEventListener("mouseup", calLockGestureEnd);
+}
+// Tum kilit bildirimleri TEK noktadan gecer -- "cal-lock" etiketi sayesinde yenisi eskisinin
+// yerine gecer, ekranda asla iki kilit mesaji birden kalmaz.
+function calLockNotify(msg, type){
+	return showToast(msg, type, CAL_LOCK_TOAST_TAG);
 }
 function calSortableOnFilter(evt){
-	// Kilit ikonunun kendisine (acmak/kapatmak icin) tiklamak da calSortableFilter'i "true"
-	// dondurup buraya dusuruyordu -- yani kilidi ACMAYA calisirken bile "kilitli, tasinamaz"
-	// uyarisi yanlislikla fırlatılıyordu (kullanici: "kilidin açılıp kapanırkenki hatası devam
-	// ediyor"). calSortableFilter'in birakip gittigi bayrak burada okunup sifirlanir; ikon
-	// tiklamasiysa erken cikilir, uyari SADECE govdeden suruklemeye calisildiginda gosterilir.
-	if(calLastFilterWasLockIcon){ calLastFilterWasLockIcon=false; return; }
-	const item=evt.item; const id=item && item.dataset.evid;
+	// Kilit ikonuna dokunulduysa: filter zaten true dondu (surukleme engellendi) ve ikonun
+	// kendi onclick'i kilidi degistirecek -- burada UYARI GOSTERILMEZ. Eskiden gosteriliyordu,
+	// yani kullanici kilidi ACMAYA calisirken "kilitli, tasinamaz" uyarisi aliyordu.
+	if(calLock.iconTapped){ calLock.iconTapped = false; return; }
+	const item=evt.item; const id=item && item.dataset ? item.dataset.evid : null;
 	if(!id || !calEvents[id] || !calEvents[id].locked) return;
-	if(calLockedToastActive) return;
-	calLockedToastActive = true;
-	document.addEventListener("touchend", calLockedToastGestureEnd, { once:true });
-	document.addEventListener("touchcancel", calLockedToastGestureEnd, { once:true });
-	document.addEventListener("mouseup", calLockedToastGestureEnd, { once:true });
-	calLockedAttemptCounts[id] = (calLockedAttemptCounts[id] || 0) + 1;
-	if(calLockedToastEl && calLockedToastEl.parentNode) calLockedToastEl.remove();
-	calLockedToastEl = (calLockedAttemptCounts[id] >= 6)
-		? showToast("Tamam tamam, kilidi aç artık 😄 taşınamaz.", "error")
-		: showToast("Bu etkinlik kilitli, taşımak için önce kilidi açın.", "error");
+	if(calLock.warnedThisGesture) return;
+	calLock.warnedThisGesture = true;
+	calLockBindGestureEnd();
+	calLock.attempts[id] = (calLock.attempts[id] || 0) + 1;
+	calLockNotify(
+		calLock.attempts[id] >= 6
+			? "Tamam tamam, kilidi aç artık 😄 taşınamaz."
+			: "Bu etkinlik kilitli, taşımak için önce kilidi açın.",
+		"error"
+	);
 }
 // onMove her surukleme adiminda tekrar tekrar tetiklenir (dragover/touchmove) -- burada hem
 // son bilinen isaretci konumu izlenir (onEnd'de asil kaynak (evt.originalEvent) basarisiz
@@ -3662,6 +3696,18 @@ function calOnDragEnd(evt){
 function calSortableOptions(groupName){
 	return {
 		group: { name: groupName, pull: true, put: true },
+		// draggable KRITIK: .cal-daycol icinde etkinlik butonlarinin YANI SIRA 23 adet
+		// .cal-hrline (saat cizgisi) ve .cal-nowline gibi tamamen dekoratif, mutlak
+		// konumlandirilmis div de var. draggable belirtilmezse SortableJS bunlarin HEPSINI
+		// siralanabilir birer oge sayip birakma konumunu onlara gore hesapliyordu -- sutunun
+		// ORTASINDA her zaman bir saat cizgisi oldugu icin surukleme oraya "tutunamiyor",
+		// yalnizca ilk cizginin USTU ve son cizginin ALTI calisiyordu (kullanici: "sadece tam
+		// en üstten ve tam en alttan etkinlik günü değiştirebiliyorum"). Artik SADECE gercek
+		// etkinlik ogeleri suruklenebilir/hedef sayilir: .cal-block (hem saat izgarasi hem de ay
+		// gorunumundeki chip'ler bu sinifi kullanir) ve .cal-allday-chip (tum-gun seridi).
+		// Ay gorunumundeki ".cal-more" (+N tane daha) butonu da boylece haric kalir -- o bir
+		// etkinlik degil, sadece bir genisletme tetikleyicisi.
+		draggable: ".cal-block, .cal-allday-chip",
 		animation: 150, ghostClass: "dragging",
 		delay: 150, delayOnTouchOnly: true, // person-list reorder ile ayni dokunmatik-guvenli kalip (bkz. Sortable kullanimi render()'da)
 		// preventOnFilter varsayilani true -- filter eslesince SortableJS otomatik olarak
