@@ -1,4 +1,4 @@
-const CACHE_NAME = "omu-protokol-v2.9.43"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
+const CACHE_NAME = "omu-protokol-v2.9.44"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
@@ -15,7 +15,8 @@ const STATIC_LIBS = [
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js",
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js",
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js",
-  "https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
+  "https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js",
+  "https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"
 ];
 
 // Kurulum aşaması: Uygulama iskeletini ve kütüphaneleri önbelleğe al

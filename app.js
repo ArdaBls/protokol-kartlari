@@ -113,6 +113,11 @@
 			function openHeaderMenu() {
 				const menu = document.getElementById("headerMenu"); const btn = document.getElementById("headerProfileBtn");
 				if (!menu || !btn) return;
+				// renderAuthUI() menu ACIKKEN yeniden cagrilirsa (ör. auth durumu tazelenirse) eski
+				// header-menu/buton DOM'dan silinip yenisiyle degistiriliyordu, ama eski dokumana
+				// eklenmis mousedown/touchstart/vb dinleyiciler kapatilmadan asili kaliyordu --
+				// guvenlik agi olarak her acilista once kapatiliyor.
+				closeHeaderMenu();
 				// position:fixed oldugu icin (bkz. style.css .header-menu notu -- header{overflow:
 				// hidden} kirpmasindan kacinmak icin) konumu butonun GERCEK ekran koordinatina
 				// gore burada JS ile hesaplanip satir ici yazilir; CSS'teki top/right'a guvenilemez.
@@ -560,6 +565,10 @@
 
 			let isReorderMode = false; let isBulkMode = false; let isNewsMode = false;
 			let bulkSelection = []; let newsSelection = []; // ARTIK push-ID (string) DİZİLERİ, sayısal indeks değil
+			// "silindi" (çöp) sekmesindeyken render()'ın EKRANDA GÖSTERDİĞİ (arama/fuzzy-search
+			// filtresinden geçmiş) kayıtların id listesi -- executeEmptyTrash() bunu kullanır, ham
+			// people nesnesindeki TÜM silinmiş kayıtları değil (bkz. executeEmptyTrash yorumu).
+			let visibleTrashIds = null;
 
 			// Firebase seyrek diziyi nesneye çevirebilir ve silinen çocukların yerine null bırakabilir;
 			// bu hâliyle Object.keys/values çağrıları isimsiz/bozuk "hayalet" kartlar üretebilir.
@@ -1539,7 +1548,12 @@
 			function closeEmptyTrashModal() { document.getElementById("emptyTrashModalBg").classList.remove("open"); }
 			async function executeEmptyTrash() {
 				if (!requireEdit()) return;
-				const idsToRemove = Object.keys(people).filter(function(id) { return people[id].status === "silindi"; });
+				// Arama kutusunda bir sorgu varken (ör. "Ahmet" yazılıp ekranda 1 kişi kalmışken)
+				// bu buton ESKİDEN people nesnesindeki TÜM "silindi" kayıtlarını (filtreyi
+				// görmezden gelerek) kalıcı siliyordu -- kullanıcı ekranda görmediği kayıtları da
+				// yok ediyordu. Artık SADECE render()'ın en son "silindi" sekmesinde EKRANDA
+				// GÖSTERDİĞİ kayıtlar (visibleTrashIds) silinir.
+				const idsToRemove = Object.keys(people).filter(function(id) { return people[id].status === "silindi" && (!visibleTrashIds || visibleTrashIds.includes(id)); });
 				const removedCount = idsToRemove.length;
 				if (!removedCount) { closeEmptyTrashModal(); showToast("Çöp kutusu zaten boş.", "success"); return; }
 				const prevRecords = {}; idsToRemove.forEach(function(id) { prevRecords[id] = people[id]; });
@@ -1688,6 +1702,8 @@
 					return false;
 				});
 			}
+
+			visibleTrashIds = (mode === "silindi") ? list.map(p => p._id) : null;
 
 			list.sort((a,b) => {
 				// Sırasız kayıtlar önceden -Infinity ile EN ÜSTE, yani Rektör'ün de önüne çıkıyordu.
@@ -3488,6 +3504,12 @@ function pointerXY(nativeEvt){
 // requireEdit()/canEditData() gorsel olarak "surukle" hi butonunu gizler ama Sortable'in kendi
 // engelleme mekanizmasi budur -- filter true donerse surukleme hic BASLAMAZ (calDragStart'taki
 // e.preventDefault() ile ayni davranis). Kilitli etkinlikte toast icin onFilter kullanilir.
+// calSortableFilter'in kendi (evt, item) argumanlarinda GERCEK dokunma/tiklama hedefi (evt.target)
+// var, ama SortableJS'in hemen ardindan senkron olarak cagirdigi onFilter'a (calSortableOnFilter)
+// gonderdigi evt objesinde bu bilgi YOK (SortableJS kaynagi: filter dispatch'i icin originalEvent
+// aktarilmiyor, evt.item sadece hedef DOM elemani). Bu yuzden "kilit ikonuna mi tiklandi" bilgisi
+// burada bir modul degiskenine yazilip bir sonraki onFilter cagrisinda okunup sifirlaniyor.
+let calLastFilterWasLockIcon = false;
 function calSortableFilter(evt, item){
 	// Kilit ikonu, suruklenebilir etkinlik blogunun ICINDE -- dokunma hedefi genisletmesi
 	// (bkz. @media(pointer:coarse) .cal-lock-ico::after) olsa bile SortableJS bu dokunusu
@@ -3496,7 +3518,8 @@ function calSortableFilter(evt, item){
 	// mobilde cok zor"). Ikon zaten kendi tiklama isleyicisinde event.stopPropagation() yapiyor
 	// (bkz. lockIconHtml()) ama bu SONRAKI bir "click" olayi icin -- SortableJS'in kendi
 	// touchstart/mousedown yakalamasini engellemez, o yuzden BURADA da ayrica halledilmesi gerekiyor.
-	if(evt && evt.target && evt.target.closest && evt.target.closest(".cal-lock-ico")) return true;
+	if(evt && evt.target && evt.target.closest && evt.target.closest(".cal-lock-ico")){ calLastFilterWasLockIcon=true; return true; }
+	calLastFilterWasLockIcon=false;
 	if(!canEditData()) return true;
 	const id=item.dataset.evid;
 	if(id && calEvents[id] && calEvents[id].locked) return true;
@@ -3529,6 +3552,12 @@ function calLockedToastGestureEnd(){
 	document.removeEventListener("mouseup", calLockedToastGestureEnd);
 }
 function calSortableOnFilter(evt){
+	// Kilit ikonunun kendisine (acmak/kapatmak icin) tiklamak da calSortableFilter'i "true"
+	// dondurup buraya dusuruyordu -- yani kilidi ACMAYA calisirken bile "kilitli, tasinamaz"
+	// uyarisi yanlislikla fırlatılıyordu (kullanici: "kilidin açılıp kapanırkenki hatası devam
+	// ediyor"). calSortableFilter'in birakip gittigi bayrak burada okunup sifirlanir; ikon
+	// tiklamasiysa erken cikilir, uyari SADECE govdeden suruklemeye calisildiginda gosterilir.
+	if(calLastFilterWasLockIcon){ calLastFilterWasLockIcon=false; return; }
 	const item=evt.item; const id=item && item.dataset.evid;
 	if(!id || !calEvents[id] || !calEvents[id].locked) return;
 	if(calLockedToastActive) return;
@@ -3589,11 +3618,16 @@ async function calMoveEvent(id, dateKey, timeInfo){
 	// Isaretci konumu (timeInfo.xy) hicbir kaynaktan (native/touch/izlenen son konum) cozulemediyse
 	// -- son derece nadir -- saat SESSIZCE degistirilmez, sadece tarih guncellenir (yanlis bir
 	// saate tahmin yurutmek, hic degistirmemekten daha kotu).
-	if(timeInfo && timeInfo.isDayCol && timeInfo.xy && hmToMin(ev.saat)!==null){
+	if(timeInfo && timeInfo.isDayCol && timeInfo.xy){
+		// ev.saat bos ise (tum-gun etkinlik) hmToMin(ev.saat) null donuyordu ve bu blok HIC
+		// calismiyordu -- tum-gun etkinlik saat izgarasina birakildiginda saat asla atanmiyor,
+		// tarih guncellenip patch.saat tanimsiz kaliyordu, etkinlik yeniden cizilince tekrar
+		// tum-gun seridine "firliyor"du (kullanici: "tam gün içinde bir etkinlik var ise sorun
+		// çıkıyor"). Suruklenen tum-gun etkinligine varsayilan 60dk sure verilerek duzeltildi.
 		const grabOffset = timeInfo.grabOffsetY || 0;
 		const mins0=Math.round(((timeInfo.xy.y-timeInfo.rectTop-grabOffset)/CAL_HOUR_H)*60/30)*30;
 		const mins=Math.max(0,Math.min(23*60+30,mins0));
-		const dur=(hmToMin(ev.bitisSaat)!==null && hmToMin(ev.bitisSaat)>hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat)-hmToMin(ev.saat) : 60;
+		const dur=(hmToMin(ev.saat)!==null && hmToMin(ev.bitisSaat)!==null && hmToMin(ev.bitisSaat)>hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat)-hmToMin(ev.saat) : 60;
 		patch.saat=minToHm(mins);
 		patch.bitisSaat=minToHm(Math.min(24*60-1, mins+dur));
 	} else if(timeInfo && timeInfo.isAllDayCol){
