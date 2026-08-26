@@ -1085,6 +1085,20 @@
 				setTimeout(() => { toast.classList.remove("show"); setTimeout(() => toast.remove(), 300); }, 4000);
 				return toast;
 			}
+			// --- Cift gonderim (double-submit) korumasi ---------------------------------------
+			// Kaydetme/silme akislari async: kullanici "Kaydet"e basip yazma BITMEDEN tekrar
+			// basarsa fonksiyon bastan calisiyordu. Yeni kayit dallarinda her cagri KENDI
+			// push()-ID'sini urettigi icin sonuc AYNI kaydin IKI KEZ olusmasiydi (test edildi:
+			// hem kisi hem etkinlik formunda iki ayri kayit olusuyordu). Modal ancak await
+			// bittikten SONRA kapandigi icin bu pencere gercek kullanimda kolayca yakalanabiliyor
+			// (yavas ag = daha genis pencere).
+			const inFlightOps = new Set();
+			async function guardOp(key, fn) {
+				if (inFlightOps.has(key)) return; // ayni islem zaten sürüyor -- ikinci cagri yok sayilir
+				inFlightOps.add(key);
+				try { return await fn(); }
+				finally { inFlightOps.delete(key); }
+			}
 			// Belirli bir etikete ait TUM bildirimleri aninda kaldirir (bkz. toggleEventLock --
 			// kilit durumu degisince ekranda kalmis eski kilit uyarilari artik GECERSIZDIR ve
 			// yeni mesajla celiskili gorunur; ama ILGISIZ bildirimlere -- "kayit kaydedildi" gibi --
@@ -2133,7 +2147,9 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("f_start").addEventListener("input", function(){
 				if (document.getElementById("historyPanel").classList.contains("open")) renderHistoryPanel();
 			});
-			async function saveSuccessor(){
+			// Cift tiklamada AYNI halefi iki kez olusturmasin diye guardOp ile sarmalanir (bkz. guardOp).
+			async function saveSuccessor(){ return guardOp("saveSuccessor", saveSuccessorImpl); }
+			async function saveSuccessorImpl(){
 				if (!requireEdit()) return;
 				if (successorEditingIndex === null) { showToast("Kaynak kayıt bulunamadı.", "error"); closeSuccessorPanel(); return; }
 				const name = document.getElementById("sf_name").value.trim();
@@ -2474,7 +2490,9 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				return changes;
 			}
 
-			async function saveForm(){
+			// Cift tiklamada AYNI kisiyi iki kez olusturmasin diye guardOp ile sarmalanir (bkz. guardOp).
+			async function saveForm(){ return guardOp("saveForm", saveFormImpl); }
+			async function saveFormImpl(){
 				if (!requireEdit()) return;
 			// Buton disabled olsa bile handleFormKeydown() Enter tusuyla bu fonksiyonu dogrudan
 			// cagirabiliyor (disabled sadece tiklama/focus'u engeller) -- ayni kilit kosulu burada
@@ -2592,6 +2610,17 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 					return (isNaN(n) || n < 0) ? (fallback === undefined ? "" : fallback) : n;
 				}
 				function cleanDate(v) { const s = String(v === undefined || v === null ? "" : v).trim(); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ""; }
+				// Gorev gecmisi de dosyadan geliyor -- diger alanlar gibi DOGRULANARAK alinir:
+				// sadece bilinen uc alan (unvan/baslangic/bitis), tarihler formatlanmis, unvani
+				// bos olan satirlar atilir. Bilinmeyen alanlar veritabanina sizmaz.
+				function sanitizeGorevGecmisi(arr) {
+					return arr.map(function (g) {
+						if (!g || typeof g !== "object") return null;
+						const unvan = String(g.unvan === undefined || g.unvan === null ? "" : g.unvan).trim();
+						if (!unvan) return null;
+						return { unvan: unvan, baslangic: cleanDate(g.baslangic), bitis: cleanDate(g.bitis) };
+					}).filter(Boolean);
+				}
 				const snapshotBefore = JSON.parse(JSON.stringify(people));
 				try{
 				const parsed = JSON.parse(ev.target.result);
@@ -2629,6 +2658,11 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						};
 						const ford = cleanRank(fitem.order); if (ford !== "") freshRecord.order = ford;
 						if (Array.isArray(fitem.faculties)) freshRecord.faculties = fitem.faculties.map(String);
+						// gorevGecmisi ESKIDEN HIC KOPYALANMIYORDU: exportJSON() tum "people" nesnesini
+						// (gorev gecmisi dahil) yazdigi icin YEDEK DOSYASINDA veri VARDI, ama "Tamamen
+						// Geri Yukle" onu sessizce dusuruyordu -- yani felaket kurtarma yolunda, tam da
+						// en cok ihtiyac duyulan anda her kisinin gorev gecmisi kaliciyor kayboluyordu.
+						if (Array.isArray(fitem.gorevGecmisi)) freshRecord.gorevGecmisi = sanitizeGorevGecmisi(fitem.gorevGecmisi);
 						freshPeople[fid] = freshRecord; newCount++;
 					}
 					if (!Object.keys(freshPeople).length) { showToast(skipped ? (skipped + " satırın hepsi geçersiz, içe aktarılan kayıt yok.") : "İçe aktarılacak geçerli kayıt yok.", "error"); return; }
@@ -2672,6 +2706,9 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						// order alanı eskiden atlanıyordu; bu yüzden içe aktarılan kişilerin sıra içi dizilimi kayboluyordu.
 						const ord = cleanRank(item.order); if (ord !== "") newRecord.order = ord;
 						if (Array.isArray(item.faculties)) newRecord.faculties = item.faculties.map(String);
+						// Birlestirme dalinda da YENI eklenen kayitlarin gorev gecmisi aliniyor (mevcut
+						// kayitlarinki zaten veritabaninda duruyor, bu dal ona DOKUNMAZ).
+						if (Array.isArray(item.gorevGecmisi)) newRecord.gorevGecmisi = sanitizeGorevGecmisi(item.gorevGecmisi);
 						people[newId] = newRecord;
 						patch[newId] = newRecord;
 					}
@@ -3267,7 +3304,15 @@ function layoutDay(evs){
 	const items=evs.map(function(e){
 		let s=hmToMin(e.saat); let en=hmToMin(e.bitisSaat);
 		if(s===null) return null;
-		if(en===null || en<=s) en=s+60;
+		// Iki AYRI durum, eskiden ikisi de "s+60" ile ayni sekilde ele aliniyordu:
+		//  - en===null  : bitis saati HIC girilmemis -> varsayilan 1 saat goster.
+		//  - en<=s      : bitis baslangictan kucuk -> bu GECE YARISINI ASAN bir etkinlik
+		//                 (saveEvent() bunu kullaniciya acikca "gece yarısını geçiyor mu?" diye
+		//                 sorup ONAYIYLA kaydediyor). Eskiden 1 saatlik gibi cizilip kullanicinin
+		//                 onayladigi bilgi ekranda SESSIZCE kayboluyordu; artik gun sonuna kadar
+		//                 uzatilir (tek "tarih" alanli model icinde dogru olan gosterim budur).
+		if(en===null) en=s+60;
+		else if(en<=s) en=24*60;
 		return { ev:e, s:s, e:Math.min(en,24*60) };
 	}).filter(Boolean);
 	items.sort(function(a,b){ return a.s-b.s || b.e-a.e; });
@@ -4081,7 +4126,9 @@ async function persistEvent(id, obj, logLabel){
 	}
 }
 
-async function saveEvent(){
+// Cift tiklamada AYNI etkinligi iki kez olusturmasin diye guardOp ile sarmalanir (bkz. guardOp).
+async function saveEvent(){ return guardOp("saveEvent", saveEventImpl); }
+async function saveEventImpl(){
 	if(!requireEdit()) return;
 	const ad=document.getElementById("ev_ad").value.trim();
 	const tarih=document.getElementById("ev_tarih").value;
