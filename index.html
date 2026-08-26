@@ -46,6 +46,25 @@
 		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+		<script>
+		(function(){
+			// Eruda: iPhone'da (Mac/Xcode olmadan) SAYFANIN KENDI ICINDE calisan bir gelistirici
+			// konsolu. "Alttaki gitmeyen dikdortgen"in gercekte HANGI element oldugunu (kendi
+			// CSS'imiz mi, iOS'un home indicator cizgisi mi) sadece gercek cihazda incelemek
+			// mumkun -- bu yuzden opsiyonel. NORMAL KULLANICI HICBIR SEY GORMEZ: sadece URL'ye
+			// ?debug=1 eklenirse yuklenir, ve o secim cihazda hatirlanir (?debug=0 ile kapatilir).
+			try {
+				var p = new URLSearchParams(location.search);
+				if (p.has("debug")) localStorage.setItem("omuProtokolDebug", p.get("debug") === "0" ? "0" : "1");
+				if (localStorage.getItem("omuProtokolDebug") === "1") {
+					var s = document.createElement("script");
+					s.src = "https://cdn.jsdelivr.net/npm/eruda";
+					s.onload = function(){ try { eruda.init(); } catch(e){} };
+					document.head.appendChild(s);
+				}
+			} catch (e) { /* localStorage erisilemezse sessizce atla -- debug konsolu opsiyonel */ }
+		})();
+		</script>
 
 		<link rel="stylesheet" href="style.css">
 	</head>

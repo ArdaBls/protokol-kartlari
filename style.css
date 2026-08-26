@@ -937,6 +937,14 @@
 			/* === GİRİŞ / KAYIT FORMU (Uiverse.io by ammarsaa, brass temaya uyarlandı) === */
 				.authform-bg{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(22,35,61,.75); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; z-index:60; }
 				.authform-bg.open{ display:flex; animation: fadeIn 0.2s ease; }
+				/* (2026-08-26) dvh duzeltmesi .modal-bg ve .authform-bg'ye de genisletildi -- daha
+				   once SADECE .cal-overlay almisti (bkz. yukarida, .cal-overlay @supports blogu).
+				   Bu ikisi --vh'de kalinca iOS'ta yukseklikleri fiziksel ekrandan KISA kalabiliyor,
+				   modalin alt kenariyla ekranin alti arasinda ince bir bosluk aciliyordu; kaldirilan
+				   body.scroll-locked::after seridi tam o boslukta krem bir dikdortgen olarak
+				   sızıyordu. Bu kural, ikisinin de kendi tanimlarindan SONRA gelmeli (ayni
+				   ozgulluk -- sonra gelen kazanir), o yuzden burada. */
+				@supports (height: 100dvh){ .modal-bg, .authform-bg{ height:100dvh; } }
 				.af-wrap{ position:relative; }
 				.af-close{ position:absolute; top:14px; right:14px; background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.7; z-index:2; }
 				.af-close:hover{ opacity:1; }
@@ -1087,7 +1095,16 @@
 			   gercek native lastik-sicrama/adres cubugu davranisini simule edemiyor,
 			   bu yuzden bu katmanin gercekten cozup cozmedigi SADECE gercek cihazda
 			   dogrulanabilir. */
-			body.scroll-locked::after{ content:""; position:fixed; left:0; right:0; bottom:0; height:calc(env(safe-area-inset-bottom, 0px) + 8px); background:var(--paper); z-index:49; pointer-events:none; }
+			/* KALDIRILDI (2026-08-26): Bu serit z-index:49 ile modalin (.modal-bg, z-index:50)
+			   ALTINDAYDI -- yani amacladigi "modalin ustunde kalan bosluğu kapatma" isini hicbir
+			   zaman yapamiyordu. Yaptigi TEK sey su oldu: iOS'ta .modal-bg yuksekligi --vh'den
+			   (visualViewport) hesaplandigi ve fiziksel ekrandan KISA kalabildigi icin, modalin
+			   alt kenarinin bittigi yerde var(--paper) renginde (acik temada krem #f3efe6) sabit
+			   bir dikdortgen olarak SIZIYORDU. Kullanicinin aylardir bildirdigi "alttaki gitmeyen
+			   dikdortgen" buyuk olasilikla bu seridin kendisiydi -- yani bir cozum denemesi olarak
+			   eklenen bu kural, sorunu cozmek yerine URETIYORDU. Yerine yeni bir katman EKLENMEDI:
+			   asil dogru cozum zaten html/body'nin arka planinin en alta kadar kesintisiz uzanmasi
+			   (asagida) -- boylece home indicator cizgisinin arkasi ayri bir "bar" gibi durmaz. */
 			/* iOS'ta kisi duzenleme ekrani acikken alttaki "Fakulte Filtrele" cekmecesi hala
 			   dokunuslari kapip surukleniyordu (kullanici: "sadece onu oynatiyorum, asagi
 			   inemiyorum"). openEditModal/openAddModal/openCalendar/openHistoryPanel/
@@ -1154,7 +1171,12 @@
 				height: calc(var(--vh, 1vh) * 100 - var(--test-banner-h));
 			}
 			@supports (height: 100dvh){
-				body.test-mode-active .cal-overlay{ height: calc(100dvh - var(--test-banner-h)); }
+				/* .modal-bg/.authform-bg de (2026-08-26) dvh'ye gecirildigi icin Test Modu
+				   yuksekligi de ayni birime cekildi -- aksi halde Test Modu acikken bu ikisi
+				   --vh'ye geri duser, normal modda duzeltilen alt bosluk orada geri gelirdi. */
+				body.test-mode-active .cal-overlay,
+				body.test-mode-active .modal-bg,
+				body.test-mode-active .authform-bg{ height: calc(100dvh - var(--test-banner-h)); }
 			}
 			/* Yukaridaki kural katmanlarin KENDISINI banner kadar asagi cekiyor (top:var(--test-banner-h)),
 			   ve --test-banner-h zaten env(safe-area-inset-top)'u ICINDE barindiriyor. Ama bu katmanlarin
