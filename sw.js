@@ -1,4 +1,10 @@
-const CACHE_NAME = "omu-protokol-v2.9.48"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır (v5, v6...)
+// v3.0.0 (26 Ağustos 2026) -- ilk KARARLI ana sürüm. 2.9.44-2.9.48 arasında takvimin aylardır
+// süren üç kök sebebi (SortableJS draggable eksikliği, tüm-gün etkinliğin saat atanamaması,
+// kilit ikonunun ::after ile tüm ekranı kaplaması) bulunup düzeltildi, kilit/bildirim sistemi
+// baştan yazıldı ve üç veri kaybı hatası (çift gönderim, gece yarısını aşan etkinlik, yedekten
+// geri yüklemede görev geçmişi kaybı) kapatıldı. Bu sürümden itibaren: ana sürüm = kırılgan/
+// mimari değişiklik, ikinci hane = yeni özellik, üçüncü hane = hata düzeltmesi.
+const CACHE_NAME = "omu-protokol-v3.0.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
