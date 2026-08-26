@@ -1,8 +1,13 @@
 tests/node_modules/
 tests/package-lock.json
 tests/smoke-screenshot.png
+# Claude calisma dosyalarinin TAMAMI repo disinda: skill'ler, subagent tanimlari, handover
+# arsivi ve kisisel ayarlar. Hepsi yerelde durur, GitHub'a hicbiri gitmez.
 .claude/
 CLAUDE.md
+# Firebase guvenlik kurallari: neyin korundugunu/korunmadigini birebir gosterdigi icin public
+# repoda tutulmuyor. Calisma kopyasi yerelde durur, canliya Firebase Console'dan yapistirilir.
+docs/firebase-database-rules.json
 # migrate-people-to-object.js'in ürettiği örnek çıktılar GERÇEK KİŞİSEL VERİ içerebilir (fotoğraf dahil) -- asla commit edilmez.
 scripts/*-migrated.json
 scripts/*.output.json
