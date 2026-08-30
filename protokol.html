@@ -756,6 +756,7 @@
 					<button class="btn btn-primary" id="adminTabUsersBtn" onclick="switchAdminTab('users')">Kullanıcılar</button>
 					<button class="btn btn-ghost" id="adminTabLogsBtn" onclick="switchAdminTab('logs')">Geçmiş</button>
 					<button class="btn btn-ghost" id="adminTabTestBtn" onclick="switchAdminTab('test')">Test</button>
+					<button class="btn btn-ghost" id="adminTabStatsBtn" onclick="switchAdminTab('stats')">İstatistikler</button>
 				</div>
 				<div class="test-mode-row">
 					<div>
@@ -789,6 +790,18 @@
 						<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
 					</div>
 					<div id="adminTestResult" class="hint">Yükleniyor…</div>
+				</div>
+				<div id="adminStatsView" style="display:none;">
+					<p class="hint">Etkinlik takviminden türetilen faaliyet özeti. BAPKOB/Kalite raporlarına hızlı veri sağlar.</p>
+					<div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
+						<label class="hint" style="margin:0;">Aralık:</label>
+						<select id="statsRangeSelect" onchange="loadAdminStats()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); color:var(--ink);">
+							<option value="month">Bu Ay</option>
+							<option value="year">Bu Yıl</option>
+							<option value="all">Tüm Zamanlar</option>
+						</select>
+					</div>
+					<div id="adminStatsResult" class="hint">Yükleniyor…</div>
 				</div>
 			</div>
 		</div>

@@ -1437,3 +1437,10 @@
 			.notif-dropdown.open{ display:block; }
 			.notif-item{ display:block; width:100%; text-align:left; padding:8px 10px; border:none; background:none; border-radius:6px; font-size:12px; color:var(--ink); cursor:pointer; }
 			.notif-item:hover{ background:var(--surface-input); }
+
+			/* Admin faaliyet istatistik paneli basit çubuk grafikler */
+			.stats-bar-row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12px; }
+			.stats-bar-label{ width:140px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+			.stats-bar-track{ flex:1; height:10px; border-radius:5px; background:var(--surface-input); overflow:hidden; }
+			.stats-bar-fill{ height:100%; background:var(--accent, #b8923f); border-radius:5px; }
+			.stats-bar-count{ width:28px; text-align:right; flex-shrink:0; color:var(--muted); }

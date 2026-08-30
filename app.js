@@ -310,13 +310,16 @@
 				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
 				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
 				document.getElementById("adminTestView").style.display = (tab === "test") ? "block" : "none";
+				document.getElementById("adminStatsView").style.display = (tab === "stats") ? "block" : "none";
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
 				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
 				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
 				document.getElementById("adminTabTestBtn").classList.toggle("btn-primary", tab === "test");
 				document.getElementById("adminTabTestBtn").classList.toggle("btn-ghost", tab !== "test");
-				if (tab === "users") loadAdminUsers(); else if (tab === "test") loadAdminTestPanel(); else { loadAdminLogs(); loadTestModeLog(); }
+				document.getElementById("adminTabStatsBtn").classList.toggle("btn-primary", tab === "stats");
+				document.getElementById("adminTabStatsBtn").classList.toggle("btn-ghost", tab !== "stats");
+				if (tab === "users") loadAdminUsers(); else if (tab === "test") loadAdminTestPanel(); else if (tab === "stats") loadAdminStats(); else { loadAdminLogs(); loadTestModeLog(); }
 }
 
 			// GitHub Actions ile regresyon testi: repo/workflow adi tek yerden - baska bir repoya
@@ -353,6 +356,44 @@
 				} catch (err) {
 					box.textContent = "Sonuç alınamadı: " + (err && err.message ? err.message : "bilinmeyen hata") + " (internet bağlantısını kontrol et)";
 				}
+			}
+
+			// Faaliyet istatistik paneli: calEvents (sayfa yüklenince zaten canlı bağlı, bkz.
+			// attachEventsListener()) üzerinden aylık/yıllık/tüm-zamanlar bazında özet çıkarır --
+			// ayrı bir Firebase okuması gerekmez. BAPKOB/Kalite raporlarına hızlı veri sağlar.
+			function loadAdminStats(){
+				if (!requireAdmin()) return;
+				const box = document.getElementById("adminStatsResult");
+				const range = document.getElementById("statsRangeSelect").value;
+				const now = new Date();
+				const events = Object.values(calEvents).filter(function(e){
+					if (!e || !e.tarih) return false;
+					if (range === "all") return true;
+					const d = parseKey(e.tarih); if (!d) return false;
+					if (range === "year") return d.getFullYear() === now.getFullYear();
+					return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+				});
+				if (!events.length) { box.innerHTML = '<p class="admin-user-empty">Bu aralıkta etkinlik yok.</p>'; return; }
+				function topList(counts, limit){
+					return Object.keys(counts).map(function(k){ return { k: k, n: counts[k] }; })
+						.sort(function(a,b){ return b.n - a.n; }).slice(0, limit || 10);
+				}
+				function barsHtml(rows, total){
+					return rows.map(function(r){
+						const pct = total ? Math.round((r.n/total)*100) : 0;
+						return '<div class="stats-bar-row"><span class="stats-bar-label">' + escapeHtml(r.k) + '</span>' +
+							'<div class="stats-bar-track"><div class="stats-bar-fill" style="width:' + pct + '%;"></div></div>' +
+							'<span class="stats-bar-count">' + r.n + '</span></div>';
+					}).join("");
+				}
+				const turCounts = {}; events.forEach(function(e){ const t = evType(e.tur); turCounts[t.ad] = (turCounts[t.ad]||0)+1; });
+				const birimCounts = {}; events.forEach(function(e){ const b = (e.birim||"").trim(); if (b) birimCounts[b] = (birimCounts[b]||0)+1; });
+				const gorevliCounts = {}; events.forEach(function(e){ parseGorevliString(e.gorevli).forEach(function(name){ gorevliCounts[name] = (gorevliCounts[name]||0)+1; }); });
+				box.innerHTML =
+					'<p style="font-weight:600; margin-bottom:4px;">Toplam ' + events.length + ' etkinlik</p>' +
+					'<h4 style="margin:14px 0 6px;">Etkinlik Türüne Göre</h4>' + barsHtml(topList(turCounts), events.length) +
+					'<h4 style="margin:14px 0 6px;">En Çok Etkinlik Düzenleyen Birimler</h4>' + (Object.keys(birimCounts).length ? barsHtml(topList(birimCounts), events.length) : '<p class="admin-user-empty">Birim bilgisi girilmemiş.</p>') +
+					'<h4 style="margin:14px 0 6px;">Basın Görevlisi Bazında Takip</h4>' + (Object.keys(gorevliCounts).length ? barsHtml(topList(gorevliCounts), events.length) : '<p class="admin-user-empty">Basın görevlisi atanmamış.</p>');
 			}
 
 			function loadAdminLogs() {
@@ -1640,11 +1681,18 @@
 				showToast(movedCount + " kayıt çöpe taşındı.", "warn");
 			}
 
+			// Haber çıktısı seçim hafızası: sayfa yenilense/sekme değiştirilse de son seçilen
+			// kişiler kaybolmasın diye localStorage'da tutulur. Sadece "Haber Çıktısı Al" AÇILIRKEN
+			// geri yüklenir (o anki listede hâlâ var olan id'lerle sınırlı) -- kapatma/iptal bir
+			// sonraki açılışın hafızasını SİLMEZ, kullanıcı yanlışlıkla iptale basarsa seçim kaybolmaz.
+			const NEWS_SELECTION_KEY = "omuProtokolNewsSelection";
+			function saveNewsSelection(){ try { localStorage.setItem(NEWS_SELECTION_KEY, JSON.stringify(newsSelection)); } catch(e) {} }
+			function loadNewsSelection(){ try { const arr = JSON.parse(localStorage.getItem(NEWS_SELECTION_KEY) || "[]"); return Array.isArray(arr) ? arr.filter(id => people[id]) : []; } catch(e) { return []; } }
 			function toggleNewsMode() {
 				if (isReorderMode) toggleReorderMode(); if (isBulkMode) toggleBulkDeleteMode();
 				if (mode !== "aktif") document.querySelector('[data-mode="aktif"]').click();
 
-				isNewsMode = !isNewsMode; newsSelection = []; newsPeopleOverride = null; newsEventContext = null;
+				isNewsMode = !isNewsMode; newsSelection = isNewsMode ? loadNewsSelection() : []; newsPeopleOverride = null; newsEventContext = null;
 				const btnNews = document.getElementById("newsModeBtn"); const btnExec = document.getElementById("executeNewsBtn"); const btnCancel = document.getElementById("cancelNewsBtn");
 				const addBtn = document.getElementById("addBtn"); const reorderBtn = document.getElementById("reorderBtn"); const expBtn = document.getElementById("exportBtn"); const impBtn = document.getElementById("importBtn");
 				const btnToplu = document.getElementById("bulkDeleteModeBtn"); const tabs = document.querySelectorAll("#statusToggle button");
@@ -1652,9 +1700,10 @@
 
 				if (isNewsMode) {
 					btnNews.style.display = "none"; btnExec.style.display = "inline-flex"; btnCancel.style.display = "inline-flex";
+					btnExec.textContent = "Taslağı Oluştur (" + newsSelection.length + ")";
 					[addBtn, reorderBtn, expBtn, impBtn, btnToplu].forEach(b => { if(b) b.style.display = "none"; });
-					tabs.forEach(t => t.disabled = true); 
-					showToast("Metinde geçecek isimleri seçin (Arama yapabilirsiniz).", "success");
+					tabs.forEach(t => t.disabled = true);
+					showToast(newsSelection.length ? ("Önceki seçiminiz hatırlandı (" + newsSelection.length + " kişi). Değiştirebilirsiniz.") : "Metinde geçecek isimleri seçin (Arama yapabilirsiniz).", "success");
 				} else {
 					btnNews.style.display = "inline-flex"; btnExec.style.display = "none"; btnCancel.style.display = "none";
 					[addBtn, reorderBtn, expBtn, impBtn, btnToplu].forEach(b => { if(b) b.style.display = "inline-flex"; });
@@ -1665,9 +1714,10 @@
 			}
 
 			function updateNewsSelection(idx, isChecked, cardElement) {
-				if (isChecked) { if (!newsSelection.includes(idx)) newsSelection.push(idx); cardElement.classList.add("news-selected"); } 
+				if (isChecked) { if (!newsSelection.includes(idx)) newsSelection.push(idx); cardElement.classList.add("news-selected"); }
 				else { newsSelection = newsSelection.filter(i => i !== idx); cardElement.classList.remove("news-selected"); }
 				document.getElementById("executeNewsBtn").textContent = "Taslağı Oluştur (" + newsSelection.length + ")";
+				saveNewsSelection();
 			}
 
 			// Denetim maddesi #2: "OMÜ"/"TBMM"/"AVM" gibi TAMAMEN BUYUK harfli kisaltmalarda ek uyumu,
