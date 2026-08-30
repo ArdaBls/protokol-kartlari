@@ -1,11 +1,14 @@
 			:root{
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
-			--paper: #f3efe6; --card: #fbf9f4; --ink: #1b1b1b; --muted: #6b6f76;
+			/* Faz 6 tasarım paleti (kullanıcı isteği): açık temada ana zemin #DECDBE, koyu temada
+			   #1F1F2B -- card/border/divider/surface-* tonları bu ana renkten aynı H/S ailesinde,
+			   eski paletteki AYNI göreli açıklık farkları korunarak (HSL bazlı) türetildi. */
+			--paper: #DECDBE; --card: #ead8c8; --ink: #1b1b1b; --muted: #6b6f76;
 			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
 			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #7c5c1f;
-			--border: #dcd6c7; --border-soft: #e7e1d3; --divider: #e2dccb; --divider-soft: #ddd5c2; --divider-faint: #eee6d4;
-			--surface-hover: #f0ece0; --surface-input: #faf8f2; --surface-pill: #efeadd; --surface-subtle: #f4f1e8;
-			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
+			--border: #c3b2a3; --border-soft: #d0bdad; --divider: #cab7a6; --divider-soft: #c5b09d; --divider-faint: #dbc1aa;
+			--surface-hover: #dbc8b8; --surface-input: #e8d6c7; --surface-pill: #dac6b5; --surface-subtle: #dfcfc0;
+			--surface-hover-2: #d6c3b2; --surface-hover-3: #cabbae; --danger-bg: #fdf2f2; --today: #c2410c;
 			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
 			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
 			/* Acik modda mevcut ham #a33 / #8a6a24 degerleriyle AYNI -- regresyon yok.
@@ -29,12 +32,12 @@
 			   acik hem koyu temada calisiyorlar; METIN olarak kullanildiklari birkac ozel
 			   secici asagida (degisken degil, dogrudan secici) AYRICA gecersiz kilinir. */
 			[data-theme="dark"]{
-			--paper: #211f1c; --card: #2a2723; --ink: #e9e4d7; --muted: #9a9486;
+			--paper: #1F1F2B; --card: #252535; --ink: #e9e4d7; --muted: #9a9486;
 			--ok: #6fcf97; --ok-bg: #1f3327; --off: #a5a099; --off-bg: #34322c;
 			--warn: #e0954a; --warn-bg: #3a2c1a; --brass-text: #d9b568;
-			--border: #46423a; --border-soft: #332f29; --divider: #3a362f; --divider-soft: #332f29; --divider-faint: #2c2924;
-			--surface-hover: #35312a; --surface-input: #252220; --surface-pill: #2f2b25; --surface-subtle: #27241f;
-			--surface-hover-2: #38342c; --surface-hover-3: #403b32; --danger-bg: #3a2020; --today: #e2661c;
+			--border: #3a3a53; --border-soft: #2b2b3e; --divider: #303046; --divider-soft: #2b2b3e; --divider-faint: #262637;
+			--surface-hover: #2b2b41; --surface-input: #23232f; --surface-pill: #27273a; --surface-subtle: #212132;
+			--surface-hover-2: #2d2d44; --surface-hover-3: #33334c; --danger-bg: #3a2020; --today: #e2661c;
 			--shadow: 0 10px 30px -12px rgba(0,0,0,.55);
 			--news: #4f9eff; --news-bg: rgba(79,158,255,.16);
 			/* WCAG hesabi (contrast.js, tests disi scratchpad): #ff6b6b -> card/danger-bg/paper/warn-bg
@@ -537,7 +540,10 @@
 			.cal-allday-col:last-child{ border-right:none; }
 
 			.cal-tg-scroll{ flex:1; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; position:relative; }
-			.cal-tg-body{ display:grid; position:relative; }
+			/* Sürükle-bırak sırasında fare hızla hareket edince sütun/saat ızgarasındaki metinler
+			   mavi ile "seçiliyormuş" gibi vurgulanıyordu (kartların kendisi zaten korunuyordu,
+			   ama boş hücreler/saat etiketleri değil) -- tüm ızgara konteynerine uygulanır. */
+			.cal-tg-body{ display:grid; position:relative; -webkit-user-select:none; user-select:none; }
 			.cal-gutter{ border-right:1px solid var(--divider); position:relative; background:transparent; }
 			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; transform:translateY(-50%); }
 			.cal-daycol{ position:relative; border-right:1px solid var(--divider); background:transparent; }
