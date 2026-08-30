@@ -1239,6 +1239,39 @@
 
 			function togglePhotoHelp(){ var el = document.getElementById("photoHelpBox"); if (el) el.style.display = (el.style.display === "none") ? "block" : "none"; }
 
+			// Birim/Unvan aranabilir dropdown: mevcut kayıtlardaki değerler + Firebase'deki
+			// öneri havuzu (oneriler/{liste}/birimler|unvanlar) datalist'i besler. Yeni bir
+			// değer kaydedilince havuza eklenir, sonraki kayıtlarda önerilir.
+			let suggestionPool = { birimler: {}, unvanlar: {} };
+			function loadSuggestionPool(){
+				if (!database) return Promise.resolve();
+				return database.ref(dbPath("oneriler/" + currentListKey)).once("value").then(function(snap){
+					const val = snap.val() || {};
+					suggestionPool = { birimler: {}, unvanlar: {} };
+					["birimler", "unvanlar"].forEach(function(kind){
+						Object.values(val[kind] || {}).forEach(function(e){ if (e && e.deger) suggestionPool[kind][e.deger] = true; });
+					});
+				}).catch(function(){});
+			}
+			function populateSuggestionDatalists(){
+				const unitSet = new Set(Object.keys(suggestionPool.birimler));
+				const titleSet = new Set(Object.keys(suggestionPool.unvanlar));
+				Object.values(people).forEach(function(p){
+					if (p && p.unit) unitSet.add(p.unit);
+					if (p && p.title) titleSet.add(p.title);
+				});
+				const unitList = document.getElementById("f_unit_list");
+				const titleList = document.getElementById("f_title_list");
+				if (unitList) unitList.innerHTML = Array.from(unitSet).sort().map(function(v){ return '<option value="' + escapeHtml(v) + '">'; }).join("");
+				if (titleList) titleList.innerHTML = Array.from(titleSet).sort().map(function(v){ return '<option value="' + escapeHtml(v) + '">'; }).join("");
+			}
+			function saveSuggestion(kind, value){
+				if (!database || !value) return;
+				if (suggestionPool[kind] && suggestionPool[kind][value]) return;
+				suggestionPool[kind] = suggestionPool[kind] || {}; suggestionPool[kind][value] = true;
+				database.ref(dbPath("oneriler/" + currentListKey + "/" + kind)).push({ deger: value }).catch(function(){});
+			}
+
 			// PIN ile hızlı hesap geçişi. Şifre Firebase'e YAZILMAZ -- sadece bu tarayıcının
 			// localStorage'ında, PIN'den türetilen bir AES-GCM anahtarıyla şifreli tutulur, bu
 			// yüzden gerçekten "aynı cihaz" ile sınırlıdır (kullanıcı isteği).
@@ -2185,7 +2218,7 @@ function renderFacultyPickerField(selected) {
 				if (e.target.classList.contains("fm-cb")) { syncUnitFromFaculties(); syncCoordExtraRoleField(); }
 			});
 
-function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
+function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); loadSuggestionPool().then(populateSuggestionDatalists); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
@@ -2203,6 +2236,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; /* successorTriggerWrap artik refreshStatusReasonBlock()/onStatusReasonChange() tarafindan yonetiliyor, burada kosulsuz acilmiyor */ renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []);
 			var coordExtraEl = document.getElementById("f_coordExtraRole"); if (coordExtraEl) coordExtraEl.value = p.ekGorevAciklamasi || "";
 			document.getElementById("modalBg").classList.add("open");
+			loadSuggestionPool().then(populateSuggestionDatalists);
 			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
@@ -2745,6 +2779,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				record.ekGorevAciklamasi = coordEl ? coordEl.value.trim() : "";
 			}
 			record.gorevGecmisi = tempGorevGecmisi.slice();
+			saveSuggestion("birimler", record.unit); saveSuggestion("unvanlar", record.title);
 			let targetIdx; let actionLabel; let oldRecord = null;
 			if(editIndex === null) {
 				// Eskiden iki editör aynı anda kişi eklerse ikisi de "people.length-1" ile AYNI dizi

@@ -386,14 +386,14 @@
 					<div class="field">
 						<label>Mesleki / Görev Unvanı (Örn: Rektör)</label>
 						<div class="input-wrap">
-							<input type="text" id="f_title" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_title')">
+							<input type="text" id="f_title" list="f_title_list" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_title')"><datalist id="f_title_list"></datalist>
 							<button type="button" class="clear-btn" id="clear_f_title" onclick="clearFieldInput('f_title')">✕</button>
 						</div>
 					</div>
 					<div class="field">
 						<label>Birim / Kurum</label>
 						<div class="input-wrap">
-							<input type="text" id="f_unit" autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_unit')">
+							<input type="text" id="f_unit" list="f_unit_list" autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_unit')"><datalist id="f_unit_list"></datalist>
 							<button type="button" class="clear-btn" id="clear_f_unit" onclick="clearFieldInput('f_unit')">✕</button>
 						</div>
 					</div>
