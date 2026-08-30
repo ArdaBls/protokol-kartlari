@@ -424,6 +424,9 @@
 			.cal-rail-count{ font-size:12px; color:var(--muted); }
 			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
 			.cal-rail-next{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:12px; }
+			/* Faz 6: ana sayfa mini takvim widget'ı -- .cal-rail-next ile aynı kart stili
+			   (aside'ın kendisinde padding yok, kardeş elemanlarla tutarlı görünsün diye). */
+			.cal-rail-mini-card{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:10px 12px 12px; }
 			.cal-rail-next h4{ margin:0 0 8px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; }
 			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid var(--surface-hover); cursor:pointer; }
 			.cal-next-item:first-of-type{ border-top:none; }

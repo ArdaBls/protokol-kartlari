@@ -170,6 +170,20 @@
 					<span class="cal-rail-label">Etkinlik Takvimi</span>
 					<span class="cal-rail-count" id="calRailCount">yükleniyor…</span>
 				</button>
+				<!-- Faz 6: mini takvim widget'ı -- tam takvimi açmadan ay görünümü + gün başına
+				     nokta göstergesi. Bir güne tıklamak openCalendarAt() ile doğrudan takvimi o
+				     günde açar. Overlay içindeki #calMiniGrid'den AYRI ID'ler kullanıyor (ikisi
+				     de aynı DOM'da bulunuyor, çakışmasınlar diye). -->
+				<div class="cal-rail-mini-card">
+					<div class="cal-mini-head">
+						<button type="button" class="cal-iconbtn" onclick="calRailMiniShiftYear(-1)" title="Önceki yıl">«</button>
+						<button type="button" class="cal-iconbtn" onclick="calRailMiniShift(-1)" title="Önceki ay">‹</button>
+						<span class="cal-mini-title" id="calRailMiniTitle">—</span>
+						<button type="button" class="cal-iconbtn" onclick="calRailMiniShift(1)" title="Sonraki ay">›</button>
+						<button type="button" class="cal-iconbtn" onclick="calRailMiniShiftYear(1)" title="Sonraki yıl">»</button>
+					</div>
+					<div class="cal-mini-grid" id="calRailMiniGrid"></div>
+				</div>
 				<div class="cal-rail-next" id="calRailNext"></div>
 			</aside>
 		</div>
