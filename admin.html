@@ -186,12 +186,15 @@
 			<p class="foot-version">Sürüm <span id="footVersion"></span></p>
 		</footer>
 
-		<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()">🗓️ <span>Takvim</span></button>
-
-		<!-- Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet) -->
-		<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()">
-			🎓 <span>Fakülte Filtrele</span> <span class="fab-count" id="facultyFabCount" style="display:none;"></span>
-		</button>
+		<!-- Faz 6: mobil "liquid glass" alt navigasyon -- iki eski FAB (calendar-fab/faculty-fab)
+		     aynı ID/onclick/JS mantığıyla korunuyor, sadece ortak bulanık-cam bir çubuğun içine
+		     alındı. Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
+		<div class="mobile-glass-nav" id="mobileGlassNav">
+			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()">🗓️ <span>Takvim</span></button>
+			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()">
+				🔍 <span>Fakülte Filtrele</span> <span class="fab-count" id="facultyFabCount" style="display:none;"></span>
+			</button>
+		</div>
 		<div class="faculty-sheet-backdrop" id="facultySheetBackdrop" onclick="closeFacultySheet()"></div>
 		<div class="faculty-sheet" id="facultySheet">
 			<div class="fsheet-handle-wrap" id="fsheetHandleWrap"><div class="fsheet-handle"></div></div>

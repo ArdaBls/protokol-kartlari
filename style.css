@@ -793,7 +793,18 @@
 			.ev-att-search{ width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; margin-bottom:6px; box-sizing:border-box; background:var(--surface-input); color:var(--ink); }
 
 			/* ---- Mobil ---- */
-			.calendar-fab{ display:none; position:fixed; left:16px; bottom:16px; z-index:70; align-items:center; gap:7px; background:var(--brass); color:var(--navy); border:2px solid var(--navy); border-radius:30px; padding:12px 18px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.35); cursor:pointer; }
+			/* Faz 6 "liquid glass" alt navigasyon: eskiden .calendar-fab/.faculty-fab kendi
+			   basina position:fixed+solid renkli birer pil dugmesiydi (sol-alt/sag-alt, ayri ayri).
+			   Simdi ikisi de .mobile-glass-nav adli ortak, bulanik-cam (backdrop-filter) bir
+			   tepsinin icinde ortalanmis flex eleman -- fixed konumlandirma/golge/z-index artik
+			   TEPSIDE, dugmeler kendi ic renklerini (brass/navy) korur ama duz segment olarak.
+			   Faculty-fab'in .active-list ile kosullu gorunurlugu (bkz. asagida) DEGISMEDI --
+			   sadece o dugme gizliyken tepsi tek dugmeye kuculur, bos gorunmez. */
+			.mobile-glass-nav{ display:none; position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:70; align-items:center; gap:8px; padding:6px; border-radius:32px; background:rgba(255,255,255,.55); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.45); box-shadow:0 8px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.5); }
+			@media (max-width: 1049px) { .mobile-glass-nav{ display:flex; } }
+			[data-theme="dark"] .mobile-glass-nav{ background:rgba(28,28,38,.5); border-color:rgba(255,255,255,.14); box-shadow:0 8px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
+			.calendar-fab{ display:none; align-items:center; gap:7px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:26px; padding:10px 16px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
+			[data-theme="dark"] .calendar-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
 			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
 			@media (max-width: 700px) {
@@ -814,7 +825,8 @@
 			}
 			/* ---------- TAKVİM SONU ---------- */
 			/* Mobil/tablet (<1050px): sol panel yerine alttan yukarı açılan filtre çekmecesi */
-			.faculty-fab{ display:none; position:fixed; right:16px; bottom:16px; z-index:70; align-items:center; gap:7px; background:var(--navy); color:#f3efe6; border:2px solid var(--brass-light); border-radius:30px; padding:12px 18px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.35); cursor:pointer; }
+			.faculty-fab{ display:none; align-items:center; gap:7px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:26px; padding:10px 16px; font-family:'Roboto',sans-serif; font-size:13px; font-weight:600; cursor:pointer; }
+			[data-theme="dark"] .faculty-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			.faculty-fab .fab-count{ background:var(--brass); color:var(--navy); border-radius:50%; min-width:19px; height:19px; font-size:11px; align-items:center; justify-content:center; padding:0 4px; }
 			.faculty-sheet-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.55); z-index:80; display:none; }
 			.faculty-sheet-backdrop.open{ display:block; }
@@ -1119,7 +1131,7 @@
 			   panelin (z-index<=55) UZERINDE duruyordu; duzenleme formunun alt kismini
 			   (Kaydet, "Yerine Yeni Kisi Ata" vb.) kapatiyordu. Herhangi bir panel acikken
 			   (scroll-locked ile ayni kosul) bu iki buton gizlenir. */
-			body.scroll-locked .calendar-fab, body.scroll-locked .faculty-fab{ display:none !important; }
+			body.scroll-locked .mobile-glass-nav{ display:none !important; }
 			/* UCUNCU DENEME (2026-08-25): v2.9.15 (faculty-sheet gizleme) ve v2.9.16
 			   (--vh + safe-area padding-bottom) tek basina yetmedi, kullanici iPhone 16
 			   Pro'da hala herhangi bir panel acikken sayfanin en altinda "gitmeyen,
@@ -1267,7 +1279,7 @@
 
 			/* Cihazin centik/durum cubugu payi. viewport-fit=cover ile birlikte anlam kazanir. */
 			header{ padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
-			.calendar-fab, .faculty-fab{ bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+			.mobile-glass-nav{ bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 
 			/* Kart "kalkma" efekti dokunmatikte YAPISKAN kalir (dokunulan kart kalkik durur).
 			   Bu yuzden yalnizca gercek fareli cihazlarda uygulanir. */
@@ -1400,21 +1412,18 @@
 			body[data-page="login"] .controls,
 			body[data-page="login"] .actions-row,
 			body[data-page="login"] .main-layout,
-			body[data-page="login"] .calendar-fab,
-			body[data-page="login"] .faculty-fab,
+			body[data-page="login"] .mobile-glass-nav,
 			body[data-page="takvim"] .list-switch-wrap,
 			body[data-page="takvim"] .controls,
 			body[data-page="takvim"] .actions-row,
 			body[data-page="takvim"] .main-layout,
-			body[data-page="takvim"] .calendar-fab,
-			body[data-page="takvim"] .faculty-fab,
+			body[data-page="takvim"] .mobile-glass-nav,
 			body[data-page="takvim"] footer,
 			body[data-page="admin"] .list-switch-wrap,
 			body[data-page="admin"] .controls,
 			body[data-page="admin"] .actions-row,
 			body[data-page="admin"] .main-layout,
-			body[data-page="admin"] .calendar-fab,
-			body[data-page="admin"] .faculty-fab,
+			body[data-page="admin"] .mobile-glass-nav,
 			body[data-page="admin"] footer{ display:none !important; }
 			/* Giriş sayfasında auth formu ayrı bir "aç" tıklaması beklemeden baştan görünür olmalı. */
 			body[data-page="login"] #authFormBg{ display:flex !important; position:static; background:none; backdrop-filter:none; padding:40px 16px; }
