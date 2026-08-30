@@ -498,6 +498,9 @@
 			// Üniversite Protokol Sırası'na özel fakülte/enstitü/yüksekokul/koordinatörlük listesi.
 			// Sadece bu listeden seçim yapılır (serbest metin değil), böylece filtreleme her zaman tutarlı çalışır.
 			const FACULTY_GROUPS = [
+				{ title: "Rektörlük", items: [
+					"Rektör", "Rektör Yardımcısı"
+				] },
 				{ title: "Fakülteler", items: [
 					"Ali Fuad Başgil Hukuk Fakültesi", "Çarşamba İnsan ve Toplum Bilimleri Fakültesi", "Diş Hekimliği Fakültesi",
 					"Eczacılık Fakültesi", "Eğitim Fakültesi", "Fen Fakültesi", "Güzel Sanatlar Fakültesi",
@@ -1233,6 +1236,8 @@
 				document.getElementById("legalModalBg").classList.add("open");
 			}
 			function closeLegalModal(){ document.getElementById("legalModalBg").classList.remove("open"); }
+
+			function togglePhotoHelp(){ var el = document.getElementById("photoHelpBox"); if (el) el.style.display = (el.style.display === "none") ? "block" : "none"; }
 
 			// PIN ile hızlı hesap geçişi. Şifre Firebase'e YAZILMAZ -- sadece bu tarayıcının
 			// localStorage'ında, PIN'den türetilen bir AES-GCM anahtarıyla şifreli tutulur, bu
@@ -2148,6 +2153,7 @@ function renderFacultyPickerField(selected) {
 				} else {
 					wrap.scrollTop = 0;
 				}
+				syncCoordExtraRoleField();
 			}
 
 			// Aşağıdaki birim/ek görev kutusunda işaretlenenler değiştikçe, "Birim / Kurum" alanı
@@ -2162,8 +2168,21 @@ function renderFacultyPickerField(selected) {
 				unitInput.value = "Ondokuz Mayıs Üniversitesi" + (selected.length ? " - " + selected.join(", ") : "");
 				toggleFieldClear("f_unit");
 			}
+			// Koordinatörlük seçilince altta "bu kişinin X'teki ek görevi nedir?" serbest metin alanı açılır.
+			function syncCoordExtraRoleField() {
+				const wrap = document.getElementById("facultyMultiSelect");
+				const field = document.getElementById("coordExtraRoleField");
+				const label = document.getElementById("coordExtraRoleLabel");
+				if (!wrap || !field || !label) return;
+				const coordGroup = FACULTY_GROUPS.find(function(g){ return g.title === "Koordinatörlükler"; });
+				const coordItems = coordGroup ? coordGroup.items : [];
+				const selectedCoord = Array.from(wrap.querySelectorAll(".fm-cb:checked")).map(function(cb){ return cb.value; }).filter(function(v){ return coordItems.indexOf(v) !== -1; });
+				if (!selectedCoord.length) { field.style.display = "none"; return; }
+				field.style.display = "";
+				label.textContent = "Bu kişinin " + selectedCoord.join(", ") + "'teki ek görevi nedir?";
+			}
 			document.getElementById("facultyMultiSelect").addEventListener("change", function(e) {
-				if (e.target.classList.contains("fm-cb")) syncUnitFromFaculties();
+				if (e.target.classList.contains("fm-cb")) { syncUnitFromFaculties(); syncCoordExtraRoleField(); }
 			});
 
 function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); }
@@ -2181,7 +2200,9 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
 			tempGorevGecmisi = Array.isArray(p.gorevGecmisi) ? p.gorevGecmisi.map(function(g){ return { unvan: g.unvan || "", baslangic: g.baslangic || "", bitis: g.bitis || "" }; }) : [];
 			document.getElementById("historyToggleBtn").style.display = "block";
-			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; /* successorTriggerWrap artik refreshStatusReasonBlock()/onStatusReasonChange() tarafindan yonetiliyor, burada kosulsuz acilmiyor */ renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []); document.getElementById("modalBg").classList.add("open");
+			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; /* successorTriggerWrap artik refreshStatusReasonBlock()/onStatusReasonChange() tarafindan yonetiliyor, burada kosulsuz acilmiyor */ renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []);
+			var coordExtraEl = document.getElementById("f_coordExtraRole"); if (coordExtraEl) coordExtraEl.value = p.ekGorevAciklamasi || "";
+			document.getElementById("modalBg").classList.add("open");
 			['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
 			}
 
@@ -2720,6 +2741,8 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			};
 			if (currentListKey === "universite") {
 				record.faculties = Array.from(document.querySelectorAll("#facultyMultiSelect .fm-cb:checked")).map(function(cb) { return cb.value; });
+				const coordEl = document.getElementById("f_coordExtraRole");
+				record.ekGorevAciklamasi = coordEl ? coordEl.value.trim() : "";
 			}
 			record.gorevGecmisi = tempGorevGecmisi.slice();
 			let targetIdx; let actionLabel; let oldRecord = null;
@@ -4074,7 +4097,7 @@ function openEventModal(id, presetDate, presetTime){
 	document.getElementById("ev_tur").innerHTML=EVENT_TYPES.map(function(t){ return '<option value="'+t.key+'">'+escapeHtml(t.ad)+'</option>'; }).join("");
 	document.getElementById("ev_durum").innerHTML=EVENT_STATUS.map(function(s){ return '<option value="'+s.key+'">'+escapeHtml(s.ad)+'</option>'; }).join("");
 	// birim önerileri
-	const birimler=["Rektörlük"].concat(FACULTY_GROUPS.reduce(function(a,g){ return a.concat(g.items); },[]));
+	const birimler=FACULTY_GROUPS.reduce(function(a,g){ return a.concat(g.items); },[]);
 	document.getElementById("ev_birimList").innerHTML=birimler.map(function(b){ return '<option value="'+escapeHtml(b)+'">'; }).join("");
 
 	const e = id ? calEvents[id] : null;
