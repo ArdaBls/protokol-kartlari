@@ -107,7 +107,7 @@
 		<div class="controls">
 			<div class="controlbar">
 				<div class="search-wrap input-wrap">
-					<input id="search" type="text" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
+					<input id="search" name="protokolSearch" type="text" autocomplete="off" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
 					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()">✕</button>
 				</div>
 
@@ -702,11 +702,11 @@
 					<p class="af-title">Giriş Yap</p>
 					<p class="af-message">Hesabınızla giriş yapın.</p>
 					<label>
-						<input class="af-input" type="email" id="li_email" placeholder="" required>
+						<input class="af-input" type="email" id="li_email" name="email" autocomplete="username" placeholder="" required>
 						<span>E-posta</span>
 					</label>
 					<label>
-						<input class="af-input" type="password" id="li_password" placeholder="" required>
+						<input class="af-input" type="password" id="li_password" name="password" autocomplete="current-password" placeholder="" required>
 						<span>Şifre</span>
 					</label>
 					<p class="af-error" id="loginError"></p>
@@ -719,24 +719,24 @@
 					<p class="af-message">Kayıt olun, admin onayından sonra düzenleme yetkisi kazanın.</p>
 					<div class="af-flex">
 						<label>
-							<input class="af-input" type="text" id="su_firstname" placeholder="" required>
+							<input class="af-input" type="text" id="su_firstname" name="given-name" autocomplete="given-name" placeholder="" required>
 							<span>Ad</span>
 						</label>
 						<label>
-							<input class="af-input" type="text" id="su_lastname" placeholder="" required>
+							<input class="af-input" type="text" id="su_lastname" name="family-name" autocomplete="family-name" placeholder="" required>
 							<span>Soyad</span>
 						</label>
 					</div>
 					<label>
-						<input class="af-input" type="email" id="su_email" placeholder="" required>
+						<input class="af-input" type="email" id="su_email" name="email" autocomplete="email" placeholder="" required>
 						<span>E-posta</span>
 					</label>
 					<label>
-						<input class="af-input" type="password" id="su_password" placeholder="" required>
+						<input class="af-input" type="password" id="su_password" name="new-password" autocomplete="new-password" placeholder="" required>
 						<span>Şifre</span>
 					</label>
 					<label>
-						<input class="af-input" type="password" id="su_password2" placeholder="" required>
+						<input class="af-input" type="password" id="su_password2" name="new-password-confirm" autocomplete="new-password" placeholder="" required>
 						<span>Şifre Tekrar</span>
 					</label>
 					<p class="af-error" id="signupError"></p>
