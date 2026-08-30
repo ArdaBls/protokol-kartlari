@@ -1263,6 +1263,36 @@
 				render(); 
 			}
 
+			// --- Arama kutusuna otomatik doldurma engeli (son katman) ---
+			// Sorun: tarayici/parola yoneticisi eklentileri (1Password, LastPass, Bitwarden, Chrome'un
+			// kendi doldurucusu) sayfadaki gizli giris formunu gorup EN YAKIN metin kutusunu
+			// "kullanici adi" sanip kullanicinin e-postasini arama kutusuna yaziyordu. Isaretleyici
+			// tarafinda alinan onlemler (type="search", autocomplete="off", data-lpignore/1p-ignore/
+			// bwignore, ayri bir name) cogu durumu kesiyor ama HICBIRI garanti degil -- bazi eklentiler
+			// bu ipuclarini bilerek yok sayiyor. Bu yuzden son katman olarak: kullanici kutuya kendisi
+			// bir sey YAZANA kadar, disaridan gelen her deger sessizce temizlenir.
+			// Kullanici ilk tusa bastigi (veya yapistirdigi) anda bu koruma tamamen devre disi kalir,
+			// yani gercek aramaya asla karismaz.
+			function guardSearchAutofill() {
+				const el = document.getElementById("search");
+				if (!el) return;
+				let userTyped = false;
+				// Gercek kullanici etkilesimi: klavye, yapistirma veya guvenilir (isTrusted) input olayi.
+				["keydown", "paste"].forEach(function(ev) {
+					el.addEventListener(ev, function() { userTyped = true; }, { once: true });
+				});
+				el.addEventListener("input", function(e) { if (e.isTrusted) userTyped = true; });
+				function wipeIfAutofilled() {
+					if (userTyped || !el.value) return;
+					el.value = "";
+					if (typeof render === "function") render();
+				}
+				// Otomatik doldurma senkron degil: yukleme aninda, birkac kare sonra ve eklentilerin
+				// gec calisma ihtimaline karsi 1sn'e kadar birkac kez kontrol edilir.
+				[0, 120, 400, 1000].forEach(function(ms) { setTimeout(wipeIfAutofilled, ms); });
+			}
+			guardSearchAutofill();
+
 			function toggleFieldClear(id) { const input = document.getElementById(id); const btn = document.getElementById("clear_" + id); if(btn) { btn.style.display = input.value.length > 0 ? "flex" : "none"; } }
 			function clearFieldInput(id) { const input = document.getElementById(id); input.value = ""; input.focus(); toggleFieldClear(id); }
 
@@ -3481,37 +3511,6 @@ function renderCalendarRail(){
 	html+='<h4'+(nowItems.length?' style="margin-top:10px;"':'')+'>Sıradaki</h4>';
 	html+= next.length ? next.map(function(e,i){ return renderNextItem(e, i===0); }).join("") : '<div class="cal-rail-empty">📭 Planlanmış etkinlik yok.</div>';
 	nextEl.innerHTML=html;
-	renderCalRailMini();
-}
-
-/* --- Faz 6: ana sayfa yan çubuğundaki mini takvim widget'ı -- overlay'i hiç açmadan ay
-   görünümü + gün başına nokta göstergesi. #calMiniGrid'den (overlay içinde) BİLEREK ayrı bir
-   durum (railMiniAnchor) ve DOM ID'leri kullanır: ikisi de aynı sayfada aynı anda DOM'da var
-   olabiliyor (overlay sadece görsel olarak kapalı), aynı ID'yi paylaşırlarsa
-   document.getElementById() yanlış elemente yazardı. Bir güne tıklamak calGoToDay() DEĞİL
-   openCalendarAt() çağırır -- overlay bu sayfada zaten açık değil, o yüzden takvim.html'e o
-   günle birlikte YÖNLENDİRMESİ gerekiyor (openCalendarAt bunu PAGE!=="takvim" dalında zaten
-   yapıyor). */
-let railMiniAnchor = new Date();
-function calRailMiniShift(dir){ railMiniAnchor=new Date(railMiniAnchor.getFullYear(), railMiniAnchor.getMonth()+dir, 1); renderCalRailMini(); }
-function calRailMiniShiftYear(dir){ railMiniAnchor=new Date(railMiniAnchor.getFullYear()+dir, railMiniAnchor.getMonth(), 1); renderCalRailMini(); }
-function renderCalRailMini(){
-	const grid=document.getElementById("calRailMiniGrid"), title=document.getElementById("calRailMiniTitle");
-	if(!grid||!title) return;
-	title.textContent=CAL_MONTHS[railMiniAnchor.getMonth()]+" "+railMiniAnchor.getFullYear();
-	const first=new Date(railMiniAnchor.getFullYear(), railMiniAnchor.getMonth(), 1);
-	const start=startOfWeek(first); const today=todayDate();
-	const dayCounts={};
-	calEventList().filter(function(e){ return (e.durum||"")!=="iptal"; }).forEach(function(e){ dayCounts[e.tarih]=(dayCounts[e.tarih]||0)+1; });
-	let html=CAL_DOW_MINI.map(function(d){ return '<span class="cal-mini-dow">'+d+'</span>'; }).join("");
-	for(var i=0;i<42;i++){
-		const d=addDays(start,i); const k=dKey(d);
-		let cls="cal-mini-day";
-		if(d.getMonth()!==railMiniAnchor.getMonth()) cls+=" other";
-		if(isSameDay(d,today)) cls+=" today";
-		html+='<button type="button" class="'+cls+'" onclick="openCalendarAt(\''+k+'\')">'+d.getDate()+(dayCounts[k]?'<span class="hasdot"></span>':'')+'</button>';
-	}
-	grid.innerHTML=html;
 }
 
 /* --- Takvimi aç / kapat (küçük karttan tam ekrana büyüyen geçiş) --- */

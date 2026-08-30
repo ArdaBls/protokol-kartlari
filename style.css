@@ -125,6 +125,10 @@
 			.clear-btn:hover { background:var(--surface-hover-3); color:var(--ink); }
 			#search { border:1px solid var(--border); background:var(--surface-input); border-radius:8px; padding:9px 32px 9px 12px; font-family:'Roboto',sans-serif; font-size:14px; color:var(--ink); outline:none; }
 			#search:focus { border-color:var(--brass); }
+			/* type="search" (otomatik doldurma engeli icin secildi) WebKit'te YERLESIK bir temizle
+			   dugmesi getiriyor; projenin kendi #clearSearchBtn'i zaten var, ikisi yan yana
+			   gorunmesin diye yerlesik olan gizlenir. */
+			#search::-webkit-search-cancel-button, #search::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; display:none; }
 			#search:disabled { background:#f5f5f5; color:#999; cursor:not-allowed; }
 
 			.toggle-group{ display:flex; background:var(--surface-pill); border-radius:8px; padding:3px; gap:2px; }
@@ -437,9 +441,6 @@
 			.cal-rail-count{ font-size:12px; color:var(--muted); }
 			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
 			.cal-rail-next{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:12px; }
-			/* Faz 6: ana sayfa mini takvim widget'ı -- .cal-rail-next ile aynı kart stili
-			   (aside'ın kendisinde padding yok, kardeş elemanlarla tutarlı görünsün diye). */
-			.cal-rail-mini-card{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:10px 12px 12px; }
 			.cal-rail-next h4{ margin:0 0 8px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; }
 			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid var(--surface-hover); cursor:pointer; }
 			.cal-next-item:first-of-type{ border-top:none; }
@@ -819,11 +820,10 @@
 			.mobile-glass-nav{ display:none; position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:70; align-items:center; gap:8px; padding:6px; border-radius:32px; background:rgba(255,255,255,.55); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.45); box-shadow:0 8px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.5); }
 			@media (max-width: 1049px) { .mobile-glass-nav{ display:flex; } }
 			[data-theme="dark"] .mobile-glass-nav{ background:rgba(28,28,38,.5); border-color:rgba(255,255,255,.14); box-shadow:0 8px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
-			/* Faz 6: iki tepsi dugmesi ("Takvim" tek satir kisa, "Fakulte Filtrele" iki satira
-			   kirilan uzun etiket) esit boyda gorunsun diye ikisi de ayni sabit genislikte,
-			   ikon-ustte/etiket-altta (flex-direction:column) dikey duzene alindi -- text node
-			   (emoji) flex konteynerde otomatik anonim flex item olur, span'in USTUNE gecer. */
-			.calendar-fab{ display:none; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:74px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:20px; padding:9px 4px; font-family:'Roboto',sans-serif; font-size:11px; font-weight:700; line-height:1.15; text-align:center; cursor:pointer; }
+			/* Faz 6 (kullanici istegi): tepsi dugmelerinden etiket metni kaldirildi, ikisi de
+			   sadece ikon tasiyan esit capli DAIRE. width==height + border-radius:50% ile tam
+			   daire; 48px dokunma hedefi icin asgari onerilen boyutun uzerinde. */
+			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; }
 			[data-theme="dark"] .calendar-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
 			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
@@ -845,9 +845,12 @@
 			}
 			/* ---------- TAKVİM SONU ---------- */
 			/* Mobil/tablet (<1050px): sol panel yerine alttan yukarı açılan filtre çekmecesi */
-			.faculty-fab{ display:none; position:relative; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:74px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:20px; padding:9px 4px; font-family:'Roboto',sans-serif; font-size:11px; font-weight:600; line-height:1.15; text-align:center; cursor:pointer; }
+			/* .calendar-fab ile ayni daire olcusu -- ikisi tepside esit gorunsun. */
+			.faculty-fab{ display:none; position:relative; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; }
 			[data-theme="dark"] .faculty-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
-			.faculty-fab .fab-count{ position:absolute; top:4px; right:8px; background:var(--brass); color:var(--navy); border-radius:50%; min-width:17px; height:17px; font-size:10px; align-items:center; justify-content:center; padding:0 3px; }
+			/* Secili fakulte sayisi rozeti: dairenin sag-ust kosesinden disari tasar. */
+			.faculty-fab .fab-count{ position:absolute; top:-2px; right:-2px; background:var(--brass); color:var(--navy); border-radius:50%; min-width:18px; height:18px; font-size:10px; font-weight:700; align-items:center; justify-content:center; padding:0 3px; box-shadow:0 0 0 2px rgba(255,255,255,.65); }
+			[data-theme="dark"] .faculty-fab .fab-count{ box-shadow:0 0 0 2px rgba(28,28,38,.85); }
 			.faculty-sheet-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.55); z-index:80; display:none; }
 			.faculty-sheet-backdrop.open{ display:block; }
 			.faculty-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:81; background:var(--card); border-radius:20px 20px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.4); max-height:calc(var(--vh, 1vh) * 82); display:flex; flex-direction:column; transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.22,.8,.32,1), visibility 0s linear .28s; }

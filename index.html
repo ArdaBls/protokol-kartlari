@@ -107,7 +107,7 @@
 		<div class="controls">
 			<div class="controlbar">
 				<div class="search-wrap input-wrap">
-					<input id="search" name="protokolSearch" type="text" autocomplete="off" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
+					<input id="search" name="protokolSearch" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
 					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()">✕</button>
 				</div>
 
@@ -170,20 +170,6 @@
 					<span class="cal-rail-label">Etkinlik Takvimi</span>
 					<span class="cal-rail-count" id="calRailCount">yükleniyor…</span>
 				</button>
-				<!-- Faz 6: mini takvim widget'ı -- tam takvimi açmadan ay görünümü + gün başına
-				     nokta göstergesi. Bir güne tıklamak openCalendarAt() ile doğrudan takvimi o
-				     günde açar. Overlay içindeki #calMiniGrid'den AYRI ID'ler kullanıyor (ikisi
-				     de aynı DOM'da bulunuyor, çakışmasınlar diye). -->
-				<div class="cal-rail-mini-card">
-					<div class="cal-mini-head">
-						<button type="button" class="cal-iconbtn" onclick="calRailMiniShiftYear(-1)" title="Önceki yıl">«</button>
-						<button type="button" class="cal-iconbtn" onclick="calRailMiniShift(-1)" title="Önceki ay">‹</button>
-						<span class="cal-mini-title" id="calRailMiniTitle">—</span>
-						<button type="button" class="cal-iconbtn" onclick="calRailMiniShift(1)" title="Sonraki ay">›</button>
-						<button type="button" class="cal-iconbtn" onclick="calRailMiniShiftYear(1)" title="Sonraki yıl">»</button>
-					</div>
-					<div class="cal-mini-grid" id="calRailMiniGrid"></div>
-				</div>
 				<div class="cal-rail-next" id="calRailNext"></div>
 			</aside>
 		</div>
@@ -202,12 +188,12 @@
 
 		<!-- Faz 6: mobil "liquid glass" alt navigasyon -- iki eski FAB (calendar-fab/faculty-fab)
 		     aynı ID/onclick/JS mantığıyla korunuyor, sadece ortak bulanık-cam bir çubuğun içine
-		     alındı. Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
+		     alındı. Kullanıcı isteğiyle etiket metinleri kaldırıldı: sadece ikon, daire biçimli
+		     düğmeler. Metin gittiği için erişilebilirlik aria-label/title ile sağlanıyor.
+		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
 		<div class="mobile-glass-nav" id="mobileGlassNav">
-			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()">🗓️ <span>Takvim</span></button>
-			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()">
-				🔍 <span>Fakülte Filtrele</span> <span class="fab-count" id="facultyFabCount" style="display:none;"></span>
-			</button>
+			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi">🗓️</button>
+			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()" aria-label="Fakülte Filtrele" title="Fakülte Filtrele">🔍<span class="fab-count" id="facultyFabCount" style="display:none;"></span></button>
 		</div>
 		<div class="faculty-sheet-backdrop" id="facultySheetBackdrop" onclick="closeFacultySheet()"></div>
 		<div class="faculty-sheet" id="facultySheet">
