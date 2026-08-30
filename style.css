@@ -1376,3 +1376,35 @@
 			.theme-toggle{ position:relative; background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); border-radius:50%; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
 			.theme-toggle::after{ content:""; position:absolute; inset:-8px; }
 			.theme-toggle:hover{ background:rgba(255,255,255,.18); }
+
+			/* ================= SAYFA BAZLI GÖRÜNÜRLÜK (ÇOK SAYFALI MİMARİ, 30 Ağustos 2026) =================
+			   index.html/protokol.html/takvim.html/admin.html HEPSİ aynı tam DOM'u ve app.js'i paylaşıyor
+			   (bkz. app.js'teki PAGE sabiti notu) -- app.js'in monolitik, elementleri KOŞULSUZ referans alan
+			   üst-seviye kodunu (attachListener, mobileLayoutToggle dinleyicisi, scroll-lock kurulumu, service
+			   worker kaydı vb. onlarca satır) kırmamak için hiçbir elementi DOM'dan tamamen çıkarmıyoruz; sadece
+			   o sayfada alakasız olan bölümleri CSS ile gizliyoruz. <body data-page="..."> her HTML dosyasında
+			   farklı değer taşır. */
+			body[data-page="login"] .list-switch-wrap,
+			body[data-page="login"] .controls,
+			body[data-page="login"] .actions-row,
+			body[data-page="login"] .main-layout,
+			body[data-page="login"] .calendar-fab,
+			body[data-page="login"] .faculty-fab,
+			body[data-page="takvim"] .list-switch-wrap,
+			body[data-page="takvim"] .controls,
+			body[data-page="takvim"] .actions-row,
+			body[data-page="takvim"] .main-layout,
+			body[data-page="takvim"] .calendar-fab,
+			body[data-page="takvim"] .faculty-fab,
+			body[data-page="takvim"] footer,
+			body[data-page="admin"] .list-switch-wrap,
+			body[data-page="admin"] .controls,
+			body[data-page="admin"] .actions-row,
+			body[data-page="admin"] .main-layout,
+			body[data-page="admin"] .calendar-fab,
+			body[data-page="admin"] .faculty-fab,
+			body[data-page="admin"] footer{ display:none !important; }
+			/* Giriş sayfasında auth formu ayrı bir "aç" tıklaması beklemeden baştan görünür olmalı. */
+			body[data-page="login"] #authFormBg{ display:flex !important; position:static; background:none; backdrop-filter:none; padding:40px 16px; }
+			body[data-page="login"] #authFormBg .af-close{ display:none; }
+			body[data-page="login"] #headerAuth{ display:none; }

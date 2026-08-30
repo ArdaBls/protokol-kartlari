@@ -13,6 +13,53 @@
 			let currentUser = null; // { uid, email, firstName, lastName, role }
 			let testModeEnabled = false; // Firebase'de paylaşımlı (ayarlar/testModuAcik) -- açıkken TÜM kayıt loglarının hedefi logs/test olur
 
+			// Çok sayfalı mimari (30 Ağustos 2026): index.html/protokol.html/takvim.html/admin.html
+			// HEPSİ aynı app.js'i yükler (tek kod tabanı, dört ayrı sayfa). Her HTML dosyası
+			// <body data-page="..."> ile hangi sayfa olduğunu bildirir; PAGE sabiti buna göre
+			// yönlendirme/bootstrap kararlarını verir. Eksikse "protokol" varsayılır (geriye dönük
+			// güvenlik ağı, ama her 4 dosyada da attribute gerçekte set edilmiş olmalı).
+			const PAGE = document.body.getAttribute("data-page") || "protokol";
+			function buildTakvimUrl(dateKey, evId) {
+				const params = new URLSearchParams();
+				if (dateKey) params.set("date", dateKey);
+				if (evId) params.set("event", evId);
+				const qs = params.toString();
+				return "takvim.html" + (qs ? "?" + qs : "");
+			}
+			// Auth durumu her çözüldüğünde (giriş/çıkış/sayfa yüklenişi) hangi sayfada olduğumuza
+			// göre ya yönlendirir ya da o sayfaya özel tek seferlik bootstrap'i tetikler. Misafirler
+			// protokol.html/takvim.html'i salt-okunur görebilir (kullanıcı isteği: "giriş yapmadan
+			// devam et seçeneği olsun"); sadece admin.html giriş + admin rolü ister.
+			function routeForCurrentPage() {
+				if (PAGE === "login") {
+					if (currentUser) { location.replace("protokol.html"); return; }
+					if (!window.__loginFormBooted) { window.__loginFormBooted = true; switchAuthForm("login"); }
+					return;
+				}
+				// protokol.html/takvim.html giriş İSTEMEZ -- misafirler salt-okunur görebilir
+				// (kullanıcı: "giriş yapmadan devam et seçeneği olsun ama editör gibi bir
+				// genişlikte değişim yapamasınlar"), canEditData()/is-readonly zaten bunu sağlıyor.
+				// Sadece admin.html giriş + admin rolü ister.
+				if (PAGE === "admin") {
+					if (!currentUser) { location.replace("index.html"); return; }
+					if (currentUser.role !== "admin") {
+						showToast("Bu bölüm sadece yöneticilere açık.", "error");
+						location.replace("protokol.html");
+						return;
+					}
+				}
+				if (PAGE === "takvim" && !window.__takvimBooted) {
+					window.__takvimBooted = true;
+					const params = new URLSearchParams(location.search);
+					const dateParam = params.get("date"), evParam = params.get("event");
+					if (dateParam) openCalendarAt(dateParam, evParam); else openCalendar();
+				}
+				if (PAGE === "admin" && !window.__adminBooted) {
+					window.__adminBooted = true;
+					openAdminPanel();
+				}
+			}
+
 			function showLoading(msg) { document.getElementById("loadingLabel").textContent = msg || "Yükleniyor…"; document.getElementById("loadingOverlay").classList.add("open"); }
 			function hideLoading() { document.getElementById("loadingOverlay").classList.remove("open"); }
 
@@ -28,7 +75,7 @@
 				const pass = document.getElementById("li_password").value;
 				const btn = document.getElementById("loginSubmitBtn"); const errEl = document.getElementById("loginError");
 				errEl.textContent = ""; btn.disabled = true; btn.textContent = "Giriş yapılıyor…";
-				try { await auth.signInWithEmailAndPassword(email, pass); closeAuthForm(); showToast("Giriş başarılı.", "success"); }
+				try { await auth.signInWithEmailAndPassword(email, pass); if (document.getElementById("authFormBg")) closeAuthForm(); showToast("Giriş başarılı.", "success"); }
 				catch (err) { errEl.textContent = "E-posta veya şifre hatalı."; }
 				finally { btn.disabled = false; btn.textContent = "Giriş Yap"; }
 			}
@@ -47,7 +94,7 @@
 				try {
 					const cred = await auth.createUserWithEmailAndPassword(email, pass);
 					await database.ref("users/" + cred.user.uid).set({ firstName: firstName, lastName: lastName, email: email, role: "pending", createdAt: firebase.database.ServerValue.TIMESTAMP });
-					closeAuthForm(); showToast("Kayıt alındı. Admin onayı bekleniyor.", "success");
+					if (document.getElementById("authFormBg")) closeAuthForm(); showToast("Kayıt alındı. Admin onayı bekleniyor.", "success");
 								} catch (err) {
 					console.error("Signup error:", err.code, err.message);
 					if (err.code === "auth/email-already-in-use") errEl.textContent = "Bu e-posta zaten kayıtlı.";
@@ -183,7 +230,7 @@
 				// hem de asagidaki "online" dinleyicisinde AYNI mantik tekrar cagirilabilsin.
 				function resolveAuthUser(user) {
 					if (userProfileRef && userProfileCallback) { userProfileRef.off("value", userProfileCallback); userProfileRef = null; }
-					if (!user) { currentUser = null; renderAuthUI(); applyPermissions(); return; }
+					if (!user) { currentUser = null; renderAuthUI(); applyPermissions(); routeForCurrentPage(); return; }
 					// navigator.onLine, ucak modunda tarayici/OS tarafindan guvenilir sekilde false
 					// yapiliyor -- Firebase'in .on("value") yanitini hic beklemeden SENKRON karar
 					// verilebilir. Onceki (sadece 8sn setTimeout'a dayanan) surum gercek iPhone'da
@@ -219,13 +266,13 @@
 									// ekraninda kalmasin -- yerel/kalicilastirilmamis "pending" ile devam eder,
 									// bir sonraki basarili girishte tekrar denenir.
 									currentUser = { uid: user.uid, email: user.email, firstName: "", lastName: "", role: "pending" };
-									renderAuthUI(); applyPermissions(); hideLoading();
+									renderAuthUI(); applyPermissions(); hideLoading(); routeForCurrentPage();
 								});
 							return; // basarili olursa bu callback zaten YENI veriyle tekrar tetiklenir
 						}
 						const profile = snap.val() || {};
 						currentUser = { uid: user.uid, email: user.email, firstName: profile.firstName || "", lastName: profile.lastName || "", role: profile.role || "pending" };
-						renderAuthUI(); applyPermissions(); hideLoading();
+						renderAuthUI(); applyPermissions(); hideLoading(); routeForCurrentPage();
 					};
 					userProfileRef.on("value", userProfileCallback);
 				}
@@ -241,12 +288,16 @@
 
 			function openAdminPanel() {
 				if (!currentUser || currentUser.role !== "admin") return;
+				if (PAGE !== "admin") { location.href = "admin.html"; return; }
 				document.getElementById("adminPanelBg").classList.add("open");
 				updateTestModeBanner();
 				loadTestModeLog();
 				switchAdminTab("users");
 			}
-			function closeAdminPanel() { document.getElementById("adminPanelBg").classList.remove("open"); }
+			function closeAdminPanel() {
+				if (PAGE === "admin") { location.href = "protokol.html"; return; }
+				document.getElementById("adminPanelBg").classList.remove("open");
+			}
 
 			function switchAdminTab(tab) {
 				if (!requireAdmin()) return;
@@ -3052,6 +3103,7 @@ function afterCalTransition(el, propName, fallbackMs, cb){
 }
 
 function openCalendar(){
+	if (PAGE !== "takvim") { location.href = buildTakvimUrl(); return; }
 	const ov=document.getElementById("calendarOverlay");
 	if(calAnimating || ov.classList.contains("open")) return;
 	closeFacultySheet(); // mobil fakulte cekmecesi acik/yarim suruklenmis kalmasin diye guvenli sifirlama
@@ -3086,7 +3138,14 @@ function openCalendar(){
 	});
 }
 
+// closeCalendar() = "takvim.html'den ÇIK" (gerçek sayfa geçişi). Overlay'i sadece GÖRSEL
+// olarak geçici kapatmak (ör. üstüne haber modalı açmak için) gerektiğinde sayfa değiştirmeyen
+// _hideCalendarOverlay() kullanılır -- aksi halde etkinlikten haber taslağı akışı yarıda kalırdı.
 function closeCalendar(){
+	if (PAGE === "takvim") { location.href = "protokol.html"; return; }
+	_hideCalendarOverlay();
+}
+function _hideCalendarOverlay(){
 	const ov=document.getElementById("calendarOverlay");
 	if(!ov.classList.contains("open") || calAnimating) return;
 	const shell=ov.querySelector(".cal-shell");
@@ -3112,6 +3171,7 @@ function closeCalendar(){
 	afterCalTransition(ov, "clip-path", 500, finish);
 }
 function openCalendarAt(dateKey, evId){
+	if (PAGE !== "takvim") { location.href = buildTakvimUrl(dateKey, evId); return; }
 	const d=parseKey(dateKey); if(d) calAnchor=d;
 	openCalendar();
 	if(evId) setTimeout(function(){ openEventPeek(evId); }, 520);
@@ -4550,7 +4610,7 @@ function generateNewsFromEvent(){
 	document.getElementById("newsLocationInput").value = e.yer ? turkishLocative(e.yer) : "Törene";
 	renderNewsPlaceholderFields();
 	generateNewsText();
-	closeEventPeek(); closeCalendar();
+	closeEventPeek(); _hideCalendarOverlay();
 	// Takvim kapanma animasyonu (z-index 90) haber modalının üstünü örtmesin diye beklenir.
 	setTimeout(function(){ document.getElementById("newsModalBg").classList.add("open"); }, 370);
 }
