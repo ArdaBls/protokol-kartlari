@@ -1,8 +1,10 @@
-// v3.7.0 (30 Ağustos 2026) -- Faz 6 (kısmi): yeni renk paleti (#DECDBE açık / #1F1F2B koyu),
-// koyu tema textarea düzeltmesi, takvim user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0:
-// Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm =
-// kırılgan/mimari değişiklik, ikinci hane = yeni özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.7.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+// v3.7.1 (30 Ağustos 2026) -- Faz 6: takvim kart tasarımı videodaki doygun renk stiline
+// güncellendi (doygun zemin + beyaz metin + alt durum şeridi), mimari değişmedi.
+// v3.7.0: yeni renk paleti (#DECDBE açık / #1F1F2B koyu), koyu tema textarea düzeltmesi, takvim
+// user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
+// + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
+// özellik, üçüncü hane = hata düzeltmesi.
+const CACHE_NAME = "omu-protokol-v3.7.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

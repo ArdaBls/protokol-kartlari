@@ -3816,9 +3816,12 @@ document.addEventListener("change", function(e){
 });
 
 /* --- Hafta görünümü: saat ızgarası (Notion Calendar düzeni) --- */
+// Faz 6 tasarım güncellemesi (kullanıcı referans videosu): kart artık pastel değil,
+// TÜRÜN kendi doygun rengini arka plan olarak kullanıyor + beyaz metin -- daha canlı,
+// "post-it" hissi. Takvimin saat-ızgaralı/sürükle-bırak MİMARİSİ değişmedi, sadece görsel.
 function calBlockStyle(ev){
 	const ty=evType(ev.tur);
-	return "background:"+ty.bg+"; border-left-color:"+ty.renk+"; color:"+ty.renk+";";
+	return "background:"+ty.renk+"; border-left-color:"+ty.renk+"; color:#fff;";
 }
 function calBlockClasses(ev, dayDate){
 	let c="cal-block";
@@ -3918,7 +3921,7 @@ function renderWeekView(body){
 		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" data-act="peek" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" data-act="peek" style="background:'+ty.renk+'; border-left-color:'+ty.renk+'; color:#fff;"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -3949,9 +3952,11 @@ function renderWeekView(body){
 			const e=it.ev; const top=(it.s/60)*CAL_HOUR_H; const hgt=Math.max(18,((it.e-it.s)/60)*CAL_HOUR_H-2);
 			const w=100/it.total; const left=w*it.col;
 			const compact=hgt<34?" compact":"";
+			const stBar=evStatus(e.durum).renk;
 			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" data-act="peek" '+
 				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);">'+
-				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
+				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+badgeHtml(e)+lockIconHtml(e)+
+				'<span class="cal-status-bar" style="background:'+stBar+';"></span></button>';
 		});
 		if(isToday && nowTop!==null) inner+='<div class="cal-nowline-full" style="top:'+nowTop+'px;"></div>';
 		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;">'+inner+'</div>';
