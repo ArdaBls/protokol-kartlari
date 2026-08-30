@@ -1209,12 +1209,39 @@
 			   duzelttigini acikca soyler ki ileride yanlislikla kaldirilmasin.
 			   ===================================================================== */
 
-			/* Admin paneli sekmeleri: dort Turkce etiket <=360px'te satira sigmiyor ve
-			   "Test" sekmesi ekranin disinda kaliyordu (ulasilamaz). 2x2 izgara cozer. */
 			.field-row .field.f-prefix{ flex:0 0 140px; }
-			.admin-tabs{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
-			.admin-tabs .btn{ padding:10px 6px; font-size:13px; min-width:0; }
-			@media (min-width: 560px){ .admin-tabs{ grid-template-columns:repeat(5,minmax(0,1fr)); } }
+
+			/* ---- Faz 7: Admin paneli -- tam sayfa dashboard (sol dikey nav + sag icerik) ----
+			   Referans: "Site icin UI istediklerim/admin dashboarda nasil gozukebilir.jpeg"
+			   (Elera adli bir SaaS ornegi -- gruplu sol nav + aktif ogede renkli pill, ust
+			   basliktaki ozet kartlari). Ayni dilden: koyu/acik degil ama benzer sadelikte,
+			   projenin kendi navy/brass renk sistemiyle. #adminPanelBg zaten .modal-bg (fixed +
+			   fade-in/out) -- burada SADECE ICERIGI degistiriyoruz, o mekanizmaya dokunulmadi. */
+			body[data-page="admin"] #adminPanelBg{ align-items:stretch; justify-content:stretch; padding:0; background:var(--paper); backdrop-filter:none; overflow-y:hidden; }
+			.admin-dashboard{ display:flex; width:100%; height:100%; }
+			.admin-sidebar{ flex:0 0 240px; display:flex; flex-direction:column; gap:18px; padding:20px 14px; background:var(--card); border-right:1px solid var(--border-soft); }
+			.admin-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:0 8px; }
+			.admin-sidebar-logo{ font-size:22px; line-height:1; }
+			.admin-sidebar-brand b{ display:block; font-family:'Fraunces',serif; font-size:15px; color:var(--ink); }
+			.admin-sidebar-sub{ display:block; font-size:11px; color:var(--muted); }
+			.admin-nav-group{ display:flex; flex-direction:column; gap:2px; }
+			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:8px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:14px; font-weight:500; text-align:left; cursor:pointer; }
+			.admin-nav-item .ani{ font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+			.admin-nav-item:hover{ background:var(--surface-hover); }
+			.admin-nav-item.active{ background:var(--navy); color:#f3efe6; font-weight:600; }
+			.admin-back-btn{ margin-top:auto; padding:9px 10px; border:1px solid var(--border-soft); border-radius:8px; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:13px; text-align:left; cursor:pointer; }
+			.admin-back-btn:hover{ background:var(--surface-hover); color:var(--ink); }
+			.admin-main{ flex:1 1 auto; min-width:0; padding:24px 28px 40px; overflow-y:auto; }
+			.admin-main-title{ font-family:'Fraunces',serif; font-size:22px; color:var(--ink); margin:0 0 16px; }
+			@media (max-width: 780px){
+				.admin-dashboard{ flex-direction:column; }
+				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; }
+				.admin-sidebar-brand{ flex:1 1 100%; }
+				.admin-nav-group{ flex-direction:row; flex-wrap:wrap; flex:1 1 auto; }
+				.admin-nav-item{ width:auto; flex:1 1 auto; justify-content:center; }
+				.admin-back-btn{ margin-top:0; }
+				.admin-main{ padding:18px 16px 32px; }
+			}
 
 			/* ---- Test Modu: admin panelinde HER sekmede görünen sabit anahtar + site geneli şerit ---- */
 			.test-mode-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; margin-bottom:14px; background:var(--paper); border:1px solid var(--divider); border-radius:10px; }

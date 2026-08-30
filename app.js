@@ -305,20 +305,19 @@
 				document.getElementById("adminPanelBg").classList.remove("open");
 			}
 
+			const ADMIN_TAB_TITLES = { users: "Kullanıcılar", logs: "Geçmiş", test: "Test", stats: "İstatistikler" };
 			function switchAdminTab(tab) {
 				if (!requireAdmin()) return;
 				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
 				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
 				document.getElementById("adminTestView").style.display = (tab === "test") ? "block" : "none";
 				document.getElementById("adminStatsView").style.display = (tab === "stats") ? "block" : "none";
-				document.getElementById("adminTabUsersBtn").classList.toggle("btn-primary", tab === "users");
-				document.getElementById("adminTabUsersBtn").classList.toggle("btn-ghost", tab !== "users");
-				document.getElementById("adminTabLogsBtn").classList.toggle("btn-primary", tab === "logs");
-				document.getElementById("adminTabLogsBtn").classList.toggle("btn-ghost", tab !== "logs");
-				document.getElementById("adminTabTestBtn").classList.toggle("btn-primary", tab === "test");
-				document.getElementById("adminTabTestBtn").classList.toggle("btn-ghost", tab !== "test");
-				document.getElementById("adminTabStatsBtn").classList.toggle("btn-primary", tab === "stats");
-				document.getElementById("adminTabStatsBtn").classList.toggle("btn-ghost", tab !== "stats");
+				document.getElementById("adminTabUsersBtn").classList.toggle("active", tab === "users");
+				document.getElementById("adminTabLogsBtn").classList.toggle("active", tab === "logs");
+				document.getElementById("adminTabTestBtn").classList.toggle("active", tab === "test");
+				document.getElementById("adminTabStatsBtn").classList.toggle("active", tab === "stats");
+				const titleEl = document.getElementById("adminMainTitle");
+				if (titleEl) titleEl.textContent = ADMIN_TAB_TITLES[tab] || "";
 				if (tab === "users") loadAdminUsers(); else if (tab === "test") loadAdminTestPanel(); else if (tab === "stats") loadAdminStats(); else { loadAdminLogs(); loadTestModeLog(); }
 }
 

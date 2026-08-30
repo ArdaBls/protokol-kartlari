@@ -1,4 +1,8 @@
-// v3.7.6 (31 Ağustos 2026) -- kullanıcı geri bildirimi: (1) v3.7.4'te eklenen ana sayfa mini
+// v3.7.7 (31 Ağustos 2026) -- Faz 7: (1) admin paneli artık ortada küçük bir dialog değil, tam
+// sayfa dashboard (sol dikey nav ikonlu sekmeler + sağda geniş içerik alanı, referans:
+// "admin dashboarda nasıl gözükebilir.jpeg"), (2) haber taslağı "Katılımcı Grubu" seçicisinde
+// Öğrenci/Vatandaş artık diğerleri gibi işaretsiz geliyor (önceden hep dolu geliyordu).
+// v3.7.6: kullanıcı geri bildirimi: (1) v3.7.4'te eklenen ana sayfa mini
 // takvim widget'ı tamamen kaldırıldı, (2) mobil cam tepsideki düğmelerin etiket metinleri
 // kaldırılıp ikisi de sadece ikon taşıyan 48px daireye çevrildi, (3) arama kutusuna hâlâ
 // otomatik doldurma olduğu için çok katmanlı engel eklendi: type="search" + parola yöneticisi
@@ -15,7 +19,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.7.6"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.7.7"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
