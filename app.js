@@ -2327,8 +2327,10 @@
 function renderFacultyPickerField(selected) {
 				const fieldWrap = document.getElementById("facultyField");
 				const wrap = document.getElementById("facultyMultiSelect");
+				const searchInput = document.getElementById("facultyMultiSearch");
 				if (!fieldWrap || !wrap) return;
-				if (currentListKey !== "universite") { fieldWrap.style.display = "none"; wrap.innerHTML = ""; return; }
+				if (searchInput) searchInput.value = ""; // form her açıldığında önceki oturumdan kalan arama metni temizlensin
+				if (currentListKey !== "universite") { fieldWrap.style.display = "none"; wrap.innerHTML = ""; const pw=document.getElementById("facultyMultiPills"); if(pw) pw.innerHTML=""; return; }
 				fieldWrap.style.display = "";
 				const sel = new Set(selected || []);
 				wrap.innerHTML = FACULTY_GROUPS.map(function(g) {
@@ -2353,6 +2355,7 @@ function renderFacultyPickerField(selected) {
 					wrap.scrollTop = 0;
 				}
 				syncCoordExtraRoleField();
+				renderFacultyMultiPills();
 			}
 
 			// Aşağıdaki birim/ek görev kutusunda işaretlenenler değiştikçe, "Birim / Kurum" alanı
@@ -2380,8 +2383,46 @@ function renderFacultyPickerField(selected) {
 				field.style.display = "";
 				label.textContent = "Bu kişinin " + selectedCoord.join(", ") + "'teki ek görevi nedir?";
 			}
+			// Seçili birim(ler)in canlı pill/etiket önizlemesi -- her pill'in × butonu ilgili
+			// checkbox'ı kaldırıp aynı senkron zincirini (unit alanı + koordinatörlük alanı) tetikler.
+			function renderFacultyMultiPills() {
+				const pillsWrap = document.getElementById("facultyMultiPills");
+				const wrap = document.getElementById("facultyMultiSelect");
+				if (!pillsWrap || !wrap) return;
+				const checked = Array.from(wrap.querySelectorAll(".fm-cb:checked")).map(function(cb) { return cb.value; });
+				pillsWrap.innerHTML = checked.map(function(v) {
+					return '<span class="fm-pill">' + escapeHtml(v) + '<button type="button" data-value="' + escapeHtml(v) + '" aria-label="' + escapeHtml(v) + ' seçimini kaldır">✕</button></span>';
+				}).join("");
+			}
+			document.getElementById("facultyMultiPills").addEventListener("click", function(e) {
+				const btn = e.target.closest("button[data-value]");
+				if (!btn) return;
+				const cb = document.querySelector('#facultyMultiSelect .fm-cb[value="' + CSS.escape(btn.dataset.value) + '"]');
+				if (cb) { cb.checked = false; syncUnitFromFaculties(); syncCoordExtraRoleField(); renderFacultyMultiPills(); }
+			});
 			document.getElementById("facultyMultiSelect").addEventListener("change", function(e) {
-				if (e.target.classList.contains("fm-cb")) { syncUnitFromFaculties(); syncCoordExtraRoleField(); }
+				if (e.target.classList.contains("fm-cb")) { syncUnitFromFaculties(); syncCoordExtraRoleField(); renderFacultyMultiPills(); }
+			});
+			// Arama kutusu: fm-item metniyle basit (Türkçe locale-aware) substring karşılaştırması.
+			// Eşleşen öge kalmayan grup (fm-group/details) tamamen gizlenir; en az bir eşleşmesi olan
+			// grup arama sırasında otomatik açılır ki kullanıcı sonucu görmek için tıklamak zorunda kalmasın.
+			document.getElementById("facultyMultiSearch").addEventListener("input", function(e) {
+				const q = e.target.value.trim().toLocaleLowerCase("tr");
+				const wrap = document.getElementById("facultyMultiSelect");
+				if (!wrap) return;
+				wrap.querySelectorAll(".fm-group").forEach(function(group) {
+					let anyVisible = false;
+					group.querySelectorAll(".fm-item").forEach(function(item) {
+						const text = item.textContent.trim().toLocaleLowerCase("tr");
+						const match = !q || text.indexOf(q) !== -1;
+						item.classList.toggle("fm-hidden", !match);
+						if (match) anyVisible = true;
+					});
+					group.classList.toggle("fm-hidden", !anyVisible);
+					// Arama temizlenince gruplar zorla kapatılmaz -- kullanıcının kendi açtığı veya
+					// işaretli-öge yüzünden zaten açık gelen grup öylece kalır, sürpriz kapanma olmaz.
+					if (q && anyVisible) group.setAttribute("open", "");
+				});
 			});
 
 function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); loadSuggestionPool().then(populateSuggestionDatalists); }

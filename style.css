@@ -368,7 +368,20 @@
 			.hg-current-badge{ flex-shrink:0; font-size:10px; font-weight:700; color:var(--brass-text); padding:2px 8px; border-radius:20px; background:var(--surface-input); }
 
 			/* Formdaki fakülte/birim çoklu seçim kutusu (akordiyon: her grup ayrı ayrı açılıp kapanır) */
+			/* Arama kutusu -- .field input[type=text] genel kuralından zemin/kenarlık miras alır,
+			   burada sadece alt boşluk eklendi. Filtreleme JS'te basit substring karşılaştırmasıyla
+			   yapılıyor (fm-item/fm-group görünürlüğü toggle edilir), arama sırasında eşleşen
+			   gruplar otomatik açılır. */
+			.fm-search{ margin-bottom:6px; }
+			/* Seçili birim(ler) canlı pill önizlemesi -- her pill'in × butonu ilgili checkbox'ı
+			   kaldırıp syncUnitFromFaculties()/syncCoordExtraRoleField()'ı tetikler. */
+			.fm-pills{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px; }
+			.fm-pills:empty{ display:none; }
+			.fm-pill{ display:inline-flex; align-items:center; gap:5px; background:var(--navy); color:#f3efe6; border-radius:20px; padding:4px 6px 4px 10px; font-size:12px; font-weight:600; }
+			.fm-pill button{ display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; border:none; background:rgba(255,255,255,.18); color:inherit; font-size:11px; line-height:1; cursor:pointer; padding:0; }
+			.fm-pill button:hover{ background:rgba(255,255,255,.32); }
 			.faculty-multiselect{ max-height:230px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; background:var(--surface-input); display:flex; flex-direction:column; gap:1px; }
+			.faculty-multiselect .fm-group.fm-hidden, .faculty-multiselect .fm-item.fm-hidden{ display:none; }
 			.faculty-multiselect .fm-group{ margin-top:6px; }
 			.faculty-multiselect .fm-group:first-child{ margin-top:0; }
 			.faculty-multiselect .fm-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
