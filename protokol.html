@@ -86,6 +86,10 @@
 					</div>
 					<div class="header-top-right">
 						<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
+						<div class="notif-bell-wrap" id="notifBellWrap" style="display:none;">
+							<button type="button" class="theme-toggle" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Bildirimler" title="Bildirimler">🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span></button>
+							<div class="notif-dropdown" id="notifDropdown"></div>
+						</div>
 						<div class="header-auth" id="headerAuth"></div>
 					</div>
 				</div>
@@ -243,6 +247,7 @@
 							<button type="button" class="cal-viewbtn" data-view="year" onclick="calSetView('year')">Yıl</button>
 							<button type="button" class="cal-viewbtn" data-view="list" onclick="calSetView('list')">Liste</button>
 						</div>
+						<button type="button" class="cal-textbtn edit-only" onclick="startQuickDraftEvent()" title="Şu andan başlayan 1 saatlik taslak etkinlik oluşturur, doldurman için hatırlatma gönderir">📍 Bir Etkinliğe Gidiyorum</button>
 						<button type="button" class="cal-addbtn" onclick="openEventModal(null)"><span class="ab-full">+ Etkinlik</span><span class="ab-short">+</span></button>
 						<button type="button" class="cal-iconbtn cal-close" onclick="closeCalendar()" title="Kapat">✕</button>
 					</div>

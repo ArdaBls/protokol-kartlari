@@ -51,13 +51,15 @@
 				if (PAGE === "takvim" && !window.__takvimBooted) {
 					window.__takvimBooted = true;
 					const params = new URLSearchParams(location.search);
-					const dateParam = params.get("date"), evParam = params.get("event");
+					const dateParam = params.get("date"), evParam = params.get("event"), editParam = params.get("edit");
 					if (dateParam) openCalendarAt(dateParam, evParam); else openCalendar();
+					if (editParam) tryOpenEditFromQuery(editParam, 0);
 				}
 				if (PAGE === "admin" && !window.__adminBooted) {
 					window.__adminBooted = true;
 					openAdminPanel();
 				}
+				if (currentUser) { startReminderTicker(); renderNotifCenter(); }
 			}
 
 			function showLoading(msg) { document.getElementById("loadingLabel").textContent = msg || "Yükleniyor…"; document.getElementById("loadingOverlay").classList.add("open"); }
@@ -3352,6 +3354,112 @@ function afterCalTransition(el, propName, fallbackMs, cb){
 	setTimeout(fire, fallbackMs);
 }
 
+// ---- "Bir Etkinliğe Gidiyorum" hızlı taslak + hatırlatma sistemi ----
+// Taslak: şu andan başlayan 1 saatlik, adı "(Düzenlenmeye muhtaç)" olan bir etkinlik.
+// 15/30/60 dk sonra site içi hatırlatma (bu tarayıcıda, localStorage tabanlı -- gerçek push
+// bildirimi değil). Hatırlatma, kişi taslağı gerçek bir adla düzenleyip kaydedene kadar
+// bildirim merkezinde kalır.
+const QUICK_DRAFT_NAME = "(Düzenlenmeye muhtaç)";
+const REMINDERS_KEY = "omuProtokolPendingReminders";
+function getReminders(){ try { return JSON.parse(localStorage.getItem(REMINDERS_KEY) || "[]"); } catch(e) { return []; } }
+function saveReminders(list){ try { localStorage.setItem(REMINDERS_KEY, JSON.stringify(list)); } catch(e) {} }
+
+async function startQuickDraftEvent(){
+	if (!requireEdit()) return;
+	const now = new Date();
+	const end = new Date(now.getTime() + 60*60000);
+	const pad = function(n){ return String(n).padStart(2,"0"); };
+	const obj = {
+		ad: QUICK_DRAFT_NAME, tur: "diger", durum: "planlandi",
+		tarih: dKey(now), saat: pad(now.getHours())+":"+pad(now.getMinutes()), bitisSaat: pad(end.getHours())+":"+pad(end.getMinutes()),
+		yer: "", birim: "", planlayan: "", gorevli: "", katilimcilar: [], arsiv: "", not: "", rozetler: [], haberKaynagi: "",
+		olusturan: (currentUser ? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""),
+		olusturmaTs: Date.now(), guncellemeTs: Date.now(), locked: false
+	};
+	const res = await persistEvent(null, obj, "Hızlı taslak etkinlik oluşturuldu (\"Bir Etkinliğe Gidiyorum\")");
+	if (!res) return;
+	calEvents[res.id] = obj;
+	const dueAt = now.getTime();
+	[15, 30, 60].forEach(function(mins){
+		const list = getReminders();
+		list.push({ id: res.id + "_" + mins, eventId: res.id, dueAt: dueAt + mins*60000, fired: false });
+		saveReminders(list);
+	});
+	startReminderTicker();
+	showToast("Taslak oluşturuldu, 15 dakikada bir doldurman için hatırlatılacaksın.", "success");
+	openEventModal(res.id);
+}
+// Bir etkinlik için bekleyen tüm hatırlatmalar temizlenir -- taslak gerçek bir isimle
+// düzenlenip kaydedildiğinde (saveEvent) veya etkinlik silindiğinde çağrılır.
+function clearRemindersForEvent(eventId){
+	const list = getReminders().filter(function(r){ return r.eventId !== eventId; });
+	saveReminders(list);
+	renderNotifCenter();
+}
+let reminderTickTimer = null;
+function startReminderTicker(){
+	if (reminderTickTimer) return;
+	checkReminders();
+	reminderTickTimer = setInterval(checkReminders, 20000);
+}
+function checkReminders(){
+	const list = getReminders();
+	if (!list.length) { renderNotifCenter(); return; }
+	const now = Date.now();
+	let changed = false;
+	const kept = list.filter(function(r){
+		const ev = calEvents[r.eventId];
+		if (!ev) { changed = true; return false; }
+		if (ev.ad !== QUICK_DRAFT_NAME) { changed = true; return false; }
+		return true;
+	});
+	kept.forEach(function(r){
+		if (!r.fired && r.dueAt <= now) {
+			r.fired = true; changed = true;
+			const ev = calEvents[r.eventId];
+			showToast("Doldurulmayı bekleyen bir etkinlik var: " + (ev ? fmtTrDate(ev.tarih) + " " + (ev.saat||"") : ""), "warn");
+		}
+	});
+	if (changed) saveReminders(kept);
+	renderNotifCenter();
+}
+function renderNotifCenter(){
+	const wrap = document.getElementById("notifBellWrap");
+	const badge = document.getElementById("notifBadge");
+	const dd = document.getElementById("notifDropdown");
+	if (!wrap || !badge || !dd) return;
+	if (!currentUser) { wrap.style.display = "none"; return; }
+	const due = getReminders().filter(function(r){ return r.fired; });
+	wrap.style.display = due.length ? "" : (getReminders().length ? "" : "none");
+	badge.style.display = due.length ? "" : "none";
+	badge.textContent = String(due.length);
+	if (!due.length) { dd.innerHTML = '<p class="hint" style="margin:10px;">Bekleyen hatırlatma yok.</p>'; return; }
+	dd.innerHTML = due.map(function(r){
+		const ev = calEvents[r.eventId];
+		const label = ev ? (fmtTrDate(ev.tarih) + " " + (ev.saat||"") + " · Düzenlenmeyi bekliyor") : "Etkinlik";
+		return '<button type="button" class="notif-item" onclick="openReminderTarget(\'' + r.eventId + '\')">📍 ' + escapeHtml(label) + '</button>';
+	}).join("");
+}
+function toggleNotifCenter(){
+	const dd = document.getElementById("notifDropdown"); if (!dd) return;
+	dd.classList.toggle("open");
+}
+function openReminderTarget(eventId){
+	document.getElementById("notifDropdown").classList.remove("open");
+	if (PAGE === "takvim") { tryOpenEditFromQuery(eventId, 0); return; }
+	location.href = "takvim.html?edit=" + encodeURIComponent(eventId);
+}
+function tryOpenEditFromQuery(id, attempts){
+	if (calEvents[id]) { openEventModal(id); return; }
+	if (attempts >= 15) return;
+	setTimeout(function(){ tryOpenEditFromQuery(id, attempts+1); }, 300);
+}
+document.addEventListener("click", function(e){
+	const dd = document.getElementById("notifDropdown");
+	if (!dd || !dd.classList.contains("open")) return;
+	if (!dd.contains(e.target) && e.target.id !== "notifBellBtn") dd.classList.remove("open");
+});
+
 function openCalendar(){
 	if (PAGE !== "takvim") { location.href = buildTakvimUrl(); return; }
 	const ov=document.getElementById("calendarOverlay");
@@ -4513,6 +4621,8 @@ async function saveEventImpl(){
 	// Ctrl+Z yigina eklenir: duzenlemede onceki hal saklanir, olusturmada yeni push-key kullanilir.
 	if(editingId){ calEvents[editingId]=obj; pushUndo({ type:"edit", id:editingId, before:Object.assign({},eski), after:Object.assign({},obj) }); }
 	else { calEvents[res.id]=obj; pushUndo({ type:"create", id:res.id, before:null, after:Object.assign({},obj) }); }
+	// Taslak ("Bir Etkinliğe Gidiyorum") gerçek bir adla kaydedildiyse bekleyen hatırlatmalar temizlenir.
+	if (editingId && eski && eski.ad === QUICK_DRAFT_NAME && obj.ad !== QUICK_DRAFT_NAME) clearRemindersForEvent(editingId);
 	closeEventModal(); showToast("Etkinlik kaydedildi.", "success");
 }
 

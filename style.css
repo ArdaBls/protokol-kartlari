@@ -1429,3 +1429,11 @@
 			/* Etkinlik rozetleri (Basına Kapalı / Dış Katılımlı / Canlı Yayın vb.) */
 			.cal-badge-wrap{ display:inline-flex; flex-wrap:wrap; gap:3px; margin-left:4px; }
 			.cal-badge{ display:inline-block; font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px; line-height:1.5; white-space:nowrap; }
+
+			/* Bildirim zili ve dropdown ("Bir Etkinliğe Gidiyorum" hatırlatmaları) */
+			.notif-bell-wrap{ position:relative; }
+			.notif-badge{ position:absolute; top:-2px; right:-2px; min-width:15px; height:15px; padding:0 3px; border-radius:8px; background:#dc2626; color:#fff; font-size:10px; font-weight:700; line-height:15px; text-align:center; }
+			.notif-dropdown{ display:none; position:absolute; top:calc(100% + 8px); right:0; width:260px; max-height:320px; overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.25); z-index:200; padding:6px; }
+			.notif-dropdown.open{ display:block; }
+			.notif-item{ display:block; width:100%; text-align:left; padding:8px 10px; border:none; background:none; border-radius:6px; font-size:12px; color:var(--ink); cursor:pointer; }
+			.notif-item:hover{ background:var(--surface-input); }
