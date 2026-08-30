@@ -554,18 +554,41 @@
 
 			const PREFIX_WEIGHTS = { "Prof. Dr.": 1, "Doç. Dr.": 2, "Dr. Öğr. Üyesi": 3, "Dr.": 4, "Öğr. Gör.": 5, "Arş. Gör.": 6, "Av.": 7, "Uzm.": 7, "": 8 };
 
-			// Görev unvanı (title, serbest metin) hiyerarşisi — en spesifik anahtar kelime önce kontrol edilir
+			// Görev unvanı (title, serbest metin) hiyerarşisi — T.C. Samsun Valiliği Tebrikata Giriş
+			// Sırası (protokol listesi PDF'i) esas alınarak, hem il/devlet hem üniversite unvanlarını
+			// TEK bir sıraya oturtur. En spesifik anahtar kelime önce kontrol edilir (örn. "rektör
+			// yardımcısı" "rektör"den önce), aksi halde alt string eşleşmesi yanlış katmanı seçerdi.
+			// Valilik listesindeki madde numaraları (yorumlarda) referans için korunmuştur; derin
+			// yargı/askeri alt listeleri (madde 8-10, 13-18) bu uygulamada karşılığı olmadığı için
+			// atlanmıştır.
 			const TITLE_HIERARCHY = [
-				{ key: "rektör yardımcısı", weight: 2 },
-				{ key: "rektör", weight: 1 },
-				{ key: "dekan vekili", weight: 3 },
-				{ key: "dekan v.", weight: 3 },
-				{ key: "dekan", weight: 3 },
-				{ key: "enstitü müdürü", weight: 4 },
-				{ key: "yüksekokul müdürü", weight: 4 },
-				{ key: "müdür", weight: 4 },
-				{ key: "genel sekreter", weight: 5 },
-				{ key: "bölüm başkanı", weight: 6 }
+				{ key: "vali yardımcısı", weight: 5 },          // madde 5
+				{ key: "vali", weight: 0 },                      // Samsun Valisi (tek kişi, en üst -- 0'dan başlar)
+				{ key: "milletvekili", weight: 1 },               // madde 1 (TBMM Üyeleri)
+				{ key: "garnizon komutanı", weight: 2 },          // madde 2
+				{ key: "büyükşehir belediye başkanı", weight: 3 },// madde 3
+				{ key: "ilçe belediye başkanı", weight: 5 },      // madde 5
+				{ key: "belediye başkanı", weight: 3 },           // madde 3 (il belediye başkanı)
+				{ key: "cumhuriyet başsavcısı", weight: 4 },      // madde 4
+				{ key: "baro başkanı", weight: 4 },               // madde 4
+				{ key: "kaymakam", weight: 5 },                   // madde 5
+				{ key: "rektör yardımcısı", weight: 6 },          // madde 6
+				{ key: "rektör", weight: 4 },                     // madde 4 (Üniversite Rektörleri)
+				{ key: "dekan yardımcısı", weight: 11 },          // madde 11
+				{ key: "dekan vekili", weight: 6 },               // madde 6
+				{ key: "dekan v.", weight: 6 },
+				{ key: "dekan", weight: 6 },
+				{ key: "enstitü müdür yardımcısı", weight: 11 },  // madde 11
+				{ key: "yüksekokul müdür yardımcısı", weight: 11 },// madde 11
+				{ key: "müdür yardımcısı", weight: 11 },          // madde 11 (genel)
+				{ key: "enstitü müdürü", weight: 6 },             // madde 6
+				{ key: "yüksekokul müdürü", weight: 6 },          // madde 6
+				{ key: "müdür", weight: 6 },
+				{ key: "genel sekreter", weight: 7 },             // madde 7 (üst düzey idari yönetici)
+				{ key: "daire başkanı", weight: 12 },             // madde 12 (il teşkilatı müdür/başkan seviyesi)
+				{ key: "bölüm başkanı", weight: 12 },
+				{ key: "öğretim görevlisi", weight: 13 },
+				{ key: "araştırma görevlisi", weight: 13 }
 			];
 
 			function getTitleWeight(title) {
@@ -590,19 +613,21 @@
 				return 2;
 			}
 
-			// Etkinlik katılımcı listesi + haber metni ORTAK protokol sıralaması. İl protokolü
-			// dahil edilen bir etkinlikten gelen kişiler (kaynak:"il") her zaman üniversite
-			// kaynaklılardan (kaynak:"universite"/tanımsız) önce gelir -- gerçek devlet protokolünde
-			// Vali/Milletvekili yerel etkinliklerde rektörden önce sayılır. Her iki grup kendi
-			// içinde rank'a, sonra unvan/kurum ağırlığına göre sıralanır.
+			// Etkinlik katılımcı listesi + haber metni ORTAK protokol sıralaması. TITLE_HIERARCHY
+			// artık T.C. Samsun Valiliği Tebrikata Giriş Sırası'na göre hem il/devlet hem üniversite
+			// unvanlarını TEK bir ölçekte tutuyor (Vali < Milletvekili < Rektör < Kaymakam < Rektör
+			// Yardımcısı/Dekan < ...), bu yüzden unvan ağırlığı BİRİNCİL kriterdir -- "kaynak" (il/
+			// üniversite) alanına göre kör bir öncelik ARTIK KULLANILMIYOR (yanlış sonuç verirdi,
+			// örn. bir Kaymakam bir Rektör'den SONRA gelmeli ama ikisi de "il"den farklı listelerden
+			// gelebilir). "rank" sadece AYNI unvan katmanındaki kişiler arasında (ör. iki Milletvekili)
+			// ince ayrım için ikincil bir tie-breaker olarak kalır.
 			function sortAttendeesByProtocol(list) {
 				return list.slice().sort(function(a, b) {
-					const ka = a.kaynak === "il" ? 0 : 1; const kb = b.kaynak === "il" ? 0 : 1; if (ka !== kb) return ka - kb;
+					const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if (ha !== hb) return ha - hb;
+					const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if (ia !== ib) return ia - ib;
 					const ra = (a.rank === undefined || a.rank === null || a.rank === "" || isNaN(Number(a.rank))) ? Infinity : Number(a.rank);
 					const rb = (b.rank === undefined || b.rank === null || b.rank === "" || isNaN(Number(b.rank))) ? Infinity : Number(b.rank);
 					if (ra !== rb) return ra - rb;
-					const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if (ha !== hb) return ha - hb;
-					const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if (ia !== ib) return ia - ib;
 					return (a.name || "").localeCompare(b.name || "", "tr");
 				});
 			}
@@ -1666,14 +1691,12 @@
 				}
 
 				selectedPeople.sort((a,b) => {
-					// İl protokolü dahil edilen bir etkinlikten (bkz. onAttIncludeIlToggle/kaynak
-					// etiketi) gelen kişiler varsa, gerçek devlet protokolünde (Vali/Milletvekili
-					// yerel etkinliklerde üniversite rektöründen önce gelir) İl kaynaklılar HER ZAMAN
-					// üniversite kaynaklılardan önce sıralanır; her iki grup kendi içinde rank'a göre.
-					const ka = a.kaynak === "il" ? 0 : 1; const kb = b.kaynak === "il" ? 0 : 1; if(ka !== kb) return ka - kb;
-					const ra = (a.rank === undefined || a.rank === null || a.rank === "" || isNaN(Number(a.rank))) ? Infinity : Number(a.rank); const rb = (b.rank === undefined || b.rank === null || b.rank === "" || isNaN(Number(b.rank))) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
+					// TITLE_HIERARCHY artık gerçek T.C. Samsun Valiliği protokol sırasına göre hem
+					// il/devlet hem üniversite unvanlarını tek ölçekte tutuyor -- unvan ağırlığı
+					// BİRİNCİL kriterdir, "kaynak" (il/üniversite) alanına göre kör öncelik kaldırıldı.
 					const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if(ha !== hb) return ha - hb;
 					const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if(ia !== ib) return ia - ib;
+					const ra = (a.rank === undefined || a.rank === null || a.rank === "" || isNaN(Number(a.rank))) ? Infinity : Number(a.rank); const rb = (b.rank === undefined || b.rank === null || b.rank === "" || isNaN(Number(b.rank))) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
 					const oa = (a.order === undefined || a.order === null || a.order === "") ? Infinity : Number(a.order); const ob = (b.order === undefined || b.order === null || b.order === "") ? Infinity : Number(b.order); if(oa !== ob) return oa - ob;
 					return (a.name||"").localeCompare(b.name||"", "tr");
 				});
