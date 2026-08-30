@@ -1408,3 +1408,14 @@
 			body[data-page="login"] #authFormBg{ display:flex !important; position:static; background:none; backdrop-filter:none; padding:40px 16px; }
 			body[data-page="login"] #authFormBg .af-close{ display:none; }
 			body[data-page="login"] #headerAuth{ display:none; }
+
+			/* Onboarding rehberi nokta göstergesi */
+			.onboarding-dots{ display:flex; gap:6px; justify-content:center; margin:14px 0; }
+			.onboarding-dot{ width:7px; height:7px; border-radius:50%; background:var(--border); }
+			.onboarding-dot.active{ background:var(--accent, #b8923f); }
+
+			/* PIN ile hızlı hesap geçişi */
+			.pin-account-row{ display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+			.pin-account-name{ flex:1; min-width:100px; font-weight:600; font-size:13px; }
+			.pin-input{ width:80px; padding:7px 10px; border-radius:8px; border:1px solid var(--border); font-size:13px; }
+			.btn-pin{ background:transparent; border:1px solid rgba(255,255,255,.3); color:#f3efe6; border-radius:8px; padding:6px 9px; font-size:15px; cursor:pointer; }

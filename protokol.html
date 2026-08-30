@@ -175,6 +175,8 @@
 				<button type="button" class="foot-link" onclick="openLegalModal('terms')">Kullanım Şartları</button>
 				<span class="foot-sep">·</span>
 				<button type="button" class="foot-link" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
+				<span class="foot-sep">·</span>
+				<button type="button" class="foot-link" onclick="replayOnboarding()">Kullanım Rehberi</button>
 			</p>
 			<p class="foot-note">Bu uygulamanın kaynak kodu, arayüz tasarımı ve içeriği telif hakkıyla korunmaktadır; hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz veya dağıtılamaz.</p>
 			<p class="foot-version">Sürüm <span id="footVersion"></span></p>
@@ -768,6 +770,44 @@
 						<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
 					</div>
 					<div id="adminTestResult" class="hint">Yükleniyor…</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kullanım Rehberi (Onboarding) -->
+		<div class="modal-bg" id="onboardingModalBg" style="z-index:115;">
+			<div class="modal" style="max-width:440px; text-align:center;">
+				<button class="close-x" onclick="skipOnboarding()">✕</button>
+				<div id="onboardingStepIcon" style="font-size:38px; margin-bottom:8px;">🗂️</div>
+				<h2 id="onboardingStepTitle">—</h2>
+				<p class="hint" id="onboardingStepText">—</p>
+				<div class="onboarding-dots" id="onboardingDots"></div>
+				<div class="modal-actions" style="justify-content:space-between;">
+					<button class="btn btn-ghost" type="button" onclick="skipOnboarding()">Atla</button>
+					<div style="display:flex; gap:8px;">
+						<button class="btn btn-ghost" type="button" id="onboardingPrevBtn" onclick="onboardingStep(-1)" style="display:none;">Geri</button>
+						<button class="btn btn-primary" type="button" id="onboardingNextBtn" onclick="onboardingStep(1)">İleri</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- PIN ile Hızlı Hesap Değiştir -->
+		<div class="modal-bg" id="pinSwitchModalBg" style="z-index:118;">
+			<div class="modal" style="max-width:480px;">
+				<button class="close-x" onclick="closePinSwitchModal()">✕</button>
+				<h2>🔑 PIN ile Hızlı Hesap Değiştir</h2>
+				<p class="hint">Aynı cihazı paylaşan ekip arkadaşların çıkış yapmadan PIN ile hesap değiştirebilir. Şifreniz Firebase'e gönderilmez, yalnızca bu tarayıcıda PIN ile şifreli saklanır.</p>
+				<h3 style="font-size:14px; margin:14px 0 8px;">Bu Cihazdaki Hesaplar</h3>
+				<div id="pinAccountsList"></div>
+				<div id="pinLinkSection" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
+					<h3 style="font-size:14px; margin:0 0 8px;">Bu Hesabı Bu Cihaza Bağla</h3>
+					<div class="field-row">
+						<div class="field"><label>Yeni PIN (4-6 hane)</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew1"></div>
+						<div class="field"><label>PIN Tekrar</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew2"></div>
+					</div>
+					<div class="field"><label>Mevcut Şifreniz (bir kereliğine doğrulama için)</label><input type="password" id="pinLinkPassword"></div>
+					<button class="btn btn-primary" type="button" style="width:100%;" onclick="linkPinToCurrentAccount()">PIN Tanımla / Güncelle</button>
 				</div>
 			</div>
 		</div>

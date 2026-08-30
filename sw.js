@@ -1,9 +1,8 @@
-// v3.1.0 (30 Ağustos 2026) -- Çok sayfalı mimari: tek index.html yerine index.html (giriş),
-// protokol.html (ana kart ızgarası), takvim.html (tam sayfa takvim), admin.html (sadece admin
-// rolü) ayrı gerçek sayfalar oldu. Hepsi aynı app.js/style.css'i paylaşıyor (bkz. app.js'teki
-// PAGE sabiti). Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni özellik, üçüncü hane
-// = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.1.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+// v3.2.0 (30 Ağustos 2026) -- Onboarding rehberi (protokol.html, ilk ziyarette) ve PIN ile
+// hızlı hesap değiştirme (header, tüm sayfalar) eklendi. v3.1.0: çok sayfalı mimari
+// (index/protokol/takvim/admin.html). Ana sürüm = kırılgan/mimari değişiklik, ikinci hane =
+// yeni özellik, üçüncü hane = hata düzeltmesi.
+const CACHE_NAME = "omu-protokol-v3.2.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

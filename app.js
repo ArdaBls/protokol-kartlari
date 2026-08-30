@@ -132,7 +132,10 @@
 			// tikla-kapa (bkz. setupHeaderMenu()).
 			function renderAuthUI() {
 				const wrap = document.getElementById("headerAuth");
-				if (!currentUser) { wrap.innerHTML = '<button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>'; return; }
+				if (!currentUser) {
+					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>';
+					return;
+				}
 				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
 				const displayName = currentUser.firstName || currentUser.email;
 				const initial = escapeHtml((displayName || "?").trim().charAt(0).toUpperCase());
@@ -147,6 +150,7 @@
 				'<div class="header-menu" id="headerMenu">' +
 					'<div class="header-menu-user"><span class="role-dot ' + (currentUser.role || "pending") + '"></span><span class="hm-name">' + escapeHtml(displayName) + '</span><span class="hm-role">' + roleLabel + '</span></div>' +
 					adminItem +
+					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); openPinSwitchModal();">🔑 PIN ile Hızlı Hesap Değiştir</button>' +
 					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); handleLogout();">↩ Çıkış</button>' +
 				'</div>' +
 				'</div>';
@@ -356,12 +360,14 @@
 				Promise.all([
 				database.ref("logs/il").limitToLast(50).once("value"),
 				database.ref("logs/universite").limitToLast(50).once("value"),
-				database.ref("logs/etkinlik").limitToLast(50).once("value")
+				database.ref("logs/etkinlik").limitToLast(50).once("value"),
+				database.ref("logs/hesap").limitToLast(50).once("value")
 				]).then(function(snaps) {
 				const ilLogs = Object.values(snaps[0].val() || {}).map(function(e){ e._list = "il"; return e; });
 				const uniLogs = Object.values(snaps[1].val() || {}).map(function(e){ e._list = "universite"; return e; });
 				const evLogs = Object.values(snaps[2].val() || {}).map(function(e){ e._list = "etkinlik"; return e; });
-				const entries = ilLogs.concat(uniLogs).concat(evLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
+				const hesapLogs = Object.values(snaps[3].val() || {}).map(function(e){ e._list = "hesap"; return e; });
+				const entries = ilLogs.concat(uniLogs).concat(evLogs).concat(hesapLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
 				if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
 				listEl.innerHTML = entries.map(function(e) {
 				const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
@@ -481,7 +487,7 @@
 			}
 
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
-			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi' };
+			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi', hesap: 'Hesap' };
 			// Site açılışında sekme HER ZAMAN Üniversite ile açılır (kullanıcı talebi). Daha önce burada
 			// localStorage'da kayıtlı son sekme (ör. 'il') okunup başlangıç değeri yapılıyordu; artık
 			// açılışta okunmuyor — switchList() elle sekme değişiminde localStorage'a yazmaya devam
@@ -1227,6 +1233,152 @@
 				document.getElementById("legalModalBg").classList.add("open");
 			}
 			function closeLegalModal(){ document.getElementById("legalModalBg").classList.remove("open"); }
+
+			// PIN ile hızlı hesap geçişi. Şifre Firebase'e YAZILMAZ -- sadece bu tarayıcının
+			// localStorage'ında, PIN'den türetilen bir AES-GCM anahtarıyla şifreli tutulur, bu
+			// yüzden gerçekten "aynı cihaz" ile sınırlıdır (kullanıcı isteği).
+			const QUICK_ACCOUNTS_KEY = "omuProtokolQuickAccounts";
+			function getQuickAccounts(){ try { return JSON.parse(localStorage.getItem(QUICK_ACCOUNTS_KEY) || "[]"); } catch(e) { return []; } }
+			function saveQuickAccounts(list){ try { localStorage.setItem(QUICK_ACCOUNTS_KEY, JSON.stringify(list)); } catch(e) {} }
+			function b64FromBytes(bytes){ return btoa(String.fromCharCode.apply(null, bytes)); }
+			function bytesFromB64(b64){ return Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); }); }
+			async function pinDeriveKey(pin, saltBytes){
+				const enc = new TextEncoder();
+				const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+				return crypto.subtle.deriveKey(
+					{ name: "PBKDF2", salt: saltBytes, iterations: 100000, hash: "SHA-256" },
+					keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+				);
+			}
+			async function pinEncryptPassword(pin, password){
+				const salt = crypto.getRandomValues(new Uint8Array(16));
+				const iv = crypto.getRandomValues(new Uint8Array(12));
+				const key = await pinDeriveKey(pin, salt);
+				const cipherBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, new TextEncoder().encode(password));
+				return { salt: b64FromBytes(salt), iv: b64FromBytes(iv), cipher: b64FromBytes(new Uint8Array(cipherBuf)) };
+			}
+			async function pinDecryptPassword(pin, rec){
+				const key = await pinDeriveKey(pin, bytesFromB64(rec.salt));
+				const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytesFromB64(rec.iv) }, key, bytesFromB64(rec.cipher));
+				return new TextDecoder().decode(plainBuf);
+			}
+			function logAccountEvent(who, email, actionLabel){
+				if (!database) return;
+				database.ref(dbPath("logs/hesap")).push({ by: who, email: email, action: actionLabel, target: "", timestamp: firebase.database.ServerValue.TIMESTAMP }).catch(function(){});
+			}
+			function openPinSwitchModal(){
+				renderQuickAccountsList();
+				const linkSection = document.getElementById("pinLinkSection");
+				if (linkSection) linkSection.style.display = currentUser ? "" : "none";
+				document.getElementById("pinSwitchModalBg").classList.add("open");
+			}
+			function closePinSwitchModal(){ document.getElementById("pinSwitchModalBg").classList.remove("open"); }
+			function renderQuickAccountsList(){
+				const wrap = document.getElementById("pinAccountsList");
+				const accounts = getQuickAccounts();
+				if (!accounts.length) { wrap.innerHTML = '<p class="hint">Bu cihaza henüz bağlı hesap yok.</p>'; return; }
+				wrap.innerHTML = accounts.map(function(a, i){
+					return '<div class="pin-account-row">' +
+						'<div class="pin-account-name">' + escapeHtml(a.displayName || a.email) + '</div>' +
+						'<input type="password" inputmode="numeric" maxlength="6" class="pin-input" id="pinInput_' + i + '" placeholder="PIN">' +
+						'<button class="btn btn-primary" type="button" onclick="switchToQuickAccount(' + i + ')">Aç</button>' +
+						'<button class="btn btn-danger-outline" type="button" onclick="removeQuickAccount(' + i + ')">Kaldır</button>' +
+					'</div>';
+				}).join("");
+			}
+			async function switchToQuickAccount(i){
+				const accounts = getQuickAccounts();
+				const acc = accounts[i]; if (!acc) return;
+				const pinEl = document.getElementById("pinInput_" + i);
+				const pin = pinEl ? pinEl.value.trim() : "";
+				if (!/^\d{4,6}$/.test(pin)) { showToast("PIN 4-6 haneli rakam olmalı.", "error"); return; }
+				try {
+					const password = await pinDecryptPassword(pin, acc);
+					await auth.signInWithEmailAndPassword(acc.email, password);
+					closePinSwitchModal();
+					showToast("Hesap değiştirildi: " + (acc.displayName || acc.email), "success");
+					logAccountEvent(acc.displayName || acc.email, acc.email, "PIN ile hesap değiştirildi");
+				} catch(e) {
+					showToast("PIN hatalı veya bu hesap artık geçerli değil.", "error");
+				}
+			}
+			function removeQuickAccount(i){
+				const accounts = getQuickAccounts();
+				const removed = accounts.splice(i, 1)[0];
+				saveQuickAccounts(accounts);
+				renderQuickAccountsList();
+				if (removed) showToast((removed.displayName || removed.email) + " bu cihazdan kaldırıldı.", "success");
+			}
+			async function linkPinToCurrentAccount(){
+				if (!currentUser) { showToast("Önce giriş yapmalısınız.", "error"); return; }
+				const pin1 = document.getElementById("pinNew1").value.trim();
+				const pin2 = document.getElementById("pinNew2").value.trim();
+				const password = document.getElementById("pinLinkPassword").value;
+				if (!/^\d{4,6}$/.test(pin1)) { showToast("PIN 4-6 haneli rakam olmalı.", "error"); return; }
+				if (pin1 !== pin2) { showToast("PIN'ler eşleşmiyor.", "error"); return; }
+				if (!password) { showToast("Şifrenizi girin (bir kereliğine doğrulama için).", "error"); return; }
+				try {
+					const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, password);
+					await auth.currentUser.reauthenticateWithCredential(cred);
+					const enc = await pinEncryptPassword(pin1, password);
+					const who = ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email;
+					const accounts = getQuickAccounts().filter(function(a){ return a.email !== currentUser.email; });
+					accounts.push(Object.assign({ email: currentUser.email, displayName: who }, enc));
+					saveQuickAccounts(accounts);
+					document.getElementById("pinNew1").value = ""; document.getElementById("pinNew2").value = ""; document.getElementById("pinLinkPassword").value = "";
+					showToast("PIN tanımlandı.", "success");
+					logAccountEvent(who, currentUser.email, "Bu cihaza PIN tanımlandı/güncellendi");
+					renderQuickAccountsList();
+				} catch(e) {
+					showToast("Şifre doğrulanamadı.", "error");
+				}
+			}
+
+			// Onboarding rehberi -- sadece protokol.html'de mevcut, ilk ziyarette bir kez açılır.
+			const ONBOARDING_STEPS = [
+				{ icon: "🗂️", title: "Protokol Kartları'na Hoş Geldiniz", text: "Kartlarda kişi/unvan/birim bilgisi var. Üstteki arama kutusu ve sol fakülte filtresiyle hızlıca bulabilirsin." },
+				{ icon: "🗓️", title: "Etkinlik Takvimi", text: "Sağdaki takvim kutusuna tıklayınca tam sayfa takvime geçersin. Gün/Hafta/Ay/Yıl/Liste görünümleri var." },
+				{ icon: "✏️", title: "Düzenleme Yetkisi", text: "Giriş yapmadan sadece görüntüleyebilirsin. Kayıt olup admin onayı alınca kart ekleme/düzenleme açılır." },
+				{ icon: "🛠️", title: "Admin Paneli", text: "Sadece admin rolündeki kullanıcılar admin.html üzerinden kullanıcı yetkisi, log ve test modunu yönetebilir." }
+			];
+			let onboardingIdx = 0;
+			function renderOnboardingStep(){
+				const s = ONBOARDING_STEPS[onboardingIdx];
+				document.getElementById("onboardingStepIcon").textContent = s.icon;
+				document.getElementById("onboardingStepTitle").textContent = s.title;
+				document.getElementById("onboardingStepText").textContent = s.text;
+				document.getElementById("onboardingPrevBtn").style.display = onboardingIdx === 0 ? "none" : "";
+				document.getElementById("onboardingNextBtn").textContent = onboardingIdx === ONBOARDING_STEPS.length - 1 ? "Bitir" : "İleri";
+				document.getElementById("onboardingDots").innerHTML = ONBOARDING_STEPS.map(function(_, i){
+					return '<span class="onboarding-dot' + (i === onboardingIdx ? ' active' : '') + '"></span>';
+				}).join("");
+			}
+			function onboardingStep(dir){
+				const next = onboardingIdx + dir;
+				if (next >= ONBOARDING_STEPS.length) { closeOnboarding(true); return; }
+				onboardingIdx = Math.max(0, Math.min(ONBOARDING_STEPS.length - 1, next));
+				renderOnboardingStep();
+			}
+			function skipOnboarding(){ closeOnboarding(true); }
+			function closeOnboarding(markSeen){
+				document.getElementById("onboardingModalBg").classList.remove("open");
+				if (markSeen) { try { localStorage.setItem("omuProtokolOnboardingSeen", "1"); } catch(e) {} }
+			}
+			function openOnboarding(){
+				const el = document.getElementById("onboardingModalBg");
+				if (!el) return;
+				onboardingIdx = 0;
+				renderOnboardingStep();
+				el.classList.add("open");
+			}
+			// Footer'daki "rehberi tekrar göster" -- her zaman zorla açar, seen bayrağını değiştirmez.
+			function replayOnboarding(){ openOnboarding(); }
+			(function maybeShowOnboarding(){
+				if (!document.getElementById("onboardingModalBg")) return;
+				let seen = false;
+				try { seen = localStorage.getItem("omuProtokolOnboardingSeen") === "1"; } catch(e) {}
+				if (!seen) setTimeout(openOnboarding, 400);
+			})();
 			// Telif yılı her yıl elle güncellenmesin diye otomatik yazılır.
 			(function setFooterYear(){
 				const el = document.getElementById("footYear");
@@ -4683,7 +4835,9 @@ function generateNewsFromEvent(){
 			singlePermDeleteModalBg: closeSinglePermDelete,
 			newsModalBg: closeNewsModal,
 			adminPanelBg: closeAdminPanel,
-			legalModalBg: closeLegalModal
+			legalModalBg: closeLegalModal,
+			pinSwitchModalBg: closePinSwitchModal,
+			onboardingModalBg: function(){ closeOnboarding(true); }
 		};
 		// En USTTEKI (en yuksek z-index'li) acik modal hedef alinir -- ayni tespit mantigi zaten
 		// Tab focus-trap dinleyicisinde kullaniliyor (bkz. asagida), ic ice acilma ihtimaline karsi.
