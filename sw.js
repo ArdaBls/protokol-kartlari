@@ -1,8 +1,8 @@
-// v3.2.0 (30 Ağustos 2026) -- Onboarding rehberi (protokol.html, ilk ziyarette) ve PIN ile
-// hızlı hesap değiştirme (header, tüm sayfalar) eklendi. v3.1.0: çok sayfalı mimari
-// (index/protokol/takvim/admin.html). Ana sürüm = kırılgan/mimari değişiklik, ikinci hane =
-// yeni özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.2.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+// v3.3.0 (30 Ağustos 2026) -- Faz 2: Rektörlük/koordinatörlük hiyerarşisi, koordinatörlük ek
+// görev alanı, fotoğraf yardım ikonu, birim/unvan aranabilir dropdown. v3.2.0: onboarding +
+// PIN ile hızlı hesap değiştirme. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari
+// değişiklik, ikinci hane = yeni özellik, üçüncü hane = hata düzeltmesi.
+const CACHE_NAME = "omu-protokol-v3.3.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
