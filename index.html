@@ -137,6 +137,8 @@
 				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Taslağı Oluştur (0)</button>
 				<button class="btn btn-ghost" id="cancelNewsBtn" style="display:none;" onclick="toggleNewsMode()">İptal</button>
 
+					<button class="btn btn-ghost edit-only" id="bulkVerifyBtn" onclick="bulkVerifyList(true)" title="Ekranda görünen aktif kayıtların tümünü şimdi doğrulanmış olarak işaretler">Hepsini Doğrula</button>
+					<button class="btn btn-ghost edit-only" id="bulkUnverifyBtn" onclick="bulkVerifyList(false)" title="Ekranda görünen aktif kayıtların tümünü doğrulanmadı olarak işaretler">Hepsini Doğrulanmadı İşaretle</button>
 				<button class="btn btn-ghost admin-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
 				<button class="btn btn-ghost admin-only" id="importBtn" onclick="document.getElementById('importFile').click()">JSON Yükle</button>
 				<input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">

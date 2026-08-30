@@ -673,6 +673,11 @@
 			// filtresinden geçmiş) kayıtların id listesi -- executeEmptyTrash() bunu kullanır, ham
 			// people nesnesindeki TÜM silinmiş kayıtları değil (bkz. executeEmptyTrash yorumu).
 			let visibleTrashIds = null;
+			// "aktif" sekmesindeyken render()'ın EKRANDA GÖSTERDİĞİ (arama/fuzzy-search + fakülte
+			// filtresinden geçmiş) kayıtların id listesi -- bulkVerifyList() bunu kullanır, ham
+			// people nesnesindeki TÜM aktif kayıtları değil (aksi halde arama/filtre yapıp
+			// "Hepsini Doğrula" dediğinde ekranda GÖRÜNMEYEN kayıtlar da sessizce güncellenirdi).
+			let visibleActiveIds = [];
 
 			// Firebase seyrek diziyi nesneye çevirebilir ve silinen çocukların yerine null bırakabilir;
 			// bu hâliyle Object.keys/values çağrıları isimsiz/bozuk "hayalet" kartlar üretebilir.
@@ -1147,6 +1152,53 @@
 				showToast("Doğrulama kaydedildi: " + (p.name || ""));
 				updateVerifyInfo(people[idx]);
 				render();
+			}
+
+			// Toplu doğrulama: şu an ekranda görünen (arama/filtre uygulanmış) aktif kayıtların
+			// TÜMÜNÜ tek bir atomik update() ile doğrulanmış/doğrulanmamış işaretler + tek bir
+			// log satırı yazar (verifyPerson()'ın tekil sürümünün toplu hâli).
+			async function bulkVerifyList(verified){
+				if (!requireEdit()) return;
+				const ids = visibleActiveIds.slice();
+				if (!ids.length) { showToast("Doğrulanacak görünür kayıt yok.", "error"); return; }
+				if (!database || !LIST_PATHS[currentListKey]) { showToast("Veritabanı bağlı değil.", "error"); return; }
+				const who = ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email;
+				const basePath = LIST_PATHS[currentListKey];
+				const updates = {};
+				let count = 0;
+				ids.forEach(function(id){
+					if (!people[id]) return;
+					count++;
+					if (verified) {
+						updates[dbPath(basePath + "/" + id + "/sonDogrulamaTs")] = firebase.database.ServerValue.TIMESTAMP;
+						updates[dbPath(basePath + "/" + id + "/dogrulamaKaynak")] = "manuel";
+						updates[dbPath(basePath + "/" + id + "/dogrulayan")] = who;
+					} else {
+						updates[dbPath(basePath + "/" + id + "/sonDogrulamaTs")] = null;
+						updates[dbPath(basePath + "/" + id + "/dogrulamaKaynak")] = null;
+						updates[dbPath(basePath + "/" + id + "/dogrulayan")] = null;
+					}
+				});
+				if (!count) { showToast("Doğrulanacak kayıt yok.", "error"); return; }
+				const logKey = database.ref(dbPath("logs/" + currentListKey)).push().key;
+				updates[dbPath("logs/" + currentListKey) + "/" + logKey] = {
+					by: who, email: currentUser.email,
+					action: (verified ? "Toplu doğrulama: " : "Toplu doğrulanmadı olarak işaretleme: ") + count + " kayıt",
+					target: "", timestamp: firebase.database.ServerValue.TIMESTAMP
+				};
+				try {
+					await database.ref("/").update(updates);
+					ids.forEach(function(id){
+						const p = people[id]; if (!p) return;
+						if (verified) { p.sonDogrulamaTs = Date.now(); p.dogrulamaKaynak = "manuel"; p.dogrulayan = who; }
+						else { delete p.sonDogrulamaTs; delete p.dogrulamaKaynak; delete p.dogrulayan; }
+					});
+					render();
+					showToast(count + " kayıt " + (verified ? "doğrulandı." : "doğrulanmadı olarak işaretlendi."), "success");
+				} catch(err) {
+					console.error("Toplu doğrulama başarısız:", err);
+					showToast("Toplu doğrulama kaydedilemedi.", "error");
+				}
 			}
 
 			document.querySelectorAll('#listSwitch button').forEach(b => b.classList.toggle('active', b.dataset.list === currentListKey));
@@ -2000,6 +2052,12 @@
 					globalFuseSourceRef = people;
 				}
 				list = globalFuse.search(q).map(r => r.item.p);
+				// Birebir (alt string) eşleşen en az bir kayıt varsa, SADECE onlar gösterilir --
+				// bulanık toleransla eşleşen ama aslında alakasız kayıtlar (örn. "Fen Fakültesi"
+				// aranınca "İktisadi ve İdari Bilimler Fakültesi" gibi) listeden düşer. Birebir
+				// eşleşen HİÇ yoksa (yazım hatası ihtimali), bulanık sonuçlar aynen korunur.
+				const exactMatches = list.filter(p => ((p.name||"")+" "+(p.prefix||"")+" "+(p.title||"")+" "+(p.unit||"")).toLocaleLowerCase("tr").includes(q));
+				if (exactMatches.length) list = exactMatches;
 			}
 
 			// Beklenmeyen/gecersiz bir status degeri (ör. Firebase Console'dan elle girilmis bir
@@ -2021,8 +2079,19 @@
 			}
 
 			visibleTrashIds = (mode === "silindi") ? list.map(p => p._id) : null;
+			visibleActiveIds = (mode === "aktif") ? list.map(p => p._id) : [];
 
 			list.sort((a,b) => {
+				// Arama sorgusu varsa: birebir (alt string) eşleşenler, sadece bulanık (Fuse
+				// toleransıyla) eşleşenlerin ÖNÜNE geçer -- "Fen Fakültesi" gibi spesifik bir
+				// ifade arandığında, o metni GERÇEKTEN içeren kayıtlar alakasız bulanık
+				// eşleşmelerin altında kalmasın diye. Sadece arama sırasında devrede (q boşsa
+				// hepsi "exact" sayılır, davranış değişmez).
+				if (q) {
+					const aExact = ((a.name||"")+" "+(a.prefix||"")+" "+(a.title||"")+" "+(a.unit||"")).toLocaleLowerCase("tr").includes(q) ? 0 : 1;
+					const bExact = ((b.name||"")+" "+(b.prefix||"")+" "+(b.title||"")+" "+(b.unit||"")).toLocaleLowerCase("tr").includes(q) ? 0 : 1;
+					if (aExact !== bExact) return aExact - bExact;
+				}
 				// Sırasız kayıtlar önceden -Infinity ile EN ÜSTE, yani Rektör'ün de önüne çıkıyordu.
 			// Haber çıktısı zaten Infinity kullanıyordu; ikisi artık aynı: sırasızlar en sonda.
 			const ra = (a.rank === "" || a.rank == null || isNaN(Number(a.rank))) ? Infinity : Number(a.rank); const rb = (b.rank === "" || b.rank == null || isNaN(Number(b.rank))) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
