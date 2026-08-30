@@ -587,7 +587,24 @@
 				if (u.includes("ondokuz mayıs") || u.includes("omü")) return 1;
 				return 2;
 			}
-			
+
+			// Etkinlik katılımcı listesi + haber metni ORTAK protokol sıralaması. İl protokolü
+			// dahil edilen bir etkinlikten gelen kişiler (kaynak:"il") her zaman üniversite
+			// kaynaklılardan (kaynak:"universite"/tanımsız) önce gelir -- gerçek devlet protokolünde
+			// Vali/Milletvekili yerel etkinliklerde rektörden önce sayılır. Her iki grup kendi
+			// içinde rank'a, sonra unvan/kurum ağırlığına göre sıralanır.
+			function sortAttendeesByProtocol(list) {
+				return list.slice().sort(function(a, b) {
+					const ka = a.kaynak === "il" ? 0 : 1; const kb = b.kaynak === "il" ? 0 : 1; if (ka !== kb) return ka - kb;
+					const ra = (a.rank === undefined || a.rank === null || a.rank === "" || isNaN(Number(a.rank))) ? Infinity : Number(a.rank);
+					const rb = (b.rank === undefined || b.rank === null || b.rank === "" || isNaN(Number(b.rank))) ? Infinity : Number(b.rank);
+					if (ra !== rb) return ra - rb;
+					const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if (ha !== hb) return ha - hb;
+					const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if (ia !== ib) return ia - ib;
+					return (a.name || "").localeCompare(b.name || "", "tr");
+				});
+			}
+
 			// ---- KİŞİ DEPOLAMA MODELİ: push-ID'li NESNE ----
 			// Eskiden "people" Firebase'de DÜZ BİR DİZİ (array-index) olarak tutulurdu ve kod
 			// dizi indeksini (_realIdx/editIndex) kalıcı kimlik gibi kullanırdı. İki editör aynı anda
@@ -1647,6 +1664,11 @@
 				}
 
 				selectedPeople.sort((a,b) => {
+					// İl protokolü dahil edilen bir etkinlikten (bkz. onAttIncludeIlToggle/kaynak
+					// etiketi) gelen kişiler varsa, gerçek devlet protokolünde (Vali/Milletvekili
+					// yerel etkinliklerde üniversite rektöründen önce gelir) İl kaynaklılar HER ZAMAN
+					// üniversite kaynaklılardan önce sıralanır; her iki grup kendi içinde rank'a göre.
+					const ka = a.kaynak === "il" ? 0 : 1; const kb = b.kaynak === "il" ? 0 : 1; if(ka !== kb) return ka - kb;
 					const ra = (a.rank === undefined || a.rank === null || a.rank === "" || isNaN(Number(a.rank))) ? Infinity : Number(a.rank); const rb = (b.rank === undefined || b.rank === null || b.rank === "" || isNaN(Number(b.rank))) ? Infinity : Number(b.rank); if(ra !== rb) return ra - rb;
 					const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if(ha !== hb) return ha - hb;
 					const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if(ia !== ib) return ia - ib;
@@ -3019,10 +3041,12 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 								planlayan: item.planlayan ? String(item.planlayan) : "", gorevli: item.gorevli ? String(item.gorevli) : "",
 								// katilimcilar dizisi de digerleri gibi normalize edilir; ham nesne gecirmek
 								// bozuk yedeklerde beklenmedik alanlari veritabanina tasiyordu.
-								katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter(function(a){ return a && typeof a === "object"; }).map(function(a){ return { prefix: String(a.prefix || ""), name: String(a.name || ""), title: String(a.title || "") }; }),
+								katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter(function(a){ return a && typeof a === "object"; }).map(function(a){ return { prefix: String(a.prefix || ""), name: String(a.name || ""), title: String(a.title || ""), rank: (a.rank !== undefined && a.rank !== null) ? a.rank : "", kaynak: a.kaynak === "il" ? "il" : "universite" }; }),
 								// "locked" burada yazilmazsa yedekten geri yuklemede TUM etkinliklerin
 								// kilidi sessizce acilir (yanlislikla surukleme korumasi kaybolur).
 								locked: !!item.locked,
+								rozetler: Array.isArray(item.rozetler) ? item.rozetler.filter(function(k){ return EVENT_BADGES.some(function(b){ return b.key===k; }); }) : [],
+							haberKaynagi: ["İHA","AA","DHA","ANKA"].indexOf(item.haberKaynagi) !== -1 ? item.haberKaynagi : "",
 								arsiv: safeLinkUrl(item.arsiv), not: item.not ? String(item.not) : "",
 								// olusturmaTs yedekte VARSA (tarihsel deger) korunur; yoksa sunucu saatiyle
 								// doldurulur. guncellemeTs bu geri yukleme anini yansitir, o yuzden her
@@ -3078,8 +3102,24 @@ const EVENT_TYPES = [
 	{ key:"uluslararasi",   ad:"Uluslararası Etkinlik", renk:"#334155", bg:"#f1f5f9" },
 	{ key:"yesiluniversite",ad:"Yeşil Üniversite",      renk:"#166534", bg:"#dcfce7" },
 	{ key:"toplanti",  ad:"Toplantı",              renk:"#475569", bg:"#e2e8f0" },
+	{ key:"bayram",    ad:"Ulusal ve Resmî Bayramlar", renk:"#b91c1c", bg:"#fee2e2" },
 	{ key:"diger",     ad:"Diğer",                renk:"#57534e", bg:"#f1efec" }
 ];
+// Etkinlik rozetleri (çoklu seçilebilir, EVENT_TYPES'tan bağımsız). Takvim kartlarında
+// belirgin küçük etiketler olarak gösterilir (bkz. lockIconHtml yanındaki badgeHtml).
+const EVENT_BADGES = [
+	{ key:"basina_kapali", ad:"Basına Kapalı", renk:"#b91c1c", bg:"#fee2e2" },
+	{ key:"dis_katilimli", ad:"Dış Katılımlı", renk:"#1d4ed8", bg:"#dbeafe" },
+	{ key:"canli_yayin",   ad:"Canlı Yayın",   renk:"#b45309", bg:"#fef3c7" }
+];
+function badgeHtml(e){
+	const keys = Array.isArray(e.rozetler) ? e.rozetler : [];
+	if (!keys.length) return "";
+	return '<span class="cal-badge-wrap">' + keys.map(function(k){
+		const b = EVENT_BADGES.find(function(x){ return x.key === k; }); if (!b) return "";
+		return '<span class="cal-badge" style="background:' + b.bg + '; color:' + b.renk + ';">' + escapeHtml(b.ad) + '</span>';
+	}).join("") + '</span>';
+}
 const EVENT_STATUS = [
 	// renk: .cal-tag'de her zaman beyaz metinle (#fff) kullanılıyor (tema farketmez, bkz. .cal-tag{color:#fff}).
 	// Eski #8a8f98 beyaz üstünde 3.25:1 idi (WCAG AA metin hedefi 4.5:1'in altında). #6b7280 ~4.83:1 verir,
@@ -3628,7 +3668,7 @@ function renderWeekView(body){
 		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" data-act="peek" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" data-act="peek" style="background:'+ty.bg+'; border-left-color:'+ty.renk+'; color:'+ty.renk+';"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -3636,11 +3676,14 @@ function renderWeekView(body){
 	// saat ızgarası
 	const H=24*CAL_HOUR_H;
 	// Şu anki saat çizgisi: görünen aralıkta bugün varsa, tüm sütunları kesecek şekilde tek çizgi çizilir.
-	let nowLabel=''; let nowFull='';
+	// Şu-an çizgisi: eskiden .cal-tg-body'nin TAMAMINI (gutter'dan sağ kenara, yani TÜM görünen
+	// günler boyunca) kaplayan tek bir overlay'di -- hafta görünümünde geçmiş/gelecek günlerde de
+	// aynı hizada "kayıyor" gibi görünüyordu. Artık SADECE bugünün .cal-daycol'u İÇİNE, o sütuna
+	// göre konumlanmış olarak ekleniyor (bkz. aşağıda cells döngüsü), diğer sütunlarda hiç yok.
+	let nowLabel=''; let nowTop=null;
 	if(days.some(function(d){ return isSameDay(d,today); })){
-		const nw=new Date(); const nmins=nw.getHours()*60+nw.getMinutes(); const ntop=(nmins/60)*CAL_HOUR_H;
-		nowLabel='<div class="cal-nowlabel" style="top:'+ntop+'px; right:4px;">'+pad2(nw.getHours())+":"+pad2(nw.getMinutes())+'</div>';
-		nowFull='<div class="cal-nowline-full" style="top:'+ntop+'px; left:'+CAL_GUTTER+'px;"></div>';
+		const nw=new Date(); const nmins=nw.getHours()*60+nw.getMinutes(); nowTop=(nmins/60)*CAL_HOUR_H;
+		nowLabel='<div class="cal-nowlabel" style="top:'+nowTop+'px; right:4px;">'+pad2(nw.getHours())+":"+pad2(nw.getMinutes())+'</div>';
 	}
 	let gutter='<div class="cal-gutter" style="height:'+H+'px;">';
 	for(var h=1;h<24;h++) gutter+='<div class="cal-hourlab" style="top:'+(h*CAL_HOUR_H)+'px;">'+pad2(h)+':00</div>';
@@ -3658,8 +3701,9 @@ function renderWeekView(body){
 			const compact=hgt<34?" compact":"";
 			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" data-act="peek" '+
 				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);">'+
-				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+lockIconHtml(e)+'</button>';
+				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
 		});
+		if(isToday && nowTop!==null) inner+='<div class="cal-nowline-full" style="top:'+nowTop+'px;"></div>';
 		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;">'+inner+'</div>';
 	});
 
@@ -3669,7 +3713,7 @@ function renderWeekView(body){
 	calWeekScrollTopPreserved = prevSc ? prevSc.scrollTop : null;
 
 	body.innerHTML='<div class="cal-tg">'+head+allday+
-		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+nowFull+'</div></div></div>';
+		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+'</div></div></div>';
 
 	// Tum-gun seridi + saat izgarasi TEK ortak grup -- bir etkinlik ikisi arasinda suruklenebilir
 	// (kullanici: "tum güne eklenen bir etkinliği de aşağıya almama izin vermen lazım"). v2.9.39'da
@@ -3810,7 +3854,7 @@ function renderListView(body){
 		html+='<button type="button" class="cal-ev" data-evid="'+e._id+'" data-act="peek">'+
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
 			'<span class="cal-ev-time">'+escapeHtml(e.saat||"—")+'</span>'+
-			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
+			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+
 			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span>'+
 			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" data-act="edit">✎</span>' : '')+
 			'</button>';
@@ -4046,7 +4090,7 @@ function openEventPeek(id){
 	document.getElementById("calPeekTitle").textContent=e.ad||"(adsız etkinlik)";
 	function row(k,v){ return v ? '<div class="cal-detail-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>' : ""; }
 	const saatTxt=e.saat ? (escapeHtml(e.saat)+(e.bitisSaat?" – "+escapeHtml(e.bitisSaat):"")) : "Tüm gün";
-	const att=Array.isArray(e.katilimcilar)?e.katilimcilar:[];
+	const att=sortAttendeesByProtocol(Array.isArray(e.katilimcilar)?e.katilimcilar:[]);
 	const attHtml=att.length ? att.map(function(a){
 		return '<span class="cal-att-chip">'+escapeHtml(((a.prefix?a.prefix+" ":"")+(a.name||"")).trim())+(a.title?' · '+escapeHtml(a.title):'')+'</span>';
 	}).join("") : "";
@@ -4058,6 +4102,7 @@ function openEventPeek(id){
 		row("Yer", escapeHtml(e.yer||""))+
 		row("Birim", escapeHtml(e.birim||""))+
 		row("Planlayan", escapeHtml(e.planlayan||""))+
+		row("Haber Kaynağı", escapeHtml(e.haberKaynagi||""))+
 		row("Basın", escapeHtml(e.gorevli||""))+
 		row("Katılımcılar", attHtml)+
 		row("Arşiv", e.arsiv ? '<a href="'+escapeHtml(safeLinkUrl(e.arsiv))+'" target="_blank" rel="noopener noreferrer">Klasörü aç ↗</a>' : "")+
@@ -4141,6 +4186,12 @@ function openEventModal(id, presetDate, presetTime){
 	document.getElementById("ev_ad").value = e ? (e.ad||"") : "";
 	document.getElementById("ev_tur").value = e ? (e.tur||"diger") : "diger";
 	document.getElementById("ev_durum").value = e ? (e.durum||"planlandi") : "planlandi";
+	(function(){
+		const sel = new Set(e && Array.isArray(e.rozetler) ? e.rozetler : []);
+		document.getElementById("ev_badgeBox").innerHTML = EVENT_BADGES.map(function(b){
+			return '<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="ev-badge-cb" value="'+b.key+'" '+(sel.has(b.key)?"checked":"")+'> '+escapeHtml(b.ad)+'</label>';
+		}).join("");
+	})();
 	document.getElementById("ev_tarih").value = e ? (e.tarih||"") : (presetDate || dKey(calAnchor));
 	document.getElementById("ev_saat").value = e ? (e.saat||"") : (presetTime || "");
 	document.getElementById("ev_bitisSaat").value = e ? (e.bitisSaat||"") : "";
@@ -4160,8 +4211,9 @@ function openEventModal(id, presetDate, presetTime){
 		renderPressStaffPicker();
 	});
 	document.getElementById("ev_arsiv").value = e ? (e.arsiv||"") : "";
+	document.getElementById("ev_haberKaynagi").value = e ? (e.haberKaynagi||"") : "";
 	document.getElementById("ev_not").value = e ? (e.not||"") : "";
-	calAttendees = (e && Array.isArray(e.katilimcilar)) ? e.katilimcilar.map(function(a){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"" }; }) : [];
+	calAttendees = (e && Array.isArray(e.katilimcilar)) ? e.katilimcilar.map(function(a){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"", rank:a.rank!==undefined?a.rank:"", kaynak:a.kaynak||"universite" }; }) : [];
 	document.getElementById("ev_attSearch").value="";
 	renderEventAttendeePicker();
 	closeEventPeek();
@@ -4209,14 +4261,16 @@ function renderEventAttendeePicker(){
 	let pool;
 	if (includeIl) {
 		const merged = new Map();
-		function addAll(list){
+		// kaynak etiketi: sıralama sırasında (bkz. generateNewsText) İl kaynaklı kişiler
+		// üniversite kaynaklılardan önce gelsin diye -- orijinal kayıt mutasyona uğramıyor.
+		function addAll(list, kaynak){
 			list.forEach(function(p){
 				if ((p.status && p.status !== "aktif") || !p.name) return;
 				const key = (p.name||"").trim().toLocaleLowerCase("tr") + "|" + (p.unit||"").trim().toLocaleLowerCase("tr");
-				merged.set(key, p);
+				merged.set(key, Object.assign({}, p, { kaynak: kaynak }));
 			});
 		}
-		addAll(peopleList()); addAll(ilPoolCache);
+		addAll(peopleList(), "universite"); addAll(ilPoolCache, "il");
 		pool = Array.from(merged.values());
 	} else {
 		pool=peopleList().filter(function(p){ return (!p.status||p.status==="aktif") && p.name; });
@@ -4232,7 +4286,7 @@ function renderEventAttendeePicker(){
 	});
 	html+=filtered.map(function(p){
 		const k=(p.name||"")+"|"+(p.title||"");
-		return '<label class="ev-att-item"><input type="checkbox" class="ev-att-cb" data-key="'+escapeHtml(k)+'" data-prefix="'+escapeHtml(p.prefix||"")+'" data-name="'+escapeHtml(p.name||"")+'" data-title="'+escapeHtml(p.title||"")+'" '+(selKeys.has(k)?"checked":"")+'><span><b>'+escapeHtml(p.name)+'</b> <span class="sub">'+escapeHtml(p.title||"")+'</span></span></label>';
+		return '<label class="ev-att-item"><input type="checkbox" class="ev-att-cb" data-key="'+escapeHtml(k)+'" data-prefix="'+escapeHtml(p.prefix||"")+'" data-name="'+escapeHtml(p.name||"")+'" data-title="'+escapeHtml(p.title||"")+'" data-rank="'+escapeHtml(p.rank!==undefined&&p.rank!==null?String(p.rank):"")+'" data-kaynak="'+escapeHtml(p.kaynak||"universite")+'" '+(selKeys.has(k)?"checked":"")+'><span><b>'+escapeHtml(p.name)+'</b> <span class="sub">'+escapeHtml(p.title||"")+'</span></span></label>';
 	}).join("");
 	if(!html) html='<p class="hint" style="margin:6px;">Eşleşen kişi yok.</p>';
 	box.innerHTML=html;
@@ -4243,7 +4297,7 @@ document.addEventListener("change", function(e){
 	const key=cb.dataset.key;
 	if(cb.checked){
 		if(!calAttendees.some(function(a){ return (a.name||"")+"|"+(a.title||"")===key; })){
-			calAttendees.push({ prefix:cb.dataset.prefix||"", name:cb.dataset.name||key.split("|")[0], title:cb.dataset.title||key.split("|")[1]||"" });
+			calAttendees.push({ prefix:cb.dataset.prefix||"", name:cb.dataset.name||key.split("|")[0], title:cb.dataset.title||key.split("|")[1]||"", rank:cb.dataset.rank||"", kaynak:cb.dataset.kaynak||"universite" });
 		}
 	} else {
 		calAttendees=calAttendees.filter(function(a){ return (a.name||"")+"|"+(a.title||"")!==key; });
@@ -4419,7 +4473,9 @@ async function saveEventImpl(){
 		yer: document.getElementById("ev_yer").value.trim(), birim: document.getElementById("ev_birim").value.trim(),
 		planlayan: document.getElementById("ev_planlayan").value.trim(), gorevli: calPressStaff.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
 		katilimcilar: calAttendees.slice(), arsiv: safeLinkUrl(document.getElementById("ev_arsiv").value),
-		not: document.getElementById("ev_not").value.trim()
+		not: document.getElementById("ev_not").value.trim(),
+		rozetler: Array.from(document.querySelectorAll("#ev_badgeBox .ev-badge-cb:checked")).map(function(cb){ return cb.value; }),
+		haberKaynagi: document.getElementById("ev_haberKaynagi").value
 	};
 	// Duzenleme modali acikken baska bir kullanici bu etkinligi silmis olabilir; o durumda
 	// asagidaki "yeni kayit" dali calisip SILINEN etkinligi geri diriltiyordu (olusturan/

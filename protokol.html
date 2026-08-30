@@ -299,6 +299,10 @@
 						<div class="field"><label>Tür</label><select id="ev_tur"></select></div>
 						<div class="field"><label>Durum</label><select id="ev_durum"></select></div>
 					</div>
+					<div class="field">
+						<label>Rozetler <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir)</span></label>
+						<div id="ev_badgeBox" style="display:flex; flex-wrap:wrap; gap:6px 14px;"></div>
+					</div>
 					<div class="field-row ev-datetime-row">
 						<div class="field ev-date"><label>Tarih</label><input type="date" id="ev_tarih"></div>
 						<div class="field ev-time"><label>Başlangıç</label>
@@ -323,6 +327,7 @@
 						<div class="ev-attendee-box" id="ev_attendeeBox"></div>
 					</div>
 					<div class="field"><label>Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="ev_arsiv" placeholder="https://drive.google.com/..."></div>
+					<div class="field"><label>Haber Kaynağı <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="ev_haberKaynagi"><option value="">(Belirtilmedi)</option><option value="İHA">İHA</option><option value="AA">AA</option><option value="DHA">DHA</option><option value="ANKA">ANKA</option></select></div>
 					<div class="field"><label>Not</label><textarea id="ev_not" rows="2" style="resize:vertical;"></textarea></div>
 					<div class="modal-actions">
 						<button class="btn btn-danger-outline" type="button" id="ev_deleteBtn" style="display:none;" onclick="deleteEvent()">Sil</button>
