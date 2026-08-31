@@ -1,4 +1,9 @@
-// v3.7.7 (31 Ağustos 2026) -- Faz 7: (1) admin paneli artık ortada küçük bir dialog değil, tam
+// v3.7.8 (31 Ağustos 2026) -- Faz 7 v2/v3: admin dashboard "liquid glass" diline çevrildi
+// (cam sidebar + her sekmede sabit KPI şeridi + cam içerik kartı), açık tema ana rengi soft
+// lavanta-beyazına (#F1F0F6) geçti, takvimdeki eski-palet sabit renkleri (#e6dfcd vb.)
+// değişkene bağlandı, Test Modu kutusu tek satıra küçültüldü, Geçmiş sekmesi iki sütuna
+// (Tüm Kayıtlar / Test Günlüğü) bölündü, İstatistikler KPI+cam-kart+gradyan bar ile
+// modernleştirildi. v3.7.7: (1) admin paneli artık ortada küçük bir dialog değil, tam
 // sayfa dashboard (sol dikey nav ikonlu sekmeler + sağda geniş içerik alanı, referans:
 // "admin dashboarda nasıl gözükebilir.jpeg"), (2) haber taslağı "Katılımcı Grubu" seçicisinde
 // Öğrenci/Vatandaş artık diğerleri gibi işaretsiz geliyor (önceden hep dolu geliyordu).
@@ -19,7 +24,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.7.7"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.7.8"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

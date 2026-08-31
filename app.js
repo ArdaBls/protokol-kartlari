@@ -299,6 +299,43 @@
 				updateTestModeBanner();
 				loadTestModeLog();
 				switchAdminTab("users");
+				loadAdminOverview();
+			}
+			// Sekmeler arasında HER ZAMAN görünen özet şeridi -- switchAdminTab() sekme içeriğini
+			// değiştirirken bu şeridE dokunmaz, o yüzden ayrı çağrılır (panel açılışında ve Test
+			// Modu her değiştiğinde -- bkz. setTestMode()). users/il/üniversite fetch'i
+			// loadAdminUsers()'dan bağımsız, KPI şeridi kendi hafif sorgusunu yapar.
+			function loadAdminOverview() {
+				if (!database || !requireAdmin()) return;
+				const pendingEl = document.getElementById("akPendingUsers");
+				const totalEl = document.getElementById("akTotalPeople");
+				const neverEl = document.getElementById("akNeverVerified");
+				const monthEl = document.getElementById("akMonthEvents");
+				const testEl = document.getElementById("akTestMode");
+				const testKpiEl = document.getElementById("akTestModeKpi");
+				if (!pendingEl) return;
+				testEl.textContent = testModeEnabled ? "Açık" : "Kapalı";
+				testKpiEl.classList.toggle("ak-warn", testModeEnabled);
+				const now = new Date();
+				const monthCount = Object.values(calEvents || {}).filter(function(e){
+					if (!e || !e.tarih) return false;
+					const d = parseKey(e.tarih); if (!d) return false;
+					return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+				}).length;
+				monthEl.textContent = monthCount;
+				Promise.all([
+					database.ref("users").once("value"),
+					database.ref(dbPath("ilProtokolVerileri")).once("value"),
+					database.ref(dbPath("universiteProtokolVerileri")).once("value")
+				]).then(function(snaps){
+					const users = Object.values(snaps[0].val() || {});
+					pendingEl.textContent = users.filter(function(u){ return (u.role || "pending") === "pending"; }).length;
+					const ilList = Object.values(snaps[1].val() || {});
+					const uniList = Object.values(snaps[2].val() || {});
+					const allPeople = ilList.concat(uniList);
+					totalEl.textContent = allPeople.length;
+					neverEl.textContent = allPeople.filter(function(p){ return !p.sonDogrulamaTs; }).length;
+				}).catch(function(){ pendingEl.textContent = totalEl.textContent = neverEl.textContent = "?"; });
 			}
 			function closeAdminPanel() {
 				if (PAGE === "admin") { location.href = "protokol.html"; return; }
@@ -389,10 +426,12 @@
 				const birimCounts = {}; events.forEach(function(e){ const b = (e.birim||"").trim(); if (b) birimCounts[b] = (birimCounts[b]||0)+1; });
 				const gorevliCounts = {}; events.forEach(function(e){ parseGorevliString(e.gorevli).forEach(function(name){ gorevliCounts[name] = (gorevliCounts[name]||0)+1; }); });
 				box.innerHTML =
-					'<p style="font-weight:600; margin-bottom:4px;">Toplam ' + events.length + ' etkinlik</p>' +
-					'<h4 style="margin:14px 0 6px;">Etkinlik Türüne Göre</h4>' + barsHtml(topList(turCounts), events.length) +
-					'<h4 style="margin:14px 0 6px;">En Çok Etkinlik Düzenleyen Birimler</h4>' + (Object.keys(birimCounts).length ? barsHtml(topList(birimCounts), events.length) : '<p class="admin-user-empty">Birim bilgisi girilmemiş.</p>') +
-					'<h4 style="margin:14px 0 6px;">Basın Görevlisi Bazında Takip</h4>' + (Object.keys(gorevliCounts).length ? barsHtml(topList(gorevliCounts), events.length) : '<p class="admin-user-empty">Basın görevlisi atanmamış.</p>');
+					'<div class="admin-stats-kpi"><span class="ak-num">' + events.length + '</span><span class="ak-label">Toplam Etkinlik</span></div>' +
+					'<div class="admin-stats-grid">' +
+						'<div class="admin-stats-section"><h4>Etkinlik Türüne Göre</h4>' + barsHtml(topList(turCounts), events.length) + '</div>' +
+						'<div class="admin-stats-section"><h4>En Çok Etkinlik Düzenleyen Birimler</h4>' + (Object.keys(birimCounts).length ? barsHtml(topList(birimCounts), events.length) : '<p class="admin-user-empty">Birim bilgisi girilmemiş.</p>') + '</div>' +
+						'<div class="admin-stats-section"><h4>Basın Görevlisi Bazında Takip</h4>' + (Object.keys(gorevliCounts).length ? barsHtml(topList(gorevliCounts), events.length) : '<p class="admin-user-empty">Basın görevlisi atanmamış.</p>') + '</div>' +
+					'</div>';
 			}
 
 			function loadAdminLogs() {
@@ -1037,6 +1076,8 @@
 				const sw = document.getElementById("testModeSwitch"); if (sw) sw.checked = testModeEnabled;
 				const banner = document.getElementById("testModeBanner"); if (banner) banner.style.display = testModeEnabled ? "flex" : "none";
 				document.body.classList.toggle("test-mode-active", testModeEnabled); // şerit sabit konumlu, header'ın üstüne binmesin diye body'ye üst boşluk eklenir
+				const testEl = document.getElementById("akTestMode");
+				if (testEl) { testEl.textContent = testModeEnabled ? "Açık" : "Kapalı"; document.getElementById("akTestModeKpi").classList.toggle("ak-warn", testModeEnabled); }
 			}
 			async function setTestMode(on) {
 				if (!requireAdmin()) { updateTestModeBanner(); return; }

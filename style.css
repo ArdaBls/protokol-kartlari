@@ -1,14 +1,17 @@
 			:root{
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
-			/* Faz 6 tasarım paleti (kullanıcı isteği): açık temada ana zemin #DECDBE, koyu temada
-			   #1F1F2B -- card/border/divider/surface-* tonları bu ana renkten aynı H/S ailesinde,
-			   eski paletteki AYNI göreli açıklık farkları korunarak (HSL bazlı) türetildi. */
-			--paper: #DECDBE; --card: #ead8c8; --ink: #1b1b1b; --muted: #6b6f76;
+			/* Faz 7 tasarım paleti güncellemesi (kullanıcı isteği, 31 Ağustos 2026): eski açık
+			   tema zemini (#DECDBE, sıcak krem/ten tonu) "eski" hissettiriyordu -- soft, serin
+			   bir lavanta-beyazına (#F1F0F6) geçirildi, koyu temanın navy-slate (#1F1F2B) ile
+			   daha uyumlu. card/border/divider/surface-* tonları YİNE aynı yöntemle (HSL bazlı,
+			   eski paletteki göreli açıklık/doygunluk farkları korunarak) yeniden türetildi.
+			   Koyu tema (aşağıda) kullanıcının "harika oldu" dediği hâliyle DOKUNULMADAN kaldı. */
+			--paper: #F1F0F6; --card: #fefefe; --ink: #1b1b1b; --muted: #6b6f76;
 			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
 			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #7c5c1f;
-			--border: #c3b2a3; --border-soft: #d0bdad; --divider: #cab7a6; --divider-soft: #c5b09d; --divider-faint: #dbc1aa;
-			--surface-hover: #dbc8b8; --surface-input: #e8d6c7; --surface-pill: #dac6b5; --surface-subtle: #dfcfc0;
-			--surface-hover-2: #d6c3b2; --surface-hover-3: #cabbae; --danger-bg: #fdf2f2; --today: #c2410c;
+			--border: #d5d3dd; --border-soft: #e0dee9; --divider: #d9d7e3; --divider-soft: #d1cfdd; --divider-faint: #e2e0ef;
+			--surface-hover: #eceaf3; --surface-input: #fcfcfd; --surface-pill: #e9e8f1; --surface-subtle: #f3f2f7;
+			--surface-hover-2: #e6e4ee; --surface-hover-3: #dedde5; --danger-bg: #fdf2f2; --today: #c2410c;
 			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
 			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
 			/* Acik modda mevcut ham #a33 / #8a6a24 degerleriyle AYNI -- regresyon yok.
@@ -435,7 +438,7 @@
 			.calendar-rail{ display:none; flex-direction:column; gap:10px; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; font-family:'Roboto',sans-serif; }
 			@media (min-width: 1050px) { .calendar-rail{ display:flex; } }
 			.cal-rail-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:16px 12px; border:1px solid var(--border-soft); border-radius:16px; background:var(--card); box-shadow:0 8px 30px rgba(0,0,0,.12); cursor:pointer; font-family:inherit; }
-			.cal-rail-btn:hover{ background:#fffdf8; border-color:var(--brass-light); }
+			.cal-rail-btn:hover{ background:var(--surface-hover); border-color:var(--brass-light); }
 			.cal-rail-icon{ font-size:26px; line-height:1; }
 			.cal-rail-label{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); }
 			.cal-rail-count{ font-size:12px; color:var(--muted); }
@@ -494,13 +497,13 @@
 			   intrinsik genisligini dayatiyor; .cal-topbar flex-wrap:wrap tek basina yetmez,
 			   cunku flex item'in varsayilan min-width:auto'su intrinsik genislige esitlenip
 			   satiri/sayfayi yatayda tasirabilir. min-width:0 bu dayatmayi engeller. */
-			.cal-jump{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:13px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; min-width:0; }
+			.cal-jump{ background:var(--card); border:1px solid var(--border); color:var(--ink); border-radius:7px; padding:0 8px; height:29px; font-size:13px; font-family:inherit; cursor:pointer; box-sizing:border-box; flex-shrink:0; min-width:0; }
 			.cal-jump:hover{ border-color:var(--brass); }
 			.cal-mini-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
 			.cal-mini-dow{ text-align:center; font-size:10px; font-weight:600; color:var(--muted); padding-bottom:3px; }
 			.cal-mini-day{ position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:11px; border:none; background:none; border-radius:6px; cursor:pointer; color:var(--ink); font-family:inherit; }
 			.cal-mini-day:hover{ background:var(--surface-hover-2); }
-			.cal-mini-day.other{ color:#87806f; }
+			.cal-mini-day.other{ color:var(--muted); }
 			.cal-mini-day.in-view{ background:var(--surface-hover-3); box-shadow:inset 0 0 0 2px var(--navy); font-weight:700; }
 			.cal-mini-day.today{ background:var(--brass); color:#fff; font-weight:700; }
 			.cal-mini-day .hasdot{ position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:var(--navy); }
@@ -512,7 +515,7 @@
 			.cal-legend-item:hover{ background:var(--surface-hover-2); }
 			.cal-legend-item input{ display:none; }
 			.cal-legend-swatch{ flex-shrink:0; width:13px; height:13px; border-radius:4px; border:2px solid transparent; }
-			.cal-legend-item.off .cal-legend-swatch{ background:transparent !important; border-color:#cfcabb; }
+			.cal-legend-item.off .cal-legend-swatch{ background:transparent !important; border-color:var(--border); }
 			.cal-legend-item.off{ color:var(--muted); }
 			.cal-legend-count{ margin-left:auto; font-size:10px; color:var(--muted); }
 
@@ -525,7 +528,7 @@
 			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.cal-iconbtn::after{ content:""; position:absolute; inset:-8px; }
 			.cal-iconbtn:hover{ background:var(--surface-subtle); color:var(--navy); }
-			.cal-textbtn{ background:var(--card); border:1px solid #d5cdb9; color:var(--ink); border-radius:7px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+			.cal-textbtn{ background:var(--card); border:1px solid var(--border); color:var(--ink); border-radius:7px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
 			.cal-textbtn:hover{ background:var(--surface-subtle); }
 			.cal-spacer{ flex:1; }
 			.cal-viewtabs{ display:flex; gap:2px; background:rgba(22,35,61,.07); border-radius:8px; padding:2px; }
@@ -567,7 +570,9 @@
 			.cal-daycol:last-child{ border-right:none; }
 			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
 			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
-			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid #e6dfcd; pointer-events:none; }
+			/* Eskiden sabit #e6dfcd (eski sicak paletten kalma, koyu temada hic tanimlanmamisti,
+			   yeni acik temada da uyumsuz kaliyordu) -- artik degiskene bagli, ince ve notr. */
+			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid var(--divider-faint); pointer-events:none; }
 			.cal-nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; }
 			/* Şu anki saat: SADECE bugünün .cal-daycol'u içinde (o sütunun position:relative'ine
 			   göre), dakikada bir kendini günceller. Eskiden .cal-tg-body'nin tamamını (tüm görünen
@@ -659,7 +664,7 @@
 			.cal-mday{ border-right:1px solid var(--divider); border-bottom:1px solid var(--divider); padding:4px 5px 6px; display:flex; flex-direction:column; gap:2px; overflow:hidden; background:transparent; min-width:0; }
 			.cal-mday:nth-child(7n){ border-right:none; }
 			.cal-mday.other{ background:rgba(22,35,61,.05); }
-			.cal-mday.other .cal-mdaynum{ color:#87806f; }
+			.cal-mday.other .cal-mdaynum{ color:var(--muted); }
 			.cal-mday.weekend{ background:rgba(22,35,61,.035); }
 			.cal-mday.today{ background:rgba(184,146,63,.11); }
 			.cal-mday.drop-target{ box-shadow:inset 0 0 0 2px var(--brass-light); background:rgba(184,146,63,.16); }
@@ -752,7 +757,7 @@
 			.cal-peek-body{ flex:1; min-height:0; overflow-y:auto; padding:14px 18px 18px; }
 			.cal-peek-foot{ flex-shrink:0; display:flex; gap:8px; padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--surface-hover); }
 			body.is-readonly .cal-peek-foot .btn-ghost{ display:none; }
-			.cal-detail-row{ display:flex; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid #f7f4ec; }
+			.cal-detail-row{ display:flex; gap:10px; font-size:13px; padding:7px 0; border-bottom:1px solid var(--divider-faint); }
 			.cal-detail-row:last-child{ border-bottom:none; }
 			.cal-detail-row .k{ flex:0 0 92px; color:var(--muted); font-weight:600; font-size:12px; padding-top:1px; }
 			.cal-detail-row .v{ flex:1; min-width:0; color:var(--ink); line-height:1.5; word-break:break-word; }
@@ -1211,41 +1216,95 @@
 
 			.field-row .field.f-prefix{ flex:0 0 140px; }
 
-			/* ---- Faz 7: Admin paneli -- tam sayfa dashboard (sol dikey nav + sag icerik) ----
-			   Referans: "Site icin UI istediklerim/admin dashboarda nasil gozukebilir.jpeg"
-			   (Elera adli bir SaaS ornegi -- gruplu sol nav + aktif ogede renkli pill, ust
-			   basliktaki ozet kartlari). Ayni dilden: koyu/acik degil ama benzer sadelikte,
-			   projenin kendi navy/brass renk sistemiyle. #adminPanelBg zaten .modal-bg (fixed +
-			   fade-in/out) -- burada SADECE ICERIGI degistiriyoruz, o mekanizmaya dokunulmadi. */
-			body[data-page="admin"] #adminPanelBg{ align-items:stretch; justify-content:stretch; padding:0; background:var(--paper); backdrop-filter:none; overflow-y:hidden; }
-			.admin-dashboard{ display:flex; width:100%; height:100%; }
-			.admin-sidebar{ flex:0 0 240px; display:flex; flex-direction:column; gap:18px; padding:20px 14px; background:var(--card); border-right:1px solid var(--border-soft); }
-			.admin-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:0 8px; }
-			.admin-sidebar-logo{ font-size:22px; line-height:1; }
-			.admin-sidebar-brand b{ display:block; font-family:'Fraunces',serif; font-size:15px; color:var(--ink); }
-			.admin-sidebar-sub{ display:block; font-size:11px; color:var(--muted); }
+			/* ---- Faz 7 v2 (kullanıcı isteği): Admin paneli -- liquid glass dashboard ----
+			   İlk versiyon ("çok çizgisel/düz, yazılar eşit değil") beğenilmedi. Bu versiyon:
+			   - Zemin: sayfanın geri kalanıyla aynı brass-tint radial-gradient + var(--paper),
+			     üzerinde AMBIENT ikinci bir navy glow (sağ-alt) -- cam panellerin arkasında
+			     görünecek derinlik burada oluşuyor.
+			   - Sidebar + KPI şeridi + içerik kartı: hepsi AYNI cam tarifi (blur+saturate,
+			     yarı saydam beyaz, ince kenarlık) -- mobildeki .mobile-glass-nav ile aynı dil,
+			     boşluklarla "yüzen" paneller (flush kenar YOK).
+			   - Tipografi netleştirildi: nav 13px, KPI sayısı 26px JetBrains Mono (verinin
+			     kendi fontuyla -- saat/tarih gösterimleriyle tutarlı), KPI etiketi 10px
+			     büyük harf, bölüm başlığı 19px. Önceki "eşit değil" hissi bu net skala ile
+			     giderildi. #adminPanelBg zaten .modal-bg (fixed+fade) -- sadece İÇERİK değişti. */
+			body[data-page="admin"] #adminPanelBg{
+				align-items:stretch; justify-content:stretch; padding:0; backdrop-filter:none; overflow-y:hidden;
+				background:
+					radial-gradient(900px 480px at 8% -8%, rgba(184,146,63,.14), transparent 60%),
+					radial-gradient(900px 520px at 96% 108%, rgba(22,35,61,.10), transparent 55%),
+					var(--paper);
+			}
+			.admin-dashboard{ display:flex; align-items:flex-start; gap:16px; width:100%; height:100%; padding:16px; box-sizing:border-box; }
+			.admin-glass{ background:rgba(255,255,255,.5); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%); border:1px solid rgba(255,255,255,.6); box-shadow:0 8px 30px rgba(22,35,61,.10); }
+			[data-theme="dark"] .admin-glass{ background:rgba(37,37,53,.55); border-color:rgba(255,255,255,.08); box-shadow:0 8px 30px rgba(0,0,0,.35); }
+			.admin-sidebar{ flex:0 0 232px; display:flex; flex-direction:column; gap:18px; padding:18px 12px; border-radius:20px; height:100%; box-sizing:border-box; }
+			.admin-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:2px 8px 14px; border-bottom:1px solid rgba(120,120,140,.15); }
+			.admin-sidebar-logo{ font-size:21px; line-height:1; }
+			.admin-sidebar-brand b{ display:block; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--ink); line-height:1.3; }
+			.admin-sidebar-sub{ display:block; font-size:10.5px; color:var(--muted); letter-spacing:.02em; }
 			.admin-nav-group{ display:flex; flex-direction:column; gap:2px; }
-			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:8px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:14px; font-weight:500; text-align:left; cursor:pointer; }
-			.admin-nav-item .ani{ font-size:15px; width:20px; text-align:center; flex-shrink:0; }
-			.admin-nav-item:hover{ background:var(--surface-hover); }
-			.admin-nav-item.active{ background:var(--navy); color:#f3efe6; font-weight:600; }
-			.admin-back-btn{ margin-top:auto; padding:9px 10px; border:1px solid var(--border-soft); border-radius:8px; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:13px; text-align:left; cursor:pointer; }
-			.admin-back-btn:hover{ background:var(--surface-hover); color:var(--ink); }
-			.admin-main{ flex:1 1 auto; min-width:0; padding:24px 28px 40px; overflow-y:auto; }
-			.admin-main-title{ font-family:'Fraunces',serif; font-size:22px; color:var(--ink); margin:0 0 16px; }
+			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:10px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; text-align:left; cursor:pointer; transition:background .12s ease; }
+			.admin-nav-item .ani{ font-size:15px; width:18px; text-align:center; flex-shrink:0; }
+			.admin-nav-item:hover{ background:rgba(120,120,140,.12); }
+			.admin-nav-item.active{ background:var(--navy); color:#f3efe6; font-weight:600; box-shadow:0 4px 14px rgba(22,35,61,.25); }
+			.admin-back-btn{ margin-top:auto; padding:9px 10px; border:1px solid rgba(120,120,140,.2); border-radius:10px; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:12.5px; text-align:left; cursor:pointer; }
+			.admin-back-btn:hover{ background:rgba(120,120,140,.12); color:var(--ink); }
+			.admin-main{ flex:1 1 auto; min-width:0; height:100%; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+			/* KPI şeridi -- her sekmede sabit görünen canlı özet (bkz. loadAdminOverview()). */
+			.admin-overview-strip{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; padding:16px; border-radius:18px; flex-shrink:0; }
+			.admin-kpi{ display:flex; flex-direction:column; gap:3px; padding:0 14px; border-left:1px solid rgba(120,120,140,.18); }
+			.admin-kpi:first-child{ border-left:none; }
+			.ak-num{ font-family:'JetBrains Mono',monospace; font-size:25px; font-weight:600; color:var(--navy); line-height:1.1; }
+			[data-theme="dark"] .ak-num{ color:var(--brass-light); }
+			.ak-label{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+			.admin-kpi.ak-warn .ak-num{ color:var(--warn); }
+			.admin-content-card{ flex:1 1 auto; padding:22px 26px 28px; border-radius:20px; }
+			.admin-main-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--ink); margin:0 0 14px; }
+			/* Faz 7 v4 (kullanıcı isteği): Geçmiş sekmesi -- "Tüm Kayıtlar" ve "Test Günlüğü" artık
+			   üst-alt yığılı değil, YAN YANA iki sütun (masaüstü). Ortadaki ince dikey çizgi
+			   var(--divider) ile -- sabit hex YOK, koyu temada da görünür kalır. Her sütunun
+			   kendi scroll alanı var (adminLogsScroll), başlık sütunun kendi head'inde sabit. */
+			.admin-logs-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:2px; align-items:start; }
+			.admin-logs-col{ padding:0 20px; min-width:0; }
+			.admin-logs-col:first-child{ padding-left:0; border-right:1px solid var(--divider); }
+			.admin-logs-col:last-child{ padding-right:0; }
+			.admin-logs-col-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+			.admin-logs-col-title{ font-size:12.5px; font-weight:600; color:var(--ink); }
+			.admin-logs-scroll{ max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+			@media (max-width: 900px){
+				.admin-overview-strip{ grid-template-columns:repeat(3,1fr); }
+				.admin-kpi:nth-child(3n+1){ border-left:none; }
+			}
 			@media (max-width: 780px){
-				.admin-dashboard{ flex-direction:column; }
-				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; }
-				.admin-sidebar-brand{ flex:1 1 100%; }
+				.admin-dashboard{ flex-direction:column; padding:10px; gap:10px; }
+				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; height:auto; }
+				.admin-sidebar-brand{ flex:1 1 100%; border-bottom:none; padding-bottom:0; }
 				.admin-nav-group{ flex-direction:row; flex-wrap:wrap; flex:1 1 auto; }
 				.admin-nav-item{ width:auto; flex:1 1 auto; justify-content:center; }
 				.admin-back-btn{ margin-top:0; }
-				.admin-main{ padding:18px 16px 32px; }
+				.admin-overview-strip{ grid-template-columns:repeat(2,1fr); }
+				.admin-kpi:nth-child(odd){ border-left:none; }
+				.admin-content-card{ padding:16px 16px 22px; }
+				.admin-logs-grid{ grid-template-columns:1fr; gap:18px; }
+				.admin-logs-col{ padding:0 !important; border-right:none !important; }
+				.admin-logs-col:first-child{ border-bottom:1px solid var(--divider); padding-bottom:14px !important; }
+				.admin-logs-scroll{ max-height:320px; }
 			}
 
 			/* ---- Test Modu: admin panelinde HER sekmede görünen sabit anahtar + site geneli şerit ---- */
-			.test-mode-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; margin-bottom:14px; background:var(--paper); border:1px solid var(--divider); border-radius:10px; }
-			.test-mode-title{ font-size:13px; color:var(--navy); }
+			/* Faz 7 v3 (kullanıcı isteği: "yazı yazmasına gerek yok kocaman orası") -- eskiden
+			   tam açıklama paragrafı her zaman görünürdü, kutu buna göre şişkindi. Artık tek
+			   satır: ikon + başlık + çok kısa ipucu + (ⓘ) düğmesi (tam açıklama sadece
+			   title tooltip'inde). Admin panelinin diğer yüzeyleriyle aynı cam dilinde. */
+			.test-mode-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; border-radius:14px; flex-shrink:0; }
+			.tmr-info{ display:flex; align-items:center; gap:10px; min-width:0; }
+			.tmr-icon{ font-size:17px; flex-shrink:0; }
+			.tmr-text{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
+			.test-mode-title{ font-size:13px; font-weight:600; color:var(--navy); white-space:nowrap; }
+			.tmr-hint{ font-size:11.5px; color:var(--muted); display:inline-flex; align-items:center; gap:5px; }
+			.tmr-more{ border:none; background:none; padding:0; font-size:12px; color:var(--muted); cursor:help; line-height:1; }
+			.tmr-more:hover{ color:var(--navy); }
 			.test-mode-log-section{ margin-bottom:16px; }
 			.ios-switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
 			.ios-switch input{ opacity:0; width:0; height:0; }
@@ -1507,9 +1566,20 @@
 			.notif-item{ display:block; width:100%; text-align:left; padding:8px 10px; border:none; background:none; border-radius:6px; font-size:12px; color:var(--ink); cursor:pointer; }
 			.notif-item:hover{ background:var(--surface-input); }
 
-			/* Admin faaliyet istatistik paneli basit çubuk grafikler */
-			.stats-bar-row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12px; }
-			.stats-bar-label{ width:140px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-			.stats-bar-track{ flex:1; height:10px; border-radius:5px; background:var(--surface-input); overflow:hidden; }
-			.stats-bar-fill{ height:100%; background:var(--accent, #b8923f); border-radius:5px; }
-			.stats-bar-count{ width:28px; text-align:right; flex-shrink:0; color:var(--muted); }
+			/* Faz 7 v4 (kullanıcı isteği: istatistikler daha modern görünsün): Admin faaliyet
+			   istatistik paneli -- büyük KPI + üç bölümü ayrı hafif cam kartlara ayıran ızgara +
+			   canlı navy->brass gradyanlı çubuklar. Sabit hex renk YOK (koyu temada kaybolma
+			   riski, bu projede daha önce yaşanmış bir hata deseni) -- hepsi var(--...) değişken. */
+			.admin-stats-kpi{ display:flex; flex-direction:column; gap:2px; margin-bottom:18px; }
+			.admin-stats-kpi .ak-num{ font-size:38px; }
+			.admin-stats-kpi .ak-label{ font-size:11px; }
+			.admin-stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+			.admin-stats-section{ background:var(--surface-subtle); border:1px solid var(--divider-soft); border-radius:14px; padding:14px 16px 16px; min-width:0; }
+			.admin-stats-section h4{ margin:0 0 10px; font-size:12.5px; font-weight:600; color:var(--ink); text-transform:uppercase; letter-spacing:.03em; }
+			.stats-bar-row{ display:flex; align-items:center; gap:8px; margin-bottom:7px; font-size:12px; }
+			.stats-bar-label{ width:120px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
+			.stats-bar-track{ flex:1; height:10px; border-radius:6px; background:var(--surface-input); border:1px solid var(--divider-soft); overflow:hidden; }
+			.stats-bar-fill{ height:100%; border-radius:6px; background:linear-gradient(90deg, var(--navy), var(--brass)); transition:width .25s ease; }
+			[data-theme="dark"] .stats-bar-fill{ background:linear-gradient(90deg, var(--navy-2), var(--brass-light)); }
+			.stats-bar-row:hover .stats-bar-fill{ filter:brightness(1.12); }
+			.stats-bar-count{ width:28px; text-align:right; flex-shrink:0; color:var(--muted); font-family:'JetBrains Mono',monospace; }

@@ -757,7 +757,7 @@
 			     geniş içerik alanı). #adminPanelBg/.open ve switchAdminTab() JS mantığı aynen
 			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
 			<div class="admin-dashboard">
-				<nav class="admin-sidebar">
+				<nav class="admin-sidebar admin-glass">
 					<div class="admin-sidebar-brand">
 						<span class="admin-sidebar-logo">🗂️</span>
 						<div><b>Admin Paneli</b><span class="admin-sidebar-sub">Protokol Kartları</span></div>
@@ -771,51 +771,72 @@
 					<button type="button" class="admin-back-btn" onclick="closeAdminPanel()">← Kartlara Dön</button>
 				</nav>
 				<div class="admin-main">
-					<div class="test-mode-row">
-						<div>
-							<b class="test-mode-title">Paylaşımlı Test Ortamı</b>
-							<p class="hint" style="margin:2px 0 0;">Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. <b>Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!</b></p>
+					<!-- Faz 7 v2 (kullanıcı isteği): sekmeler arasında HER ZAMAN görünen, canlı verilerle
+					     dolan bir özet şeridi -- "her şeyi görebileyim" isteğine cevap: hangi sekmede
+					     olursan ol, sistemin nabzını (bekleyen kullanıcı, toplam kayıt, bu ayki etkinlik,
+					     test modu durumu) tek bakışta görürsün. loadAdminOverview() ile doldurulur. -->
+					<div class="admin-overview-strip admin-glass" id="adminOverviewStrip">
+						<div class="admin-kpi"><span class="ak-num" id="akPendingUsers">—</span><span class="ak-label">Onay Bekleyen Kullanıcı</span></div>
+						<div class="admin-kpi"><span class="ak-num" id="akTotalPeople">—</span><span class="ak-label">Toplam Protokol Kaydı</span></div>
+						<div class="admin-kpi"><span class="ak-num" id="akNeverVerified">—</span><span class="ak-label">Hiç Doğrulanmamış</span></div>
+						<div class="admin-kpi"><span class="ak-num" id="akMonthEvents">—</span><span class="ak-label">Bu Ay Etkinlik</span></div>
+						<div class="admin-kpi" id="akTestModeKpi"><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
+					</div>
+					<div class="test-mode-row admin-glass">
+						<div class="tmr-info">
+							<span class="tmr-icon">🧪</span>
+							<div class="tmr-text">
+								<b class="test-mode-title">Paylaşımlı Test Ortamı</b>
+								<span class="tmr-hint">Açıkken herkes sahte veri görür<button type="button" class="tmr-more" title="Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!">ⓘ</button></span>
+							</div>
 						</div>
 						<label class="ios-switch">
 							<input type="checkbox" id="testModeSwitch" onchange="setTestMode(this.checked)">
 							<span class="ios-switch-slider"></span>
 						</label>
 					</div>
-					<h2 class="admin-main-title" id="adminMainTitle">Kullanıcılar</h2>
-					<div id="adminUsersView">
-						<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
-						<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
-					</div>
-					<div id="adminLogsView" style="display:none;">
-						<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
-						<div id="adminLogList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
-						<div class="test-mode-log-section">
-							<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-								<span class="hint" style="margin:0;">Test Günlüğü (son 50)</span>
-								<button type="button" class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="loadTestModeLog()">Yenile</button>
+					<div class="admin-content-card admin-glass">
+						<h2 class="admin-main-title" id="adminMainTitle">Kullanıcılar</h2>
+						<div id="adminUsersView">
+							<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
+							<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+						</div>
+						<div id="adminLogsView" style="display:none;">
+							<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
+							<div class="admin-logs-grid">
+								<div class="admin-logs-col">
+									<div class="admin-logs-col-head"><span class="admin-logs-col-title">Tüm Kayıtlar</span></div>
+									<div id="adminLogList" class="admin-logs-scroll"></div>
+								</div>
+								<div class="admin-logs-col admin-logs-col-test">
+									<div class="admin-logs-col-head">
+										<span class="admin-logs-col-title">Test Günlüğü (son 50)</span>
+										<button type="button" class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="loadTestModeLog()">Yenile</button>
+									</div>
+									<div id="adminTestModeLogList" class="admin-logs-scroll"></div>
+								</div>
 							</div>
-							<div id="adminTestModeLogList" style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
 						</div>
-					</div>
-					<div id="adminTestView" style="display:none;">
-						<p class="hint">Takvim/haber kodundaki Playwright regresyon testlerini GitHub Actions üzerinden çalıştırır. "Testi Çalıştır" GitHub'ın kendi sayfasını yeni sekmede açar — orada bir kere "Run workflow" demen yeterli. Sonuç birkaç dakika içinde burada görünür, "Son Sonucu Yenile" ile tekrar kontrol edebilirsin.</p>
-						<div style="display:flex; gap:8px; margin-bottom:14px;">
-							<button type="button" class="btn btn-primary" style="flex:1;" onclick="openRegressionTestRunner()">Testi Çalıştır (GitHub)</button>
-							<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
+						<div id="adminTestView" style="display:none;">
+							<p class="hint">Takvim/haber kodundaki Playwright regresyon testlerini GitHub Actions üzerinden çalıştırır. "Testi Çalıştır" GitHub'ın kendi sayfasını yeni sekmede açar — orada bir kere "Run workflow" demen yeterli. Sonuç birkaç dakika içinde burada görünür, "Son Sonucu Yenile" ile tekrar kontrol edebilirsin.</p>
+							<div style="display:flex; gap:8px; margin-bottom:14px;">
+								<button type="button" class="btn btn-primary" style="flex:1;" onclick="openRegressionTestRunner()">Testi Çalıştır (GitHub)</button>
+								<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
+							</div>
+							<div id="adminTestResult" class="hint">Yükleniyor…</div>
 						</div>
-						<div id="adminTestResult" class="hint">Yükleniyor…</div>
-					</div>
-					<div id="adminStatsView" style="display:none;">
-						<p class="hint">Etkinlik takviminden türetilen faaliyet özeti. BAPKOB/Kalite raporlarına hızlı veri sağlar.</p>
-						<div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
-							<label class="hint" style="margin:0;">Aralık:</label>
-							<select id="statsRangeSelect" onchange="loadAdminStats()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); color:var(--ink);">
-								<option value="month">Bu Ay</option>
-								<option value="year">Bu Yıl</option>
-								<option value="all">Tüm Zamanlar</option>
-							</select>
+						<div id="adminStatsView" style="display:none;">
+							<p class="hint">Etkinlik takviminden türetilen faaliyet özeti. BAPKOB/Kalite raporlarına hızlı veri sağlar.</p>
+							<div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
+								<label class="hint" style="margin:0;">Aralık:</label>
+								<select id="statsRangeSelect" onchange="loadAdminStats()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); color:var(--ink);">
+									<option value="month">Bu Ay</option>
+									<option value="year">Bu Yıl</option>
+									<option value="all">Tüm Zamanlar</option>
+								</select>
+							</div>
+							<div id="adminStatsResult" class="hint">Yükleniyor…</div>
 						</div>
-						<div id="adminStatsResult" class="hint">Yükleniyor…</div>
 					</div>
 				</div>
 			</div>
