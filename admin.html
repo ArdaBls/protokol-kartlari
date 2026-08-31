@@ -784,16 +784,16 @@
 			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
 			<div class="admin-dashboard">
 				<!-- Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar sekmeleri artık
-				     üstte yatay satıra dizilmiyor -- soldan kayan bir çekmece (nav drawer) oldu.
-				     Desen: namethatui.com/web/hamburger-menu referansı (aria-expanded+aria-controls
-				     hamburger düğmesi + scrim üzerinden kayan <nav>, shadcn Sheet side="left" /
-				     Material NavigationDrawer mantığı) -- kod kopyalanmadı, sadece davranış deseni
-				     app.js'e (toggleAdminDrawer/openAdminDrawer/closeAdminDrawer) elle yazıldı.
-				     Masaüstünde (>780px) ikisi de CSS ile gizli/etkisiz, davranış DEĞİŞMEDİ. -->
+				     üstte yatay satıra dizilmiyor -- hamburger düğmesiyle açılan bir çekmece oldu.
+				     İlk sürüm scrim'li bir OVERLAY'di (namethatui.com/web/hamburger-menu deseni,
+				     shadcn Sheet/Material NavigationDrawer) ama kullanıcı "içerik altında kalıyor"
+				     diye bildirdi -- artık PUSH: açılınca .admin-main sağa daralır (scrim YOK,
+				     hiçbir şey örtülmez), kapanınca tam genişliğe döner. aria-expanded/aria-controls
+				     ve Escape/dışarı-tıklama ile kapanma korundu (app.js: toggleAdminDrawer/
+				     openAdminDrawer/closeAdminDrawer). Masaüstünde (>780px) etkisiz, davranış YOK. -->
 				<button type="button" class="admin-drawer-toggle" id="adminDrawerToggle" aria-expanded="false" aria-controls="adminSidebarDrawer" aria-label="Menüyü aç" onclick="toggleAdminDrawer()">
 					<svg class="ikon"><use href="#i-menu"/></svg>
 				</button>
-				<div class="admin-drawer-scrim" id="adminDrawerScrim" onclick="closeAdminDrawer()"></div>
 				<nav class="admin-sidebar admin-glass" id="adminSidebarDrawer">
 					<div class="admin-sidebar-brand">
 						<span class="admin-sidebar-logo">🗂️</span>

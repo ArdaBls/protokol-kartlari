@@ -65,11 +65,10 @@ function serve() {
 	await page.waitForTimeout(150);
 
 	// =====================================================================
-	// SENARYO 1: gerçek sürükleme -- boş ızgarada 10:00'dan 11:30'a çekilirse
-	// modal doğru presetTime/presetEndTime ile açılmalı, silüet modal açıkken
-	// kalmalı, modal kapanınca kaybolmalı. (Çapraz-kullanıcı canlı yayın
-	// özelliği 31 Ağustos oturumunda kaldırıldı -- gerçek cihazlarda
-	// doğrulanamadı, kullanıcı isteğiyle geri alındı.)
+	// SENARYO 1: gerçek sürükleme -- boş ızgarada 10:00'dan 11:30'a çekilirse artık modal
+	// HEMEN açılmaz (kullanıcı isteği, 31 Ağustos 2026: "istediğim saatte oluşturana kadar
+	// düzenleme ekranını çıkartmasın") -- ghost + onay çubuğu (.cal-create-confirm-bar)
+	// gösterilir, modal SADECE "Oluştur" tıklanınca doğru presetTime/presetEndTime ile açılır.
 	// =====================================================================
 	const daycolRect = await page.evaluate(() => document.querySelector('.cal-daycol[data-date="2026-01-12"]').getBoundingClientRect());
 	const dragResult = await page.evaluate(({ top }) => {
@@ -84,25 +83,57 @@ function serve() {
 		fire('pointermove', y1130, window);
 		const ghostExistedDuringDrag = !!document.querySelector('.cal-create-select');
 		fire('pointerup', y1130, window);
-		// Kullanici istegi (31 Ağustos oturumu sonrası): "etkinlik oluştur ekranı arka planda...
-		// seçilen saat aralığını göremedim" -- ghost artık pointerup'ta KALDIRILMIYOR, modal
-		// açık kaldığı sürece takvimde (bulanık arka planda) görünmeye devam ediyor.
-		const ghostExistsWhileModalOpen = !!document.querySelector('.cal-create-select');
-		return { ghostExistedDuringDrag, ghostExistsWhileModalOpen };
+		return { ghostExistedDuringDrag };
 	}, { top: daycolRect.top });
+	await page.waitForTimeout(80);
+	const pendingTest = await page.evaluate(() => ({
+		modalNotOpenBeforeConfirm: !document.getElementById('eventModalBg').classList.contains('open'),
+		barShown: !!document.querySelector('.cal-create-confirm-bar'),
+		ghostPending: !!document.querySelector('.cal-create-select-pending'),
+		barShowsCorrectTime: (document.querySelector('.cal-create-confirm-bar .ccb-time') || {}).textContent.indexOf('10:00–11:30') !== -1
+	}));
+	// "Oluştur" tıklanınca modal doğru presetTime/presetEndTime ile açılmalı, ghost modal
+	// açıkken de kalmalı (kullanıcı isteği: arka planda seçilen aralığı görebilsin).
+	await page.click('.cal-create-confirm-bar .ccb-confirm');
 	await page.waitForTimeout(80);
 	const createTest = await page.evaluate(() => ({
 		modalOpen: document.getElementById('eventModalBg').classList.contains('open'),
 		dateOk: document.getElementById('ev_tarih').value === '2026-01-12',
 		startOk: document.getElementById('ev_saat').value === '10:00',
-		endOk: document.getElementById('ev_bitisSaat').value === '11:30'
+		endOk: document.getElementById('ev_bitisSaat').value === '11:30',
+		barRemovedAfterConfirm: !document.querySelector('.cal-create-confirm-bar'),
+		ghostExistsWhileModalOpen: !!document.querySelector('.cal-create-select')
 	}));
 	// closeEventModal() çağrılınca ghost'un GERÇEKTEN kaldırıldığını da doğrula.
 	const afterCloseTest = await page.evaluate(() => {
 		closeEventModal();
 		return { ghostRemovedAfterModalClose: !document.querySelector('.cal-create-select') };
 	});
-	const dragScenario = { ...dragResult, ...createTest, ...afterCloseTest };
+	const dragScenario = { ...dragResult, ...pendingTest, ...createTest, ...afterCloseTest };
+
+	// =====================================================================
+	// SENARYO 1b: "Vazgeç" -- ghost/çubuk kalkmalı, modal HİÇ açılmamalı.
+	// =====================================================================
+	const cancelScenario = await page.evaluate(({ top }) => {
+		const daycol = document.querySelector('.cal-daycol[data-date="2026-01-12"]');
+		function fire(type, y, target) {
+			const ev = new PointerEvent(type, { bubbles: true, cancelable: true, clientX: 50, clientY: y, pointerId: 1, pointerType: 'mouse' });
+			(target || daycol).dispatchEvent(ev);
+		}
+		const y15 = top + (15 * 60 / 60) * 48, y1530 = top + (15.5 * 60 / 60) * 48;
+		fire('pointerdown', y15, daycol);
+		fire('pointermove', y1530, window);
+		fire('pointerup', y1530, window);
+		return { barShownBeforeCancel: !!document.querySelector('.cal-create-confirm-bar') };
+	}, { top: daycolRect.top });
+	await page.click('.cal-create-confirm-bar .ccb-cancel');
+	await page.waitForTimeout(80);
+	const afterCancelTest = await page.evaluate(() => ({
+		barRemovedAfterCancel: !document.querySelector('.cal-create-confirm-bar'),
+		ghostRemovedAfterCancel: !document.querySelector('.cal-create-select'),
+		modalStillClosedAfterCancel: !document.getElementById('eventModalBg').classList.contains('open')
+	}));
+	Object.assign(cancelScenario, afterCancelTest);
 
 	// =====================================================================
 	// SENARYO 2: kısa tıklama (<3px) -- eski calGridClick davranışı BOZULMAMALI
@@ -138,7 +169,7 @@ function serve() {
 		endIsEmpty: document.getElementById('ev_bitisSaat').value === '' // eski davranış: click'te bitiş HİÇ set edilmez
 	}));
 
-	const combined = { dragScenario, clickTest };
+	const combined = { dragScenario, cancelScenario, clickTest };
 	console.log(JSON.stringify(combined, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));

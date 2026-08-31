@@ -784,26 +784,68 @@
 			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
 			<div class="admin-dashboard">
 				<!-- Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar sekmeleri artık
-				     üstte yatay satıra dizilmiyor -- soldan kayan bir çekmece (nav drawer) oldu.
-				     Desen: namethatui.com/web/hamburger-menu referansı (aria-expanded+aria-controls
-				     hamburger düğmesi + scrim üzerinden kayan <nav>, shadcn Sheet side="left" /
-				     Material NavigationDrawer mantığı) -- kod kopyalanmadı, sadece davranış deseni
-				     app.js'e (toggleAdminDrawer/openAdminDrawer/closeAdminDrawer) elle yazıldı.
-				     Masaüstünde (>780px) ikisi de CSS ile gizli/etkisiz, davranış DEĞİŞMEDİ. -->
+				     üstte yatay satıra dizilmiyor -- hamburger düğmesiyle açılan bir çekmece oldu.
+				     İlk sürüm scrim'li bir OVERLAY'di (namethatui.com/web/hamburger-menu deseni,
+				     shadcn Sheet/Material NavigationDrawer) ama kullanıcı "içerik altında kalıyor"
+				     diye bildirdi -- artık PUSH: açılınca .admin-main sağa daralır (scrim YOK,
+				     hiçbir şey örtülmez), kapanınca tam genişliğe döner. aria-expanded/aria-controls
+				     ve Escape/dışarı-tıklama ile kapanma korundu (app.js: toggleAdminDrawer/
+				     openAdminDrawer/closeAdminDrawer). Masaüstünde (>780px) etkisiz, davranış YOK. -->
 				<button type="button" class="admin-drawer-toggle" id="adminDrawerToggle" aria-expanded="false" aria-controls="adminSidebarDrawer" aria-label="Menüyü aç" onclick="toggleAdminDrawer()">
 					<svg class="ikon"><use href="#i-menu"/></svg>
 				</button>
-				<div class="admin-drawer-scrim" id="adminDrawerScrim" onclick="closeAdminDrawer()"></div>
 				<nav class="admin-sidebar admin-glass" id="adminSidebarDrawer">
 					<div class="admin-sidebar-brand">
 						<span class="admin-sidebar-logo">🗂️</span>
 						<div><b>Admin Paneli</b><span class="admin-sidebar-sub">Protokol Kartları</span></div>
 					</div>
-					<div class="admin-nav-group">
-						<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><svg class="ikon"><use href="#i-users"/></svg>Kullanıcılar</button>
-						<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><svg class="ikon"><use href="#i-akis"/></svg>Geçmiş</button>
-						<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><svg class="ikon"><use href="#i-test"/></svg>Test</button>
-						<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>İstatistikler</button>
+					<!-- Faz 9: sidebar 4 akordeon gruba bölündü (referans: AdminLTE _app-sidebar.scss/
+					     treeview.ts -- sadece davranış deseni alındı, Bootstrap/TS kodu yok). Her grup
+					     .admin-nav-header'a tıklanınca açılır, diğer gruplar otomatik kapanır
+					     (toggleAdminNavGroup(), app.js). switchAdminTab() aktif sekmenin grubunu da
+					     otomatik açar. -->
+					<div class="admin-nav-group open" id="admGroupGenel">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Genel')" aria-expanded="true">
+							<span>Genel Bakış</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabDashboardBtn" onclick="switchAdminTab('dashboard')"><svg class="ikon"><use href="#i-panel"/></svg>Kontrol Paneli</button>
+							<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>Faaliyet &amp; İstatistik</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupSaha">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Saha')" aria-expanded="false">
+							<span>Saha &amp; Haber</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabFieldOpsBtn" onclick="switchAdminTab('field-ops')"><svg class="ikon"><use href="#i-radyo"/></svg>Saha Masası</button>
+							<button class="admin-nav-item" id="adminTabEditorialBtn" onclick="switchAdminTab('editorial')"><svg class="ikon"><use href="#i-gazete"/></svg>Haber &amp; Ajans</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupProtokol">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Protokol')" aria-expanded="false">
+							<span>Protokol &amp; Veri</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabHierarchyBtn" onclick="switchAdminTab('hierarchy')"><svg class="ikon"><use href="#i-kurum"/></svg>Hiyerarşi &amp; Kadro</button>
+							<button class="admin-nav-item" id="adminTabIntegrityBtn" onclick="switchAdminTab('integrity')"><svg class="ikon"><use href="#i-supurge"/></svg>Kart Sağlığı</button>
+							<button class="admin-nav-item" id="adminTabDictionaryBtn" onclick="switchAdminTab('dictionary')"><svg class="ikon"><use href="#i-kitap"/></svg>Veri Sözlüğü</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupSistem">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Sistem')" aria-expanded="false">
+							<span>Sistem &amp; Güvenlik</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><svg class="ikon"><use href="#i-users"/></svg>Kullanıcılar &amp; PIN</button>
+							<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><svg class="ikon"><use href="#i-akis"/></svg>Denetim Günlüğü</button>
+							<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><svg class="ikon"><use href="#i-test"/></svg>Test &amp; Sistem</button>
+							<button class="admin-nav-item" id="adminTabBackupBtn" onclick="switchAdminTab('backup')"><svg class="ikon"><use href="#i-disk"/></svg>Yedekleme &amp; Çöp</button>
+						</div>
 					</div>
 					<button type="button" class="admin-back-btn" onclick="closeAdminPanel()"><svg class="ikon"><use href="#i-geri"/></svg>Kartlara Dön</button>
 				</nav>
@@ -835,8 +877,37 @@
 						</label>
 					</div>
 					<div class="admin-content-card admin-glass">
-						<h2 class="admin-main-title" id="adminMainTitle">Kullanıcılar</h2>
-						<div id="adminUsersView">
+						<h2 class="admin-main-title" id="adminMainTitle">Kontrol Paneli</h2>
+						<!-- Faz 9 adım 3: dashboard/field-ops/editorial/hierarchy/integrity artık
+						     gerçek veri gösteriyor (load{X}(), app.js) -- her biri kendi *Body div'ini
+						     dolduruyor. dictionary/backup hâlâ placeholder (sonraki aşama). -->
+						<div id="adminDashboardView">
+							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
+							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminFieldOpsView" style="display:none;">
+							<p class="hint">Bekleyen saha taslakları ve basın görevlisi iş yükü.</p>
+							<div id="adminFieldOpsBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminEditorialView" style="display:none;">
+							<p class="hint">Haber yazılmayı bekleyen etkinlikler ve ajans dağılımı.</p>
+							<div id="adminEditorialBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminHierarchyView" style="display:none;">
+							<p class="hint">Üniversite protokol sırasında boş kadro/vekâlet/rank taraması (salt-okunur).</p>
+							<div id="adminHierarchyBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminIntegrityView" style="display:none;">
+							<p class="hint">Eksik fotoğraf, mükerrer isim ve doğrulama tazeliği (İl + Üniversite).</p>
+							<div id="adminIntegrityBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminDictionaryView" style="display:none;">
+							<p class="hint">Birim/unvan öneri havuzu birleştirme/silme araçları yakında.</p>
+						</div>
+						<div id="adminBackupView" style="display:none;">
+							<p class="hint">Birleşik yedek alma ve salt-okunur kilit yakında.</p>
+						</div>
+						<div id="adminUsersView" style="display:none;">
 							<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
 							<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
 						</div>

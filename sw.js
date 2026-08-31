@@ -1,3 +1,16 @@
+// v3.12.1 (31 Ağustos 2026) -- Faz 10 (devam): (1) Takvimde sürükleyerek etkinlik oluşturma
+// artık İKİ ADIMLI -- bırakınca modal HEMEN açılmıyor, ghost + küçük bir "Oluştur/Vazgeç"
+// onay çubuğu (.cal-create-confirm-bar, ekranın altına sabit) gösteriliyor; modal SADECE
+// "Oluştur"a basılınca açılıyor. Mobilde parmak hassasiyetiyle yanlış saat aralığı
+// bırakılırsa artık düzenleme ekranına hiç girmeden "Vazgeç" ile iptal edilebiliyor.
+// (2) Admin panelindeki mobil çekmece scrim'li OVERLAY'den PUSH düzenine çevrildi --
+// kullanıcı "içerik altında kalıyor" diye bildirdi; artık açılınca .admin-main sağa daralıyor,
+// hiçbir şey örtülmüyor (scrim kaldırıldı). Escape/dışarı-tıklama ile kapanma korundu, ayrıca
+// Escape'in yanlışlıkla TÜM admin panelini de kapatan bir çakışması (capture+stopPropagation
+// ile) düzeltildi. (3) index/protokol/takvim.html'deki admin paneli bloğu, Faz 9'dan beri
+// sadece admin.html'de güncellenmiş kalmıştı (4 sayfa aynı DOM kuralı bozulmuştu, pratikte
+// zararsızdı çünkü panel her zaman admin.html'e yönlendirilerek açılıyor) -- 4 dosya artık
+// yeniden birebir aynı. (4) İki kullanılmayan yardımcı fonksiyon (turkishList) temizlendi.
 // v3.12.0 (31 Ağustos 2026) -- Faz 10: (1) Giriş/Kayıt ekranı tamamen yeniden tasarlandı
 // (uiverse.io by Praashoo7 referansından ilham, kod kopyalanmadı) -- yuvarlak (28px) kart,
 // e-posta/şifre alanlarına gömülü ikon (CSS mask+:has(), HTML değişmedi), tam pill CTA
@@ -78,7 +91,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.12.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.12.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

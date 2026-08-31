@@ -399,37 +399,56 @@
 				// kontrolüne gerek yok.
 				closeAdminDrawer();
 			}
-			// Faz 10: mobil sidebar çekmecesi (nav drawer). namethatui.com/web/hamburger-menu
-			// deseni: aria-expanded/aria-controls senkron tutulur, Escape ve scrim tıklamasıyla
-			// kapanır, kapanınca odak tetikleyici düğmeye döner. Body kaydırma kilidi AYRI kod
-			// YAZILMADI -- #adminDrawerScrim zaten "Arka plan kaydırma kilidi" gözlemcisinin
-			// (aşağıda, setupScrollLock) izlediği listeye eklendi, .open class'ı otomatik kilitler.
+			// Faz 10: mobil sidebar çekmecesi (nav drawer) -- namethatui.com/web/hamburger-menu
+			// deseninden aria-expanded/aria-controls + Escape/dışarı-tıklama ile kapanma +
+			// odak-geri-dönüşü korundu, ama ilk sürümdeki scrim'li OVERLAY kullanıcı geri
+			// bildirimiyle ("içerik altında kalıyor") kaldırıldı -- artık .admin-sidebar.open
+			// gerçek belge akışında genişleyip .admin-main'i PUSH eder (bkz. style.css), hiçbir
+			// şeyi örtmediği için scrim'e/body-scroll-kilidine gerek KALMADI.
 			let adminDrawerEscHandler = null;
 			function openAdminDrawer() {
 				const sidebar = document.getElementById("adminSidebarDrawer");
-				const scrim = document.getElementById("adminDrawerScrim");
 				const toggle = document.getElementById("adminDrawerToggle");
-				if (!sidebar || !scrim || !toggle) return;
+				if (!sidebar || !toggle) return;
 				sidebar.classList.add("open");
-				scrim.classList.add("open");
+				const dashboard = sidebar.closest(".admin-dashboard");
+				if (dashboard) dashboard.classList.add("drawer-open");
 				toggle.setAttribute("aria-expanded", "true");
-				adminDrawerEscHandler = function(e) { if (e.key === "Escape") closeAdminDrawer(); };
-				document.addEventListener("keydown", adminDrawerEscHandler);
+				// Capture fazında (3. parametre true) + stopPropagation: admin panelinin KENDİ
+				// genel Escape dinleyicisi (aşağıda, MODAL_CLOSE_FNS -- .modal-bg.open'ı hedefler,
+				// adminPanelBg da bir .modal-bg) bubble fazında document'e bağlı -- ikisi de
+				// tetiklenirse Escape TÜM admin panelini de kapatıyordu (drawer'ın DIŞINDA,
+				// istenmeyen bir yan etki). Capture + stopPropagation, bubble fazına hiç
+				// ULAŞMADAN olayı burada durdurur -- SADECE çekmece kapanır.
+				adminDrawerEscHandler = function(e) { if (e.key === "Escape") { e.stopPropagation(); closeAdminDrawer(); } };
+				document.addEventListener("keydown", adminDrawerEscHandler, true);
 			}
 			function closeAdminDrawer() {
 				const sidebar = document.getElementById("adminSidebarDrawer");
-				const scrim = document.getElementById("adminDrawerScrim");
 				const toggle = document.getElementById("adminDrawerToggle");
 				if (!sidebar || !sidebar.classList.contains("open")) return; // zaten kapalı -- odağı GEREKSİZ YERE tetikleyiciye çekme
 				sidebar.classList.remove("open");
-				if (scrim) scrim.classList.remove("open");
+				const dashboard = sidebar.closest(".admin-dashboard");
+				if (dashboard) dashboard.classList.remove("drawer-open");
 				if (toggle) { toggle.setAttribute("aria-expanded", "false"); toggle.focus(); }
-				if (adminDrawerEscHandler) { document.removeEventListener("keydown", adminDrawerEscHandler); adminDrawerEscHandler = null; }
+				if (adminDrawerEscHandler) { document.removeEventListener("keydown", adminDrawerEscHandler, true); adminDrawerEscHandler = null; }
 			}
 			function toggleAdminDrawer() {
 				const sidebar = document.getElementById("adminSidebarDrawer");
 				if (sidebar && sidebar.classList.contains("open")) closeAdminDrawer(); else openAdminDrawer();
 			}
+			// Scrim olmadığı için "dışarı tıklayınca kapan" davranışı ayrı, hep-bağlı (attach/
+			// detach gerektirmeyen) delegated bir dinleyiciyle sağlanır -- sadece çekmece açıkken
+			// ve tıklama sidebar/toggle'ın DIŞINDAYSA devreye girer (nav öğesi tıklamaları zaten
+			// switchAdminTab() içindeki closeAdminDrawer() çağrısıyla kapanıyor, burası SADECE
+			// "boş alana/içeriğe tıklama" durumunu yakalar).
+			document.addEventListener("click", function(e) {
+				const sidebar = document.getElementById("adminSidebarDrawer");
+				const toggle = document.getElementById("adminDrawerToggle");
+				if (!sidebar || !sidebar.classList.contains("open")) return;
+				if (sidebar.contains(e.target) || (toggle && toggle.contains(e.target))) return;
+				closeAdminDrawer();
+			});
 			// Sidebar akordeon: AdminLTE'nin treeview.ts'indeki "accordion:true" davranışının vanilla
 			// portu -- Bootstrap/TS alınmadı, sadece mantık: bir grup açılınca diğerleri kapanır.
 			function openAdminNavGroup(groupId) {
@@ -4052,6 +4071,7 @@ function openCalendar(){
 // olarak geçici kapatmak (ör. üstüne haber modalı açmak için) gerektiğinde sayfa değiştirmeyen
 // _hideCalendarOverlay() kullanılır -- aksi halde etkinlikten haber taslağı akışı yarıda kalırdı.
 function closeCalendar(){
+	calCancelPendingCreate();
 	if (PAGE === "takvim") { location.href = "protokol.html"; return; }
 	_hideCalendarOverlay();
 }
@@ -4115,6 +4135,11 @@ function calJumpTo(v){
 function calGoToDay(dateKey){ const d=parseKey(dateKey); if(!d) return; calAnchor=d; calSetView("day"); }
 
 function renderCalendar(){
+	// Bekleyen bir olusturma onayi (bkz. calStartGridSelectGesture/onUp) varsa, asagida
+	// .cal-daycol'lar YENIDEN cizilince o ghost'un bagli oldugu eski DOM dugumu kopar --
+	// onay/iptal butonlari koparsa tiklanamaz kalirdi, bu yuzden gorunum/tarih degisimi
+	// bekleyen onayi guvenlik agi olarak iptal eder.
+	calCancelPendingCreate();
 	// Her renderCalendar() cagrisi ilgili view'i BASTAN cizer -- eski Sortable ornekleri
 	// (varsa) DOM'dan once temizlenir, aksi halde artik var olmayan elemanlara bagli
 	// "zombi" Sortable ornekleri birikir (bkz. person-list'teki ayni desen).
@@ -4765,6 +4790,43 @@ let calGridSelectSuppressClick = false;
 // Surukleyerek olusturulan .cal-create-select silueti -- modal ACIKKEN kaldirilmiyor artik
 // (kullanici istegi: arka planda seçilen saat araligini gorebilsin), closeEventModal() kapatir.
 let calActiveCreateGhost = null;
+// Kullanici istegi (31 Ağustos 2026): surukleyerek olusturma jesti bırakılınca modal ARTIK
+// HEMEN acilmiyor -- ghost + kucuk bir "Olustur/Vazgec" onay cubugu gosterilir, modal SADECE
+// "Olustur"a basilinca acilir. Boylece mobilde parmak hassasiyetiyle YANLIS bir saat araligi
+// birakilirsa, kullanici duzenleme ekranina hic girmeden "Vazgec" ile iptal edip tekrar
+// deneyebilir. Tek bir bekleyen istek olabilir -- yenisi baslarsa (guvenlik agi) oncekini iptal eder.
+let calPendingCreate = null;
+function calShowPendingCreateBar(ghost, dateKey, startMin, endMin){
+	calCancelPendingCreate(); // guvenlik agi -- unutulmus onceki bir istek varsa once o temizlenir
+	ghost.classList.add("cal-create-select-pending");
+	const bar=document.createElement("div");
+	bar.className="cal-create-confirm-bar";
+	bar.innerHTML =
+		'<span class="ccb-time">'+escapeHtml(fmtTrDate(dateKey))+' · '+minToHm(startMin)+'–'+minToHm(endMin)+'</span>'+
+		'<button type="button" class="ccb-cancel">✕ Vazgeç</button>'+
+		'<button type="button" class="ccb-confirm">✓ Oluştur</button>';
+	document.body.appendChild(bar);
+	bar.querySelector(".ccb-confirm").addEventListener("click", calConfirmPendingCreate);
+	bar.querySelector(".ccb-cancel").addEventListener("click", calCancelPendingCreate);
+	calPendingCreate = { ghost:ghost, bar:bar, dateKey:dateKey, startMin:startMin, endMin:endMin };
+}
+function calConfirmPendingCreate(){
+	if(!calPendingCreate) return;
+	const p=calPendingCreate; calPendingCreate=null;
+	p.bar.remove();
+	p.ghost.classList.remove("cal-create-select-pending");
+	// Kullanici istegi: "etkinlik oluştur ekranı arka planda... seçilen saat aralığını
+	// göremedim" -- ghost modal ACIKKEN de DOM'da kalir, closeEventModal() kapatir.
+	if(calActiveCreateGhost) calActiveCreateGhost.remove();
+	calActiveCreateGhost=p.ghost;
+	openEventModal(null, p.dateKey, minToHm(p.startMin), minToHm(p.endMin));
+}
+function calCancelPendingCreate(){
+	if(!calPendingCreate) return;
+	const p=calPendingCreate; calPendingCreate=null;
+	p.ghost.remove();
+	p.bar.remove();
+}
 function calStartGridSelectGesture(e){
 	if(e.target.closest(".cal-resize-handle")) return; // resize'a birak
 	if(e.target.closest(".cal-block")) return; // mevcut etkinligin uzerinde -- move-drag'e (SortableJS) birak
@@ -4838,12 +4900,13 @@ function calStartGridSelectGesture(e){
 		cleanupListeners();
 		if(!moved){ ghost.remove(); return; } // kisa tiklama -- calGridClick'in eski tek-tik davranisi CALISMAYA devam etsin
 		calGridSelectSuppressClick=true; // ayni pointerup/click ciftinde calGridClick TEKRAR acmasin
-		// Kullanici istegi: "etkinlik oluştur ekranı arka planda... seçilen saat aralığını
-		// göremedim" -- ghost ARTIK BURADA kaldirilmiyor, modal ACIK kaldigi surece takvimde
-		// (bulanik arka planda) gorunmeye devam eder. closeEventModal() kapatir (bkz. asagida).
-		if(calActiveCreateGhost) calActiveCreateGhost.remove(); // guvenlik agi: onceki bir ghost unutulmus olabilir
-		calActiveCreateGhost=ghost;
-		openEventModal(null, dateKey, minToHm(startMin), minToHm(endMin));
+		// Kullanici istegi (31 Ağustos 2026): "istediğim saatte oluşturana kadar site bana
+		// düzenleme seçeneğini çıkartmasın, ne zaman onaylıyorum o saatlerin okey olduğunu o
+		// zaman düzenle ekranı açılsın" -- mobilde parmak hassasiyeti yüzünden bırakılan saat
+		// aralığı istenen olmayabiliyordu, direkt modal açılması bunu düzeltme fırsatı vermiyordu.
+		// Artık bırakınca modal AÇILMIYOR, ghost + küçük bir "Oluştur/Vazgeç" onay çubuğu kalıyor;
+		// modal SADECE kullanıcı "Oluştur"a basınca açılır.
+		calShowPendingCreateBar(ghost, dateKey, startMin, endMin);
 	}
 	window.addEventListener("pointermove", onMove);
 	window.addEventListener("pointerup", onUp);
@@ -5307,11 +5370,11 @@ function describeEventCreation(e){
 	return out;
 }
 
-// logs/etkinlik altına ortak bicimde log satiri ekler; persistEvent, executeEventDelete ve
-// Ctrl+Z geri alma akislari bunu paylasir (onceden ayni kod birden fazla yerde tekrarlaniyordu).
-// PROMISE DONER (bkz. logAction() ile ayni gerekce): fire-and-forget push().catch(...) yerine,
-// cagiran taraf isterse await ile logun tamamlandigindan emin olabilir; basarisizlik konsola VE
-// kullaniciya (toast) bildirilir.
+// logs/etkinlik altına ortak bicimde log satiri ekler; dbPath() farkindaligini (test modunda
+// test/logs/etkinlik'e yonlendirme) tek noktadan test etmek icin tests/test-mode-test.js
+// tarafindan kullanilir -- persistEvent/executeEventDelete artik veriyle AYNI atomik update()
+// icinde kendi log girdilerini yaziyor (bu fonksiyonu KENDILERI cagirmiyorlar), ama genel
+// amacli bir yardimci olarak (ve testin dbPath yonlendirmesini dogrulamasi icin) burada kalir.
 function logEventAction(action, target){
 	if(!currentUser || !database) return Promise.resolve(false);
 	return database.ref(dbPath("logs/etkinlik")).push({
@@ -5725,13 +5788,6 @@ function pickVariant(variants, ctx, seedStr){
 	if(!usable.length) return null;
 	return usable[strHash(seedStr) % usable.length].text;
 }
-// "X, Y ve Z" bicimli Turkce liste birlestirici.
-function turkishList(arr){
-	const items=(arr||[]).filter(Boolean);
-	if(items.length===0) return "";
-	if(items.length===1) return items[0];
-	return items.slice(0,-1).join(", ") + " ve " + items[items.length-1];
-}
 // Bir sablonun (eski "metin" ya da yeni "paragraphs" bicimi) icerdigi TUM {xxx} yer tutucularini tek noktadan
 // taramak icin: renderNewsPlaceholderFields() hangi giris kutularini gosterecegini boyle bulur.
 function templateAllText(tpl){
@@ -5834,7 +5890,7 @@ function generateNewsFromEvent(){
 			window.scrollTo(0, scrollLockY);
 		}
 		(function setupScrollLock(){
-			var watched = Array.prototype.slice.call(document.querySelectorAll(".modal-bg, #calendarOverlay, #authFormBg, #facultySheetBackdrop, #loadingOverlay, #adminDrawerScrim"));
+			var watched = Array.prototype.slice.call(document.querySelectorAll(".modal-bg, #calendarOverlay, #authFormBg, #facultySheetBackdrop, #loadingOverlay"));
 			function recomputeLock(){
 				var anyOpen = watched.some(function(el){ return el.classList.contains("open"); });
 				if (anyOpen) lockBodyScroll(); else unlockBodyScroll();
