@@ -367,13 +367,13 @@
 			// 11'e çıktı. ADMIN_TAB_GROUPS her sekmenin hangi grupta olduğunu tutar --
 			// switchAdminTab() sekme değişince o grubu otomatik açar (openAdminNavGroup()).
 			const ADMIN_TAB_TITLES = {
-				dashboard: "Kontrol Paneli", stats: "Faaliyet & İstatistik",
+				dashboard: "Kontrol Paneli", calendar: "Takvim", stats: "Faaliyet & İstatistik",
 				"field-ops": "Saha Masası", editorial: "Haber & Ajans",
 				hierarchy: "Hiyerarşi & Kadro", integrity: "Kart Sağlığı", dictionary: "Veri Sözlüğü",
 				users: "Kullanıcılar & PIN", logs: "Denetim Günlüğü", test: "Test & Sistem", backup: "Yedekleme & Çöp"
 			};
 			const ADMIN_TAB_GROUPS = {
-				dashboard: "Genel", stats: "Genel",
+				dashboard: "Genel", calendar: "Genel", stats: "Genel",
 				"field-ops": "Saha", editorial: "Saha",
 				hierarchy: "Protokol", integrity: "Protokol", dictionary: "Protokol",
 				users: "Sistem", logs: "Sistem", test: "Sistem", backup: "Sistem"
@@ -402,6 +402,7 @@
 				else if (tab === "stats") loadAdminStats();
 				else if (tab === "logs") { loadAdminLogs(); loadTestModeLog(); }
 				else if (tab === "dashboard") loadAdminDashboard();
+				else if (tab === "calendar") renderAdminCalendar();
 				else if (tab === "field-ops") loadFieldOps();
 				else if (tab === "editorial") loadEditorial();
 				else if (tab === "hierarchy") loadHierarchy();
@@ -415,12 +416,12 @@
 				// kontrolüne gerek yok.
 				closeAdminDrawer();
 			}
-			// Faz 10: mobil sidebar çekmecesi (nav drawer) -- namethatui.com/web/hamburger-menu
+			// Faz 11: mobil sidebar çekmecesi (nav drawer) -- namethatui.com/web/hamburger-menu
 			// deseninden aria-expanded/aria-controls + Escape/dışarı-tıklama ile kapanma +
-			// odak-geri-dönüşü korundu, ama ilk sürümdeki scrim'li OVERLAY kullanıcı geri
-			// bildirimiyle ("içerik altında kalıyor") kaldırıldı -- artık .admin-sidebar.open
-			// gerçek belge akışında genişleyip .admin-main'i PUSH eder (bkz. style.css), hiçbir
-			// şeyi örtmediği için scrim'e/body-scroll-kilidine gerek KALMADI.
+			// odak-geri-dönüşü korundu. .admin-sidebar.open artık position:fixed bir slide-over
+			// (bkz. style.css) -- .admin-main'i itmiyor (önceki PUSH modeli dar telefon
+			// ekranlarında içeriği sıkıştırıyordu), üstüne kayıyor + CSS'te ::before ile hafif bir
+			// scrim geliyor (pointer-events:none, tıklamayı yakalamıyor).
 			let adminDrawerEscHandler = null;
 			function openAdminDrawer() {
 				const sidebar = document.getElementById("adminSidebarDrawer");
@@ -3959,6 +3960,7 @@ function attachEventsListener(){
 		}
 		renderCalendarRail();
 		if(document.getElementById("calendarOverlay").classList.contains("open")) renderCalendar();
+		if(document.getElementById("admCalGrid")) renderAdminCalendar();
 	};
 	activeEventsListenerErrCallback = function(err){
 		console.error("etkinlikler okunamadı:", err);
@@ -3990,6 +3992,44 @@ function calVisibleEvents(){
 	});
 }
 function calEventsOn(dateKey){ return calVisibleEvents().filter(function(e){ return e.tarih===dateKey; }); }
+
+/* --- Admin paneli: gömülü kompakt ay takvimi (Faz 12) ---
+   Kendi tarih/veri durumu (admCalAnchor) var ama VERİ KAYNAĞI calVisibleEvents/calEventsOn --
+   asıl takvimin (calAnchor/calEvents) hiçbir global durumuna dokunmaz, ikisi birbirinden bağımsız
+   çalışır. Ekleme/silme burada YOK -- bir güne tıklamak openCalendarAt() ile asıl takvime götürür. */
+let admCalAnchor = todayDate();
+function admCalShift(dir){ admCalAnchor = new Date(admCalAnchor.getFullYear(), admCalAnchor.getMonth()+dir, 1); renderAdminCalendar(); }
+function admCalToday(){ admCalAnchor = todayDate(); renderAdminCalendar(); }
+function renderAdminCalendar(){
+	const grid=document.getElementById("admCalGrid"), label=document.getElementById("admCalLabel"), dow=document.getElementById("admCalDow");
+	if(!grid||!label) return;
+	label.textContent = CAL_MONTHS[admCalAnchor.getMonth()]+" "+admCalAnchor.getFullYear();
+	if(dow && !dow.childElementCount) dow.innerHTML = CAL_DOW_MINI.map(function(d){ return '<span>'+d+'</span>'; }).join("");
+	const first = new Date(admCalAnchor.getFullYear(), admCalAnchor.getMonth(), 1);
+	const start = startOfWeek(first);
+	const today = todayDate();
+	const byDay = {};
+	calVisibleEvents().forEach(function(e){ (byDay[e.tarih] = byDay[e.tarih] || []).push(e); });
+	let html = "";
+	for(let i=0;i<42;i++){
+		const d = addDays(start,i), k = dKey(d);
+		const inMonth = d.getMonth()===admCalAnchor.getMonth();
+		const evs = byDay[k] || [];
+		let cls = "admcal-cell";
+		if(!inMonth) cls += " other";
+		if(isSameDay(d,today)) cls += " today";
+		const dots = evs.slice(0,3).map(function(e){
+			const meta = EVENT_TYPES.find(function(t){ return t.key===(e.tur||"diger"); }) || EVENT_TYPES[EVENT_TYPES.length-1];
+			return '<span class="admcal-dot" style="background:'+meta.renk+'"></span>';
+		}).join("");
+		const extra = evs.length>3 ? '<span class="admcal-extra">+'+(evs.length-3)+'</span>' : "";
+		html += '<button type="button" class="'+cls+'" onclick="openCalendarAt(\''+k+'\')" aria-label="'+d.getDate()+' '+CAL_MONTHS[d.getMonth()]+(evs.length?(", "+evs.length+" etkinlik"):"")+'">'
+			+'<span class="admcal-daynum">'+d.getDate()+'</span>'
+			+(dots||extra ? '<span class="admcal-dots">'+dots+extra+'</span>' : '')
+			+'</button>';
+	}
+	grid.innerHTML = html;
+}
 
 /* --- Sağ ray (kapalı hâl) --- */
 function renderCalendarRail(){

@@ -1,3 +1,10 @@
+// v3.16.0 (1 Eylul 2026) -- (1) Mobil/iOS admin panelinde hamburger menusu artik icerigi
+// ITMIYOR: .admin-sidebar PUSH (flex-basis) yerine gercek bir position:fixed slide-over oldu
+// (translateX + hafif scrim), dar telefon ekranlarinda tum sayfayi sikistiran hata duzeltildi.
+// (2) Admin paneline "Takvim" sekmesi eklendi -- gomulu kompakt bir ay takvimi (gorsel dil
+// referans: duguntakvimi-main/yonetim.html .takvim-kart/.tk-hucre, ama VERI/MANTIK tamamen bu
+// sitenin kendi takvim motorundan/calVisibleEvents'ten), bir gune tiklamak openCalendarAt() ile
+// asil tam-islevsel takvime (ekleme/silme/surukleme) goturur -- ayri bir takvim sistemi yok.
 // v3.15.1 (31 Ağustos 2026) -- Uc uzman agent (JS/CSS/HTML) ile yapilan tam kod denetiminde
 // bulunan sorunlar duzeltildi: (1) GUVENLIK -- takvim render'inda etkinlik id'si (e._id)
 // escapeHtml() olmadan data-evid/onclick'e yaziliyordu; importEventsJSON() JSON yedegindeki
@@ -143,7 +150,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.15.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.16.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

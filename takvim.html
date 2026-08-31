@@ -814,6 +814,7 @@
 						</button>
 						<div class="admin-nav-treeview">
 							<button class="admin-nav-item" id="adminTabDashboardBtn" onclick="switchAdminTab('dashboard')"><svg class="ikon"><use href="#i-panel"/></svg>Kontrol Paneli</button>
+							<button class="admin-nav-item" id="adminTabCalendarBtn" onclick="switchAdminTab('calendar')"><svg class="ikon"><use href="#i-takvim"/></svg>Takvim</button>
 							<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>Faaliyet &amp; İstatistik</button>
 						</div>
 					</div>
@@ -889,6 +890,24 @@
 						<div id="adminDashboardView">
 							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
 							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminCalendarView" style="display:none;">
+							<p class="hint">Bu ayın etkinlikleri tek bakışta -- bir güne veya "Tam Takvimi Aç"a tıklayınca asıl takvime (ekle/düzenle/sil) geçersin.</p>
+							<div class="admcal-card">
+								<div class="admcal-head">
+									<div class="admcal-title" id="admCalLabel">—</div>
+									<div class="admcal-nav">
+										<button type="button" onclick="admCalShift(-1)" aria-label="Önceki ay"><svg class="ikon"><use href="#i-ok"/></svg></button>
+										<button type="button" class="admcal-today" onclick="admCalToday()">Bugün</button>
+										<button type="button" onclick="admCalShift(1)" aria-label="Sonraki ay" style="transform:scaleX(-1)"><svg class="ikon"><use href="#i-ok"/></svg></button>
+									</div>
+								</div>
+								<div class="admcal-dow" id="admCalDow"></div>
+								<div class="admcal-grid" id="admCalGrid"></div>
+								<button type="button" class="btn btn-primary admcal-open-btn" onclick="openCalendarAt(dKey(admCalAnchor))">
+									<svg class="ikon"><use href="#i-takvim"/></svg>Tam Takvimi Aç
+								</button>
+							</div>
 						</div>
 						<div id="adminFieldOpsView" style="display:none;">
 							<p class="hint">Bekleyen saha taslakları ve basın görevlisi iş yükü.</p>

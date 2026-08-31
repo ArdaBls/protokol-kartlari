@@ -1471,28 +1471,69 @@
 			.admin-logs-col-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
 			.admin-logs-col-title{ font-size:12.5px; font-weight:600; color:var(--ink); }
 			.admin-logs-scroll{ max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+			/* Faz 12 (kullanıcı isteği, 1 Eylül 2026): admin paneline gömülü kompakt ay takvimi --
+			   görsel dil referans olarak duguntakvimi-main/yonetim.html'in .takvim-kart/.tk-hucre
+			   desenlerinden (yuvarlatılmış hücreler, küçük renkli noktalar, segment tarzı ay-gezinme)
+			   alındı, ama tamamen bu sitenin kendi tema token'larıyla (var(--card)/var(--border)/
+			   var(--ink) vb.) -- açık/koyu tema otomatik çalışır, düğün projesinin kendi renk
+			   token'ları (--yuzey/--vurgu) KOPYALANMADI. */
+			.admcal-card{ display:flex; flex-direction:column; gap:12px; }
+			.admcal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+			.admcal-title{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--ink); }
+			.admcal-nav{ display:flex; align-items:center; gap:6px; }
+			.admcal-nav button:not(.admcal-today){ width:32px; height:32px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--muted); display:grid; place-items:center; cursor:pointer; padding:0; transition:background .12s ease, color .12s ease; }
+			.admcal-nav button:not(.admcal-today):hover{ background:var(--surface-hover); color:var(--ink); }
+			.admcal-nav button:not(.admcal-today) .ikon{ width:15px; height:15px; }
+			.admcal-nav button:not(.admcal-today):active{ transform:scale(.93); }
+			.admcal-today{ height:32px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-family:'Roboto',sans-serif; font-size:12.5px; font-weight:600; cursor:pointer; }
+			.admcal-today:hover{ background:var(--surface-hover); }
+			.admcal-dow{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:2px; }
+			.admcal-dow span{ text-align:center; font-size:10.5px; font-weight:600; color:var(--muted); letter-spacing:.05em; text-transform:uppercase; padding:2px 0; }
+			.admcal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+			.admcal-cell{ aspect-ratio:1/.85; min-height:52px; border-radius:12px; border:1px solid transparent; background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; padding-top:6px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--ink); cursor:pointer; transition:background .12s ease, border-color .12s ease, transform .1s ease; }
+			.admcal-cell:hover{ background:var(--surface-hover); }
+			.admcal-cell:active{ transform:scale(.95); }
+			.admcal-cell.other{ color:var(--muted); opacity:.45; }
+			.admcal-cell.today{ border-color:var(--accent-ink); font-weight:700; color:var(--accent-ink); }
+			.admcal-daynum{ line-height:1; }
+			.admcal-dots{ display:flex; gap:2.5px; align-items:center; height:6px; }
+			.admcal-dot{ width:5px; height:5px; border-radius:50%; flex:none; }
+			.admcal-extra{ font-size:8px; color:var(--muted); font-family:'Roboto',sans-serif; }
+			.admcal-open-btn{ align-self:flex-start; display:inline-flex; align-items:center; gap:8px; }
+			.admcal-open-btn .ikon{ width:15px; height:15px; }
+			@media (max-width: 560px){
+				.admcal-cell{ min-height:40px; font-size:11px; border-radius:9px; }
+				.admcal-title{ font-size:15px; }
+			}
 			/* Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar artık üstte yatay
-			   satıra dizilmiyordu ("sekmeler üstte sıralanıyor onu bir sol panele alalım ordan
-			   açılsın") -- hamburger düğmesiyle açılan bir çekmece oldu. İlk sürüm scrim'li bir
-			   OVERLAY'di ama kullanıcı "içerik altında kalıyor" diye bildirdi -- artık PUSH:
-			   açılınca .admin-main sağa daralır (--admin-drawer-w genişliği kadar), hiçbir şey
-			   örtülmez/scrim yok; kapanınca tam genişliğe döner. Masaüstünde display:none. */
+			   satıra dizilmiyordu -- hamburger düğmesiyle açılan bir çekmece oldu. İlk sürüm
+			   scrim'li OVERLAY'di ama içerik geri kapanınca "altında kalıyor" bildirilmişti --
+			   PUSH'a çevrilmişti, ancak PUSH modeli dar telefon ekranlarında (iOS Safari/Chrome)
+			   --admin-drawer-w kadar genişlik .admin-main'den çalındığı için içeriği görünür
+			   şekilde sıkıştırıyordu (kullanıcı bildirimi, 1 Eylül 2026). Faz 11: gerçek bir
+			   position:fixed slide-over'a dönüldü -- artık .admin-main'in genişliğine HİÇ
+			   dokunmuyor (itilmiyor), sidebar içeriğin ÜSTÜNE kayıyor + hafif bir karartma
+			   (scrim) katmanı geliyor. Scrim pointer-events:none -- tıklamayı YAKALAMIYOR,
+			   "dışarı tıklayınca kapan" davranışı zaten document click delegasyonuyla çalışıyor
+			   (bkz. app.js, satır ~461), scrim'in kendi tıklama mantığına gerek yok. Masaüstünde
+			   display:none. */
 			.admin-drawer-toggle{ display:none; }
 			@media (max-width: 780px){
 				:root{ --admin-drawer-w: min(240px, 78vw); }
 				.admin-dashboard{ flex-direction:row; padding:10px; gap:0; position:relative; overflow:hidden; }
-				.admin-drawer-toggle{ display:flex; align-items:center; justify-content:center; position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:14px; z-index:401; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--ink); box-shadow:var(--shadow); cursor:pointer; padding:0; transition:left .25s ease; }
-				.admin-dashboard.drawer-open .admin-drawer-toggle{ left:calc(var(--admin-drawer-w) + 14px); }
+				.admin-drawer-toggle{ display:flex; align-items:center; justify-content:center; position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:14px; z-index:403; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--ink); box-shadow:var(--shadow); cursor:pointer; padding:0; }
 				.admin-drawer-toggle .ikon{ width:18px; height:18px; }
 				.admin-drawer-toggle:active{ transform:scale(.93); }
-				/* Sidebar kapaliyken genislik/opaklik/padding SIFIRA iner (flex-basis + overflow:
-				   hidden ile icerik de gizlenir) -- position:fixed DEGIL, gercek belge akisinda
-				   bir flex sutunu, bu yuzden acilinca .admin-main'i FIZIKSEL OLARAK ITER (push),
-				   ustune binmez. Masaustundeki DIKEY akordeon duzeni (grup basliklari +
-				   .admin-nav-item'lar) AYNEN korunur, sadece genisligi animasyonlu degisir. */
-				.admin-sidebar{ flex:0 0 0; width:0; min-width:0; padding:0; margin:0; overflow:hidden; opacity:0; border-radius:20px 0 0 20px; transition:flex-basis .25s ease, opacity .18s ease, padding .25s ease; }
-				.admin-sidebar.open{ flex:0 0 var(--admin-drawer-w); width:var(--admin-drawer-w); padding:18px 10px; opacity:1; margin-right:8px; }
-				/* İçerik hamburger düğmesiyle çakışmasın diye üstten boşluk. */
+				/* position:fixed + translateX: belge akışından tamamen çıkar, .admin-main'in
+				   genişliğini/düzenini ETKİLEMEZ -- kapalıyken ekranın solunda tamamen gizli,
+				   açılınca içeriğin ÜZERİNE kayar. Masaüstündeki DİKEY akordeon düzeni AYNEN
+				   korunur. */
+				.admin-sidebar{ position:fixed; top:0; left:0; bottom:0; z-index:402; width:var(--admin-drawer-w); max-width:78vw; height:100%; margin:0; border-radius:0 20px 20px 0; box-shadow:0 12px 34px rgba(22,35,61,.28); transform:translateX(-100%); transition:transform .25s ease; }
+				.admin-sidebar.open{ transform:translateX(0); }
+				/* Karartma (scrim): sidebar açıkken içeriği görsel olarak "arka plana" iter,
+				   böylece slide-over ile aktif alan net ayrışır -- ama pointer-events:none
+				   olduğu için tıklamaları ENGELLEMEZ. */
+				.admin-dashboard.drawer-open::before{ content:""; position:fixed; inset:0; z-index:401; background:rgba(15,17,26,.4); pointer-events:none; }
 				.admin-main{ padding-top:52px; min-width:0; }
 				.admin-content-card{ padding:16px 16px 22px; }
 				.admin-logs-grid{ grid-template-columns:1fr; gap:18px; }

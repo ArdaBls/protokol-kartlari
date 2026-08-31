@@ -426,6 +426,20 @@ async function newPage(browser, width, height, mobile) {
 			// PAGE!=="admin" oldugu icin gercek bir location.href yonlendirmesi yapar), kapi
 			// fonksiyonu bypass edilip DOGRUDAN acilir.
 			document.getElementById('adminPanelBg').classList.add('open');
+			// Faz 11: mobil sidebar artik position:fixed bir slide-over -- KAPALIYKEN de tam
+			// genisligini korur (sadece translateX ile ekran disina kaydirilir), o yuzden ACIK
+			// olmadan .admin-nav-item'larin genisligi ARTIK 0 DEGIL (eskiden PUSH modelinde
+			// kapaliyken width:0'di, bu test o filtreye guveniyordu). Sekmelerin gercekten ekrana
+			// sigip sigmadigini anlamli sekilde olcmek icin cekmeceyi ACIK duruma getiriyoruz.
+			// transition:none: .open transform GECISI (.25s) senkron classList.add() sonrasi
+			// HEMEN okunan getComputedStyle'da henuz baslamamis olabilir (bir sonraki reflow'u
+			// beklemesi gerekir) -- transition'i test icin kapatip HEDEF konuma aninda atlatiyoruz,
+			// aksi halde bu olcum kapali (baslangic) transform'unu yakalayip yanlislikla "tasiyor"
+			// derdi.
+			const admSidebar = document.getElementById('adminSidebarDrawer');
+			admSidebar.style.transition = 'none';
+			admSidebar.classList.add('open');
+			void admSidebar.offsetHeight;
 			// .admin-tabs/.btn DEGIL -- Part B'nin akordeon sidebar yenilemesinden (Faz 9) sonra
 			// tum sekme dugmeleri .admin-sidebar icinde .admin-nav-item class'ini tasiyor.
 			// Mobilde TUM gruplar (accordion) DOM'da mevcut ama kapali gruplarin treeview'i

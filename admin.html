@@ -786,14 +786,14 @@
 			     geniş içerik alanı). #adminPanelBg/.open ve switchAdminTab() JS mantığı aynen
 			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
 			<div class="admin-dashboard">
-				<!-- Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar sekmeleri artık
-				     üstte yatay satıra dizilmiyor -- hamburger düğmesiyle açılan bir çekmece oldu.
-				     İlk sürüm scrim'li bir OVERLAY'di (namethatui.com/web/hamburger-menu deseni,
-				     shadcn Sheet/Material NavigationDrawer) ama kullanıcı "içerik altında kalıyor"
-				     diye bildirdi -- artık PUSH: açılınca .admin-main sağa daralır (scrim YOK,
-				     hiçbir şey örtülmez), kapanınca tam genişliğe döner. aria-expanded/aria-controls
-				     ve Escape/dışarı-tıklama ile kapanma korundu (app.js: toggleAdminDrawer/
-				     openAdminDrawer/closeAdminDrawer). Masaüstünde (>780px) etkisiz, davranış YOK. -->
+				<!-- Faz 11 (kullanıcı isteği, 1 Eylül 2026): mobilde hamburger düğmesiyle açılan
+				     çekmece artık gerçek bir slide-over OVERLAY (position:fixed + translateX,
+				     bkz. style.css) -- önceki PUSH modeli dar telefon ekranlarında .admin-main'i
+				     görünür şekilde sıkıştırıyordu. Artık .admin-main genişliğine hiç dokunulmuyor,
+				     sidebar içeriğin üzerine kayıyor + hafif bir karartma (scrim, pointer-events:
+				     none) geliyor. aria-expanded/aria-controls ve Escape/dışarı-tıklama ile kapanma
+				     korundu (app.js: toggleAdminDrawer/openAdminDrawer/closeAdminDrawer). Masaüstünde
+				     (>780px) etkisiz, davranış YOK. -->
 				<button type="button" class="admin-drawer-toggle" id="adminDrawerToggle" aria-expanded="false" aria-controls="adminSidebarDrawer" aria-label="Menüyü aç" onclick="toggleAdminDrawer()">
 					<svg class="ikon"><use href="#i-menu"/></svg>
 				</button>
@@ -814,6 +814,7 @@
 						</button>
 						<div class="admin-nav-treeview">
 							<button class="admin-nav-item" id="adminTabDashboardBtn" onclick="switchAdminTab('dashboard')"><svg class="ikon"><use href="#i-panel"/></svg>Kontrol Paneli</button>
+							<button class="admin-nav-item" id="adminTabCalendarBtn" onclick="switchAdminTab('calendar')"><svg class="ikon"><use href="#i-takvim"/></svg>Takvim</button>
 							<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>Faaliyet &amp; İstatistik</button>
 						</div>
 					</div>
@@ -889,6 +890,33 @@
 						<div id="adminDashboardView">
 							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
 							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<!-- Faz 12 (kullanıcı isteği, 1 Eylül 2026): admin paneline gömülü kompakt bir ay
+						     takvimi -- görünüm/CSS referans olarak duguntakvimi-main/yonetim.html'in
+						     .takvim-kart/.tk-hucre desenlerinden (yuvarlatılmış hücreler, tür renginde
+						     noktalar) esinlenildi, ama VERİ ve MANTIK tamamen bu sitenin kendi takvim
+						     motorundan (calVisibleEvents/calEventsOn, app.js) geliyor -- ayrı bir takvim
+						     sistemi/veri şeması YOK. Bir güne tıklamak openCalendarAt() üzerinden asıl
+						     tam-işlevsel takvime (takvim.html, ekleme/silme/sürükleme dahil HER ŞEY orada)
+						     götürür -- mini görünüm kendi başına bir ekleme/silme UI'ı YENİDEN İCAT ETMEZ,
+						     tek doğru kaynağa (asıl takvim) yönlendirir. -->
+						<div id="adminCalendarView" style="display:none;">
+							<p class="hint">Bu ayın etkinlikleri tek bakışta -- bir güne veya "Tam Takvimi Aç"a tıklayınca asıl takvime (ekle/düzenle/sil) geçersin.</p>
+							<div class="admcal-card">
+								<div class="admcal-head">
+									<div class="admcal-title" id="admCalLabel">—</div>
+									<div class="admcal-nav">
+										<button type="button" onclick="admCalShift(-1)" aria-label="Önceki ay"><svg class="ikon"><use href="#i-ok"/></svg></button>
+										<button type="button" class="admcal-today" onclick="admCalToday()">Bugün</button>
+										<button type="button" onclick="admCalShift(1)" aria-label="Sonraki ay" style="transform:scaleX(-1)"><svg class="ikon"><use href="#i-ok"/></svg></button>
+									</div>
+								</div>
+								<div class="admcal-dow" id="admCalDow"></div>
+								<div class="admcal-grid" id="admCalGrid"></div>
+								<button type="button" class="btn btn-primary admcal-open-btn" onclick="openCalendarAt(dKey(admCalAnchor))">
+									<svg class="ikon"><use href="#i-takvim"/></svg>Tam Takvimi Aç
+								</button>
+							</div>
 						</div>
 						<div id="adminFieldOpsView" style="display:none;">
 							<p class="hint">Bekleyen saha taslakları ve basın görevlisi iş yükü.</p>
