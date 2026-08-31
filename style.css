@@ -1,17 +1,16 @@
 			:root{
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
-			/* Faz 7 tasarım paleti güncellemesi (kullanıcı isteği, 31 Ağustos 2026): eski açık
-			   tema zemini (#DECDBE, sıcak krem/ten tonu) "eski" hissettiriyordu -- soft, serin
-			   bir lavanta-beyazına (#F1F0F6) geçirildi, koyu temanın navy-slate (#1F1F2B) ile
-			   daha uyumlu. card/border/divider/surface-* tonları YİNE aynı yöntemle (HSL bazlı,
-			   eski paletteki göreli açıklık/doygunluk farkları korunarak) yeniden türetildi.
-			   Koyu tema (aşağıda) kullanıcının "harika oldu" dediği hâliyle DOKUNULMADAN kaldı. */
-			--paper: #F1F0F6; --card: #fefefe; --ink: #1b1b1b; --muted: #6b6f76;
+			/* Faz 7 v5 (kullanıcı isteği, 31 Ağustos 2026): açık tema, sitenin İLK yapıldığındaki
+			   orijinal krem paletine geri döndürüldü (bu oturumda önce #DECDBE'ye, sonra
+			   #F1F0F6 lavanta-beyazına denendi -- kullanıcı ikisini de değil, en baştaki
+			   hâlini istedi). Koyu tema (aşağıda), kullanıcının "harika oldu / o güzel"
+			   dediği hâliyle DOKUNULMADAN kaldı. */
+			--paper: #f3efe6; --card: #fbf9f4; --ink: #1b1b1b; --muted: #6b6f76;
 			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
 			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #7c5c1f;
-			--border: #d5d3dd; --border-soft: #e0dee9; --divider: #d9d7e3; --divider-soft: #d1cfdd; --divider-faint: #e2e0ef;
-			--surface-hover: #eceaf3; --surface-input: #fcfcfd; --surface-pill: #e9e8f1; --surface-subtle: #f3f2f7;
-			--surface-hover-2: #e6e4ee; --surface-hover-3: #dedde5; --danger-bg: #fdf2f2; --today: #c2410c;
+			--border: #dcd6c7; --border-soft: #e7e1d3; --divider: #e2dccb; --divider-soft: #ddd5c2; --divider-faint: #eee6d4;
+			--surface-hover: #f0ece0; --surface-input: #faf8f2; --surface-pill: #efeadd; --surface-subtle: #f4f1e8;
+			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
 			--radius: 14px; --shadow: 0 10px 30px -12px rgba(22,35,61,.35);
 			--news: #0056b3; --news-bg: rgba(0,86,179,0.1);
 			/* Acik modda mevcut ham #a33 / #8a6a24 degerleriyle AYNI -- regresyon yok.
@@ -461,12 +460,9 @@
 			/* ---- Tam ekran kabuk ---- */
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
-			/* Faz 7 v4 (kullanıcı isteği): eskiden diğer sayfalarla aynı guclu brass-tint
-			   radial-gradient kullanılıyordu -- referans videodaki (Juli.so tarzı) takvimin
-			   kanvası neredeyse dumduz, kırık-beyaz ve NÖTR, tüm rengi doygun etkinlik
-			   kartları taşıyor. Marka tutarlılığı için gradyan TAMAMEN kaldırılmadı, sadece
-			   opaklığı çok azaltıldı (.10 -> .035) -- kanvas artık kartların önüne geçmiyor. */
-			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.035), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			/* Faz 7 v5: opaklık .035'ten orijinal .10'a geri döndürüldü -- açık tema orijinal
+			   krem palete dönünce (yukarıda) bu gradyan artık site geneliyle tutarlı. */
+			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
 			/* Denetim maddesi #4: modern tarayicilarda dvh, --vh JS degiskenine (visualViewport
 			   izleyen, resize olayina bagli) gore daha DOGRU/aninda tepki verir (araç çubuğu
 			   animasyonu sirasinda JS henuz --vh'i guncellemeden bir kare "eski" boyut kalabiliyor).
