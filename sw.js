@@ -1,3 +1,14 @@
+// v3.14.0 (31 Ağustos 2026) -- Faz 10 Part B TAMAMLANDI: "Yedekleme & Çöp" sekmesi açıldı --
+// (1) Tam Yedek İndir: İl+Üniversite+Etkinlik verisini TEK JSON dosyasında indirir (arşiv/
+// felaket kurtarma, sadece indirme -- geri yükleme mevcut ayrı akışlarla yapılır). (2) Salt-
+// Okunur Kilit: admin açtığında HİÇ KİMSE (editör/admin fark etmez) veri düzenleyemez, sadece
+// görüntüleme yapılabilir -- ayarlar/saltOkunur, testModuAcik ile AYNI paylaşımlı/canlı desen.
+// Kilit canEditData()'ya (tek merkezi nokta) bağlandığı için mevcut 34+ requireEdit()/
+// edit-only çağrı noktasının HİÇBİRİNE ayrı ayrı dokunulmadı. Test Modu şeridi (#testModeBanner)
+// artık kilidi de gösteriyor (ikisi aynı anda açık olabilir), kilit varsa kırmızıya dönüyor
+// (.banner-lock). Firebase kuralı güncellendi (Console'a elle yapıştırılmalı). Admin overview
+// şeridine 6. bir KPI kartı (Salt-Okunur Kilit durumu) eklendi. Bu, Part B admin dashboard
+// genişletmesinin (12 sekme) SON parçasıydı -- artık hepsi tamam.
 // v3.13.0 (31 Ağustos 2026) -- Faz 10 Part B'nin son ölçülü aşaması: "Veri Sözlüğü" sekmesi
 // açıldı -- kişi formundaki birim/unvan öneri (otomatik tamamlama) havuzunu (oneriler/{il|
 // universite}/{birimler|unvanlar}) admin listeler ve SİLEBİLİR (yalnızca "silme" var,
@@ -100,7 +111,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.13.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.14.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

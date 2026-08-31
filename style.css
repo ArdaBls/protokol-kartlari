@@ -1506,6 +1506,10 @@
 			   padding'i hem asagidaki overlay top/height hesaplari BURADAN okur. */
 			body.test-mode-active{ --test-banner-h: calc(26px + env(safe-area-inset-top,0px)); padding-top:var(--test-banner-h); }
 			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:150; background:var(--navy); color:#f3efe6; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
+			/* Faz 10: şerit artık Test Modu VE/veya Salt-Okunur Kilit'i gösterebiliyor (bkz.
+			   updateStatusBanner(), app.js) -- kilit varsa nötr navy yerine tehlike (kırmızı)
+			   rengine döner, çünkü "düzenleme kapalı" test modundan daha acil bir durum. */
+			#testModeBanner.banner-lock{ background:#b03a3a; }
 			body.test-mode-active .cal-overlay,
 			body.test-mode-active .modal-bg,
 			body.test-mode-active .authform-bg,

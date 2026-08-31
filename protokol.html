@@ -93,6 +93,7 @@
 			<symbol id="i-disk" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3.4"/></symbol>
 			<symbol id="i-ok" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
 			<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+			<symbol id="i-kilit" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
 		</svg>
 
 		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.</div>
@@ -864,6 +865,7 @@
 						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-uyari"/></svg></div><span class="ak-num" id="akNeverVerified">—</span><span class="ak-label">Hiç Doğrulanmamış</span></div>
 						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-takvim"/></svg></div><span class="ak-num" id="akMonthEvents">—</span><span class="ak-label">Bu Ay Etkinlik</span></div>
 						<div class="admin-kpi" id="akTestModeKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-test"/></svg></div><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
+						<div class="admin-kpi" id="akSaltOkunurKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-kilit"/></svg></div><span class="ak-num" id="akSaltOkunur">—</span><span class="ak-label">Salt-Okunur Kilit</span></div>
 					</div>
 					<div class="test-mode-row admin-glass">
 						<div class="tmr-info">
@@ -880,9 +882,10 @@
 					</div>
 					<div class="admin-content-card admin-glass">
 						<h2 class="admin-main-title" id="adminMainTitle">Kontrol Paneli</h2>
-						<!-- Faz 9 adım 3: dashboard/field-ops/editorial/hierarchy/integrity artık
+						<!-- Faz 9-10: dashboard/field-ops/editorial/hierarchy/integrity/dictionary artık
 						     gerçek veri gösteriyor (load{X}(), app.js) -- her biri kendi *Body div'ini
-						     dolduruyor. dictionary/backup hâlâ placeholder (sonraki aşama). -->
+						     dolduruyor. backup (yedek indirme + salt-okunur kilit) statik markup,
+						     ayrı bir load fonksiyonu gerektirmiyor. -->
 						<div id="adminDashboardView">
 							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
 							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
@@ -908,7 +911,25 @@
 							<div id="adminDictionaryBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminBackupView" style="display:none;">
-							<p class="hint">Birleşik yedek alma ve salt-okunur kilit yakında.</p>
+							<p class="hint">Birleşik yedek indirme ve acil durum salt-okunur kilidi.</p>
+							<div class="test-mode-row admin-glass">
+								<div class="tmr-info">
+									<span class="tmr-icon">🔒</span>
+									<div class="tmr-text">
+										<b class="test-mode-title">Salt-Okunur Kilit</b>
+										<span class="tmr-hint">Açıkken hiç kimse veri düzenleyemez<button type="button" class="tmr-more" title="Açtığında HİÇ KİMSE (editörler dahil, siz dahil) kart veya etkinlik ekleyip düzenleyemez -- sadece görüntüleme yapılabilir. Bir sorun fark ettiğinizde ya da hatalı bir toplu işlem yapmadan önce veriyi dondurmak için kullanılır. Paylaşımlı: açıkken siteyi ziyaret eden HERKESİ etkiler, unutmayın!">ⓘ</button></span>
+									</div>
+								</div>
+								<label class="ios-switch">
+									<input type="checkbox" id="saltOkunurSwitch" onchange="setSaltOkunur(this.checked)">
+									<span class="ios-switch-slider"></span>
+								</label>
+							</div>
+							<div class="admin-content-card admin-glass">
+								<h2 class="admin-main-title" style="font-size:16px;">Birleşik Yedek</h2>
+								<p class="hint">İl + Üniversite + Etkinlik verilerini TEK bir JSON dosyasında indirir (arşiv/felaket kurtarma amaçlı). Bu sadece bir indirmedir -- geri yükleme için hâlâ ayrı "JSON Yükle" akışları (Kullanıcılar sekmesindeki değil, kart listesi ve takvim üstündeki mevcut butonlar) kullanılır.</p>
+								<button type="button" class="btn btn-primary" onclick="exportFullBackup()">Tam Yedek İndir</button>
+							</div>
 						</div>
 						<div id="adminUsersView" style="display:none;">
 							<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>

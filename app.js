@@ -12,6 +12,14 @@
 
 			let currentUser = null; // { uid, email, firstName, lastName, role }
 			let testModeEnabled = false; // Firebase'de paylaşımlı (ayarlar/testModuAcik) -- açıkken TÜM kayıt loglarının hedefi logs/test olur
+			// Faz 10 (Admin > Yedekleme & Çöp): Firebase'de paylaşımlı (ayarlar/saltOkunur) --
+			// "acil durum kilidi": admin açtığında HİÇ KİMSE (editörler dahil, admin'in KENDİSİ
+			// dahil) kart/etkinlik ekleyip düzenleyemez, sadece görüntüleme yapılabilir. testModuAcik
+			// ile AYNI desen (ayarlar/ altında, admin-only yazma), ama etkisi ZIT: veriyi değil,
+			// DÜZENLEME YETKİSİNİ kilitler. canEditData()'ya bağlandığı için (aşağıda) tek bir
+			// merkezi noktadan TÜM 34+ requireEdit()/edit-only çağrı noktasını otomatik kapsar --
+			// her yazma fonksiyonuna ayrı ayrı guard eklemeye GEREK KALMADI.
+			let saltOkunurEnabled = false;
 
 			// Çok sayfalı mimari (30 Ağustos 2026): index.html/protokol.html/takvim.html/admin.html
 			// HEPSİ aynı app.js'i yükler (tek kod tabanı, dört ayrı sayfa). Her HTML dosyası
@@ -110,12 +118,18 @@
 
 			function handleLogout() { auth.signOut(); showToast("Çıkış yapıldı.", "success"); }
 
-			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin")); }
+			// saltOkunurEnabled kontrolü BURADA (rol kontrolüyle AYNI fonksiyonda) -- applyPermissions()
+			// zaten canEditData()'ya göre body.is-readonly + .edit-only görünürlüğünü belirliyor,
+			// requireEdit() de canEditData()'dan geçiyor -- kilit açılınca admin DAHİL kimse
+			// (rolü ne olursa olsun) veri düzenleyemez, tek satırlık bu kontrol otomatik olarak
+			// TÜM mevcut yazma yollarına yayılır.
+			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin") && !saltOkunurEnabled); }
 			function isAdminUser() { return !!(currentUser && currentUser.role === "admin"); }
 
 			// .edit-only sınıfı butonları sadece GİZLİYOR; fonksiyonlar global olduğu için konsoldan veya
 			// klavyeyle hâlâ çağrılabiliyordu. Yazma yapan her fonksiyon artık bu kapıdan geçiyor.
 			function requireEdit() {
+				if (saltOkunurEnabled) { showToast("Sistem şu anda salt-okunur modda -- düzenleme geçici olarak kapalı.", "error"); return false; }
 				if (canEditData()) return true;
 				showToast("Bu işlem için düzenleme yetkiniz yok.", "error");
 				return false;
@@ -303,7 +317,7 @@
 				if (!currentUser || currentUser.role !== "admin") return;
 				if (PAGE !== "admin") { location.href = "admin.html"; return; }
 				document.getElementById("adminPanelBg").classList.add("open");
-				updateTestModeBanner();
+				updateStatusBanner();
 				loadTestModeLog();
 				switchAdminTab("dashboard");
 				loadAdminOverview();
@@ -1443,7 +1457,7 @@
 				if (!database) return;
 				database.ref("ayarlar/testModuAcik").on("value", function(snap) {
 					testModeEnabled = !!snap.val();
-					updateTestModeBanner();
+					updateStatusBanner();
 					// Test Modu ACILDIGINDA veya KAPANDIGINDA Ctrl+Z yigini temizlenir -- aksi halde
 					// production'da yapilan bir islemin "before/after" kaydi, mod degistikten sonra
 					// test/ (veya gercek) veriye yanlislikla uygulanabilirdi. Bu, testModeEnabled'in
@@ -1457,21 +1471,58 @@
 					attachEventsListener();
 				}, function(err) { console.error("Test modu durumu okunamadı:", err); });
 			}
-			function updateTestModeBanner() {
+			// Faz 10: testModuAcik ile AYNI desen -- ayarlar/saltOkunur, admin-only yazma, tüm
+			// bağlı istemcilere anında yayılır (canlı kilit). applyPermissions() çağrısı KRİTİK --
+			// kilit açılır/kapanırken .edit-only butonlar ve body.is-readonly ANINDA (sayfa
+			// yenilenmeden) güncellensin diye.
+			function attachSaltOkunurListener() {
+				if (!database) return;
+				database.ref("ayarlar/saltOkunur").on("value", function(snap) {
+					saltOkunurEnabled = !!snap.val();
+					updateStatusBanner();
+					applyPermissions();
+				}, function(err) { console.error("Salt-okunur durumu okunamadı:", err); });
+			}
+			// Tek şerit (#testModeBanner) hem Test Modu hem Salt-Okunur Kilit'i gösterir -- ikisi
+			// AYNI ANDA açık olabilir, bu yüzden metin diziye eklenip " · " ile birleştirilir.
+			// Kilit varsa şerit tehlike (kırmızı) rengine döner -- .banner-lock class'ı ile,
+			// bkz. style.css -- daha ACİL bir durum olduğu için Test Modu'nun nötr rengini ezer.
+			function updateStatusBanner() {
 				const sw = document.getElementById("testModeSwitch"); if (sw) sw.checked = testModeEnabled;
-				const banner = document.getElementById("testModeBanner"); if (banner) banner.style.display = testModeEnabled ? "flex" : "none";
-				document.body.classList.toggle("test-mode-active", testModeEnabled); // şerit sabit konumlu, header'ın üstüne binmesin diye body'ye üst boşluk eklenir
+				const lockSw = document.getElementById("saltOkunurSwitch"); if (lockSw) lockSw.checked = saltOkunurEnabled;
+				const banner = document.getElementById("testModeBanner");
+				if (banner) {
+					const parts = [];
+					if (testModeEnabled) parts.push("Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.");
+					if (saltOkunurEnabled) parts.push("🔒 Salt-Okunur Kilit Açık — Düzenleme geçici olarak kapalı.");
+					banner.textContent = parts.join(" · ");
+					banner.style.display = parts.length ? "flex" : "none";
+					banner.classList.toggle("banner-lock", saltOkunurEnabled);
+				}
+				document.body.classList.toggle("test-mode-active", testModeEnabled || saltOkunurEnabled); // şerit sabit konumlu, header'ın üstüne binmesin diye body'ye üst boşluk eklenir
 				const testEl = document.getElementById("akTestMode");
 				if (testEl) { testEl.textContent = testModeEnabled ? "Açık" : "Kapalı"; document.getElementById("akTestModeKpi").classList.toggle("ak-warn", testModeEnabled); }
+				const lockEl = document.getElementById("akSaltOkunur");
+				if (lockEl) { lockEl.textContent = saltOkunurEnabled ? "Açık" : "Kapalı"; document.getElementById("akSaltOkunurKpi").classList.toggle("ak-warn", saltOkunurEnabled); }
 			}
 			async function setTestMode(on) {
-				if (!requireAdmin()) { updateTestModeBanner(); return; }
-				if (!database) { showToast("Veritabanı bağlı değil!", "error"); updateTestModeBanner(); return; }
+				if (!requireAdmin()) { updateStatusBanner(); return; }
+				if (!database) { showToast("Veritabanı bağlı değil!", "error"); updateStatusBanner(); return; }
 				try {
 					if (on) { showLoading("Test ortamı hazırlanıyor…"); await cloneRealDataToTestMode(); hideLoading(); }
 					await database.ref("ayarlar/testModuAcik").set(!!on);
 				}
-				catch (err) { hideLoading(); console.error("Test modu değiştirilemedi:", err); showToast("Paylaşımlı Test Ortamı değiştirilemedi.", "error"); updateTestModeBanner(); }
+				catch (err) { hideLoading(); console.error("Test modu değiştirilemedi:", err); showToast("Paylaşımlı Test Ortamı değiştirilemedi.", "error"); updateStatusBanner(); }
+			}
+			// Kullanıcı isteği: "acil durum anahtarı" -- admin açtığında hiç kimse (editör/admin
+			// fark etmez) veri düzenleyemez. canEditData() zaten saltOkunurEnabled'i kontrol ediyor
+			// (bkz. yukarıda) -- bu fonksiyon SADECE anahtarı Firebase'e yazar, gerçek kilitleme
+			// mantığı merkezi olarak orada.
+			async function setSaltOkunur(on) {
+				if (!requireAdmin()) { updateStatusBanner(); return; }
+				if (!database) { showToast("Veritabanı bağlı değil!", "error"); updateStatusBanner(); return; }
+				try { await database.ref("ayarlar/saltOkunur").set(!!on); }
+				catch (err) { console.error("Salt-okunur kilit değiştirilemedi:", err); showToast("Salt-okunur kilit değiştirilemedi.", "error"); updateStatusBanner(); }
 			}
 
 			// targetName ayrı tutulur ki log listesinde "kim yaptı" (by) ile "kime yapıldı" (target)
@@ -3657,6 +3708,36 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				const payload = { yedekTarihi: new Date().toISOString(), kayitSayisi: Object.keys(calEvents).length, etkinlikler: calEvents };
 				downloadFile(JSON.stringify(payload, null, 2), "Etkinlik-Takvimi-Yedek-" + dKey(new Date()) + ".json", "application/json");
 				showToast("Etkinlik JSON yedeği indirildi.");
+			}
+			// Faz 10 (Admin > Yedekleme & Çöp): İl+Üniversite+Etkinlik JSON'larını (eskiden 3 AYRI
+			// buton/indirme) TEK dosyada birleştirir -- felaket kurtarma/arşiv amaçlı. Bilinçli
+			// kapsam kararı: SADECE indirme, geri yükleme YOK -- mevcut importJSON()/
+			// importEventsJSON() ayrı ayrı çalışmaya devam ediyor, bu birleşik dosyayı geri
+			// yüklemek isteyen admin onu elle ikiye ayırıp mevcut "JSON Yükle" akışlarını kullanır
+			// (otomatik birleşik geri yükleme çok daha riskli, ayrı bir iş kalemi).
+			async function exportFullBackup(){
+				if (!requireAdmin()) return;
+				if (!database) { showToast("Veritabanı bağlı değil!", "error"); return; }
+				try {
+					showLoading("Tam yedek hazırlanıyor…");
+					const [ilSnap, uniSnap] = await Promise.all([
+						database.ref(dbPath("ilProtokolVerileri")).once("value"),
+						database.ref(dbPath("universiteProtokolVerileri")).once("value")
+					]);
+					const payload = {
+						yedekTarihi: new Date().toISOString(),
+						ilProtokolVerileri: ilSnap.val() || {},
+						universiteProtokolVerileri: uniSnap.val() || {},
+						etkinlikler: calEvents
+					};
+					downloadFile(JSON.stringify(payload, null, 2), "Tam-Yedek-" + dKey(new Date()) + ".json", "application/json");
+					showToast("Tam yedek indirildi.", "success");
+				} catch (err) {
+					console.error("Tam yedek alınamadı:", err);
+					showToast("Tam yedek alınamadı.", "error");
+				} finally {
+					hideLoading();
+				}
 			}
 			async function importEventsJSON(e){
 				if (!requireAdmin()) { e.target.value = ""; return; }
@@ -5924,6 +6005,7 @@ function generateNewsFromEvent(){
 		// Haber şablonları artık admin panelinden düzenlenmiyor; doğrudan DEFAULT_NEWS_TEMPLATES kullanılır.
 		attachEventsListener();
 		attachTestModeListener();
+		attachSaltOkunurListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();
 		renderCalendarRail();

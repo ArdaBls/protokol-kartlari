@@ -129,7 +129,7 @@ function serve() {
 	// HEPSİ test/ altına gidiyor, gerçek yola HİÇBİR ŞEY yazılmıyor
 	// =====================================================================
 	const redirectOnTest = await page.evaluate(async () => {
-		testModeEnabled = true; updateTestModeBanner();
+		testModeEnabled = true; updateStatusBanner();
 		// saveData() artik veri+log'u TEK atomik database.ref("/").update({...}) cagrisiyla yaziyor
 		// (audit #6) -- .set() DEGIL, bu yuzden yol kontrolu __mockUpdates icindeki payload
 		// anahtarlarindan yapilir (bkz. audit-fixes-test.js/status-transition-test.js'teki ayni desen).
@@ -157,7 +157,7 @@ function serve() {
 	// SENARYO 5: testModeEnabled kapanınca -- her şey gerçek yoluna döner, test/ verisine dokunulmaz
 	// =====================================================================
 	const redirectOffTest = await page.evaluate(async () => {
-		testModeEnabled = false; updateTestModeBanner();
+		testModeEnabled = false; updateStatusBanner();
 		window.__mockPushes = []; window.__mockSets = []; window.__mockUpdates = [];
 		await saveData('Test kişi kaydı 2', 'Test Kişi');
 		logEventAction('Test etkinlik işlemi 2', 'Test Etkinlik');
