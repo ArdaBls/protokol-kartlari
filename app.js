@@ -640,34 +640,38 @@
 			// Valilik listesindeki madde numaraları (yorumlarda) referans için korunmuştur; derin
 			// yargı/askeri alt listeleri (madde 8-10, 13-18) bu uygulamada karşılığı olmadığı için
 			// atlanmıştır.
+			// Kullanıcı isteği (31 Ağustos 2026): sıralama 0'dan değil 1'den başlasın -- Vali=1,
+			// Milletvekili=2, ... eskiden Vali=0'dan başlıyordu, tüm ağırlıklar +1 kaydırıldı
+			// (göreli sıra AYNI kaldı, sadece görünen sayı değişti). tier*100+prefixW formülü
+			// (aşağıda getHierarchyWeight) 100'e kadar güvenli, en yüksek ağırlık 14 oldu.
 			const TITLE_HIERARCHY = [
-				{ key: "vali yardımcısı", weight: 5 },          // madde 5
-				{ key: "vali", weight: 0 },                      // Samsun Valisi (tek kişi, en üst -- 0'dan başlar)
-				{ key: "milletvekili", weight: 1 },               // madde 1 (TBMM Üyeleri)
-				{ key: "garnizon komutanı", weight: 2 },          // madde 2
-				{ key: "büyükşehir belediye başkanı", weight: 3 },// madde 3
-				{ key: "ilçe belediye başkanı", weight: 5 },      // madde 5
-				{ key: "belediye başkanı", weight: 3 },           // madde 3 (il belediye başkanı)
-				{ key: "cumhuriyet başsavcısı", weight: 4 },      // madde 4
-				{ key: "baro başkanı", weight: 4 },               // madde 4
-				{ key: "kaymakam", weight: 5 },                   // madde 5
-				{ key: "rektör yardımcısı", weight: 6 },          // madde 6
-				{ key: "rektör", weight: 4 },                     // madde 4 (Üniversite Rektörleri)
-				{ key: "dekan yardımcısı", weight: 11 },          // madde 11
-				{ key: "dekan vekili", weight: 6 },               // madde 6
-				{ key: "dekan v.", weight: 6 },
-				{ key: "dekan", weight: 6 },
-				{ key: "enstitü müdür yardımcısı", weight: 11 },  // madde 11
-				{ key: "yüksekokul müdür yardımcısı", weight: 11 },// madde 11
-				{ key: "müdür yardımcısı", weight: 11 },          // madde 11 (genel)
-				{ key: "enstitü müdürü", weight: 6 },             // madde 6
-				{ key: "yüksekokul müdürü", weight: 6 },          // madde 6
-				{ key: "müdür", weight: 6 },
-				{ key: "genel sekreter", weight: 7 },             // madde 7 (üst düzey idari yönetici)
-				{ key: "daire başkanı", weight: 12 },             // madde 12 (il teşkilatı müdür/başkan seviyesi)
-				{ key: "bölüm başkanı", weight: 12 },
-				{ key: "öğretim görevlisi", weight: 13 },
-				{ key: "araştırma görevlisi", weight: 13 }
+				{ key: "vali yardımcısı", weight: 6 },          // madde 5
+				{ key: "vali", weight: 1 },                      // Samsun Valisi (tek kişi, en üst -- 1'den başlar)
+				{ key: "milletvekili", weight: 2 },               // madde 1 (TBMM Üyeleri)
+				{ key: "garnizon komutanı", weight: 3 },          // madde 2
+				{ key: "büyükşehir belediye başkanı", weight: 4 },// madde 3
+				{ key: "ilçe belediye başkanı", weight: 6 },      // madde 5
+				{ key: "belediye başkanı", weight: 4 },           // madde 3 (il belediye başkanı)
+				{ key: "cumhuriyet başsavcısı", weight: 5 },      // madde 4
+				{ key: "baro başkanı", weight: 5 },               // madde 4
+				{ key: "kaymakam", weight: 6 },                   // madde 5
+				{ key: "rektör yardımcısı", weight: 7 },          // madde 6
+				{ key: "rektör", weight: 5 },                     // madde 4 (Üniversite Rektörleri)
+				{ key: "dekan yardımcısı", weight: 12 },          // madde 11
+				{ key: "dekan vekili", weight: 7 },               // madde 6
+				{ key: "dekan v.", weight: 7 },
+				{ key: "dekan", weight: 7 },
+				{ key: "enstitü müdür yardımcısı", weight: 12 },  // madde 11
+				{ key: "yüksekokul müdür yardımcısı", weight: 12 },// madde 11
+				{ key: "müdür yardımcısı", weight: 12 },          // madde 11 (genel)
+				{ key: "enstitü müdürü", weight: 7 },             // madde 6
+				{ key: "yüksekokul müdürü", weight: 7 },          // madde 6
+				{ key: "müdür", weight: 7 },
+				{ key: "genel sekreter", weight: 8 },             // madde 7 (üst düzey idari yönetici)
+				{ key: "daire başkanı", weight: 13 },             // madde 12 (il teşkilatı müdür/başkan seviyesi)
+				{ key: "bölüm başkanı", weight: 13 },
+				{ key: "öğretim görevlisi", weight: 14 },
+				{ key: "araştırma görevlisi", weight: 14 }
 			];
 
 			function getTitleWeight(title) {
