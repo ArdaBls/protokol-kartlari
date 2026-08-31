@@ -1,3 +1,11 @@
+// v3.11.3 (31 Ağustos 2026) -- Çapraz-kullanıcı canlı takvim silüeti (Part D'nin
+// canliTakvimSecim yayın/dinleme özelliği) tamamen kaldırıldı -- gerçek cihazlarda ısrarla
+// çalışmadığı doğrulanamadı, kullanıcı isteğiyle geri alındı. Sürükleme sırasındaki YEREL
+// silüet (sadece kendi ekranınızda, kendi jestinizi gösteren) DOKUNULMADI, aynen çalışmaya
+// devam ediyor. Kaldırılanlar: calBroadcastLiveSelection/calClearLiveSelection/
+// attachLiveSelectionListener/renderRemoteLiveSelections fonksiyonları, canliTakvimSecim
+// Firebase kuralı (docs/firebase-database-rules.json -- Console'daki kural elle
+// kaldırılabilir, kaldırılmasa da zararsızdır, artık hiçbir kod o yola yazmıyor).
 // v3.11.2 (31 Ağustos 2026) -- Part D hata düzeltmeleri (devam): (1) etkinlik TAŞIMA
 // sürüklemesi (mevcut etkinliği sürükleyip günü/saatini değiştirme) diğer kullanıcılara hiç
 // canlı yayınlanmıyordu -- sadece boş ızgarada yeni etkinlik oluşturma sürüklemesi yayın
@@ -58,7 +66,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.11.2"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.11.3"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

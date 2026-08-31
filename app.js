@@ -1335,7 +1335,6 @@
 					// kendi eski referanslarını off() ile bırakıp yenisine geçer, sayfa yenilenmez).
 					attachListener();
 					attachEventsListener();
-					attachLiveSelectionListener();
 				}, function(err) { console.error("Test modu durumu okunamadı:", err); });
 			}
 			function updateTestModeBanner() {
@@ -3743,102 +3742,6 @@ function attachEventsListener(){
 	};
 	activeEventsListenerRef.on("value", activeEventsListenerCallback, activeEventsListenerErrCallback);
 }
-// Faz 9 Part D: projede İLK ephemeral/canlı-durum (presence) dinleyicisi -- diger
-// kullanicilarin O AN suruklemekte oldugu "yeni etkinlik olustur" secimini gosterir.
-// attachEventsListener()'in AYNI deseni (off/on, dbPath ile test-modu farkindaligi).
-let activeLiveSelectionRef = null, activeLiveSelectionCallback = null;
-// uid -> o kullanicinin DOM'daki .cal-create-select.is-remote elemani -- her snapshot'ta
-// hangi uid'lerin ARTIK kaybolduğunu (silueti kaldirmak icin) bilmek amacli.
-let calRemoteSelectionEls = {};
-// SON bilinen Firebase snapshot'i -- BUG DUZELTMESI: eskiden renderRemoteLiveSelections()
-// SADECE canliTakvimSecim degistiginde cagriliyordu. Ama bir kullanici surukleme baslattiktan
-// SONRA baska biri takvimi actiginda/gun-hafta degistirdiginde Firebase'de HICBIR YENI degisiklik
-// olmuyor (veri zaten oradaydi), yani .on("value") YENIDEN TETIKLENMIYOR ve yeni acilan takvimde
-// halihazirda suren bir surukleme HIC gorunmuyordu ("arkadaslarimin telefon/bilgisayarinda
-// gozukmuyor" bildirimi). Cozum: son bilinen veriyi onbellekte tutup renderCalendar()'in HER
-// cagrisinda (asagida) yeniden uygula -- boylece takvim her acildiginda/yeniden cizildiginde
-// o an gecerli olan canli seciler de birlikte cizilir.
-let calLastLiveMap = {};
-// Kullanici geri bildirimi (31 Ağustos 2026): "bilgisayardan etkinlik yerini değiştirdiğimde
-// silüet telefona gözükmüyor" -- canlı yayın ONCEDEN SADECE bos izgarada yeni etkinlik
-// olusturma jestinde vardi (calStartGridSelectGesture). Mevcut bir etkinligi TASIMA
-// (SortableJS calOnDragMove/calOnDragEnd) hic yayin yapmiyordu. Bu iki paylasilan fonksiyon
-// artik HER IKI jest tarafindan da kullaniliyor -- ayni canliTakvimSecim/{uid} dugumu, ayni
-// throttle/onDisconnect deseni.
-let calLiveLastBroadcastTs = 0;
-let calLiveOnDisconnectSet = false;
-function calBroadcastLiveSelection(tarih, saat, bitisSaat){
-	if(!database || !currentUser || !currentUser.uid) return;
-	const now=Date.now();
-	if(now-calLiveLastBroadcastTs<150) return;
-	calLiveLastBroadcastTs=now;
-	const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
-	liveRef.set({
-		ad: (currentUser.firstName||currentUser.email||"Bir kullanıcı"),
-		tarih: tarih, saat: saat, bitisSaat: bitisSaat,
-		ts: firebase.database.ServerValue.TIMESTAMP
-	}).catch(function(err){
-		console.error("Canlı takvim seçimi yayınlanamadı (Firebase kuralı eklenmemiş olabilir):", err);
-	});
-	if(!calLiveOnDisconnectSet){ calLiveOnDisconnectSet=true; liveRef.onDisconnect().remove(); }
-}
-function calClearLiveSelection(){
-	if(!database || !currentUser || !currentUser.uid || !calLiveOnDisconnectSet) return;
-	const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
-	liveRef.remove().catch(function(){});
-	liveRef.onDisconnect().cancel();
-	calLiveOnDisconnectSet=false;
-}
-function attachLiveSelectionListener(){
-	if(!database) return;
-	if(activeLiveSelectionRef && activeLiveSelectionCallback) { activeLiveSelectionRef.off("value", activeLiveSelectionCallback); }
-	activeLiveSelectionRef = database.ref(dbPath("canliTakvimSecim"));
-	activeLiveSelectionCallback = function(snap){
-		calLastLiveMap = snap.val() || {};
-		renderRemoteLiveSelections(calLastLiveMap);
-	};
-	activeLiveSelectionRef.on("value", activeLiveSelectionCallback, function(err){ console.error("canliTakvimSecim okunamadı:", err); });
-}
-// KENDI surukleme jestimizi KESMEMEK icin bu fonksiyon renderCalendar()'in TAMAMINI asla
-// tetiklemez -- sadece diger kullanicilarin .cal-daycol'larina izole DOM ekleme/guncelleme/
-// kaldirma yapar. calendarOverlay kapaliysa veya gorunum gun/hafta degilse hicbir sey yapmaz
-// (Part D'nin "v1: sadece saat izgarasi" kapsam karariyla tutarli).
-function renderRemoteLiveSelections(liveMap){
-	const overlay = document.getElementById("calendarOverlay");
-	const isGridView = overlay && overlay.classList.contains("open") && (calView === "day" || calView === "week");
-	const myUid = currentUser && currentUser.uid;
-	const seenUids = new Set();
-	if(isGridView){
-		Object.keys(liveMap).forEach(function(uid){
-			if(uid === myUid) return; // kendi surukleme onizlememiz zaten yerel .cal-create-select ile gosteriliyor
-			const sel = liveMap[uid];
-			if(!sel || !sel.tarih || !sel.saat) return;
-			const daycol = document.querySelector('.cal-daycol[data-date="'+sel.tarih+'"]');
-			if(!daycol) return; // bu tarih su an gorunen hafta/gun disinda
-			seenUids.add(uid);
-			const startMin = hmToMin(sel.saat), endMin = hmToMin(sel.bitisSaat) || startMin;
-			if(startMin === null) return;
-			let el = calRemoteSelectionEls[uid];
-			if(!el || el.parentElement !== daycol){
-				if(el) el.remove();
-				el = document.createElement("div");
-				el.className = "cal-create-select is-remote";
-				daycol.appendChild(el);
-				calRemoteSelectionEls[uid] = el;
-			}
-			el.style.top = ((startMin/60)*CAL_HOUR_H)+"px";
-			el.style.height = Math.max(18, ((endMin-startMin)/60)*CAL_HOUR_H)+"px";
-			// textContent zaten guvenli (HTML olarak yorumlanmaz) -- escapeHtml burada GEREKMEZ,
-			// aksine cift kacisa (ekranda "&amp;" gibi yanlis karakterlere) yol acardi.
-			el.textContent = (sel.ad || "Bir kullanıcı") + " · " + sel.saat + "–" + (sel.bitisSaat||sel.saat);
-		});
-	}
-	// Artik canli listede olmayan (jest bitti/baglanti koptu) uid'lerin silueti kaldirilir.
-	Object.keys(calRemoteSelectionEls).forEach(function(uid){
-		if(!seenUids.has(uid)){ calRemoteSelectionEls[uid].remove(); delete calRemoteSelectionEls[uid]; }
-	});
-}
-
 function calEventList(){
 	const out=[];
 	for(const id in calEvents){
@@ -4187,12 +4090,6 @@ function renderCalendar(){
 	else if(calView==="month") renderMonthView(body);
 	else if(calView==="year") renderYearView(body);
 	else renderListView(body);
-	// Yeniden cizilen .cal-daycol'lar TAMAMEN YENI DOM dugumleri -- calRemoteSelectionEls'teki
-	// ONCEKI referanslar artik kopuk/gecersiz. Diger kullanicilarin canli seciklerini (varsa)
-	// bu YENI DOM'a, en son bilinen veriyle (calLastLiveMap) tekrar uygula -- bkz. yukaridaki
-	// attachLiveSelectionListener() yorumundaki bug aciklamasi.
-	calRemoteSelectionEls = {};
-	renderRemoteLiveSelections(calLastLiveMap);
 }
 
 function renderCalTopbar(){
@@ -4724,23 +4621,6 @@ function calOnDragMove(evt){
 	if(evt.dragged){
 		const overAllDay = evt.to && evt.to.classList.contains("cal-allday-col");
 		evt.dragged.classList.toggle("cal-block-cross-preview", !!overAllDay);
-		// Kullanici geri bildirimi: mevcut bir etkinligi tasirken de (yeni etkinlik olusturmada
-		// oldugu gibi) diger kullanicilar canli silueti gorebilsin -- SADECE saat izgarasi
-		// uzerindeyken (v1 kapsam karari, tum-gun seridi haric), calMoveEvent()'teki AYNI
-		// piksel->dakika/sure hesabini (30dk snap) izler ama Firebase'e henuz YAZMAZ (onEnd yazar).
-		const overDayCol = evt.to && evt.to.classList.contains("cal-daycol");
-		if(overDayCol && xy){
-			const id=evt.dragged.dataset ? evt.dragged.dataset.evid : null;
-			const ev=id ? calEvents[id] : null;
-			const dateKey=evt.to.dataset.date;
-			if(ev && dateKey){
-				const rect=evt.to.getBoundingClientRect();
-				const mins0=Math.round(((xy.y-rect.top-calDragGrabOffsetY)/CAL_HOUR_H)*60/30)*30;
-				const mins=Math.max(0,Math.min(23*60+30,mins0));
-				const dur=(hmToMin(ev.saat)!==null && hmToMin(ev.bitisSaat)!==null && hmToMin(ev.bitisSaat)>hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat)-hmToMin(ev.saat) : 60;
-				calBroadcastLiveSelection(dateKey, minToHm(mins), minToHm(Math.min(24*60-1, mins+dur)));
-			}
-		}
 	}
 	return true; // engelleme yok, sadece izliyoruz
 }
@@ -4909,7 +4789,6 @@ function calStartGridSelectGesture(e){
 			cancelled=true;
 			ghost.remove();
 			calGridSelectSuppressClick=true; // takip eden sentetik click de calGridClick acmasin
-			calClearLiveSelection();
 			cleanupListeners();
 			return;
 		}
@@ -4918,12 +4797,10 @@ function calStartGridSelectGesture(e){
 		if(curMin<anchorMin){ startMin=curMin; endMin=Math.max(anchorMin, curMin+15); }
 		else { startMin=anchorMin; endMin=Math.max(anchorMin+15, curMin); }
 		applyLive();
-		if(moved) calBroadcastLiveSelection(dateKey, minToHm(startMin), minToHm(endMin));
 	}
 	function onUp(e2){
 		if(e2.pointerId!==pointerId || cancelled) return;
 		cleanupListeners();
-		calClearLiveSelection(); // surukleme jesti bitti -- diger kullanicilara YAYIN durur (form doldururken degil)
 		if(!moved){ ghost.remove(); return; } // kisa tiklama -- calGridClick'in eski tek-tik davranisi CALISMAYA devam etsin
 		calGridSelectSuppressClick=true; // ayni pointerup/click ciftinde calGridClick TEKRAR acmasin
 		// Kullanici istegi: "etkinlik oluştur ekranı arka planda... seçilen saat aralığını
@@ -5889,7 +5766,6 @@ function generateNewsFromEvent(){
 		// Takvim dinleyicisi, ilgili let değişkenleri tanımlandıktan SONRA başlatılır.
 		// Haber şablonları artık admin panelinden düzenlenmiyor; doğrudan DEFAULT_NEWS_TEMPLATES kullanılır.
 		attachEventsListener();
-		attachLiveSelectionListener();
 		attachTestModeListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();

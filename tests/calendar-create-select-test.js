@@ -66,8 +66,10 @@ function serve() {
 
 	// =====================================================================
 	// SENARYO 1: gerçek sürükleme -- boş ızgarada 10:00'dan 11:30'a çekilirse
-	// modal doğru presetTime/presetEndTime ile açılmalı, silüet kaybolmalı,
-	// canlı yayın (mock set()) tetiklenmeli.
+	// modal doğru presetTime/presetEndTime ile açılmalı, silüet modal açıkken
+	// kalmalı, modal kapanınca kaybolmalı. (Çapraz-kullanıcı canlı yayın
+	// özelliği 31 Ağustos oturumunda kaldırıldı -- gerçek cihazlarda
+	// doğrulanamadı, kullanıcı isteğiyle geri alındı.)
 	// =====================================================================
 	const daycolRect = await page.evaluate(() => document.querySelector('.cal-daycol[data-date="2026-01-12"]').getBoundingClientRect());
 	const dragResult = await page.evaluate(({ top }) => {
@@ -93,8 +95,7 @@ function serve() {
 		modalOpen: document.getElementById('eventModalBg').classList.contains('open'),
 		dateOk: document.getElementById('ev_tarih').value === '2026-01-12',
 		startOk: document.getElementById('ev_saat').value === '10:00',
-		endOk: document.getElementById('ev_bitisSaat').value === '11:30',
-		broadcastFired: (window.__mockSets || []).some((s) => s.path.indexOf('canliTakvimSecim/testUid1') !== -1 && s.data && s.data.saat === '10:00')
+		endOk: document.getElementById('ev_bitisSaat').value === '11:30'
 	}));
 	// closeEventModal() çağrılınca ghost'un GERÇEKTEN kaldırıldığını da doğrula.
 	const afterCloseTest = await page.evaluate(() => {
