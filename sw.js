@@ -1,3 +1,8 @@
+// v3.8.3 (31 Ağustos 2026) -- admin paneli görsel yenileme (Faz 8): emoji nav ikonları
+// gerçek SVG sprite ile değiştirildi (<body> altına eklenen <symbol> bloğu), aktif nav
+// öğesi solid lacivert dolgu yerine kart yüzeyi + sol vurgu çubuğuna çevrildi, KPI şeridi
+// tek cam panelden her biri ayrı kart olan responsive bir grid'e (.admin-kpi) çevrildi,
+// .btn/.admin-nav-item/.admin-back-btn'e ince bir "basılı" mikro-etkileşimi eklendi.
 // v3.8.2 (31 Ağustos 2026) -- protokol sıra ağırlıkları (TITLE_HIERARCHY) 0'dan değil 1'den
 // başlıyor artık: Vali=1, Milletvekili=2, ... göreli sıra AYNI, sadece tüm ağırlıklar +1
 // kaydırıldı (kullanıcı isteği).
@@ -37,7 +42,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.8.2"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.8.3"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

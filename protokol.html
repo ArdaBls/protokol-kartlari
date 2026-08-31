@@ -70,6 +70,22 @@
 	</head>
 	<body class="is-readonly" data-page="protokol">
 
+		<!-- Faz 8: SVG ikon sprite -- admin panelinde emoji yerine gercek stroke ikonlari
+		     kullanmak icin (referans: duguntakvimi-main/yonetim.html). Kullanim:
+		     <svg class="ikon"><use href="#i-panel"/></svg>. i-test bu proje icin ozel eklendi
+		     (referans projede yok), digerleri referanstan aynen alindi. -->
+		<svg style="display:none" aria-hidden="true">
+			<symbol id="i-panel" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></symbol>
+			<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 16 11"/></symbol>
+			<symbol id="i-takvim" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+			<symbol id="i-grafik" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 5-6"/></symbol>
+			<symbol id="i-akis" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+			<symbol id="i-uyari" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+			<symbol id="i-geri" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+			<symbol id="i-bilgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></symbol>
+			<symbol id="i-test" viewBox="0 0 24 24"><path d="M9 2v6.5L4 18a2 2 0 0 0 1.8 3h12.4a2 2 0 0 0 1.8-3l-5-9.5V2"/><path d="M9 2h6M8.5 12h7"/></symbol>
+		</svg>
+
 		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.</div>
 
 								<div class="loading-overlay" id="loadingOverlay">
@@ -765,24 +781,26 @@
 						<div><b>Admin Paneli</b><span class="admin-sidebar-sub">Protokol Kartları</span></div>
 					</div>
 					<div class="admin-nav-group">
-						<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><span class="ani">👤</span>Kullanıcılar</button>
-						<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><span class="ani">🕓</span>Geçmiş</button>
-						<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><span class="ani">🧪</span>Test</button>
-						<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><span class="ani">📊</span>İstatistikler</button>
+						<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><svg class="ikon"><use href="#i-users"/></svg>Kullanıcılar</button>
+						<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><svg class="ikon"><use href="#i-akis"/></svg>Geçmiş</button>
+						<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><svg class="ikon"><use href="#i-test"/></svg>Test</button>
+						<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>İstatistikler</button>
 					</div>
-					<button type="button" class="admin-back-btn" onclick="closeAdminPanel()">← Kartlara Dön</button>
+					<button type="button" class="admin-back-btn" onclick="closeAdminPanel()"><svg class="ikon"><use href="#i-geri"/></svg>Kartlara Dön</button>
 				</nav>
 				<div class="admin-main">
 					<!-- Faz 7 v2 (kullanıcı isteği): sekmeler arasında HER ZAMAN görünen, canlı verilerle
 					     dolan bir özet şeridi -- "her şeyi görebileyim" isteğine cevap: hangi sekmede
 					     olursan ol, sistemin nabzını (bekleyen kullanıcı, toplam kayıt, bu ayki etkinlik,
-					     test modu durumu) tek bakışta görürsün. loadAdminOverview() ile doldurulur. -->
-					<div class="admin-overview-strip admin-glass" id="adminOverviewStrip">
-						<div class="admin-kpi"><span class="ak-num" id="akPendingUsers">—</span><span class="ak-label">Onay Bekleyen Kullanıcı</span></div>
-						<div class="admin-kpi"><span class="ak-num" id="akTotalPeople">—</span><span class="ak-label">Toplam Protokol Kaydı</span></div>
-						<div class="admin-kpi"><span class="ak-num" id="akNeverVerified">—</span><span class="ak-label">Hiç Doğrulanmamış</span></div>
-						<div class="admin-kpi"><span class="ak-num" id="akMonthEvents">—</span><span class="ak-label">Bu Ay Etkinlik</span></div>
-						<div class="admin-kpi" id="akTestModeKpi"><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
+					     test modu durumu) tek bakışta görürsün. loadAdminOverview() ile doldurulur.
+					     Faz 8: şerit artık tek cam panel değil, her KPI kendi kartı (bkz. style.css
+					     .admin-kpi) -- referans: duguntakvimi-main/yonetim.html .kpi deseni. -->
+					<div class="admin-overview-strip" id="adminOverviewStrip">
+						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-users"/></svg></div><span class="ak-num" id="akPendingUsers">—</span><span class="ak-label">Onay Bekleyen Kullanıcı</span></div>
+						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-panel"/></svg></div><span class="ak-num" id="akTotalPeople">—</span><span class="ak-label">Toplam Protokol Kaydı</span></div>
+						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-uyari"/></svg></div><span class="ak-num" id="akNeverVerified">—</span><span class="ak-label">Hiç Doğrulanmamış</span></div>
+						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-takvim"/></svg></div><span class="ak-num" id="akMonthEvents">—</span><span class="ak-label">Bu Ay Etkinlik</span></div>
+						<div class="admin-kpi" id="akTestModeKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-test"/></svg></div><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
 					</div>
 					<div class="test-mode-row admin-glass">
 						<div class="tmr-info">

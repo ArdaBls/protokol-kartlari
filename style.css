@@ -25,6 +25,11 @@
 			   baglayarak cozer. JS calismadan once veya visualViewport desteklenmiyorsa
 			   1vh'a duser (eski davranis, zararsiz fallback). */
 			--vh: 1vh;
+			/* Faz 8 (admin panel görsel yenileme): kart/nav vurgu tonu için tema-duyarlı
+			   çift -- açık temada lacivert (--navy) hem arka plan hem metin olarak okunaklı,
+			   koyu temada ise kart zemini zaten lacivert tonlarında olduğundan pirinç
+			   (--brass-light) kullanılır -- ak-num'daki aynı desenin genelleştirilmiş hâli. */
+			--accent-ink: var(--navy); --accent-soft: rgba(22,35,61,.07);
 			}
 
 			/* Karanlik mod (data-theme="dark") -- ayni degisken adlarini FARKLI degerlerle
@@ -45,6 +50,7 @@
 			/* WCAG hesabi (contrast.js, tests disi scratchpad): #ff6b6b -> card/danger-bg/paper/warn-bg
 			   uzerinde 4.87-5.92:1, #d9b568 -> ayni fonlarda 6.92-8.42:1 (esik 4.5:1). */
 			--danger-text: #ff6b6b; --warn-text-alt: #d9b568;
+			--accent-ink: var(--brass-light); --accent-soft: rgba(228,200,119,.14);
 			}
 
 			*{box-sizing:border-box;}
@@ -210,6 +216,9 @@
 			.btn-danger{ background:#a33; color:#fff; }
 			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; }
 			.btn-news { background: var(--news); color: #fff; }
+			/* Faz 8: butonlara ince bir "basili" mikro-etkilesimi -- referans projeden (yonetim.html)
+			   ilham, sadece transform, renk/tema'ya dokunmuyor. */
+			.btn:active{ transform:scale(.982); }
 			/* Denetim maddesi #4: dokunmatik cihazlarda :hover, dokunulan butonda "basili" gorunumde
 			   TAKILI kalabiliyordu (bir sonraki dokunusa kadar hover sinifi temizlenmiyor). Gercek
 			   fare/imlecli cihazlarda hover zaten calissin diye bu kural sadece (hover:hover) VE
@@ -1236,6 +1245,9 @@
 					radial-gradient(900px 520px at 96% 108%, rgba(22,35,61,.10), transparent 55%),
 					var(--paper);
 			}
+			/* Faz 8: emoji ikonlar yerine gercek SVG sprite (bkz. <body> hemen alti, #i-... symbol'leri).
+			   Taban kural referans projeden (duguntakvimi-main/css/base.css .ikon) uyarlandi. */
+			.ikon{ width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; display:block; }
 			.admin-dashboard{ display:flex; align-items:flex-start; gap:16px; width:100%; height:100%; padding:16px; box-sizing:border-box; }
 			.admin-glass{ background:rgba(255,255,255,.5); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%); border:1px solid rgba(255,255,255,.6); box-shadow:0 8px 30px rgba(22,35,61,.10); }
 			[data-theme="dark"] .admin-glass{ background:rgba(37,37,53,.55); border-color:rgba(255,255,255,.08); box-shadow:0 8px 30px rgba(0,0,0,.35); }
@@ -1245,21 +1257,38 @@
 			.admin-sidebar-brand b{ display:block; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--ink); line-height:1.3; }
 			.admin-sidebar-sub{ display:block; font-size:10.5px; color:var(--muted); letter-spacing:.02em; }
 			.admin-nav-group{ display:flex; flex-direction:column; gap:2px; }
-			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:10px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; text-align:left; cursor:pointer; transition:background .12s ease; }
-			.admin-nav-item .ani{ font-size:15px; width:18px; text-align:center; flex-shrink:0; }
+			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:10px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; text-align:left; cursor:pointer; transition:background .12s ease, color .12s ease; position:relative; }
+			.admin-nav-item .ikon{ width:17px; height:17px; color:var(--muted); transition:color .12s ease; }
 			.admin-nav-item:hover{ background:rgba(120,120,140,.12); }
-			.admin-nav-item.active{ background:var(--navy); color:#f3efe6; font-weight:600; box-shadow:0 4px 14px rgba(22,35,61,.25); }
-			.admin-back-btn{ margin-top:auto; padding:9px 10px; border:1px solid rgba(120,120,140,.2); border-radius:10px; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:12.5px; text-align:left; cursor:pointer; }
+			.admin-nav-item:hover .ikon{ color:var(--ink); }
+			.admin-nav-item:active{ transform:scale(.97); }
+			/* Faz 8 (referans: duguntakvimi-main .yan-bag.aktif): solid lacivert dolgu yerine
+			   kart yuzeyi + sol kenarda ince vurgu cubugu -- daha yumusak/tutarli bir "secili"
+			   hissi, koyu/acik tema icin --accent-ink/--accent-soft token cifti kullanir. */
+			.admin-nav-item.active{ background:var(--card); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(22,35,61,.12); }
+			[data-theme="dark"] .admin-nav-item.active{ box-shadow:0 1px 3px rgba(0,0,0,.4); }
+			.admin-nav-item.active::before{ content:''; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:3px; height:18px; border-radius:0 3px 3px 0; background:var(--accent-ink); }
+			.admin-nav-item.active .ikon{ color:var(--accent-ink); }
+			.admin-back-btn{ display:flex; align-items:center; gap:8px; margin-top:auto; padding:9px 10px; border:1px solid rgba(120,120,140,.2); border-radius:10px; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:12.5px; text-align:left; cursor:pointer; }
+			.admin-back-btn .ikon{ width:15px; height:15px; }
 			.admin-back-btn:hover{ background:rgba(120,120,140,.12); color:var(--ink); }
+			.admin-back-btn:active{ transform:scale(.96); }
 			.admin-main{ flex:1 1 auto; min-width:0; height:100%; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
-			/* KPI şeridi -- her sekmede sabit görünen canlı özet (bkz. loadAdminOverview()). */
-			.admin-overview-strip{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; padding:16px; border-radius:18px; flex-shrink:0; }
-			.admin-kpi{ display:flex; flex-direction:column; gap:3px; padding:0 14px; border-left:1px solid rgba(120,120,140,.18); }
-			.admin-kpi:first-child{ border-left:none; }
+			/* KPI şeridi -- her sekmede sabit görünen canlı özet (bkz. loadAdminOverview()).
+			   Faz 8 (referans: duguntakvimi-main .kpi-izgara/.kpi): artık tek cam panel + dikey
+			   ayraçlı sütunlar DEĞİL, konteyner şeffaf bir grid, HER KPI kendi kartı (var(--card)/
+			   var(--border)/var(--shadow)) -- mobilde 2, geniş ekranda 5 sütun. */
+			.admin-overview-strip{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; flex-shrink:0; }
+			@media (min-width:900px){ .admin-overview-strip{ grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; } }
+			.admin-kpi{ display:flex; flex-direction:column; gap:3px; padding:14px 15px 15px; min-width:0; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); }
+			.admin-kpi-icon{ width:26px; height:26px; border-radius:7px; display:grid; place-items:center; flex:none; background:var(--surface-hover); color:var(--muted); margin-bottom:8px; }
+			.admin-kpi-icon .ikon{ width:14px; height:14px; stroke-width:2; }
+			.admin-kpi-icon.accent{ background:var(--accent-soft); color:var(--accent-ink); }
 			.ak-num{ font-family:'JetBrains Mono',monospace; font-size:25px; font-weight:600; color:var(--navy); line-height:1.1; }
 			[data-theme="dark"] .ak-num{ color:var(--brass-light); }
 			.ak-label{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
 			.admin-kpi.ak-warn .ak-num{ color:var(--warn); }
+			.admin-kpi.ak-warn .admin-kpi-icon{ background:var(--warn-bg); color:var(--warn); }
 			.admin-content-card{ flex:1 1 auto; padding:22px 26px 28px; border-radius:20px; }
 			.admin-main-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--ink); margin:0 0 14px; }
 			/* Faz 7 v4 (kullanıcı isteği): Geçmiş sekmesi -- "Tüm Kayıtlar" ve "Test Günlüğü" artık
@@ -1273,19 +1302,17 @@
 			.admin-logs-col-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
 			.admin-logs-col-title{ font-size:12.5px; font-weight:600; color:var(--ink); }
 			.admin-logs-scroll{ max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
-			@media (max-width: 900px){
-				.admin-overview-strip{ grid-template-columns:repeat(3,1fr); }
-				.admin-kpi:nth-child(3n+1){ border-left:none; }
-			}
 			@media (max-width: 780px){
 				.admin-dashboard{ flex-direction:column; padding:10px; gap:10px; }
 				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; height:auto; }
 				.admin-sidebar-brand{ flex:1 1 100%; border-bottom:none; padding-bottom:0; }
 				.admin-nav-group{ flex-direction:row; flex-wrap:wrap; flex:1 1 auto; }
 				.admin-nav-item{ width:auto; flex:1 1 auto; justify-content:center; }
+				/* Faz 8: mobilde kart nav artık yan yana, sol vurgu çubuğu (::before, left:-8px)
+				   flex-wrap satırında görsel gürültü yapabileceği için kaldırılıyor -- kart
+				   arka planı + ikon rengi zaten "seçili" durumu yeterince belirgin gösteriyor. */
+				.admin-nav-item.active::before{ display:none; }
 				.admin-back-btn{ margin-top:0; }
-				.admin-overview-strip{ grid-template-columns:repeat(2,1fr); }
-				.admin-kpi:nth-child(odd){ border-left:none; }
 				.admin-content-card{ padding:16px 16px 22px; }
 				.admin-logs-grid{ grid-template-columns:1fr; gap:18px; }
 				.admin-logs-col{ padding:0 !important; border-right:none !important; }
