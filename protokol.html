@@ -788,14 +788,14 @@
 			     geniş içerik alanı). #adminPanelBg/.open ve switchAdminTab() JS mantığı aynen
 			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
 			<div class="admin-dashboard">
-				<!-- Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar sekmeleri artık
-				     üstte yatay satıra dizilmiyor -- hamburger düğmesiyle açılan bir çekmece oldu.
-				     İlk sürüm scrim'li bir OVERLAY'di (namethatui.com/web/hamburger-menu deseni,
-				     shadcn Sheet/Material NavigationDrawer) ama kullanıcı "içerik altında kalıyor"
-				     diye bildirdi -- artık PUSH: açılınca .admin-main sağa daralır (scrim YOK,
-				     hiçbir şey örtülmez), kapanınca tam genişliğe döner. aria-expanded/aria-controls
-				     ve Escape/dışarı-tıklama ile kapanma korundu (app.js: toggleAdminDrawer/
-				     openAdminDrawer/closeAdminDrawer). Masaüstünde (>780px) etkisiz, davranış YOK. -->
+				<!-- Faz 11 (kullanıcı isteği, 1 Eylül 2026): mobilde hamburger düğmesiyle açılan
+				     çekmece artık gerçek bir slide-over OVERLAY (position:fixed + translateX,
+				     bkz. style.css) -- önceki PUSH modeli dar telefon ekranlarında .admin-main'i
+				     görünür şekilde sıkıştırıyordu. Artık .admin-main genişliğine hiç dokunulmuyor,
+				     sidebar içeriğin üzerine kayıyor + hafif bir karartma (scrim, pointer-events:
+				     none) geliyor. aria-expanded/aria-controls ve Escape/dışarı-tıklama ile kapanma
+				     korundu (app.js: toggleAdminDrawer/openAdminDrawer/closeAdminDrawer). Masaüstünde
+				     (>780px) etkisiz, davranış YOK. -->
 				<button type="button" class="admin-drawer-toggle" id="adminDrawerToggle" aria-expanded="false" aria-controls="adminSidebarDrawer" aria-label="Menüyü aç" onclick="toggleAdminDrawer()">
 					<svg class="ikon"><use href="#i-menu"/></svg>
 				</button>
@@ -1000,7 +1000,7 @@
 		<!-- Kullanım Rehberi (Onboarding) -->
 		<div class="modal-bg" id="onboardingModalBg" style="z-index:115;">
 			<div class="modal" style="max-width:440px; text-align:center;">
-				<button class="close-x" onclick="skipOnboarding()">✕</button>
+				<button class="close-x" onclick="skipOnboarding()" aria-label="Kapat">✕</button>
 				<div id="onboardingStepIcon" style="font-size:38px; margin-bottom:8px;">🗂️</div>
 				<h2 id="onboardingStepTitle">—</h2>
 				<p class="hint" id="onboardingStepText">—</p>

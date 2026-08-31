@@ -2755,7 +2755,7 @@
 					const freshTitle = p.sonDogrulamaTs ? ("Son doğrulama: " + fmtDate(dKey(new Date(p.sonDogrulamaTs))) + " · " + (VERIFICATION_SOURCES[p.dogrulamaKaynak] || p.dogrulamaKaynak || "") + (p.dogrulayan ? " · " + p.dogrulayan : "")) : "Bu kayıt hiç doğrulanmadı.";
 					if (isBulkMode || isNewsMode) {
 						const selectionHint = isBulkMode ? "Silmek istediğiniz kayıtları seçin." : "Habere dahil etmek istediğiniz kişileri seçin.";
-						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:#f0f0f0; border-radius:7px;">' + selectionHint + '</div>';
+						actionHtml = '<div style="text-align:center; font-size:11px; font-weight:600; color:var(--muted); margin-top:auto; padding:7px; background:var(--surface-hover); border-radius:7px;">' + selectionHint + '</div>';
 					}
 					else if (mode === "silindi") {
 						// Kimlik (push-ID) inline JS string'e degil, karta zaten atanmis card.dataset.pid'e
@@ -4316,7 +4316,7 @@ function openCalendarAt(dateKey, evId){
 	if (PAGE !== "takvim") { location.href = buildTakvimUrl(dateKey, evId); return; }
 	const d=parseKey(dateKey); if(d) calAnchor=d;
 	openCalendar();
-	if(evId) setTimeout(function(){ openEventPeek(evId); }, 520);
+	if(evId) setTimeout(function(){ openEventPeek(evId); }, 600);
 }
 function calSetView(v){
 	calView=v;
@@ -6243,7 +6243,8 @@ function generateNewsFromEvent(){
 	generateNewsText();
 	closeEventPeek(); _hideCalendarOverlay();
 	// Takvim kapanma animasyonu (z-index 90) haber modalının üstünü örtmesin diye beklenir.
-	setTimeout(function(){ document.getElementById("newsModalBg").classList.add("open"); }, 370);
+	// _hideCalendarOverlay() de aynı clip-path geçişini (.34s, fallback 500) bekleyen afterCalTransition kullanır.
+	afterCalTransition(document.getElementById("calendarOverlay"), "clip-path", 500, function(){ document.getElementById("newsModalBg").classList.add("open"); });
 }
 
 
