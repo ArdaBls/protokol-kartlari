@@ -1,3 +1,24 @@
+// v3.15.1 (31 Ağustos 2026) -- Uc uzman agent (JS/CSS/HTML) ile yapilan tam kod denetiminde
+// bulunan sorunlar duzeltildi: (1) GUVENLIK -- takvim render'inda etkinlik id'si (e._id)
+// escapeHtml() olmadan data-evid/onclick'e yaziliyordu; importEventsJSON() JSON yedegindeki
+// Firebase anahtarlarini dogrudan push-key olarak kullaniyordu (RTDB anahtarlari ozel karakter
+// yasaklamiyor) -- kotu hazirlanmis bir yedek "geri yukle" ile kalici (stored) XSS mumkundu.
+// Anahtar artik /^[A-Za-z0-9_-]+$/ ile dogrulaniyor (uymayan icin yeni push-key uretiliyor),
+// render tarafinda da savunma katmani olarak escapeHtml(e._id) eklendi. (2) Sessiz log-yazma
+// hatalari (persistEvent/executeEventDelete/undo/saveData/savePerson/executeSinglePermDelete/
+// saveSuccessorImpl) artik importEventsJSON() ile TUTARLI sekilde showToast(...,"warn") ile
+// kullaniciya bildiriliyor. (3) undoLastCalendarAction() artik guardOp() ile sarili (hizli
+// ardisik Ctrl+Z'de sayac/sira riski kapandi). (4) CSS: 8+ hardcoded hex renk (btn-restore-card,
+// search:disabled, admin-user-row select:disabled, cal-next-item-now, fsheet-handle, foot-sep,
+// ev-att-item:hover, ios-switch-slider) dark-tema token'larina baglandi; #a33 kirmizisi
+// --danger-accent token'ina toplandi; olu .test-mode-log-section kurali ve .calendar-fab'daki
+// eziliyor-olan tekrar transition tanimi kaldirildi; .cal-tg-scroll'a projedeki diger kaydirma
+// katmanlariyla tutarli overscroll-behavior:contain eklendi; kucuk dokunma hedefleri
+// (.dict-del-btn/.fm-pill button/.header-profile-btn) pointer:coarse genisletmesine dahil
+// edildi. (5) HTML: 53 <label> artik ilgili input/select/textarea'ya for= ile bagli (ekran
+// okuyucu artik etiketi anons ediyor); ~15 ikon-only kapatma/temizleme butonuna aria-label
+// eklendi; modalHint artik ekle/duzenle moduna gore guncelleniyor (once hep ayni metinde
+// donuk kaliyordu); style.css linki render'i bloklayan senkron script'lerden ONCE tasindi.
 // v3.15.0 (31 Ağustos 2026) -- Faz 11: Çok-günlü (multi-day) etkinlik desteği. Etkinliğe
 // opsiyonel bir bitisTarihi alanı eklendi (yoksa/tarih ile aynıysa tek-günlü, tam geriye dönük
 // uyumlu). Çok-günlü etkinlikler HER ZAMAN "tüm gün" (v1 kapsam kararı, Google Calendar'daki
@@ -122,7 +143,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.15.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.15.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

@@ -40,6 +40,7 @@
 		<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Roboto:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 		<link rel="apple-touch-icon" href="icon-192.png">
 		<link rel="apple-touch-icon" href="icon-512.png">
+		<link rel="stylesheet" href="style.css">
 
 		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -66,7 +67,6 @@
 		})();
 		</script>
 
-		<link rel="stylesheet" href="style.css">
 	</head>
 	<body class="is-readonly" data-page="protokol">
 
@@ -134,7 +134,7 @@
 			<div class="controlbar">
 				<div class="search-wrap input-wrap">
 					<input id="search" name="protokolSearch" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
-					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()">✕</button>
+					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()" aria-label="Aramayı temizle">✕</button>
 				</div>
 
 				<div class="toggle-group" id="statusToggle">
@@ -229,7 +229,7 @@
 			<div class="fsheet-handle-wrap" id="fsheetHandleWrap"><div class="fsheet-handle"></div></div>
 			<div class="fsheet-header">
 				<span>Fakülte / Birim Filtrele</span>
-				<button type="button" class="fsheet-close" onclick="closeFacultySheet()">✕</button>
+				<button type="button" class="fsheet-close" onclick="closeFacultySheet()" aria-label="Kapat">✕</button>
 			</div>
 			<div class="fsheet-body fs-scope" id="facultySheetBody"></div>
 			<div class="fsheet-footer">
@@ -281,7 +281,7 @@
 						</div>
 						<button type="button" class="cal-textbtn edit-only" onclick="startQuickDraftEvent()" title="Şu andan başlayan 1 saatlik taslak etkinlik oluşturur, doldurman için hatırlatma gönderir">📍 Bir Etkinliğe Gidiyorum</button>
 						<button type="button" class="cal-addbtn" onclick="openEventModal(null)"><span class="ab-full">+ Etkinlik</span><span class="ab-short">+</span></button>
-						<button type="button" class="cal-iconbtn cal-close" onclick="closeCalendar()" title="Kapat">✕</button>
+						<button type="button" class="cal-iconbtn cal-close" onclick="closeCalendar()" title="Kapat" aria-label="Kapat">✕</button>
 					</div>
 					<div class="cal-main-body" id="calMainBody"></div>
 				</div>
@@ -293,7 +293,7 @@
 		<div class="cal-peek" id="calPeek">
 			<div class="cal-peek-head">
 				<h3 id="calPeekTitle">Etkinlik</h3>
-				<button type="button" class="cal-iconbtn" onclick="closeEventPeek()">✕</button>
+				<button type="button" class="cal-iconbtn" onclick="closeEventPeek()" aria-label="Kapat">✕</button>
 			</div>
 			<div class="cal-peek-body" id="calPeekBody"></div>
 			<div class="cal-peek-foot">
@@ -324,17 +324,17 @@
 		<!-- Etkinlik ekle / düzenle -->
 		<div class="modal-bg" id="eventModalBg" style="z-index:95;">
 			<div class="modal" style="max-width:520px;">
-				<button class="close-x" onclick="closeEventModal()">✕</button>
+				<button class="close-x" onclick="closeEventModal()" aria-label="Kapat">✕</button>
 				<h2 id="eventModalTitle">Yeni Etkinlik</h2>
 				<p class="hint">Takvime eklenen etkinlikler ekipteki herkesin ekranında anında görünür.</p>
 				<form id="eventForm" onsubmit="return false;">
 					<div class="field">
-						<label>Etkinlik Adı</label>
+						<label for="ev_ad">Etkinlik Adı</label>
 						<input type="text" id="ev_ad" placeholder="Örn: Tıp Fakültesi Beyaz Önlük Töreni">
 					</div>
 					<div class="field-row">
-						<div class="field"><label>Tür</label><select id="ev_tur"></select></div>
-						<div class="field"><label>Durum</label><select id="ev_durum"></select></div>
+						<div class="field"><label for="ev_tur">Tür</label><select id="ev_tur"></select></div>
+						<div class="field"><label for="ev_durum">Durum</label><select id="ev_durum"></select></div>
 					</div>
 					<div class="field">
 						<label>Rozetler <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir)</span></label>
@@ -342,32 +342,32 @@
 					</div>
 					<label class="ev-multiday-toggle"><input type="checkbox" id="ev_cokGunlu" onchange="toggleMultiDayFields(this.checked)"> Çok günlü etkinlik (birden fazla gün sürer)</label>
 					<div class="field-row ev-datetime-row">
-						<div class="field ev-date"><label>Tarih</label><input type="date" id="ev_tarih"></div>
-						<div class="field ev-time"><label>Başlangıç</label>
+						<div class="field ev-date"><label for="ev_tarih">Tarih</label><input type="date" id="ev_tarih"></div>
+						<div class="field ev-time"><label for="ev_saat">Başlangıç</label>
 							<div class="ev-time-wrap"><input type="time" id="ev_saat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_saat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
 						</div>
-						<div class="field ev-time"><label>Bitiş</label>
+						<div class="field ev-time"><label for="ev_bitisSaat">Bitiş</label>
 							<div class="ev-time-wrap"><input type="time" id="ev_bitisSaat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_bitisSaat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
 						</div>
-						<div class="field ev-date" id="ev_bitisTarihiWrap" style="display:none;"><label>Bitiş Tarihi</label><input type="date" id="ev_bitisTarihi"></div>
+						<div class="field ev-date" id="ev_bitisTarihiWrap" style="display:none;"><label for="ev_bitisTarihi">Bitiş Tarihi</label><input type="date" id="ev_bitisTarihi"></div>
 					</div>
-					<div class="field"><label>Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
-					<div class="field"><label>Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
-					<div class="field"><label>Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
+					<div class="field"><label for="ev_yer">Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
+					<div class="field"><label for="ev_birim">Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
+					<div class="field"><label for="ev_planlayan">Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
 					<div class="field">
-						<label>Basın Görevlisi <span style="font-weight:400; color:var(--muted); font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>
+						<label for="ev_gorevliSearch">Basın Görevlisi <span style="font-weight:400; color:var(--muted); font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>
 						<input type="text" class="ev-att-search" id="ev_gorevliSearch" placeholder="İsim ara…" oninput="renderPressStaffPicker()">
 						<div class="ev-attendee-box" id="ev_gorevliBox"></div>
 					</div>
 					<div class="field">
-						<label>Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
+						<label for="ev_attSearch">Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
 						<label class="au-basin-toggle" style="margin:2px 0 6px;"><input type="checkbox" id="ev_attIncludeIl" onchange="onAttIncludeIlToggle()"> İl Protokolünü de dahil et</label>
 						<input type="text" class="ev-att-search" id="ev_attSearch" placeholder="İsim veya unvan ara…" oninput="renderEventAttendeePicker()">
 						<div class="ev-attendee-box" id="ev_attendeeBox"></div>
 					</div>
-					<div class="field"><label>Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="ev_arsiv" placeholder="https://drive.google.com/..."></div>
-					<div class="field"><label>Haber Kaynağı <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="ev_haberKaynagi"><option value="">(Belirtilmedi)</option><option value="İHA">İHA</option><option value="AA">AA</option><option value="DHA">DHA</option><option value="ANKA">ANKA</option></select></div>
-					<div class="field"><label>Not</label><textarea id="ev_not" rows="2" style="resize:vertical;"></textarea></div>
+					<div class="field"><label for="ev_arsiv">Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="ev_arsiv" placeholder="https://drive.google.com/..."></div>
+					<div class="field"><label for="ev_haberKaynagi">Haber Kaynağı <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="ev_haberKaynagi"><option value="">(Belirtilmedi)</option><option value="İHA">İHA</option><option value="AA">AA</option><option value="DHA">DHA</option><option value="ANKA">ANKA</option></select></div>
+					<div class="field"><label for="ev_not">Not</label><textarea id="ev_not" rows="2" style="resize:vertical;"></textarea></div>
 					<div class="modal-actions">
 						<button class="btn btn-danger-outline" type="button" id="ev_deleteBtn" style="display:none;" onclick="deleteEvent()">Sil</button>
 						<button class="btn btn-ghost" type="button" onclick="closeEventModal()">Vazgeç</button>
@@ -382,15 +382,15 @@
 		<div class="modal-center-wrap" id="modalCenterWrap">
 		<div class="history-panel" id="historyPanel">
 		<div class="history-panel-inner">
-			<button class="close-x" onclick="closeHistoryPanel()">✕</button>
+			<button class="close-x" onclick="closeHistoryPanel()" aria-label="Kapat">✕</button>
 			<h3>Görev Geçmişi</h3>
 			<div class="field">
-				<label>Görev Adı</label>
+				<label for="hg_unvan">Görev Adı</label>
 				<input type="text" id="hg_unvan" autocomplete="off" placeholder="Örn. Dekanlık, Vekâleten Dekanlık">
 			</div>
 			<div class="field-row date-pair-row">
-				<div class="field"><label>Başlangıç</label><input type="date" id="hg_baslangic"></div>
-				<div class="field"><label>Bitiş</label><input type="date" id="hg_bitis"></div>
+				<div class="field"><label for="hg_baslangic">Başlangıç</label><input type="date" id="hg_baslangic"></div>
+				<div class="field"><label for="hg_bitis">Bitiş</label><input type="date" id="hg_bitis"></div>
 			</div>
 			<button class="btn btn-ghost" type="button" style="width:100%; margin-bottom:14px;" onclick="addHistoryEntry()">Ekle</button>
 			<div id="historyEntryList"></div>
@@ -400,13 +400,13 @@
 		</div>
 		<button class="history-toggle" id="historyToggleBtn" type="button" style="display:none;" onclick="openHistoryPanel()" title="Görev ve Etkinlik Geçmişi">‹</button>
 		<div class="modal">
-				<button class="close-x" onclick="closeModal()">✕</button>
+				<button class="close-x" onclick="closeModal()" aria-label="Kapat">✕</button>
 				<h2 id="modalTitle">Yeni Kişi Ekle</h2>
 				<p class="hint" id="modalHint">Bilgileri doldur, fotoğraf otomatik kareye sığdırılır.</p>
 				<form id="personForm" onsubmit="return false;" onkeydown="handleFormKeydown(event)">
 					<div class="field-row">
 						<div class="field f-prefix">
-							<label>Unvan Ön Eki</label>
+							<label for="f_prefix">Unvan Ön Eki</label>
 							<select id="f_prefix">
 								<option value="">(Yok)</option>
 								<option value="Prof. Dr.">Prof. Dr.</option>
@@ -420,55 +420,55 @@
 							</select>
 						</div>
 						<div class="field" style="flex: 1;">
-							<label>İsim Soyisim</label>
+							<label for="f_name">İsim Soyisim</label>
 							<div class="input-wrap">
 								<input type="text" id="f_name" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_name')">
-								<button type="button" class="clear-btn" id="clear_f_name" onclick="clearFieldInput('f_name')">✕</button>
+								<button type="button" class="clear-btn" id="clear_f_name" onclick="clearFieldInput('f_name')" aria-label="Temizle">✕</button>
 							</div>
 						</div>
 					</div>
 					<div class="field">
-						<label>Mesleki / Görev Unvanı (Örn: Rektör)</label>
+						<label for="f_title">Mesleki / Görev Unvanı (Örn: Rektör)</label>
 						<div class="input-wrap">
 							<input type="text" id="f_title" list="f_title_list" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_title')"><datalist id="f_title_list"></datalist>
-							<button type="button" class="clear-btn" id="clear_f_title" onclick="clearFieldInput('f_title')">✕</button>
+							<button type="button" class="clear-btn" id="clear_f_title" onclick="clearFieldInput('f_title')" aria-label="Temizle">✕</button>
 						</div>
 					</div>
 					<div class="field">
-						<label>Birim / Kurum</label>
+						<label for="f_unit">Birim / Kurum</label>
 						<div class="input-wrap">
 							<input type="text" id="f_unit" list="f_unit_list" autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_unit')"><datalist id="f_unit_list"></datalist>
-							<button type="button" class="clear-btn" id="clear_f_unit" onclick="clearFieldInput('f_unit')">✕</button>
+							<button type="button" class="clear-btn" id="clear_f_unit" onclick="clearFieldInput('f_unit')" aria-label="Temizle">✕</button>
 						</div>
 					</div>
 					<div class="field" id="facultyField" style="display:none;">
-						<label>Bağlı Olduğu Birim(ler) / Ek Görev(ler) <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir — örn. hem Rektör Yardımcısı hem ek olarak bir koordinatörlük seçebilirsin)</span></label>
+						<label for="facultyMultiSearch">Bağlı Olduğu Birim(ler) / Ek Görev(ler) <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir — örn. hem Rektör Yardımcısı hem ek olarak bir koordinatörlük seçebilirsin)</span></label>
 						<input type="text" id="facultyMultiSearch" class="fm-search" autocomplete="off" placeholder="Birim ara…">
 						<div class="fm-pills" id="facultyMultiPills"></div>
 						<div class="faculty-multiselect" id="facultyMultiSelect"></div>
 					</div>
 					<div class="field" id="coordExtraRoleField" style="display:none;">
-						<label id="coordExtraRoleLabel">Ek Görev Açıklaması</label>
+						<label for="f_coordExtraRole" id="coordExtraRoleLabel">Ek Görev Açıklaması</label>
 						<input type="text" id="f_coordExtraRole" autocomplete="off" placeholder="Örn. Koordinatör, Koordinatör Yardımcısı, Üye">
 					</div>
 					<div class="field-row">
 						<div class="field">
-							<label>Durum</label>
+							<label for="f_status">Durum</label>
 							<select id="f_status">
 								<option value="aktif">Aktif</option>
 								<option value="pasif">Pasif (arşiv)</option>
 							</select>
 						</div>
 						<div class="field">
-							<label>Protokol Sırası (Ana Kat)</label>
+							<label for="f_rank">Protokol Sırası (Ana Kat)</label>
 							<div class="input-wrap">
 								<input type="text" inputmode="numeric" id="f_rank" placeholder="?" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_rank')">
-								<button type="button" class="clear-btn" id="clear_f_rank" onclick="clearFieldInput('f_rank')">✕</button>
+								<button type="button" class="clear-btn" id="clear_f_rank" onclick="clearFieldInput('f_rank')" aria-label="Temizle">✕</button>
 							</div>
 						</div>
 					</div>
 					<div class="field" id="statusReasonBlock" style="display:none;">
-						<label>Pasife Alma Sebebi</label>
+						<label for="sr_reason">Pasife Alma Sebebi</label>
 						<select id="sr_reason" onchange="onStatusReasonChange()">
 							<option value="">Seçiniz…</option>
 							<option value="yeni_gorev">Yeni bir göreve atandı</option>
@@ -481,11 +481,11 @@
 							<option value="diger">Diğer</option>
 						</select>
 						<div id="sr_applyRow" style="display:none; margin-top:10px;">
-							<label>Yeni Unvan</label>
+							<label for="sr_newTitle">Yeni Unvan</label>
 							<div class="input-wrap">
 								<input type="text" id="sr_newTitle" autocomplete="off" placeholder="Örn. Öğretim Üyesi">
 							</div>
-							<label style="margin-top:8px;">Geçiş Tarihi</label>
+							<label for="sr_transitionDate" style="margin-top:8px;">Geçiş Tarihi</label>
 							<input type="date" id="sr_transitionDate">
 							<button class="btn btn-ghost" type="button" style="width:100%; margin-top:10px;" onclick="applyStatusReason()">Uygula</button>
 						</div>
@@ -500,20 +500,20 @@
 					</div>
 					<div class="field-row date-pair-row">
 						<div class="field">
-							<label>Başlangıç Tarihi</label>
+							<label for="f_start">Başlangıç Tarihi</label>
 							<input type="date" id="f_start">
 						</div>
 						<div class="field" id="endDateField" style="display:none;">
-							<label>Bitiş Tarihi</label>
+							<label for="f_end">Bitiş Tarihi</label>
 							<input type="date" id="f_end">
 						</div>
 					</div>
 					<div class="field">
-						<label>Fotoğraf Bağlantısı (URL)</label>
+						<label for="f_photo_url">Fotoğraf Bağlantısı (URL)</label>
 						<div class="input-wrap">
 							<input type="text" id="f_photo_url" placeholder="https://... (önerilen)" oninput="updatePhotoPreviewFromUrl()">
 						</div>
-						<label style="margin-top:8px; display:flex; align-items:center; gap:6px;">Veya Cihazdan Yükle (Sıkıştırılır) <button type="button" class="help-tooltip-btn" onclick="togglePhotoHelp()" aria-label="Fotoğraf yükleme yardımı" title="Yardım">?</button></label>
+						<label for="f_photo" style="margin-top:8px; display:flex; align-items:center; gap:6px;">Veya Cihazdan Yükle (Sıkıştırılır) <button type="button" class="help-tooltip-btn" onclick="togglePhotoHelp()" aria-label="Fotoğraf yükleme yardımı" title="Yardım">?</button></label>
 						<div class="photo-help-box" id="photoHelpBox" style="display:none;">
 							Fotoğraf otomatik olarak kareye kırpılıp sıkıştırılır. En iyi sonuç için: yüzün net göründüğü, dik çekilmiş, en az 400x400px bir fotoğraf seç. URL ile eklemek (Google Drive/site linki) yüklemekten daha hızlıdır ve veritabanını şişirmez — mümkünse önce onu dene.
 						</div>
@@ -523,11 +523,11 @@
 						</div>
 					</div>
 					<div class="field">
-						<label>Not (opsiyonel)</label>
+						<label for="f_note">Not (opsiyonel)</label>
 						<textarea id="f_note" rows="2" style="resize:vertical; width:416px; height:54px; max-width:100%;"></textarea>
 					</div>
 					<div class="field" id="verifyField" style="display:none;">
-						<label>Veri Doğrulama Kaynağı</label>
+						<label for="f_dogrulamaKaynak">Veri Doğrulama Kaynağı</label>
 						<div class="input-wrap" style="display:flex; gap:8px; align-items:center;">
 							<select id="f_dogrulamaKaynak" style="flex:1; min-width:0;">
 								<option value="omu_web">OMÜ Web Sitesi</option>
@@ -557,11 +557,11 @@
 			</div>
 			<div class="successor-panel" id="successorPanel">
 			<div class="successor-panel-inner">
-				<button class="close-x" onclick="closeSuccessorPanel()">✕</button>
+				<button class="close-x" onclick="closeSuccessorPanel()" aria-label="Kapat">✕</button>
 				<h3>Yerine Atanan Kişi</h3>
 				<p class="hint">Atanan kişinin bilgilerini doldurun.</p>
 				<div class="field">
-					<label>Unvan Ön Eki</label>
+					<label for="sf_prefix">Unvan Ön Eki</label>
 					<select id="sf_prefix">
 						<option value="">(Yok)</option>
 						<option value="Prof. Dr.">Prof. Dr.</option>
@@ -575,38 +575,38 @@
 					</select>
 				</div>
 				<div class="field">
-					<label>İsim Soyisim</label>
+					<label for="sf_name">İsim Soyisim</label>
 					<input type="text" id="sf_name" required autocomplete="off">
 				</div>
 				<div class="field">
-					<label>Mesleki / Görev Unvanı</label>
+					<label for="sf_title">Mesleki / Görev Unvanı</label>
 					<input type="text" id="sf_title" autocomplete="off">
 				</div>
 				<div class="field">
-					<label>Birim / Kurum</label>
+					<label for="sf_unit">Birim / Kurum</label>
 					<input type="text" id="sf_unit" autocomplete="off">
 				</div>
 				<div class="field">
-					<label>Protokol Sırası (Ana Kat)</label>
+					<label for="sf_rank">Protokol Sırası (Ana Kat)</label>
 					<input type="text" inputmode="numeric" id="sf_rank" placeholder="?">
 				</div>
 				<div class="field">
-					<label>Başlangıç Tarihi</label>
+					<label for="sf_start">Başlangıç Tarihi</label>
 					<input type="date" id="sf_start">
 				</div>
 				<div class="field">
-					<label>Fotoğraf Bağlantısı (URL)</label>
+					<label for="sf_photo_url">Fotoğraf Bağlantısı (URL)</label>
 					<div class="input-wrap">
 						<input type="text" id="sf_photo_url" placeholder="https://... (önerilen)" oninput="updateSuccessorPhotoPreviewFromUrl()">
 					</div>
-					<label style="margin-top:8px;">Veya Cihazdan Yükle (Sıkıştırılır)</label>
+					<label for="sf_photo" style="margin-top:8px;">Veya Cihazdan Yükle (Sıkıştırılır)</label>
 					<div class="photo-input-row">
 						<img id="sf_photoPreview" class="photo-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Önizleme" style="display:none;">
 						<input type="file" id="sf_photo" accept="image/*" onchange="previewSuccessorPhoto(event)">
 					</div>
 				</div>
 				<div class="field">
-					<label>Not (opsiyonel)</label>
+					<label for="sf_note">Not (opsiyonel)</label>
 					<textarea id="sf_note" rows="2" style="resize:vertical;"></textarea>
 				</div>
 				<div class="modal-actions" style="margin-top:0;">
@@ -669,7 +669,7 @@
 		<!-- Haber Çıktısı Modalı -->
 		<div class="modal-bg" id="newsModalBg" style="z-index:60;">
 			<div class="modal" style="max-width:600px;">
-				<button class="close-x" onclick="closeNewsModal()">✕</button>
+				<button class="close-x" onclick="closeNewsModal()" aria-label="Kapat">✕</button>
 				<h2 style="color:var(--news);">Haber Metni Çıktısı</h2>
 
 				<!-- Iki mod: mevcut sablon akisi (varsayilan) / yapay zekaya hazir komut olusturma. Uygulama hicbir AI servisine baglanmaz. -->
@@ -681,12 +681,12 @@
 				<div id="newsTemplateModePanel">
 					<p class="hint">Seçtiğiniz kişilerin protokol sırası ve unvanlarına göre otomatik oluşturulan metin:</p>
 
-					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
+					<label for="newsTemplateSelect" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
 					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;"></select>
 
 					<div id="newsPlaceholderFields"></div>
 
-					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
+					<label for="newsLocationInput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
 					<input type="text" id="newsLocationInput" value="Törene" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">
 
 					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:6px;">Katılımcı Grubu</label>
@@ -707,21 +707,21 @@
 				<div id="newsPromptPanel" style="display:none;">
 					<p class="hint">Yapay zekaya yapıştıracağınız, kurallar ve bağlam içeren hazır bir komut oluşturulur. Uygulama bu metni hiçbir yapay zeka servisine göndermez.</p>
 
-					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
+					<label for="newsPromptCategorySelect" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
 					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;">
 						<option value="mezuniyet">Mezuniyet Töreni</option>
 						<option value="genel" selected>Q1 / Genel Etkinlik (Taslak Var)</option>
 						<option value="diger">Diğer</option>
 					</select>
 
-					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Ham Notlarınız</label>
+					<label for="newsRawInput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Ham Notlarınız</label>
 					<textarea id="newsRawInput" rows="6" placeholder="Konuşma metni, katılımcı listesi, etkinlik açıklaması vb. buraya yapıştırın..." style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box; resize:vertical;"></textarea>
 
 					<div class="modal-actions" style="margin-top:0; margin-bottom:12px;">
 						<button class="btn btn-news" onclick="buildNewsPrompt()" style="width:100%;">Komut Oluştur</button>
 					</div>
 
-					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Oluşturulan Komut</label>
+					<label for="newsPromptOutput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Oluşturulan Komut</label>
 					<textarea id="newsPromptOutput" rows="8" readonly style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto', sans-serif; font-size:13px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical; background:var(--surface-input);"></textarea>
 					<div class="modal-actions" style="margin-top:0;">
 						<button class="btn btn-news" onclick="copyNewsPrompt()" style="width:100%;">Panoya Kopyala</button>
@@ -732,7 +732,7 @@
 
 		<div class="authform-bg" id="authFormBg">
 			<div class="af-wrap">
-				<button class="af-close" onclick="closeAuthForm()">✕</button>
+				<button class="af-close" onclick="closeAuthForm()" aria-label="Kapat">✕</button>
 
 				<form class="af-form" id="loginForm" style="display:none;" onsubmit="event.preventDefault(); handleLogin();">
 					<p class="af-title">Giriş Yap</p>
@@ -964,7 +964,7 @@
 						<div id="adminStatsView" style="display:none;">
 							<p class="hint">Etkinlik takviminden türetilen faaliyet özeti. BAPKOB/Kalite raporlarına hızlı veri sağlar.</p>
 							<div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
-								<label class="hint" style="margin:0;">Aralık:</label>
+								<label for="statsRangeSelect" class="hint" style="margin:0;">Aralık:</label>
 								<select id="statsRangeSelect" onchange="loadAdminStats()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); color:var(--ink);">
 									<option value="month">Bu Ay</option>
 									<option value="year">Bu Yıl</option>
@@ -999,7 +999,7 @@
 		<!-- PIN ile Hızlı Hesap Değiştir -->
 		<div class="modal-bg" id="pinSwitchModalBg" style="z-index:118;">
 			<div class="modal" style="max-width:480px;">
-				<button class="close-x" onclick="closePinSwitchModal()">✕</button>
+				<button class="close-x" onclick="closePinSwitchModal()" aria-label="Kapat">✕</button>
 				<h2>🔑 PIN ile Hızlı Hesap Değiştir</h2>
 				<p class="hint">Aynı cihazı paylaşan ekip arkadaşların çıkış yapmadan PIN ile hesap değiştirebilir. Şifreniz Firebase'e gönderilmez, yalnızca bu tarayıcıda PIN ile şifreli saklanır.</p>
 				<h3 style="font-size:14px; margin:14px 0 8px;">Bu Cihazdaki Hesaplar</h3>
@@ -1007,10 +1007,10 @@
 				<div id="pinLinkSection" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
 					<h3 style="font-size:14px; margin:0 0 8px;">Bu Hesabı Bu Cihaza Bağla</h3>
 					<div class="field-row">
-						<div class="field"><label>Yeni PIN (4-6 hane)</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew1"></div>
-						<div class="field"><label>PIN Tekrar</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew2"></div>
+						<div class="field"><label for="pinNew1">Yeni PIN (4-6 hane)</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew1"></div>
+						<div class="field"><label for="pinNew2">PIN Tekrar</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew2"></div>
 					</div>
-					<div class="field"><label>Mevcut Şifreniz (bir kereliğine doğrulama için)</label><input type="password" id="pinLinkPassword"></div>
+					<div class="field"><label for="pinLinkPassword">Mevcut Şifreniz (bir kereliğine doğrulama için)</label><input type="password" id="pinLinkPassword"></div>
 					<button class="btn btn-primary" type="button" style="width:100%;" onclick="linkPinToCurrentAccount()">PIN Tanımla / Güncelle</button>
 				</div>
 			</div>
@@ -1019,7 +1019,7 @@
 		<!-- Kullanım Şartları / Gizlilik Politikası -->
 		<div class="modal-bg" id="legalModalBg" style="z-index:120;">
 			<div class="modal" style="max-width:600px;">
-				<button class="close-x" onclick="closeLegalModal()">✕</button>
+				<button class="close-x" onclick="closeLegalModal()" aria-label="Kapat">✕</button>
 				<h2 id="legalModalTitle">Kullanım Şartları</h2>
 				<div class="legal-tabs">
 					<button type="button" class="btn btn-primary" id="legalTabTerms" onclick="openLegalModal('terms')">Kullanım Şartları</button>

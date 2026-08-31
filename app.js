@@ -639,7 +639,7 @@
 					'</div>' +
 					(draftEvents.length ? '<h4 class="dash-alert-subhead">Bekleyen Taslaklar</h4><div class="stat-expiry-list">' + draftEvents.map(function(e) {
 						const days = daysSince(e.olusturmaTs);
-						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 1 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(fmtTrDate(e.tarih)) + ' ' + escapeHtml(e.saat || "") + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + e._id + '\')">Düzenle</button></div>';
+						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 1 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(fmtTrDate(e.tarih)) + ' ' + escapeHtml(e.saat || "") + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + escapeHtml(e._id) + '\')">Düzenle</button></div>';
 					}).join("") + '</div>' : "");
 			}
 
@@ -658,7 +658,7 @@
 					'<h4 class="dash-alert-subhead">Bekleyen Taslaklar (' + draftEvents.length + ')</h4>' +
 					(draftEvents.length ? '<div class="stat-expiry-list">' + draftEvents.map(function(e) {
 						const days = daysSince(e.olusturmaTs);
-						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 1 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(fmtTrDate(e.tarih)) + ' ' + escapeHtml(e.saat || "") + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + e._id + '\')">Düzenle</button></div>';
+						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 1 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(fmtTrDate(e.tarih)) + ' ' + escapeHtml(e.saat || "") + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + escapeHtml(e._id) + '\')">Düzenle</button></div>';
 					}).join("") + '</div>' : '<p class="admin-user-empty">Bekleyen taslak yok.</p>') +
 					'<h4 class="dash-alert-subhead">Personel İş Yükü (görevlendirme sayısı)</h4>' +
 					(workloadRows.length ? statBarHtml(workloadRows, workloadTotal) : '<p class="admin-user-empty">Görevli ataması yok.</p>');
@@ -680,7 +680,7 @@
 					'<h4 class="dash-alert-subhead">Haber Bekleyen (Gerçekleşti → Haber Yazılmadı), en eski önce</h4>' +
 					(pendingNews.length ? '<div class="stat-expiry-list">' + pendingNews.slice(0, 15).map(function(e) {
 						const days = daysSince(e.guncellemeTs);
-						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 3 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(e.ad || "(adsız)") + ' · ' + escapeHtml(fmtTrDate(e.tarih)) + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + e._id + '\')">Düzenle</button></div>';
+						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 3 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(e.ad || "(adsız)") + ' · ' + escapeHtml(fmtTrDate(e.tarih)) + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + escapeHtml(e._id) + '\')">Düzenle</button></div>';
 					}).join("") + '</div>' +
 					'<p class="hint" style="margin-top:6px;">Süre, kaydın son güncellenme zamanından yaklaşık hesaplanır (durum değişim anı ayrıca tutulmuyor).</p>' : '<p class="admin-user-empty">Bekleyen haber yok.</p>') +
 					'<h4 class="dash-alert-subhead">Ajans Dağılımı</h4>' +
@@ -1607,7 +1607,7 @@
 					}
 					await database.ref("/").update(updates);
 					peopleNeedsFullSave = false;
-					if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+				if (!logKey) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Kayıt yapıldı ancak işlem günlüğüne yazılamadı.", "warn"); }
 					return true;
 				}
 				catch (err) { console.error("Kaydedilemedi:", err); showToast("Buluta kaydedilemedi.", "error"); return false; }
@@ -1636,7 +1636,7 @@
 						updates[dbPath("logs/" + currentListKey) + "/" + logKey] = { by: who, email: currentUser.email, action: actionLabel || (name + " güncellendi"), target: targetName || name, timestamp: firebase.database.ServerValue.TIMESTAMP };
 					}
 					await database.ref("/").update(updates);
-					if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+				if (!logKey) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Kayıt yapıldı ancak işlem günlüğüne yazılamadı.", "warn"); }
 					return true;
 				}
 				catch (err) { console.error("Kaydedilemedi:", err); showToast("Buluta kaydedilemedi.", "error"); return false; }
@@ -2461,7 +2461,7 @@
 							updates[dbPath("logs/" + currentListKey) + "/" + logKey] = { by: who, email: currentUser.email, action: name + " kişisi kalıcı olarak silindi", target: name, timestamp: firebase.database.ServerValue.TIMESTAMP };
 						}
 						await database.ref("/").update(updates);
-						if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+					if (!logKey) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Kişi kalıcı olarak silindi ancak işlem günlüğüne yazılamadı.", "warn"); }
 						spOk = true;
 					} catch (err) { console.error("Kaydedilemedi:", err); showToast("Buluta kaydedilemedi.", "error"); }
 					closeSinglePermDelete();
@@ -2932,7 +2932,7 @@ function renderFacultyPickerField(selected) {
 				});
 			});
 
-function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); loadSuggestionPool().then(populateSuggestionDatalists); }
+function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIndex = null; resetForm(); document.getElementById("modalTitle").textContent = "Yeni Kişi Ekle"; document.getElementById("modalHint").textContent = "Bilgileri doldur, fotoğraf otomatik kareye sığdırılır."; document.getElementById("editDeleteActions").style.display = "none"; document.getElementById("verifyField").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; document.getElementById("historyToggleBtn").style.display = "none"; tempGorevGecmisi = []; renderRankReferencePanel(); renderFacultyPickerField([]); document.getElementById("modalBg").classList.add("open"); loadSuggestionPool().then(populateSuggestionDatalists); }
 			function openEditModal(idx){
 			if (!requireEdit()) return;
 			const p = people[idx]; if (!p) { showToast("Kayıt bulunamadı.", "error"); return; }
@@ -2947,7 +2947,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
 			tempGorevGecmisi = Array.isArray(p.gorevGecmisi) ? p.gorevGecmisi.map(function(g){ return { unvan: g.unvan || "", baslangic: g.baslangic || "", bitis: g.bitis || "" }; }) : [];
 			document.getElementById("historyToggleBtn").style.display = "block";
-			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("editDeleteActions").style.display = "flex"; /* successorTriggerWrap artik refreshStatusReasonBlock()/onStatusReasonChange() tarafindan yonetiliyor, burada kosulsuz acilmiyor */ renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []);
+			document.getElementById("modalTitle").textContent = "Kaydı Düzenle"; document.getElementById("modalHint").textContent = "Mevcut kaydı güncelliyorsun, değişiklikler kaydedince yayına alınır."; document.getElementById("editDeleteActions").style.display = "flex"; /* successorTriggerWrap artik refreshStatusReasonBlock()/onStatusReasonChange() tarafindan yonetiliyor, burada kosulsuz acilmiyor */ renderRankReferencePanel(); renderFacultyPickerField(p.faculties || []);
 			var coordExtraEl = document.getElementById("f_coordExtraRole"); if (coordExtraEl) coordExtraEl.value = p.ekGorevAciklamasi || "";
 			document.getElementById("modalBg").classList.add("open");
 			loadSuggestionPool().then(populateSuggestionDatalists);
@@ -3209,7 +3209,7 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						globalFuseSourceRef = null; // saveData()/savePerson() disinda kalan tek yazma yolu -- bkz. tanim yorumu
 						await database.ref("/").update(updates);
 						if (kind === "passive") people[successorEditingIndex] = oldUpdated;
-						if (!logKey1) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+					if (!logKey1) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Kaydedildi ancak işlem günlüğüne yazılamadı.", "warn"); }
 						saved = true;
 					} catch (err) {
 						console.error("Kaydedilemedi:", err);
@@ -3751,11 +3751,18 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 						const raw = (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.etkinlikler && typeof parsed.etkinlikler === "object") ? parsed.etkinlikler : parsed;
 						if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Format hatalı");
 						const clean = {}; let kept = 0, skipped = 0;
-						Object.keys(raw).forEach(function(key){
-							const item = raw[key];
+						Object.keys(raw).forEach(function(rawKey){
+							const item = raw[rawKey];
 							// Ad ve geçerli bir tarih zorunlu; diğer her şey eksikse boş/varsayılan değerle tamamlanır
 							// (evType()/evStatus() zaten bilinmeyen tür/durum anahtarlarında güvenli varsayılana düşüyor).
 							if (!item || typeof item !== "object" || !item.ad || !parseKey(item.tarih)) { skipped++; return; }
+							// Firebase RTDB anahtarları "/","<",">","\"","." gibi karakterleri yasaklamıyor;
+							// bu anahtar sonradan render'da data-evid/onclick içine escape'siz basılıyor
+							// (takvim modülü, id'lerin daima güvenli push()-key olduğunu varsayıyor).
+							// Yedek dosyası dışarıdan geliyor, dolayısıyla anahtar da kullanıcı girdisi
+							// sayılır -- normal push()-key deseniyle eşleşmeyen anahtarlar burada
+							// yeni bir güvenli push()-key ile değiştirilir (stored-XSS önlemi).
+							const key = /^[A-Za-z0-9_-]+$/.test(rawKey) ? rawKey : database.ref(dbPath("etkinlikler")).push().key;
 							clean[key] = {
 								ad: String(item.ad).trim(), tur: item.tur ? String(item.tur) : "diger", durum: item.durum ? String(item.durum) : "planlandi",
 								tarih: String(item.tarih), saat: item.saat ? String(item.saat) : "", bitisSaat: item.bitisSaat ? String(item.bitisSaat) : "",
@@ -4014,7 +4021,7 @@ function renderCalendarRail(){
 	const next=futureItems.slice(0,4);
 	function renderNextItem(e, first){
 		const d=parseKey(e.tarih); const ty=evType(e.tur);
-		return '<div class="cal-next-item"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+e._id+'">'+
+		return '<div class="cal-next-item"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+escapeHtml(e._id)+'">'+
 			'<span class="cal-next-date"><span class="d">'+d.getDate()+'</span><span class="m">'+CAL_MONTHS[d.getMonth()].slice(0,3)+'</span></span>'+
 			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-next-meta" style="display:block;">'+(e.saat?escapeHtml(e.saat)+' · ':'')+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
@@ -4022,7 +4029,7 @@ function renderCalendarRail(){
 	function renderNowItem(e, first){
 		const ty=evType(e.tur);
 		const saatTxt=e.saat?(escapeHtml(e.saat)+(e.bitisSaat?'–'+escapeHtml(e.bitisSaat):'')+' · '):'';
-		return '<div class="cal-next-item cal-next-item-now"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+e._id+'">'+
+		return '<div class="cal-next-item cal-next-item-now"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+escapeHtml(e._id)+'">'+
 			'<span class="cal-now-dot" aria-hidden="true"></span>'+
 			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
 			'<span class="cal-next-meta" style="display:block;">'+saatTxt+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
@@ -4548,7 +4555,7 @@ function renderWeekView(body){
 			const e=b.ev; const ty=evType(e.tur);
 			const gc='grid-column:'+(b.startIdx+2)+' / '+(b.endIdx+3)+'; grid-row:'+(b.row+1)+';';
 			const cls='cal-multiday-bar'+(b.continuesLeft?" continues-left":"")+(b.continuesRight?" continues-right":"")+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"");
-			return '<button type="button" class="'+cls+'" data-evid="'+e._id+'" data-act="peek" style="'+gc+' background:'+ty.renk+'; border-color:'+ty.renk+'; color:#fff;">'+
+			return '<button type="button" class="'+cls+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="'+gc+' background:'+ty.renk+'; border-color:'+ty.renk+'; color:#fff;">'+
 				'<span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+
 				'<span class="cal-multiday-handle cal-multiday-handle-l edit-only" data-act="multiday-resize-l" aria-hidden="true"></span>'+
 				'<span class="cal-multiday-handle cal-multiday-handle-r edit-only" data-act="multiday-resize-r" aria-hidden="true"></span>'+
@@ -4566,7 +4573,7 @@ function renderWeekView(body){
 		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+e._id+'" data-act="peek" style="background:'+ty.renk+'; border-left-color:'+ty.renk+'; color:#fff;"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="background:'+ty.renk+'; border-left-color:'+ty.renk+'; color:#fff;"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -4598,7 +4605,7 @@ function renderWeekView(body){
 			const w=100/it.total; const left=w*it.col;
 			const compact=hgt<34?" compact":"";
 			const stBar=evStatus(e.durum).renk;
-			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" data-act="peek" '+
+			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" '+
 				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);">'+
 				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+badgeHtml(e)+lockIconHtml(e)+
 				'<span class="cal-status-bar" style="background:'+stBar+';"></span>'+
@@ -4701,7 +4708,7 @@ function renderMonthView(body){
 		const shown=evs.slice(0,3);
 		let chips=shown.map(function(e){
 			const ty=evType(e.tur);
-			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+e._id+'" data-act="peek" style="position:relative; '+calBlockStyle(e)+'">'+
+			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="position:relative; '+calBlockStyle(e)+'">'+
 				// Çok günlü etkinlikte saat yerine kısa tarih aralığı ("12–14 Oca") gösterilir --
 			// v1 kapsam kararı: ay görünümünde TAM çubuk render'ı yok, sadece başlangıç gününde
 			// bir ipucuyla gösteriliyor (bkz. plan, Faz 11).
@@ -4763,7 +4770,7 @@ function renderListView(body){
 		const meta=[]; if(e.yer) meta.push(escapeHtml(e.yer)); if(e.birim) meta.push(escapeHtml(e.birim));
 		if(e.gorevli) meta.push("📷 "+escapeHtml(e.gorevli));
 		if(Array.isArray(e.katilimcilar)&&e.katilimcilar.length) meta.push(e.katilimcilar.length+" katılımcı");
-		html+='<button type="button" class="cal-ev" data-evid="'+e._id+'" data-act="peek">'+
+		html+='<button type="button" class="cal-ev" data-evid="'+escapeHtml(e._id)+'" data-act="peek">'+
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
 			'<span class="cal-ev-time">'+escapeHtml((e.bitisTarihi && e.bitisTarihi!==e.tarih) ? fmtMultiDayRange(e.tarih,e.bitisTarihi) : (e.saat||"—"))+'</span>'+
 			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+
@@ -5747,7 +5754,7 @@ async function persistEvent(id, obj, logLabel){
 			};
 		}
 		await database.ref("/").update(updates);
-		if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+	if (!logKey) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Etkinlik kaydedildi ancak işlem günlüğüne yazılamadı.", "warn"); }
 		return { ok:true, id:finalId };
 	}catch(err){
 		console.error("Etkinlik kaydedilemedi:", err);
@@ -5880,7 +5887,7 @@ async function executeEventDelete(){
 			};
 		}
 		await database.ref("/").update(updates);
-		if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+	if (!logKey) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Etkinlik silindi ancak işlem günlüğüne yazılamadı.", "warn"); }
 		delete calEvents[id];
 		pushUndo({ type:"delete", id:id, before:before, after:null });
 		closeEventDeleteConfirm(); closeEventModal(); closeEventPeek();
@@ -5923,7 +5930,8 @@ function eventStatesDiffer(a, b){
 	return evAttNames(a.katilimcilar).join("|")!==evAttNames(b.katilimcilar).join("|");
 }
 
-async function undoLastCalendarAction(){
+async function undoLastCalendarAction(){ return guardOp("undoLastCalendarAction", undoLastCalendarActionImpl); }
+async function undoLastCalendarActionImpl(){
 	if(!undoStack.length){ showToast("Geri alınacak bir işlem yok.", "warn"); return; }
 	if(!requireEdit()) return;
 	const entry=undoStack.pop();
@@ -5954,7 +5962,7 @@ async function undoLastCalendarAction(){
 				};
 			}
 			await database.ref("/").update(updates);
-			if (!logKey) console.error("Log kaydı yazılamadı: currentUser tanımsız.");
+			if (!logKey) { console.error("Log kaydı yazılamadı: currentUser tanımsız."); showToast("Geri alma tamamlandı ancak işlem günlüğüne yazılamadı.", "warn"); }
 			delete calEvents[entry.id];
 			ok=true;
 		}catch(err){ console.error("Geri alma başarısız:", err); showToast("Geri alma başarısız oldu.", "error"); }
