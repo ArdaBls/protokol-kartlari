@@ -219,15 +219,48 @@ async function dragResizeHandle(page, evid, targetClientY, edge) {
 		const ghost = document.querySelector('.cal-resize-ghost');
 		const existedDuringDrag = !!ghost;
 		const ghostShowsOldTime = ghost ? /13:00/.test(ghost.textContent) : false; // eski bitis 13:00
+		const blockOpacityDuringDrag = block.style.opacity;
 		fire('pointerup', daycolTop + (16 * 60 / 60) * 48, window);
 		const existsAfterDrop = !!document.querySelector('.cal-resize-ghost');
-		return { existedDuringDrag, ghostShowsOldTime, existsAfterDrop };
+		const blockOpacityAfterDrop = block.style.opacity;
+		return { existedDuringDrag, ghostShowsOldTime, existsAfterDrop, blockOpacityDuringDrag, blockOpacityAfterDrop };
 	}, { daycolTop: daycolRect4.top });
 	await page.waitForTimeout(80);
 	const ghostTest = {
 		ghostExistsDuringDrag: ghostDuringDrag.existedDuringDrag,
 		ghostShowsOldTime: ghostDuringDrag.ghostShowsOldTime,
-		ghostRemovedAfterDrop: !ghostDuringDrag.existsAfterDrop
+		ghostRemovedAfterDrop: !ghostDuringDrag.existsAfterDrop,
+		// Kullanıcı bildirdi: block opak olduğu için altındaki hayalet görünmüyordu -- sürükleme
+		// sırasında block yarı saydam olmalı, bırakınca eski (tam opak) haline dönmeli.
+		blockSemiTransparentDuringDrag: blockOpacityDuringDragIsLessThanOne(ghostDuringDrag.blockOpacityDuringDrag),
+		blockOpacityRestoredAfterDrop: ghostDuringDrag.blockOpacityAfterDrop === ''
+	};
+	function blockOpacityDuringDragIsLessThanOne(v) { const n = parseFloat(v); return !isNaN(n) && n < 1; }
+
+	// =====================================================================
+	// SENARYO 7b: Taşıma sürüklemesinde de (gün/saat değiştirme, SortableJS) AYNI silüet --
+	// calOnDragStart/calOnDragEnd, sahte bir Sortable evt'siyle (calendar-lock-undo-test.js'teki
+	// timeRecomputeTest ile AYNI desen -- gerçek bir Sortable örneği kurmaya gerek yok).
+	// =====================================================================
+	const moveGhostTest = await page.evaluate(() => {
+		const block = document.querySelector('[data-evid="evR1"]');
+		const daycol = document.querySelector('.cal-daycol[data-date="2026-01-12"]');
+		const fakeStartEvt = { item: block, from: daycol, originalEvent: { clientY: 300 } };
+		calOnDragStart(fakeStartEvt);
+		const ghost = document.querySelector('.cal-resize-ghost');
+		const existedDuringDrag = !!ghost;
+		const blockOpacityDuringDrag = block.style.opacity;
+		const fakeEndEvt = { item: block, to: daycol, from: daycol, originalEvent: { clientY: 300 } };
+		calOnDragEnd(fakeEndEvt);
+		const existsAfterDrop = !!document.querySelector('.cal-resize-ghost');
+		const blockOpacityAfterDrop = block.style.opacity;
+		return { existedDuringDrag, existsAfterDrop, blockOpacityDuringDrag, blockOpacityAfterDrop };
+	});
+	const moveGhostTestResult = {
+		ghostExistsDuringMoveDrag: moveGhostTest.existedDuringDrag,
+		ghostRemovedAfterMoveDrop: !moveGhostTest.existsAfterDrop,
+		blockSemiTransparentDuringMoveDrag: (function () { const n = parseFloat(moveGhostTest.blockOpacityDuringDrag); return !isNaN(n) && n < 1; })(),
+		blockOpacityRestoredAfterMoveDrop: moveGhostTest.blockOpacityAfterDrop === ''
 	};
 
 	// =====================================================================
@@ -265,7 +298,7 @@ async function dragResizeHandle(page, evid, targetClientY, edge) {
 		};
 	});
 
-	const combined = { filterTest, resizeTest, lockedTest, midnightClampTest, tinyMoveTest, topEdgeTest, ghostTest, cssTest, logTest };
+	const combined = { filterTest, resizeTest, lockedTest, midnightClampTest, tinyMoveTest, topEdgeTest, ghostTest, moveGhostTestResult, cssTest, logTest };
 	console.log(JSON.stringify(combined, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));

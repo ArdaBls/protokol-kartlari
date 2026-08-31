@@ -387,8 +387,13 @@
 				else if (tab === "test") loadAdminTestPanel();
 				else if (tab === "stats") loadAdminStats();
 				else if (tab === "logs") { loadAdminLogs(); loadTestModeLog(); }
-				// field-ops/editorial/hierarchy/integrity/dictionary/backup/dashboard: henüz
-				// yükleyici fonksiyonları yok (iskelet aşaması), view "yakında" placeholder gösteriyor.
+				else if (tab === "dashboard") loadAdminDashboard();
+				else if (tab === "field-ops") loadFieldOps();
+				else if (tab === "editorial") loadEditorial();
+				else if (tab === "hierarchy") loadHierarchy();
+				else if (tab === "integrity") loadIntegrity();
+				// dictionary/backup: henüz yükleyici fonksiyonları yok (sonraki aşama), view
+				// "yakında" placeholder gösteriyor.
 			}
 			// Sidebar akordeon: AdminLTE'nin treeview.ts'indeki "accordion:true" davranışının vanilla
 			// portu -- Bootstrap/TS alınmadı, sadece mantık: bir grup açılınca diğerleri kapanır.
@@ -485,6 +490,202 @@
 						'<div class="admin-stats-section"><h4>En Çok Etkinlik Düzenleyen Birimler</h4>' + (Object.keys(birimCounts).length ? barsHtml(topList(birimCounts), events.length) : '<p class="admin-user-empty">Birim bilgisi girilmemiş.</p>') + '</div>' +
 						'<div class="admin-stats-section"><h4>Basın Görevlisi Bazında Takip</h4>' + (Object.keys(gorevliCounts).length ? barsHtml(topList(gorevliCounts), events.length) : '<p class="admin-user-empty">Basın görevlisi atanmamış.</p>') + '</div>' +
 					'</div>';
+			}
+
+			// ---- Faz 9 Part B adım 3: salt-okuma sekmeleri (dashboard/field-ops/editorial/
+			// hierarchy/integrity) ortak yardımcıları ----
+			// `people` global'i TEK bir listeye (currentListKey) bağlı (attachListener()), il+
+			// üniversite ikisini BİRDEN taramak isteyen sekmeler loadAdminOverview()'daki gibi
+			// kendi ayrı fetch'ini yapmak zorunda. id'ler korunur (Object.keys), çünkü ileride bir
+			// kayda link vermek/aksiyon almak için gerekebilir.
+			function fetchAllPeople() {
+				if (!database) return Promise.resolve({ il: [], universite: [] });
+				return Promise.all([
+					database.ref(dbPath("ilProtokolVerileri")).once("value"),
+					database.ref(dbPath("universiteProtokolVerileri")).once("value")
+				]).then(function(snaps) {
+					function toArr(snap, listKey) {
+						const v = snap.val() || {};
+						return Object.keys(v).map(function(id) { return Object.assign({ _id: id, _list: listKey }, v[id]); });
+					}
+					return { il: toArr(snaps[0], "il"), universite: toArr(snaps[1], "universite") };
+				});
+			}
+			function statBarHtml(rows, total) {
+				return rows.map(function(r) {
+					const pct = total ? Math.round((r.n / total) * 100) : 0;
+					return '<div class="stats-bar-row"><span class="stats-bar-label">' + escapeHtml(r.k) + '</span>' +
+						'<div class="stats-bar-track"><div class="stats-bar-fill" style="width:' + pct + '%;"></div></div>' +
+						'<span class="stats-bar-count">' + r.n + '</span></div>';
+				}).join("");
+			}
+			// ReUI referansı (görsel desen, kod alınmadı): tek çubuk, kategori sayısı kadar renkli
+			// segment + altında nokta+etiket+yüzde lejantı.
+			function statSegmentedBarHtml(segments, colors) {
+				const total = segments.reduce(function(s, seg) { return s + seg.n; }, 0) || 1;
+				const bar = segments.map(function(seg, i) {
+					const pct = (seg.n / total) * 100;
+					if (!pct) return "";
+					return '<span style="flex:' + pct + ' 0 0; background:' + (colors[i] || "var(--muted)") + ';"></span>';
+				}).join("");
+				const legend = segments.map(function(seg, i) {
+					return '<span class="stat-bar-legend-item"><span class="stat-bar-legend-dot" style="background:' + (colors[i] || "var(--muted)") + ';"></span>' + escapeHtml(seg.k) + ': ' + seg.n + '</span>';
+				}).join("");
+				return '<div class="stat-bar">' + bar + '</div><div class="stat-bar-legend">' + legend + '</div>';
+			}
+			function daysSince(ts) { return ts ? Math.floor((Date.now() - ts) / 86400000) : null; }
+
+			// ---- dashboard: "acil" kart grid'i ----
+			async function loadAdminDashboard() {
+				if (!requireAdmin()) return;
+				const box = document.getElementById("adminDashboardBody");
+				if (!box) return;
+				box.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				const [peopleData] = await Promise.all([fetchAllPeople()]);
+				const uniActive = peopleData.universite.filter(function(p) { return p.status === "aktif"; });
+				const unitNames = FACULTY_GROUPS.filter(function(g) { return g.title !== "Rektörlük"; }).reduce(function(a, g) { return a.concat(g.items); }, []);
+				const occupiedUnits = new Set();
+				uniActive.forEach(function(p) { (p.faculties || []).forEach(function(f) { occupiedUnits.add(f); }); });
+				const vacantUnits = unitNames.filter(function(u) { return !occupiedUnits.has(u); });
+
+				const draftEvents = Object.values(calEvents || {}).filter(function(e) { return e && e.ad === QUICK_DRAFT_NAME; });
+				const staleDrafts = draftEvents.filter(function(e) { return daysSince(e.olusturmaTs) >= 1; });
+
+				const today = todayDate();
+				const archiveMissing = Object.values(calEvents || {}).filter(function(e) {
+					if (!e || !e.tarih) return false;
+					if (e.durum !== "cekildi" && e.durum !== "haber" && e.durum !== "yayinlandi") return false;
+					const d = parseKey(e.tarih); if (!d || d >= today) return false;
+					return !e.arsiv;
+				});
+
+				function cardHtml(icon, count, label, tone) {
+					return '<div class="dash-alert-card' + (tone ? " " + tone : "") + '"><span class="dash-alert-num">' + count + '</span><span class="dash-alert-label">' + escapeHtml(label) + '</span></div>';
+				}
+				box.innerHTML = '<div class="dash-alert-grid">' +
+					cardHtml("📡", staleDrafts.length, "24s+ Bekleyen Taslak", staleDrafts.length ? "ak-warn" : "") +
+					cardHtml("🏛️", vacantUnits.length, "Boş Kadro (Birim)", vacantUnits.length ? "ak-warn" : "") +
+					cardHtml("📰", archiveMissing.length, "Arşiv Linki Eksik Etkinlik", archiveMissing.length ? "ak-warn" : "") +
+					'</div>' +
+					(draftEvents.length ? '<h4 class="dash-alert-subhead">Bekleyen Taslaklar</h4><div class="stat-expiry-list">' + draftEvents.map(function(e) {
+						const days = daysSince(e.olusturmaTs);
+						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 1 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(fmtTrDate(e.tarih)) + ' ' + escapeHtml(e.saat || "") + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + e._id + '\')">Düzenle</button></div>';
+					}).join("") + '</div>' : "");
+			}
+
+			// ---- field-ops: bekleyen taslak etkinlikler + personel iş yükü ----
+			function loadFieldOps() {
+				if (!requireAdmin()) return;
+				const box = document.getElementById("adminFieldOpsBody");
+				if (!box) return;
+				const draftEvents = Object.values(calEvents || {}).filter(function(e) { return e && e.ad === QUICK_DRAFT_NAME; })
+					.sort(function(a, b) { return (a.olusturmaTs || 0) - (b.olusturmaTs || 0); });
+				const workload = {};
+				Object.values(calEvents || {}).forEach(function(e) { parseGorevliString(e && e.gorevli).forEach(function(name) { workload[name] = (workload[name] || 0) + 1; }); });
+				const workloadRows = Object.keys(workload).map(function(k) { return { k: k, n: workload[k] }; }).sort(function(a, b) { return b.n - a.n; });
+				const workloadTotal = workloadRows.reduce(function(s, r) { return s + r.n; }, 0);
+				box.innerHTML =
+					'<h4 class="dash-alert-subhead">Bekleyen Taslaklar (' + draftEvents.length + ')</h4>' +
+					(draftEvents.length ? '<div class="stat-expiry-list">' + draftEvents.map(function(e) {
+						const days = daysSince(e.olusturmaTs);
+						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 1 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(fmtTrDate(e.tarih)) + ' ' + escapeHtml(e.saat || "") + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + e._id + '\')">Düzenle</button></div>';
+					}).join("") + '</div>' : '<p class="admin-user-empty">Bekleyen taslak yok.</p>') +
+					'<h4 class="dash-alert-subhead">Personel İş Yükü (görevlendirme sayısı)</h4>' +
+					(workloadRows.length ? statBarHtml(workloadRows, workloadTotal) : '<p class="admin-user-empty">Görevli ataması yok.</p>');
+			}
+
+			// ---- editorial: haber SLA + ajans dağılımı ----
+			function loadEditorial() {
+				if (!requireAdmin()) return;
+				const box = document.getElementById("adminEditorialBody");
+				if (!box) return;
+				const events = Object.values(calEvents || {});
+				const pendingNews = events.filter(function(e) { return e.durum === "cekildi"; })
+					.sort(function(a, b) { return (a.guncellemeTs || 0) - (b.guncellemeTs || 0); });
+				const agencyCounts = {};
+				events.forEach(function(e) { if (e.haberKaynagi) agencyCounts[e.haberKaynagi] = (agencyCounts[e.haberKaynagi] || 0) + 1; });
+				const agencyRows = Object.keys(agencyCounts).map(function(k) { return { k: k, n: agencyCounts[k] }; });
+				const agencyColors = { "İHA": "#1d4ed8", "AA": "#b45309", "DHA": "#15803d", "ANKA": "#7c3aed" };
+				box.innerHTML =
+					'<h4 class="dash-alert-subhead">Haber Bekleyen (Gerçekleşti → Haber Yazılmadı), en eski önce</h4>' +
+					(pendingNews.length ? '<div class="stat-expiry-list">' + pendingNews.slice(0, 15).map(function(e) {
+						const days = daysSince(e.guncellemeTs);
+						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 3 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(e.ad || "(adsız)") + ' · ' + escapeHtml(fmtTrDate(e.tarih)) + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + e._id + '\')">Düzenle</button></div>';
+					}).join("") + '</div>' +
+					'<p class="hint" style="margin-top:6px;">Süre, kaydın son güncellenme zamanından yaklaşık hesaplanır (durum değişim anı ayrıca tutulmuyor).</p>' : '<p class="admin-user-empty">Bekleyen haber yok.</p>') +
+					'<h4 class="dash-alert-subhead">Ajans Dağılımı</h4>' +
+					(agencyRows.length ? statSegmentedBarHtml(agencyRows, agencyRows.map(function(r) { return agencyColors[r.k]; })) : '<p class="admin-user-empty">Ajans bilgisi girilmemiş.</p>');
+			}
+
+			// ---- hierarchy: boş kadro + vekil taraması + rank çelişkisi ----
+			async function loadHierarchy() {
+				if (!requireAdmin()) return;
+				const box = document.getElementById("adminHierarchyBody");
+				if (!box) return;
+				box.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				const peopleData = await fetchAllPeople();
+				const uniActive = peopleData.universite.filter(function(p) { return p.status === "aktif"; });
+				const unitNames = FACULTY_GROUPS.filter(function(g) { return g.title !== "Rektörlük"; }).reduce(function(a, g) { return a.concat(g.items); }, []);
+				const occupied = {};
+				uniActive.forEach(function(p) { (p.faculties || []).forEach(function(f) { occupied[f] = (occupied[f] || 0) + 1; }); });
+				const vacant = unitNames.filter(function(u) { return !occupied[u]; });
+
+				const vekilRe = /vekil|\bv\.\s*$/i;
+				const vekilList = uniActive.filter(function(p) { return vekilRe.test(p.title || ""); });
+
+				// Rank çok üst (1-5) ama unvan METNİ TITLE_HIERARCHY'de junior okunuyorsa (ör.
+				// "Araştırma Görevlisi") ya rank hatalı girilmiş ya unvan güncellenmemiş demektir.
+				const mismatches = uniActive.filter(function(p) {
+					const r = Number(p.rank);
+					if (!r || r > 5 || isCentralAdminPerson(p)) return false;
+					const tw = getTitleWeight(p.title);
+					return tw === null || tw >= 13;
+				});
+
+				box.innerHTML =
+					'<div class="dash-alert-grid">' +
+					'<div class="dash-alert-card' + (vacant.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + vacant.length + '</span><span class="dash-alert-label">Boş Kadro</span></div>' +
+					'<div class="dash-alert-card' + (vekilList.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + vekilList.length + '</span><span class="dash-alert-label">Vekâleten Görev</span></div>' +
+					'<div class="dash-alert-card' + (mismatches.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + mismatches.length + '</span><span class="dash-alert-label">Rank/Unvan Uyuşmazlığı</span></div>' +
+					'</div>' +
+					'<h4 class="dash-alert-subhead">Boş Kadrolar (' + vacant.length + ')</h4>' +
+					(vacant.length ? '<div class="stat-expiry-list">' + vacant.map(function(u) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(u) + '</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Tüm birimlerde en az bir aktif kayıt var.</p>') +
+					'<h4 class="dash-alert-subhead">Vekâleten Görevler</h4>' +
+					(vekilList.length ? '<div class="stat-expiry-list">' + vekilList.map(function(p) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(p.name || "") + ' — ' + escapeHtml(p.title || "") + '</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>') +
+					'<h4 class="dash-alert-subhead">Rank/Unvan Uyuşmazlığı</h4>' +
+					(mismatches.length ? '<div class="stat-expiry-list">' + mismatches.map(function(p) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(p.name || "") + ' — sıra ' + escapeHtml(String(p.rank)) + ', unvan: ' + escapeHtml(p.title || "(boş)") + '</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>');
+			}
+
+			// ---- integrity: eksik fotoğraf + mükerrer isim + doğrulama tazeliği ----
+			async function loadIntegrity() {
+				if (!requireAdmin()) return;
+				const box = document.getElementById("adminIntegrityBody");
+				if (!box) return;
+				box.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				const peopleData = await fetchAllPeople();
+				const allActive = peopleData.il.concat(peopleData.universite).filter(function(p) { return p.status === "aktif"; });
+
+				const missingPhoto = allActive.filter(function(p) { return !p.photo; });
+
+				const byName = {};
+				allActive.forEach(function(p) { const key = (p.name || "").trim().toLocaleLowerCase("tr-TR"); if (!key) return; (byName[key] = byName[key] || []).push(p); });
+				const duplicates = Object.keys(byName).map(function(k) { return byName[k]; }).filter(function(arr) { return arr.length > 1; });
+
+				const freshCounts = { green: 0, yellow: 0, red: 0 };
+				allActive.forEach(function(p) { freshCounts[getFreshnessInfo(p).level]++; });
+				const freshSegments = [{ k: "Güncel", n: freshCounts.green }, { k: "90+ Gün", n: freshCounts.yellow }, { k: "Hiç/1 Yıl+", n: freshCounts.red }];
+				const freshColors = ["#15803d", "#b45309", "#b03a3a"];
+
+				box.innerHTML =
+					'<div class="dash-alert-grid">' +
+					'<div class="dash-alert-card' + (missingPhoto.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + missingPhoto.length + '</span><span class="dash-alert-label">Fotoğrafsız Kayıt</span></div>' +
+					'<div class="dash-alert-card' + (duplicates.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + duplicates.length + '</span><span class="dash-alert-label">Mükerrer İsim</span></div>' +
+					'</div>' +
+					'<h4 class="dash-alert-subhead">Doğrulama Tazeliği</h4>' + statSegmentedBarHtml(freshSegments, freshColors) +
+					'<h4 class="dash-alert-subhead">Fotoğrafsız Kayıtlar (' + missingPhoto.length + ')</h4>' +
+					(missingPhoto.length ? '<div class="stat-expiry-list">' + missingPhoto.slice(0, 30).map(function(p) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(p.name || "") + ' (' + (p._list === "il" ? "İl" : "Üniversite") + ')</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>') +
+					'<h4 class="dash-alert-subhead">Mükerrer İsimler (' + duplicates.length + ')</h4>' +
+					(duplicates.length ? '<div class="stat-expiry-list">' + duplicates.map(function(arr) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(arr[0].name || "") + ' — ' + arr.length + ' kayıt (' + arr.map(function(p) { return p._list === "il" ? "İl" : "Üniversite"; }).join(", ") + ')</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>');
 			}
 
 			function loadAdminLogs() {
@@ -948,6 +1149,7 @@
 			// cunku surukleme click'ten once (pointerdown) baslamak zorunda.
 			document.getElementById('calendarOverlay').addEventListener('pointerdown', function(e) {
 				calStartResizeGesture(e);
+				calStartGridSelectGesture(e); // Faz 9 Part D -- kendi guard'i (.cal-block/.cal-resize-handle disi) sayesinde resize/move ile CAKISMAZ
 			});
 
 			// Gun/hafta gorunumunde sola/saga kaydirarak gune-haftaya gecis -- kullanici usttteki
@@ -1133,6 +1335,7 @@
 					// kendi eski referanslarını off() ile bırakıp yenisine geçer, sayfa yenilenmez).
 					attachListener();
 					attachEventsListener();
+					attachLiveSelectionListener();
 				}, function(err) { console.error("Test modu durumu okunamadı:", err); });
 			}
 			function updateTestModeBanner() {
@@ -3540,6 +3743,61 @@ function attachEventsListener(){
 	};
 	activeEventsListenerRef.on("value", activeEventsListenerCallback, activeEventsListenerErrCallback);
 }
+// Faz 9 Part D: projede İLK ephemeral/canlı-durum (presence) dinleyicisi -- diger
+// kullanicilarin O AN suruklemekte oldugu "yeni etkinlik olustur" secimini gosterir.
+// attachEventsListener()'in AYNI deseni (off/on, dbPath ile test-modu farkindaligi).
+let activeLiveSelectionRef = null, activeLiveSelectionCallback = null;
+// uid -> o kullanicinin DOM'daki .cal-create-select.is-remote elemani -- her snapshot'ta
+// hangi uid'lerin ARTIK kaybolduğunu (silueti kaldirmak icin) bilmek amacli.
+let calRemoteSelectionEls = {};
+function attachLiveSelectionListener(){
+	if(!database) return;
+	if(activeLiveSelectionRef && activeLiveSelectionCallback) { activeLiveSelectionRef.off("value", activeLiveSelectionCallback); }
+	activeLiveSelectionRef = database.ref(dbPath("canliTakvimSecim"));
+	activeLiveSelectionCallback = function(snap){
+		renderRemoteLiveSelections(snap.val() || {});
+	};
+	activeLiveSelectionRef.on("value", activeLiveSelectionCallback, function(err){ console.error("canliTakvimSecim okunamadı:", err); });
+}
+// KENDI surukleme jestimizi KESMEMEK icin bu fonksiyon renderCalendar()'in TAMAMINI asla
+// tetiklemez -- sadece diger kullanicilarin .cal-daycol'larina izole DOM ekleme/guncelleme/
+// kaldirma yapar. calendarOverlay kapaliysa veya gorunum gun/hafta degilse hicbir sey yapmaz
+// (Part D'nin "v1: sadece saat izgarasi" kapsam karariyla tutarli).
+function renderRemoteLiveSelections(liveMap){
+	const overlay = document.getElementById("calendarOverlay");
+	const isGridView = overlay && overlay.classList.contains("open") && (calView === "day" || calView === "week");
+	const myUid = currentUser && currentUser.uid;
+	const seenUids = new Set();
+	if(isGridView){
+		Object.keys(liveMap).forEach(function(uid){
+			if(uid === myUid) return; // kendi surukleme onizlememiz zaten yerel .cal-create-select ile gosteriliyor
+			const sel = liveMap[uid];
+			if(!sel || !sel.tarih || !sel.saat) return;
+			const daycol = document.querySelector('.cal-daycol[data-date="'+sel.tarih+'"]');
+			if(!daycol) return; // bu tarih su an gorunen hafta/gun disinda
+			seenUids.add(uid);
+			const startMin = hmToMin(sel.saat), endMin = hmToMin(sel.bitisSaat) || startMin;
+			if(startMin === null) return;
+			let el = calRemoteSelectionEls[uid];
+			if(!el || el.parentElement !== daycol){
+				if(el) el.remove();
+				el = document.createElement("div");
+				el.className = "cal-create-select is-remote";
+				daycol.appendChild(el);
+				calRemoteSelectionEls[uid] = el;
+			}
+			el.style.top = ((startMin/60)*CAL_HOUR_H)+"px";
+			el.style.height = Math.max(18, ((endMin-startMin)/60)*CAL_HOUR_H)+"px";
+			// textContent zaten guvenli (HTML olarak yorumlanmaz) -- escapeHtml burada GEREKMEZ,
+			// aksine cift kacisa (ekranda "&amp;" gibi yanlis karakterlere) yol acardi.
+			el.textContent = (sel.ad || "Bir kullanıcı") + " · " + sel.saat + "–" + (sel.bitisSaat||sel.saat);
+		});
+	}
+	// Artik canli listede olmayan (jest bitti/baglanti koptu) uid'lerin silueti kaldirilir.
+	Object.keys(calRemoteSelectionEls).forEach(function(uid){
+		if(!seenUids.has(uid)){ calRemoteSelectionEls[uid].remove(); delete calRemoteSelectionEls[uid]; }
+	});
+}
 
 function calEventList(){
 	const out=[];
@@ -4200,7 +4458,11 @@ function renderWeekView(body){
 // Boş ızgaraya tıklayınca o saate yeni etkinlik açılır (Notion'daki gibi).
 // col: gercek .cal-daycol elemani -- delegated listener'dan geldigi icin artik e.currentTarget'a
 // GUVENILEMEZ (o, dinleyicinin baglandigi #calendarOverlay olur), col acikca parametre olarak gecilir.
+// Faz 9 Part D: gercek bir surukle-secim (calStartGridSelectGesture) TAMAMLANDIYSA bu KISA
+// tik-fallback DEVRE DISI kalir -- calGridSelectSuppressClick bayragi (asagida) tek-seferlik
+// olarak set edilir, boylece ayni pointerup/click ciftinde iki modal ust uste ACILMAZ.
 function calGridClick(e, dateKey, col){
+	if(calGridSelectSuppressClick){ calGridSelectSuppressClick=false; return; }
 	if(!canEditData()) return;
 	if(e.target.closest(".cal-block")) return;
 	const rect=col.getBoundingClientRect();
@@ -4429,6 +4691,10 @@ let calDragGrabOffsetY = 0;
 // calDragActive: bir etkinlik suruklemesi gercekten basladiginda true -- gun/hafta swipe-ile-gezinme
 // dinleyicisi (bkz. calendarOverlay touchstart/touchend) bununla cakismamak icin bu bayragi kontrol eder.
 let calDragActive = false;
+// Kullanici istegi: tasirken de (gun/saat degistirme) resize'daki AYNI silik "hayalet" -- eski
+// konumu gosterir, birakinca kaybolur. SortableJS suruklenen dugumu FIZIKSEL olarak hedef listeye
+// TASIDIGI icin orijinal konum sadece BURADA (onStart, evt.from hala eski sutunken) yakalanabilir.
+let calDragMoveGhost = null;
 function calOnDragStart(evt){
 	calDragActive = true;
 	calDragGrabOffsetY = 0;
@@ -4437,6 +4703,23 @@ function calOnDragStart(evt){
 		const r = evt.item.getBoundingClientRect();
 		calDragGrabOffsetY = xy.y - r.top;
 	}
+	// Sadece saat izgarasindan (.cal-daycol) baslayan suruklemelerde -- tum-gun/ay gorunumu
+	// bu deseni almiyor (resize'daki "v1: sadece saat izgarasi" kapsam karariyla tutarli).
+	const id = evt.item && evt.item.dataset ? evt.item.dataset.evid : null;
+	const ev = id ? calEvents[id] : null;
+	if (ev && evt.from && evt.from.classList && evt.from.classList.contains("cal-daycol")) {
+		const ghost = document.createElement("div");
+		ghost.className = "cal-block cal-resize-ghost" + (evt.item.classList.contains("compact") ? " compact" : "");
+		ghost.setAttribute("style", evt.item.getAttribute("style"));
+		ghost.innerHTML = '<span class="bt">'+escapeHtml(ev.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(ev.saat||"")+(ev.bitisSaat?"–"+escapeHtml(ev.bitisSaat):"")+'</span>';
+		evt.from.appendChild(ghost);
+		calDragMoveGhost = ghost;
+	}
+	// Kullanici istegi: hareket eden blogun kendisi opak oldugu icin altindaki hayaleti (ozellikle
+	// buyuyen/genisleyen yonde) tamamen kapatiyordu -- suruklenen/resize edilen blok gecici olarak
+	// yari saydam yapilir, hayalet HER ZAMAN gorunur kalir (resize icin calStartResizeGesture'da
+	// AYNI duzeltme uygulanir).
+	if (evt.item) evt.item.style.opacity = "0.55";
 }
 async function calMoveEvent(id, dateKey, timeInfo){
 	if(!id || !calEvents[id] || !requireEdit()) return;
@@ -4493,6 +4776,95 @@ async function calResizeEvent(id, patch){
 	// haline dondurur, ayri bir "geri al" kodu gerekmez.
 	renderCalendar();
 }
+// Faz 9 Part D: bos saat izgarasinda basili tutup surukleyerek yeni etkinlik icin saat
+// araligi SECME jesti (Windows masaustundeki mavi "rubber-band select" kutusuna kullanici
+// isteği benzetmesi). calStartResizeGesture ile AYNI pointerdown dinleyicisine bagli
+// (bkz. #calendarOverlay listener) -- kendi guard'i (.cal-block/.cal-resize-handle DISI)
+// sayesinde resize/move jestleriyle CAKISMAZ. Kisa bir tiklama (<3px) ise hicbir sey
+// yapmadan cikar, mevcut calGridClick() (tek-tikla-olustur, click event'inde tetiklenir)
+// eski davranisiyla DEVAM eder -- degisiklik yok, sadece GERCEK bir surukleme onu suppress eder.
+let calGridSelectSuppressClick = false;
+function calStartGridSelectGesture(e){
+	if(e.target.closest(".cal-resize-handle")) return; // resize'a birak
+	if(e.target.closest(".cal-block")) return; // mevcut etkinligin uzerinde -- move-drag'e (SortableJS) birak
+	const daycol=e.target.closest(".cal-daycol");
+	if(!daycol) return;
+	if(!canEditData()) return; // calGridClick'teki AYNI sessiz guard (toast yok)
+	const dateKey=daycol.dataset.date;
+	if(!dateKey) return;
+	const pointerId=e.pointerId;
+	daycol.setPointerCapture(pointerId);
+	const rect=daycol.getBoundingClientRect();
+	function minsFromY(y){
+		// 15dk snap -- resize'in 5dk'sindan kaba (bu sadece kaba bir ilk secim, ince ayar
+		// modalde yapilir), tek-tikin 30dk'sindan ince ("kaba secim, ince ayar modalde" dengesi).
+		let m=Math.round(((y-rect.top)/CAL_HOUR_H)*60/15)*15;
+		return Math.max(0,Math.min(24*60,m));
+	}
+	const anchorMin=minsFromY(e.clientY);
+	let startMin=anchorMin, endMin=anchorMin;
+	let moved=false;
+	let lastBroadcastTs=0, liveOnDisconnectSet=false;
+
+	const ghost=document.createElement("div");
+	ghost.className="cal-create-select";
+	daycol.appendChild(ghost);
+	function applyLive(){
+		ghost.style.top=((startMin/60)*CAL_HOUR_H)+"px";
+		ghost.style.height=Math.max(18, ((endMin-startMin)/60)*CAL_HOUR_H)+"px";
+		ghost.textContent=minToHm(startMin)+"–"+minToHm(endMin);
+	}
+	applyLive();
+
+	function broadcastLive(){
+		// Kullanici istegi: "diger kullanicilar da ... silueti gorsunler ben yaparken" -- projede
+		// ILK ephemeral/presence yazimi. Throttle'li (>=150ms) -- her pointermove'da yazmak
+		// Firebase'i gereksiz yere doldururdu. onDisconnect().remove() SADECE ilk yazimdan sonra
+		// BIR KEZ kurulur -- sekme kapanirsa/baglanti koparsa silis OTOMATIK temizlenir.
+		if(!database || !currentUser || !currentUser.uid) return;
+		const now=Date.now();
+		if(now-lastBroadcastTs<150) return;
+		lastBroadcastTs=now;
+		const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
+		liveRef.set({
+			ad: (currentUser.firstName||currentUser.email||"Bir kullanıcı"),
+			tarih: dateKey, saat: minToHm(startMin), bitisSaat: minToHm(endMin),
+			ts: firebase.database.ServerValue.TIMESTAMP
+		}).catch(function(){});
+		if(!liveOnDisconnectSet){ liveOnDisconnectSet=true; liveRef.onDisconnect().remove(); }
+	}
+	function clearLiveBroadcast(){
+		if(!database || !currentUser || !currentUser.uid || !liveOnDisconnectSet) return;
+		const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
+		liveRef.remove().catch(function(){});
+		liveRef.onDisconnect().cancel();
+	}
+
+	function onMove(e2){
+		if(e2.pointerId!==pointerId) return;
+		if(Math.abs(e2.clientY-e.clientY)>3) moved=true;
+		const curMin=minsFromY(e2.clientY);
+		if(curMin<anchorMin){ startMin=curMin; endMin=Math.max(anchorMin, curMin+15); }
+		else { startMin=anchorMin; endMin=Math.max(anchorMin+15, curMin); }
+		applyLive();
+		if(moved) broadcastLive();
+	}
+	function onUp(e2){
+		if(e2.pointerId!==pointerId) return;
+		try{ daycol.releasePointerCapture(pointerId); }catch(err){}
+		window.removeEventListener("pointermove", onMove);
+		window.removeEventListener("pointerup", onUp);
+		window.removeEventListener("pointercancel", onUp);
+		ghost.remove();
+		clearLiveBroadcast();
+		if(!moved) return; // kisa tiklama -- calGridClick'in eski tek-tik davranisi CALISMAYA devam etsin
+		calGridSelectSuppressClick=true; // ayni pointerup/click ciftinde calGridClick TEKRAR acmasin
+		openEventModal(null, dateKey, minToHm(startMin), minToHm(endMin));
+	}
+	window.addEventListener("pointermove", onMove);
+	window.addEventListener("pointerup", onUp);
+	window.addEventListener("pointercancel", onUp);
+}
 // pointerdown/move/up ile calisan, SortableJS'ten TAMAMEN bagimsiz, kendi kendine yeten bir
 // jest. Pointer Events mouse+dokunmatigi tek API'de birlestirdigi icin (setPointerCapture)
 // ayri bir touch/mouse dali YAZILMADI -- SortableJS'in touch/mouse'u ayri ele almasi KENDI
@@ -4534,6 +4906,10 @@ function calStartResizeGesture(e){
 	ghost.setAttribute("style", block.getAttribute("style"));
 	ghost.innerHTML='<span class="bt">'+escapeHtml(ev.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(ev.saat||"")+"–"+escapeHtml(minToHm(Math.min(24*60-1,origEndMin)))+'</span>';
 	daycol.appendChild(ghost);
+	// Kullanici istegi: block opak oldugu icin (ozellikle BUYUYEN yonde) altindaki hayaleti
+	// tamamen kapatiyordu -- gecici yari saydamlik, hayalet boyut iliskisinden BAGIMSIZ HER ZAMAN
+	// gorunur kalsin diye (calOnDragStart'taki AYNI duzeltme, tasima suruklemesi icin).
+	block.style.opacity="0.55";
 
 	function applyLive(){
 		block.style.top=((startMin/60)*CAL_HOUR_H)+"px";
@@ -4568,6 +4944,7 @@ function calStartResizeGesture(e){
 		window.removeEventListener("pointerup", onUp);
 		window.removeEventListener("pointercancel", onUp);
 		ghost.remove(); // "ama bırakınca gitsin silüet"
+		block.style.opacity="";
 		if(!moved) return; // yanlislikla tiklama -- degisiklik yok, kaydetmeye gerek yok
 		// 24*60-1 (23:59) ile kelepceleniyor, TAM 24*60 degil -- minToHm(1440) "00:00" donup
 		// (Math.floor(1440/60)%24===0) bitis saatini yanlislikla GUN BASI gibi gostermesin diye.
@@ -4584,6 +4961,10 @@ function calStartResizeGesture(e){
 function calOnDragEnd(evt){
 	calDragActive = false;
 	calDragLastXY=null; // her surukleme sonunda sifirla, bir sonraki icin yeni izlemeye basla
+	// Hayalet/opaklik HER durumda (asagidaki erken return'ler dahil) temizlenir -- kalici
+	// yari-saydam blok ya da ekranda unutulmus hayalet birakmamak icin en basta yapilir.
+	if (calDragMoveGhost) { calDragMoveGhost.remove(); calDragMoveGhost = null; }
+	if (evt.item) evt.item.style.opacity = "";
 	// calMoveEvent() bazen ERKEN doner (gercek bir degisiklik yoksa) ve renderCalendar()
 	// CAGIRMAZ -- bu durumda calOnDragMove()'un son eklemis olabilecegi .cal-block-cross-preview
 	// sinifi kalici kalmasin diye burada da guvenlik agi olarak temizlenir.
@@ -4715,7 +5096,7 @@ function safeLinkUrl(u){
 }
 
 /* --- Etkinlik ekle / düzenle --- */
-function openEventModal(id, presetDate, presetTime){
+function openEventModal(id, presetDate, presetTime, presetEndTime){
 	if(!requireEdit()) return;
 	calEditingId=id||null;
 	const form=document.getElementById("eventForm"); form.reset();
@@ -4740,7 +5121,7 @@ function openEventModal(id, presetDate, presetTime){
 	})();
 	document.getElementById("ev_tarih").value = e ? (e.tarih||"") : (presetDate || dKey(calAnchor));
 	document.getElementById("ev_saat").value = e ? (e.saat||"") : (presetTime || "");
-	document.getElementById("ev_bitisSaat").value = e ? (e.bitisSaat||"") : "";
+	document.getElementById("ev_bitisSaat").value = e ? (e.bitisSaat||"") : (presetEndTime || "");
 	document.getElementById("ev_yer").value = e ? (e.yer||"") : "";
 	document.getElementById("ev_birim").value = e ? (e.birim||"") : "";
 	document.getElementById("ev_planlayan").value = e ? (e.planlayan||"") : "";
@@ -5433,6 +5814,7 @@ function generateNewsFromEvent(){
 		// Takvim dinleyicisi, ilgili let değişkenleri tanımlandıktan SONRA başlatılır.
 		// Haber şablonları artık admin panelinden düzenlenmiyor; doğrudan DEFAULT_NEWS_TEMPLATES kullanılır.
 		attachEventsListener();
+		attachLiveSelectionListener();
 		attachTestModeListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();

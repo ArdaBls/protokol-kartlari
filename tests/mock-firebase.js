@@ -57,7 +57,18 @@
 				return Promise.resolve();
 			},
 			remove: function () {
+				window.__mockRemoves = window.__mockRemoves || [];
+				window.__mockRemoves.push({ path: path });
 				return Promise.resolve();
+			},
+			// calendar-create-select-test.js: canliTakvimSecim (Part D) ilk onDisconnect() kullanımı --
+			// gerçek SDK'da her zaman mevcut, mock'ta eksikti (no-op yeterli, ayrılma davranışı test edilmiyor).
+			onDisconnect: function () {
+				return {
+					remove: function () { return Promise.resolve(); },
+					cancel: function () { return Promise.resolve(); },
+					set: function () { return Promise.resolve(); }
+				};
 			},
 			child: function (childPath) {
 				return makeRef(path + "/" + childPath);

@@ -866,24 +866,28 @@
 					</div>
 					<div class="admin-content-card admin-glass">
 						<h2 class="admin-main-title" id="adminMainTitle">Kontrol Paneli</h2>
-						<!-- Faz 9 iskelet: yeni 7 sekmenin gövdesi henüz "yakında" placeholder'ı --
-						     load{X}() fonksiyonları ve gerçek veri sonraki aşamalarda eklenecek
-						     (bkz. .claude/roadmap.md/plan). switchAdminTab() bunları zaten
-						     gösterip/gizleyip nav'da .active yapıyor, tıklanabilir durumdalar. -->
+						<!-- Faz 9 adım 3: dashboard/field-ops/editorial/hierarchy/integrity artık
+						     gerçek veri gösteriyor (load{X}(), app.js) -- her biri kendi *Body div'ini
+						     dolduruyor. dictionary/backup hâlâ placeholder (sonraki aşama). -->
 						<div id="adminDashboardView">
-							<p class="hint">Acil durum kartları (bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler) yakında burada listelenecek.</p>
+							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
+							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminFieldOpsView" style="display:none;">
-							<p class="hint">Saha taslakları ve personel iş yükü matrisi yakında.</p>
+							<p class="hint">Bekleyen saha taslakları ve basın görevlisi iş yükü.</p>
+							<div id="adminFieldOpsBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminEditorialView" style="display:none;">
-							<p class="hint">Haber SLA takibi ve ajans dağılımı yakında.</p>
+							<p class="hint">Haber yazılmayı bekleyen etkinlikler ve ajans dağılımı.</p>
+							<div id="adminEditorialBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminHierarchyView" style="display:none;">
-							<p class="hint">Boş kadro/vekalet/rank uyuşmazlığı taraması yakında.</p>
+							<p class="hint">Üniversite protokol sırasında boş kadro/vekâlet/rank taraması (salt-okunur).</p>
+							<div id="adminHierarchyBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminIntegrityView" style="display:none;">
-							<p class="hint">Eksik fotoğraf ve mükerrer kayıt taraması yakında.</p>
+							<p class="hint">Eksik fotoğraf, mükerrer isim ve doğrulama tazeliği (İl + Üniversite).</p>
+							<div id="adminIntegrityBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminDictionaryView" style="display:none;">
 							<p class="hint">Birim/unvan öneri havuzu birleştirme/silme araçları yakında.</p>
