@@ -1284,6 +1284,7 @@
 			document.getElementById('calendarOverlay').addEventListener('pointerdown', function(e) {
 				calStartResizeGesture(e);
 				calStartGridSelectGesture(e); // Faz 9 Part D -- kendi guard'i (.cal-block/.cal-resize-handle disi) sayesinde resize/move ile CAKISMAZ
+				calStartMultiDayGesture(e); // Faz 11 -- kendi guard'i (.cal-multiday-bar) sayesinde digerleriyle CAKISMAZ
 			});
 
 			// Gun/hafta gorunumunde sola/saga kaydirarak gune-haftaya gecis -- kullanici usttteki
@@ -3861,6 +3862,14 @@ function calDayCount(){
 	if(calView==="day") return 1;
 	return (window.matchMedia && window.matchMedia("(max-width:700px)").matches) ? 3 : 7;
 }
+// renderWeekView()'daki "hangi günler görünüyor" hesabı -- çok günlü etkinlik sürükleme jesti
+// (calStartMultiDayGesture) de AYNI pencereye ihtiyaç duyduğu için tek yere çıkarıldı.
+function calVisibleWeekDays(){
+	const n=calDayCount();
+	const start=(n===7 && calView!=="day") ? startOfWeek(calAnchor) : new Date(calAnchor.getFullYear(),calAnchor.getMonth(),calAnchor.getDate());
+	const days=[]; for(let i=0;i<n;i++) days.push(addDays(start,i));
+	return days;
+}
 
 let calEvents = {};              // { pushKey: etkinlik }
 let calEventsReadErrorShown = false;
@@ -3911,6 +3920,15 @@ function todayDate(){ const n=new Date(); return new Date(n.getFullYear(),n.getM
 function hmToMin(s){ const a=String(s||"").split(":"); if(a.length<2) return null; const h=Number(a[0]), m=Number(a[1]); if(isNaN(h)||isNaN(m)) return null; if(h<0||h>23||m<0||m>59) return null; return h*60+m; }
 function minToHm(m){ return pad2(Math.floor(m/60)%24)+":"+pad2(m%60); }
 function fmtTrDate(s){ const d=parseKey(s); if(!d) return s||""; return d.getDate()+" "+CAL_MONTHS[d.getMonth()]+" "+d.getFullYear(); }
+// Faz 11: çok günlü etkinlik kısa tarih aralığı -- ay/liste görünümünde tek bir günü değil,
+// "12–14 Oca" (aynı ay) veya "28 Oca–2 Şub" (ay değişiyorsa) biçiminde aralığı gösterir.
+function fmtMultiDayRange(tarih, bitisTarihi){
+	const s=parseKey(tarih), e=parseKey(bitisTarihi);
+	if(!s||!e) return "";
+	const sm=CAL_MONTHS[s.getMonth()].slice(0,3), em=CAL_MONTHS[e.getMonth()].slice(0,3);
+	if(s.getMonth()===e.getMonth() && s.getFullYear()===e.getFullYear()) return s.getDate()+"–"+e.getDate()+" "+sm;
+	return s.getDate()+" "+sm+"–"+e.getDate()+" "+em;
+}
 
 /* --- Firebase --- */
 function attachEventsListener(){
@@ -4480,12 +4498,24 @@ function layoutDay(evs){
 	return items;
 }
 
+// layoutDay()'deki (yukarıda) AYNI greedy aralık-kümeleme algoritması -- dakika/sütun yerine
+// gün-indeksi/SATIR eksenine uyarlanmış hali. Çakışan çok-günlü çubukları farklı satırlara
+// dağıtır, her bara mutasyonla .row ekler; toplam kullanılan satır sayısını döner.
+function layoutMultiDayRow(bars){
+	bars.sort(function(a,b){ return a.startIdx-b.startIdx || b.endIdx-a.endIdx; });
+	const rowEnds=[];
+	bars.forEach(function(b){
+		let r=0; while(r<rowEnds.length && rowEnds[r]>=b.startIdx) r++;
+		rowEnds[r]=b.endIdx; b.row=r;
+	});
+	return Math.max(1,rowEnds.length);
+}
+
 function renderWeekView(body){
 	const n=calDayCount();
-	const start = (n===7 && calView!=="day") ? startOfWeek(calAnchor) : new Date(calAnchor.getFullYear(),calAnchor.getMonth(),calAnchor.getDate());
 	const today=todayDate();
 	const cols="grid-template-columns:"+CAL_GUTTER+"px repeat("+n+",minmax(0,1fr));";
-	const days=[]; for(var i=0;i<n;i++) days.push(addDays(start,i));
+	const days=calVisibleWeekDays();
 
 	// başlık satırı
 	let head='<div class="cal-tg-head" style="'+cols+'"><div class="cal-gutter-cell"></div>';
@@ -4495,11 +4525,44 @@ function renderWeekView(body){
 	});
 	head+='</div>';
 
-	// tüm gün şeridi (saati girilmemiş etkinlikler)
+	// Çok günlü etkinlikler (Faz 11) -- görünen hafta/gün penceresiyle kesişen, saat izgarasında
+	// TEK bir güne ait olmayan etkinlikler. Google Calendar'daki gibi ayrı bir çubuk şeridinde,
+	// CSS Grid'in doğal grid-column span'iyle render edilir (.cal-allday zaten display:grid).
+	// Birden fazla çakışan çubuk varsa layoutDay()'deki (yukarıda) AYNI greedy aralık-kümeleme
+	// algoritması SATIR eksenine uyarlanır (layoutMultiDayRow()) -- yeni bir bin-packing icat
+	// edilmez. Görünen pencerenin dışına taşan uçlar kelepçelenir, .continues-left/-right ok
+	// ipucuyla ("devam ediyor") işaretlenir.
+	const viewFrom=dKey(days[0]), viewTo=dKey(days[days.length-1]);
+	const multiDayBars = calVisibleEvents().filter(function(e){
+		return e.bitisTarihi && e.bitisTarihi!==e.tarih && e.tarih<=viewTo && e.bitisTarihi>=viewFrom;
+	}).map(function(e){
+		const s=parseKey(e.tarih), en=parseKey(e.bitisTarihi);
+		const rawStart=Math.round((s-days[0])/86400000), rawEnd=Math.round((en-days[0])/86400000);
+		return { ev:e, startIdx:Math.max(0,rawStart), endIdx:Math.min(days.length-1,rawEnd), continuesLeft: e.tarih<viewFrom, continuesRight: e.bitisTarihi>viewTo };
+	});
+	const multiDayRowCount = layoutMultiDayRow(multiDayBars);
+	let multiday='';
+	if(multiDayBars.length){
+		multiday='<div class="cal-allday-multiday" style="'+cols+' grid-template-rows:repeat('+multiDayRowCount+',24px);">';
+		multiday+=multiDayBars.map(function(b){
+			const e=b.ev; const ty=evType(e.tur);
+			const gc='grid-column:'+(b.startIdx+2)+' / '+(b.endIdx+3)+'; grid-row:'+(b.row+1)+';';
+			const cls='cal-multiday-bar'+(b.continuesLeft?" continues-left":"")+(b.continuesRight?" continues-right":"")+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"");
+			return '<button type="button" class="'+cls+'" data-evid="'+e._id+'" data-act="peek" style="'+gc+' background:'+ty.renk+'; border-color:'+ty.renk+'; color:#fff;">'+
+				'<span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+
+				'<span class="cal-multiday-handle cal-multiday-handle-l edit-only" data-act="multiday-resize-l" aria-hidden="true"></span>'+
+				'<span class="cal-multiday-handle cal-multiday-handle-r edit-only" data-act="multiday-resize-r" aria-hidden="true"></span>'+
+				'</button>';
+		}).join("");
+		multiday+='</div>';
+	}
+
+	// tüm gün şeridi (saati girilmemiş etkinlikler) -- çok günlü etkinlikler artık YUKARIDAKİ
+	// ayrı şeritte gösterildiği için burada HARİÇ TUTULUR.
 	let allday='<div class="cal-allday" style="'+cols+'"><div class="cal-allday-label">tüm gün</div>';
 	days.forEach(function(d){
 		const k=dKey(d);
-		const evs=calEventsOn(k).filter(function(e){ return hmToMin(e.saat)===null; });
+		const evs=calEventsOn(k).filter(function(e){ return hmToMin(e.saat)===null && !(e.bitisTarihi && e.bitisTarihi!==e.tarih); });
 		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
@@ -4554,7 +4617,7 @@ function renderWeekView(body){
 	const prevSc = document.getElementById("calTgScroll");
 	calWeekScrollTopPreserved = prevSc ? prevSc.scrollTop : null;
 
-	body.innerHTML='<div class="cal-tg">'+head+allday+
+	body.innerHTML='<div class="cal-tg">'+head+multiday+allday+
 		'<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="'+cols+'">'+gutter+cells+'</div></div></div>';
 
 	// Tum-gun seridi + saat izgarasi TEK ortak grup -- bir etkinlik ikisi arasinda suruklenebilir
@@ -4580,7 +4643,7 @@ function renderWeekView(body){
 	// "taşıma yaptığımda sayfanın üstüne atıyor biraz"). Şimdi sadece GERÇEKTEN farklı bir
 	// hafta/gün görünümüne geçildiğinde (scrollKey değiştiğinde) uygulanıyor; aynı görünümün
 	// tekrar render edilmesinde kullanıcının o anki kaydırma konumu KORUNUYOR.
-	const scrollKey = calView + "|" + dKey(start);
+	const scrollKey = calView + "|" + dKey(days[0]);
 	const isFreshView = scrollKey !== calWeekScrollKey;
 	calWeekScrollKey = scrollKey;
 	const sc=document.getElementById("calTgScroll");
@@ -4639,7 +4702,10 @@ function renderMonthView(body){
 		let chips=shown.map(function(e){
 			const ty=evType(e.tur);
 			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+e._id+'" data-act="peek" style="position:relative; '+calBlockStyle(e)+'">'+
-				(e.saat?'<span class="bh">'+escapeHtml(e.saat)+'</span>':'')+'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
+				// Çok günlü etkinlikte saat yerine kısa tarih aralığı ("12–14 Oca") gösterilir --
+			// v1 kapsam kararı: ay görünümünde TAM çubuk render'ı yok, sadece başlangıç gününde
+			// bir ipucuyla gösteriliyor (bkz. plan, Faz 11).
+			((e.bitisTarihi && e.bitisTarihi!==e.tarih) ? '<span class="bh">'+escapeHtml(fmtMultiDayRange(e.tarih,e.bitisTarihi))+'</span>' : (e.saat?'<span class="bh">'+escapeHtml(e.saat)+'</span>':''))+'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span>'+lockIconHtml(e)+'</button>';
 		}).join("");
 		if(evs.length>shown.length) chips+='<button type="button" class="cal-more" data-date="'+k+'" data-act="more">+'+(evs.length-shown.length)+' tane daha</button>';
 		cells+='<div class="'+cls+'" data-date="'+k+'">'+
@@ -4699,7 +4765,7 @@ function renderListView(body){
 		if(Array.isArray(e.katilimcilar)&&e.katilimcilar.length) meta.push(e.katilimcilar.length+" katılımcı");
 		html+='<button type="button" class="cal-ev" data-evid="'+e._id+'" data-act="peek">'+
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
-			'<span class="cal-ev-time">'+escapeHtml(e.saat||"—")+'</span>'+
+			'<span class="cal-ev-time">'+escapeHtml((e.bitisTarihi && e.bitisTarihi!==e.tarih) ? fmtMultiDayRange(e.tarih,e.bitisTarihi) : (e.saat||"—"))+'</span>'+
 			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+
 			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span>'+
 			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" data-act="edit">✎</span>' : '')+
@@ -4925,6 +4991,100 @@ async function calResizeEvent(id, patch){
 	// (surukleme sirasinda dogrudan DOM'a yazilan top/height/saat metni) otomatik olarak eski
 	// haline dondurur, ayri bir "geri al" kodu gerekmez.
 	renderCalendar();
+}
+// Faz 11: cok gunlu etkinligi surukleyerek TASIMA -- calMoveEvent()'ten FARKLI cunku hem tarih
+// HEM bitisTarihi AYNI gun deltasi kadar kaymali (calMoveEvent tek "tarih" degistirir, saat
+// izgarasina ozel). Yeniden boyutlandirma (sadece TEK uc degisir) icin AYRI bir fonksiyon
+// YAZILMADI -- yukaridaki calResizeEvent(id, patch) zaten HERHANGI bir patch'i generic olarak
+// before/after diff'leyip kaydediyor, {tarih:...} veya {bitisTarihi:...} ile DOGRUDAN cagrilir.
+async function calMoveMultiDayEvent(id, newTarih, newBitisTarihi){
+	if(!id || !calEvents[id] || !requireEdit()){ renderCalendar(); return; }
+	if(calEvents[id].locked){ calLockNotify("Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.", "error"); renderCalendar(); return; }
+	const ev=calEvents[id];
+	const before=Object.assign({}, ev);
+	const moved=Object.assign({}, ev, { tarih:newTarih, bitisTarihi:newBitisTarihi });
+	const moveChanges=describeEventChanges(ev, moved);
+	const res=await persistEvent(id, moved, evLogName(ev.ad)+" etkinliği takvimde taşındı ("+fmtTrDate(newTarih)+"–"+fmtTrDate(newBitisTarihi)+")"+(moveChanges.length?" · "+moveChanges.join(" · "):""));
+	if(res){ calEvents[id]=moved; pushUndo({ type:"move", id:id, before:before, after:Object.assign({},moved) }); }
+	renderCalendar();
+}
+// Cok gunlu etkinlik cubugunu surukleyerek TASIMA (ortadan) veya sol/sag kenarindan YENIDEN
+// BOYUTLANDIRMA. calStartGridSelectGesture/calStartResizeGesture ile AYNI kendi kendine yeten
+// Pointer Events deseni -- SortableJS burada KULLANILMAZ (farkli konteyner/eksen, gunluk
+// izgaradaki liste-tabanli surukleme modeline uymuyor). Canli onizleme SADECE gorunen hafta
+// penceresi icinde gercek gorunur (grid-column), pencere disina taskan kisim kelepcelenerek
+// gosterilir -- gercek tarih hesabi ise KELEPCELENMEMIS delta ile yapilir (bkz. onUp).
+function calStartMultiDayGesture(e){
+	const bar=e.target.closest(".cal-multiday-bar");
+	if(!bar) return;
+	e.stopPropagation(); // resize/peek tiklamasina sizmasin (calStartResizeGesture'daki AYNI desen)
+	const isHandleL=!!e.target.closest(".cal-multiday-handle-l");
+	const isHandleR=!!e.target.closest(".cal-multiday-handle-r");
+	const id=bar.dataset.evid;
+	const ev=id?calEvents[id]:null;
+	if(!ev || !ev.bitisTarihi) return;
+	if(ev.locked){ calLockNotify("Bu etkinlik kilitli, taşınamaz/süresi değiştirilemez. Önce kilidi açın.", "error"); return; }
+	if(!requireEdit()) return;
+	const container=bar.closest(".cal-allday-multiday");
+	if(!container) return;
+	const days=calVisibleWeekDays();
+	const rect=container.getBoundingClientRect();
+	const dayW=(rect.width-CAL_GUTTER)/days.length;
+	if(!(dayW>0)) return;
+	const pointerId=e.pointerId;
+	bar.setPointerCapture(pointerId);
+	let moved=false;
+	const origStart=parseKey(ev.tarih), origEnd=parseKey(ev.bitisTarihi);
+	// Baslangic gununun, GORUNEN pencerenin ilk gunune gore kac gun uzakta oldugu -- pencere
+	// disinda baslayan/biten bir etkinlik icin NEGATIF ya da days.length'i asan bir deger olabilir,
+	// bu BILEREK kelepcelenmez (sadece GORSEL onizlemede kelepcelenir, asagida).
+	const origStartIdx=Math.round((origStart-days[0])/86400000);
+	const origEndIdx=Math.round((origEnd-days[0])/86400000);
+	let curStartIdx=origStartIdx, curEndIdx=origEndIdx;
+	function applyLive(){
+		const s=Math.max(0,Math.min(days.length-1,curStartIdx));
+		const en=Math.max(0,Math.min(days.length-1,curEndIdx));
+		bar.style.gridColumn=(s+2)+" / "+(en+3);
+	}
+	function onMove(e2){
+		if(e2.pointerId!==pointerId) return;
+		const dx=e2.clientX-e.clientX;
+		if(Math.abs(dx)>4) moved=true;
+		const dayDelta=Math.round(dx/dayW);
+		if(isHandleL){
+			curStartIdx=Math.min(origStartIdx+dayDelta, origEndIdx-1); // en az 2 gunluk aralik korunur
+			curEndIdx=origEndIdx;
+		} else if(isHandleR){
+			curStartIdx=origStartIdx;
+			curEndIdx=Math.max(origEndIdx+dayDelta, origStartIdx+1);
+		} else {
+			curStartIdx=origStartIdx+dayDelta;
+			curEndIdx=origEndIdx+dayDelta;
+		}
+		applyLive();
+	}
+	function onUp(e2){
+		if(e2.pointerId!==pointerId) return;
+		try{ bar.releasePointerCapture(pointerId); }catch(err){}
+		window.removeEventListener("pointermove", onMove);
+		window.removeEventListener("pointerup", onUp);
+		window.removeEventListener("pointercancel", onUp);
+		bar.style.gridColumn=""; // canli onizleme stili temizlenir -- renderCalendar() zaten yeniden cizecek
+		if(!moved) return; // yanlislikla tiklama -- calGridClick benzeri fallback YOK, bu bir "peek" butonu zaten
+		if(isHandleL){
+			const newTarih=dKey(addDays(origStart, curStartIdx-origStartIdx));
+			calResizeEvent(id, { tarih:newTarih });
+		} else if(isHandleR){
+			const newBitisTarihi=dKey(addDays(origEnd, curEndIdx-origEndIdx));
+			calResizeEvent(id, { bitisTarihi:newBitisTarihi });
+		} else {
+			const dayDelta=curStartIdx-origStartIdx;
+			calMoveMultiDayEvent(id, dKey(addDays(origStart,dayDelta)), dKey(addDays(origEnd,dayDelta)));
+		}
+	}
+	window.addEventListener("pointermove", onMove);
+	window.addEventListener("pointerup", onUp);
+	window.addEventListener("pointercancel", onUp);
 }
 // Faz 9 Part D: bos saat izgarasinda basili tutup surukleyerek yeni etkinlik icin saat
 // araligi SECME jesti (Windows masaustundeki mavi "rubber-band select" kutusuna kullanici
@@ -5316,6 +5476,12 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 	document.getElementById("ev_tarih").value = e ? (e.tarih||"") : (presetDate || dKey(calAnchor));
 	document.getElementById("ev_saat").value = e ? (e.saat||"") : (presetTime || "");
 	document.getElementById("ev_bitisSaat").value = e ? (e.bitisSaat||"") : (presetEndTime || "");
+	// Faz 11: çok günlü etkinlik -- bitisTarihi tarih'ten FARKLIYSA anahtar işaretlenir ve
+	// saat alanları yerine bitiş tarihi alanı gösterilir (toggleMultiDayFields()).
+	const isMultiDay = !!(e && e.bitisTarihi && e.bitisTarihi !== e.tarih);
+	document.getElementById("ev_cokGunlu").checked = isMultiDay;
+	document.getElementById("ev_bitisTarihi").value = (e && e.bitisTarihi) ? e.bitisTarihi : (e ? e.tarih||"" : (presetDate || dKey(calAnchor)));
+	toggleMultiDayFields(isMultiDay);
 	document.getElementById("ev_yer").value = e ? (e.yer||"") : "";
 	document.getElementById("ev_birim").value = e ? (e.birim||"") : "";
 	document.getElementById("ev_planlayan").value = e ? (e.planlayan||"") : "";
@@ -5348,6 +5514,21 @@ function setEventTimeNow(fieldId){
 	// Bitiş yazılıp başlangıç boşsa, kayıt sırasında tuhaf durum oluşmasın diye uyarılır.
 	if(fieldId==="ev_bitisSaat" && !document.getElementById("ev_saat").value){
 		showToast("Başlangıç saati de girilmeli.", "error");
+	}
+}
+
+// Faz 11: çok-günlü etkinlik anahtarı -- işaretlenince saat alanları (v1 kapsam kararı: çok
+// günlü etkinlikler HER ZAMAN "tüm gün", Google Calendar'daki basitleştirmenin aynısı) yerine
+// bitiş tarihi alanı gösterilir. saveEventImpl() checkbox durumuna göre hangi alanları okuyacağını
+// belirler -- burada SADECE görünürlük yönetilir, veri okuma/doğrulama orada.
+function toggleMultiDayFields(on){
+	document.querySelectorAll(".ev-datetime-row .ev-time").forEach(function(el){ el.style.display = on ? "none" : ""; });
+	const wrap = document.getElementById("ev_bitisTarihiWrap");
+	if (wrap) wrap.style.display = on ? "" : "none";
+	if (on) {
+		const bt = document.getElementById("ev_bitisTarihi");
+		const t = document.getElementById("ev_tarih").value;
+		if (bt && (!bt.value || bt.value < t)) bt.value = t;
 	}
 }
 
@@ -5471,7 +5652,7 @@ document.addEventListener("change", function(e){
 // ama "kim, ne zaman, hangi alanı ne yaptı" geçmişi eksiksiz durur.
 const EVENT_LOG_LABELS = {
 	ad:"Etkinlik Adı", tur:"Tür", durum:"Durum", tarih:"Tarih", saat:"Başlangıç Saati",
-	bitisSaat:"Bitiş Saati", yer:"Yer / Mekân", birim:"Düzenleyen Birim",
+	bitisSaat:"Bitiş Saati", bitisTarihi:"Bitiş Tarihi (çok günlü)", yer:"Yer / Mekân", birim:"Düzenleyen Birim",
 	planlayan:"Planlayan / Sorumlu", gorevli:"Basın Görevlisi",
 	arsiv:"Arşiv Bağlantısı", not:"Not", katilimcilar:"Katılımcılar"
 };
@@ -5487,6 +5668,7 @@ function describeEventChanges(oldE, newE){
 	if((oldE.tur||"diger")!==(newE.tur||"diger")) changes.push(EVENT_LOG_LABELS.tur+": "+evType(oldE.tur).ad+" → "+evType(newE.tur).ad);
 	if((oldE.durum||"planlandi")!==(newE.durum||"planlandi")) changes.push(EVENT_LOG_LABELS.durum+": "+evStatus(oldE.durum).ad+" → "+evStatus(newE.durum).ad);
 	if((oldE.tarih||"")!==(newE.tarih||"")) changes.push(EVENT_LOG_LABELS.tarih+": "+(oldE.tarih?fmtTrDate(oldE.tarih):"(boş)")+" → "+(newE.tarih?fmtTrDate(newE.tarih):"(boş)"));
+	if((oldE.bitisTarihi||"")!==(newE.bitisTarihi||"")) changes.push(EVENT_LOG_LABELS.bitisTarihi+": "+(oldE.bitisTarihi?fmtTrDate(oldE.bitisTarihi):"(tek günlü)")+" → "+(newE.bitisTarihi?fmtTrDate(newE.bitisTarihi):"(tek günlü)"));
 	["ad","saat","bitisSaat","yer","birim","planlayan","gorevli","arsiv","not"].forEach(function(k){
 		const o=(oldE[k]===undefined||oldE[k]===null)?"":String(oldE[k]).trim();
 		const n=(newE[k]===undefined||newE[k]===null)?"":String(newE[k]).trim();
@@ -5507,6 +5689,7 @@ function describeEventChanges(oldE, newE){
 // Yeni etkinlikte de "ne planlandı" özeti loga geçsin.
 function describeEventCreation(e){
 	const out=[EVENT_LOG_LABELS.tur+": "+evType(e.tur).ad, EVENT_LOG_LABELS.durum+": "+evStatus(e.durum).ad];
+	if(e.bitisTarihi) out.push(EVENT_LOG_LABELS.bitisTarihi+": "+fmtTrDate(e.bitisTarihi));
 	if(e.saat) out.push(EVENT_LOG_LABELS.saat+": "+e.saat+(e.bitisSaat?" → "+e.bitisSaat:""));
 	if(e.yer) out.push(EVENT_LOG_LABELS.yer+": "+logValueOrEmpty(e.yer));
 	if(e.birim) out.push(EVENT_LOG_LABELS.birim+": "+logValueOrEmpty(e.birim));
@@ -5582,8 +5765,18 @@ async function saveEventImpl(){
 	const tarih=document.getElementById("ev_tarih").value;
 	if(!ad){ showToast("Etkinlik adı zorunlu!", "error"); return; }
 	if(!parseKey(tarih)){ showToast("Geçerli bir tarih seçin!", "error"); return; }
-	const saat=document.getElementById("ev_saat").value;
-	const bitis=document.getElementById("ev_bitisSaat").value;
+	// Faz 11: çok günlü etkinlik -- v1 kapsam kararı GEREĞİ her zaman "tüm gün" (saat bilgisi
+	// yok, Google Calendar'ın kendi basitleştirmesiyle aynı). İşaretliyse saat alanları
+	// OKUNMAZ (gizliyken eski değer taşıyor olabilir), bitiş tarihi okunup doğrulanır.
+	const cokGunlu = document.getElementById("ev_cokGunlu").checked;
+	let bitisTarihi = "";
+	if(cokGunlu){
+		bitisTarihi = document.getElementById("ev_bitisTarihi").value;
+		if(!parseKey(bitisTarihi)){ showToast("Geçerli bir bitiş tarihi seçin!", "error"); return; }
+		if(bitisTarihi < tarih){ showToast("Bitiş tarihi, başlangıç tarihinden önce olamaz.", "error"); return; }
+	}
+	const saat=cokGunlu ? "" : document.getElementById("ev_saat").value;
+	const bitis=cokGunlu ? "" : document.getElementById("ev_bitisSaat").value;
 	if(saat && bitis && hmToMin(bitis)!==null && hmToMin(saat)!==null && hmToMin(bitis)<=hmToMin(saat)){
 		// Bitis, baslangictan KUCUK/ESIT olabilir -- bu illa hata degil, gece yarisini asan bir
 		// etkinlik de (ornegin 22:00 -> 01:00) olabilir. Karmasik bir tarih-araligi modeline
@@ -5601,6 +5794,11 @@ async function saveEventImpl(){
 		rozetler: Array.from(document.querySelectorAll("#ev_badgeBox .ev-badge-cb:checked")).map(function(cb){ return cb.value; }),
 		haberKaynagi: document.getElementById("ev_haberKaynagi").value
 	};
+	// obj.bitisTarihi SADECE gerçekten çok günlüyse set edilir (tarih!==bitisTarihi) -- aksi
+	// halde hiç yazılmaz: tek-günlü etkinliklerin veri şekli KESİNLİKLE değişmez (geriye dönük
+	// uyum), ve mevcut çok-günlü bir etkinlik tek-günlüye çevrilirse alan burada DOĞAL OLARAK
+	// düşer (persistEvent tüm düğümü TAMAMEN yeni obj ile değiştiriyor, eski alan kalmaz).
+	if(cokGunlu && bitisTarihi && bitisTarihi!==tarih) obj.bitisTarihi=bitisTarihi;
 	// Duzenleme modali acikken baska bir kullanici bu etkinligi silmis olabilir; o durumda
 	// asagidaki "yeni kayit" dali calisip SILINEN etkinligi geri diriltiyordu (olusturan/
 	// olusturmaTs alanlari da yanlis kisiye gecerek log ile veri celisir hale geliyordu).

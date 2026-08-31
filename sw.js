@@ -1,3 +1,14 @@
+// v3.15.0 (31 Ağustos 2026) -- Faz 11: Çok-günlü (multi-day) etkinlik desteği. Etkinliğe
+// opsiyonel bir bitisTarihi alanı eklendi (yoksa/tarih ile aynıysa tek-günlü, tam geriye dönük
+// uyumlu). Çok-günlü etkinlikler HER ZAMAN "tüm gün" (v1 kapsam kararı, Google Calendar'daki
+// basitleştirmenin aynısı) -- form yeni bir "Çok Günlü Etkinlik" anahtarı + bitiş tarihi alanı
+// kazandı. Haftalık/günlük görünümde "tüm gün" şeridinin ÜSTÜNDE, CSS Grid'in doğal
+// grid-column span'iyle render edilen ayrı bir çubuk şeridinde gösteriliyor (görünen pencere
+// dışına taşan uçlar "◀"/"▶" ipucuyla kelepçeleniyor); ay/liste görünümünde başlangıç gününde
+// kısa bir tarih aralığı ("13–15 Oca") ile özetleniyor. Çubuk ortadan sürüklenerek TAŞINABİLİYOR
+// (tarih+bitisTarihi aynı gün deltası kadar kayar), sol/sağ kenarından YENİDEN
+// BOYUTLANDIRILABİLİYOR (en az 2 günlük aralık korunur) -- kilit/undo/log tüm mevcut mekanizmayı
+// (calResizeEvent/pushUndo/describeEventChanges) aynen kullanıyor, ayrı kod yazılmadı.
 // v3.14.0 (31 Ağustos 2026) -- Faz 10 Part B TAMAMLANDI: "Yedekleme & Çöp" sekmesi açıldı --
 // (1) Tam Yedek İndir: İl+Üniversite+Etkinlik verisini TEK JSON dosyasında indirir (arşiv/
 // felaket kurtarma, sadece indirme -- geri yükleme mevcut ayrı akışlarla yapılır). (2) Salt-
@@ -111,7 +122,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.14.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.15.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

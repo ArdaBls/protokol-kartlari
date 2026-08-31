@@ -569,6 +569,26 @@
 			.cal-allday-col{ border-right:1px solid var(--divider); padding:3px; display:flex; flex-direction:column; gap:2px; min-height:24px; }
 			.cal-allday-col:last-child{ border-right:none; }
 
+			/* Çok günlü etkinlik şeridi (Faz 11) -- .cal-allday'in TAM ÜSTÜNDE, ayrı bir grid
+			   container (aynı sütun şablonu). Her çubuk kendi grid-column/grid-row'unu satır içi
+			   style ile alır (bkz. renderWeekView/layoutMultiDayRow, app.js). */
+			.cal-allday-multiday{ flex-shrink:0; display:grid; row-gap:3px; padding:4px 0; border-bottom:1px solid var(--divider-soft); background:transparent; max-height:96px; overflow-y:auto; }
+			.cal-multiday-bar{ position:relative; display:flex; align-items:center; gap:5px; margin:0 2px; border-radius:6px; padding:2.5px 9px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid; border-left-width:1px; text-align:left; font-family:inherit; overflow:hidden; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+			.cal-multiday-bar .t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+			.cal-multiday-bar.done{ opacity:.6; }
+			/* Görünen hafta/gün penceresinin dışına taşan uçlar -- o kenar düz değil, "devam
+			   ediyor" ok ipucuyla kesilmiş gösterilir (kenar köşesi sivriltilerek). */
+			.cal-multiday-bar.continues-left{ border-top-left-radius:0; border-bottom-left-radius:0; }
+			.cal-multiday-bar.continues-left::before{ content:"◀"; margin-right:1px; font-size:9px; opacity:.85; }
+			.cal-multiday-bar.continues-right{ border-top-right-radius:0; border-bottom-right-radius:0; }
+			.cal-multiday-bar.continues-right::after{ content:"▶"; margin-left:auto; font-size:9px; opacity:.85; padding-left:2px; }
+			/* Yatay yeniden-boyutlandırma tutamaçları -- .cal-resize-handle'daki AYNI görsel/
+			   dokunma-alanı dili, sadece eksen yatay (sol/sağ kenar, üst/alt DEĞİL). */
+			.cal-multiday-handle{ position:absolute; top:0; bottom:0; width:8px; cursor:ew-resize; }
+			.cal-multiday-handle-l{ left:0; }
+			.cal-multiday-handle-r{ right:0; }
+			@media (pointer:coarse){ .cal-multiday-handle{ width:14px; } }
+
 			.cal-tg-scroll{ flex:1; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; position:relative; }
 			/* Sürükle-bırak sırasında fare hızla hareket edince sütun/saat ızgarasındaki metinler
 			   mavi ile "seçiliyormuş" gibi vurgulanıyordu (kartların kendisi zaten korunuyordu,
@@ -829,6 +849,11 @@
 			.cal-detail-row .k{ flex:0 0 92px; color:var(--muted); font-weight:600; font-size:12px; padding-top:1px; }
 			.cal-detail-row .v{ flex:1; min-width:0; color:var(--ink); line-height:1.5; word-break:break-word; }
 			.cal-att-chip{ display:inline-block; background:var(--paper); border:1px solid var(--divider); border-radius:20px; padding:2px 9px; font-size:11px; margin:0 3px 4px 0; }
+
+			/* Çok-günlü etkinlik anahtarı (Faz 11) -- işaretlenince ev-datetime-row'daki saat
+			   alanları gizlenir, bitiş tarihi alanı görünür (bkz. toggleMultiDayFields(), app.js). */
+			.ev-multiday-toggle{ display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink); cursor:pointer; margin:2px 0 8px; user-select:none; }
+			.ev-multiday-toggle input{ cursor:pointer; }
 
 			/* Tarih + başlangıç + bitiş dar ekranda üst üste biniyordu; artık sarıyor. */
 			/* Özgüllük .field-row .field{flex:1} kuralını geçmeli, yoksa tarih satırı sarmıyor. */

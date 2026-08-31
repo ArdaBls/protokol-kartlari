@@ -340,6 +340,7 @@
 						<label>Rozetler <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir)</span></label>
 						<div id="ev_badgeBox" style="display:flex; flex-wrap:wrap; gap:6px 14px;"></div>
 					</div>
+					<label class="ev-multiday-toggle"><input type="checkbox" id="ev_cokGunlu" onchange="toggleMultiDayFields(this.checked)"> Çok günlü etkinlik (birden fazla gün sürer)</label>
 					<div class="field-row ev-datetime-row">
 						<div class="field ev-date"><label>Tarih</label><input type="date" id="ev_tarih"></div>
 						<div class="field ev-time"><label>Başlangıç</label>
@@ -348,6 +349,7 @@
 						<div class="field ev-time"><label>Bitiş</label>
 							<div class="ev-time-wrap"><input type="time" id="ev_bitisSaat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_bitisSaat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
 						</div>
+						<div class="field ev-date" id="ev_bitisTarihiWrap" style="display:none;"><label>Bitiş Tarihi</label><input type="date" id="ev_bitisTarihi"></div>
 					</div>
 					<div class="field"><label>Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
 					<div class="field"><label>Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
