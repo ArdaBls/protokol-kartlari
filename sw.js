@@ -1,3 +1,9 @@
+// v3.11.1 (31 Ağustos 2026) -- Part D hata düzeltmeleri: (1) canlı takvim silüeti diğer
+// kullanıcılara hiç yansımıyordu -- renderRemoteLiveSelections() sadece Firebase verisi
+// DEĞİŞİNCE çağrılıyordu, takvim açılınca/görünüm değişince çağrılmıyordu; calLastLiveMap
+// önbelleği eklenip renderCalendar() sonuna eklendi. (2) sürükleyerek etkinlik oluştururken
+// "düzenle" modalı açılınca arka plandaki seçim silüeti hemen kayboluyordu -- artık
+// calActiveCreateGhost ile closeEventModal() çağrılana kadar DOM'da kalıyor.
 // v3.8.3 (31 Ağustos 2026) -- admin paneli görsel yenileme (Faz 8): emoji nav ikonları
 // gerçek SVG sprite ile değiştirildi (<body> altına eklenen <symbol> bloğu), aktif nav
 // öğesi solid lacivert dolgu yerine kart yüzeyi + sol vurgu çubuğuna çevrildi, KPI şeridi
@@ -42,7 +48,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.11.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.11.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

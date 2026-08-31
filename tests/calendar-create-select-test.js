@@ -82,8 +82,11 @@ function serve() {
 		fire('pointermove', y1130, window);
 		const ghostExistedDuringDrag = !!document.querySelector('.cal-create-select');
 		fire('pointerup', y1130, window);
-		const ghostExistsAfterDrop = !!document.querySelector('.cal-create-select');
-		return { ghostExistedDuringDrag, ghostExistsAfterDrop };
+		// Kullanici istegi (31 Ağustos oturumu sonrası): "etkinlik oluştur ekranı arka planda...
+		// seçilen saat aralığını göremedim" -- ghost artık pointerup'ta KALDIRILMIYOR, modal
+		// açık kaldığı sürece takvimde (bulanık arka planda) görünmeye devam ediyor.
+		const ghostExistsWhileModalOpen = !!document.querySelector('.cal-create-select');
+		return { ghostExistedDuringDrag, ghostExistsWhileModalOpen };
 	}, { top: daycolRect.top });
 	await page.waitForTimeout(80);
 	const createTest = await page.evaluate(() => ({
@@ -93,8 +96,12 @@ function serve() {
 		endOk: document.getElementById('ev_bitisSaat').value === '11:30',
 		broadcastFired: (window.__mockSets || []).some((s) => s.path.indexOf('canliTakvimSecim/testUid1') !== -1 && s.data && s.data.saat === '10:00')
 	}));
-	const { ghostExistsAfterDrop, ...dragScenarioRest } = { ...dragResult, ...createTest };
-	const dragScenario = { ...dragScenarioRest, ghostRemovedAfterDrop: !ghostExistsAfterDrop };
+	// closeEventModal() çağrılınca ghost'un GERÇEKTEN kaldırıldığını da doğrula.
+	const afterCloseTest = await page.evaluate(() => {
+		closeEventModal();
+		return { ghostRemovedAfterModalClose: !document.querySelector('.cal-create-select') };
+	});
+	const dragScenario = { ...dragResult, ...createTest, ...afterCloseTest };
 
 	// =====================================================================
 	// SENARYO 2: kısa tıklama (<3px) -- eski calGridClick davranışı BOZULMAMALI

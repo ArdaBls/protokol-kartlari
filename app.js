@@ -3750,12 +3750,22 @@ let activeLiveSelectionRef = null, activeLiveSelectionCallback = null;
 // uid -> o kullanicinin DOM'daki .cal-create-select.is-remote elemani -- her snapshot'ta
 // hangi uid'lerin ARTIK kaybolduğunu (silueti kaldirmak icin) bilmek amacli.
 let calRemoteSelectionEls = {};
+// SON bilinen Firebase snapshot'i -- BUG DUZELTMESI: eskiden renderRemoteLiveSelections()
+// SADECE canliTakvimSecim degistiginde cagriliyordu. Ama bir kullanici surukleme baslattiktan
+// SONRA baska biri takvimi actiginda/gun-hafta degistirdiginde Firebase'de HICBIR YENI degisiklik
+// olmuyor (veri zaten oradaydi), yani .on("value") YENIDEN TETIKLENMIYOR ve yeni acilan takvimde
+// halihazirda suren bir surukleme HIC gorunmuyordu ("arkadaslarimin telefon/bilgisayarinda
+// gozukmuyor" bildirimi). Cozum: son bilinen veriyi onbellekte tutup renderCalendar()'in HER
+// cagrisinda (asagida) yeniden uygula -- boylece takvim her acildiginda/yeniden cizildiginde
+// o an gecerli olan canli seciler de birlikte cizilir.
+let calLastLiveMap = {};
 function attachLiveSelectionListener(){
 	if(!database) return;
 	if(activeLiveSelectionRef && activeLiveSelectionCallback) { activeLiveSelectionRef.off("value", activeLiveSelectionCallback); }
 	activeLiveSelectionRef = database.ref(dbPath("canliTakvimSecim"));
 	activeLiveSelectionCallback = function(snap){
-		renderRemoteLiveSelections(snap.val() || {});
+		calLastLiveMap = snap.val() || {};
+		renderRemoteLiveSelections(calLastLiveMap);
 	};
 	activeLiveSelectionRef.on("value", activeLiveSelectionCallback, function(err){ console.error("canliTakvimSecim okunamadı:", err); });
 }
@@ -4147,6 +4157,12 @@ function renderCalendar(){
 	else if(calView==="month") renderMonthView(body);
 	else if(calView==="year") renderYearView(body);
 	else renderListView(body);
+	// Yeniden cizilen .cal-daycol'lar TAMAMEN YENI DOM dugumleri -- calRemoteSelectionEls'teki
+	// ONCEKI referanslar artik kopuk/gecersiz. Diger kullanicilarin canli seciklerini (varsa)
+	// bu YENI DOM'a, en son bilinen veriyle (calLastLiveMap) tekrar uygula -- bkz. yukaridaki
+	// attachLiveSelectionListener() yorumundaki bug aciklamasi.
+	calRemoteSelectionEls = {};
+	renderRemoteLiveSelections(calLastLiveMap);
 }
 
 function renderCalTopbar(){
@@ -4784,6 +4800,9 @@ async function calResizeEvent(id, patch){
 // yapmadan cikar, mevcut calGridClick() (tek-tikla-olustur, click event'inde tetiklenir)
 // eski davranisiyla DEVAM eder -- degisiklik yok, sadece GERCEK bir surukleme onu suppress eder.
 let calGridSelectSuppressClick = false;
+// Surukleyerek olusturulan .cal-create-select silueti -- modal ACIKKEN kaldirilmiyor artik
+// (kullanici istegi: arka planda seçilen saat araligini gorebilsin), closeEventModal() kapatir.
+let calActiveCreateGhost = null;
 function calStartGridSelectGesture(e){
 	if(e.target.closest(".cal-resize-handle")) return; // resize'a birak
 	if(e.target.closest(".cal-block")) return; // mevcut etkinligin uzerinde -- move-drag'e (SortableJS) birak
@@ -4830,7 +4849,12 @@ function calStartGridSelectGesture(e){
 			ad: (currentUser.firstName||currentUser.email||"Bir kullanıcı"),
 			tarih: dateKey, saat: minToHm(startMin), bitisSaat: minToHm(endMin),
 			ts: firebase.database.ServerValue.TIMESTAMP
-		}).catch(function(){});
+		}).catch(function(err){
+			// ESKIDEN sessizce yutuluyordu -- Firebase kuralina canliTakvimSecim henuz
+			// eklenmemisse (PERMISSION_DENIED) hicbir iz birakmadan basarisiz oluyordu, debug
+			// etmek imkansizdi. Artik en azindan konsola duser (bkz. docs/firebase-database-rules.json).
+			console.error("Canlı takvim seçimi yayınlanamadı (Firebase kuralı eklenmemiş olabilir):", err);
+		});
 		if(!liveOnDisconnectSet){ liveOnDisconnectSet=true; liveRef.onDisconnect().remove(); }
 	}
 	function clearLiveBroadcast(){
@@ -4855,10 +4879,14 @@ function calStartGridSelectGesture(e){
 		window.removeEventListener("pointermove", onMove);
 		window.removeEventListener("pointerup", onUp);
 		window.removeEventListener("pointercancel", onUp);
-		ghost.remove();
-		clearLiveBroadcast();
-		if(!moved) return; // kisa tiklama -- calGridClick'in eski tek-tik davranisi CALISMAYA devam etsin
+		clearLiveBroadcast(); // surukleme jesti bitti -- diger kullanicilara YAYIN durur (form doldururken degil)
+		if(!moved){ ghost.remove(); return; } // kisa tiklama -- calGridClick'in eski tek-tik davranisi CALISMAYA devam etsin
 		calGridSelectSuppressClick=true; // ayni pointerup/click ciftinde calGridClick TEKRAR acmasin
+		// Kullanici istegi: "etkinlik oluştur ekranı arka planda... seçilen saat aralığını
+		// göremedim" -- ghost ARTIK BURADA kaldirilmiyor, modal ACIK kaldigi surece takvimde
+		// (bulanik arka planda) gorunmeye devam eder. closeEventModal() kapatir (bkz. asagida).
+		if(calActiveCreateGhost) calActiveCreateGhost.remove(); // guvenlik agi: onceki bir ghost unutulmus olabilir
+		calActiveCreateGhost=ghost;
 		openEventModal(null, dateKey, minToHm(startMin), minToHm(endMin));
 	}
 	window.addEventListener("pointermove", onMove);
@@ -5157,7 +5185,10 @@ function setEventTimeNow(fieldId){
 	}
 }
 
-function closeEventModal(){ document.getElementById("eventModalBg").classList.remove("open"); calEditingId=null; }
+function closeEventModal(){
+	document.getElementById("eventModalBg").classList.remove("open"); calEditingId=null;
+	if(calActiveCreateGhost){ calActiveCreateGhost.remove(); calActiveCreateGhost=null; }
+}
 
 // İl Protokolü havuzu: kalıcı bir ikinci Firebase dinleyicisi AÇILMAZ, sadece checkbox
 // ilk işaretlendiğinde tek seferlik .once('value') ile okunup burada önbelleğe alınır.
