@@ -1,3 +1,12 @@
+// v3.13.0 (31 Ağustos 2026) -- Faz 10 Part B'nin son ölçülü aşaması: "Veri Sözlüğü" sekmesi
+// açıldı -- kişi formundaki birim/unvan öneri (otomatik tamamlama) havuzunu (oneriler/{il|
+// universite}/{birimler|unvanlar}) admin listeler ve SİLEBİLİR (yalnızca "silme" var,
+// "birleştirme" bilinçli olarak kapsam dışı bırakıldı -- mevcut TÜM kişi kayıtlarını
+// etkileyeceği için çok daha riskli, ayrı bir iş kalemi). Silme sadece öneri listesinden
+// kaldırır, hiçbir kişi kaydına dokunmaz; logs/dictionary'e loglanır. Firebase kuralı
+// (docs/firebase-database-rules.json, .gitignore'da -- Console'a elle yapıştırılmalı)
+// admin'e $oneriId silme izni verecek şekilde güncellendi. Kalan en riskli parça (backup
+// sekmesi + global salt-okunur kilit) hâlâ sırada, henüz yapılmadı.
 // v3.12.1 (31 Ağustos 2026) -- Faz 10 (devam): (1) Takvimde sürükleyerek etkinlik oluşturma
 // artık İKİ ADIMLI -- bırakınca modal HEMEN açılmıyor, ghost + küçük bir "Oluştur/Vazgeç"
 // onay çubuğu (.cal-create-confirm-bar, ekranın altına sabit) gösteriliyor; modal SADECE
@@ -91,7 +100,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.12.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.13.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [

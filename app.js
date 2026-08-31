@@ -392,8 +392,10 @@
 				else if (tab === "editorial") loadEditorial();
 				else if (tab === "hierarchy") loadHierarchy();
 				else if (tab === "integrity") loadIntegrity();
-				// dictionary/backup: henüz yükleyici fonksiyonları yok (sonraki aşama), view
-				// "yakında" placeholder gösteriyor.
+				else if (tab === "dictionary") loadDictionary();
+				// backup: henüz yükleyici fonksiyonu yok (sonraki aşama, en riskli parça --
+				// global salt-okunur kilit tüm yazma yollarını etkileyecek), view "yakında"
+				// placeholder gösteriyor.
 				// Mobilde bir sekme seçilince çekmece kapanır -- masaüstünde drawer zaten hiç
 				// açılmadığı (CSS'te display:none) için burada no-op, ekstra bir genişlik
 				// kontrolüne gerek yok.
@@ -742,6 +744,68 @@
 					(duplicates.length ? '<div class="stat-expiry-list">' + duplicates.map(function(arr) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(arr[0].name || "") + ' — ' + arr.length + ' kayıt (' + arr.map(function(p) { return p._list === "il" ? "İl" : "Üniversite"; }).join(", ") + ')</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>');
 			}
 
+			// Faz 10 (Part B'nin son ölçülü aşaması): "Veri Sözlüğü" -- kişi formundaki birim/unvan
+			// öneri (otomatik tamamlama) havuzunu (oneriler/{il|universite}/{birimler|unvanlar})
+			// yönetir. Bilinçli kapsam kararı: sadece SİLME var, "birleştirme" (merge) YOK --
+			// birleştirme mevcut TÜM kişi kayıtlarındaki eski değeri yeniyle değiştirmeyi
+			// gerektirir (çok daha riskli, ayrı bir iş kalemi). Silme SADECE öneri listesinden
+			// kaldırır, hiçbir kişi kaydına dokunmaz -- bu yüzden düşük risklidir.
+			async function loadDictionary() {
+				if (!database || !requireAdmin()) return;
+				const box = document.getElementById("adminDictionaryBody");
+				if (!box) return;
+				box.innerHTML = '<p class="admin-user-empty">Yükleniyor…</p>';
+				const [ilSnap, uniSnap] = await Promise.all([
+					database.ref(dbPath("oneriler/il")).once("value"),
+					database.ref(dbPath("oneriler/universite")).once("value")
+				]);
+				const sections = [
+					{ listKey: "il", label: "İl Protokol", val: ilSnap.val() || {} },
+					{ listKey: "universite", label: "Üniversite Protokol", val: uniSnap.val() || {} }
+				];
+				const kindLabels = { birimler: "Birimler", unvanlar: "Unvanlar" };
+				let html = "";
+				sections.forEach(function(sec) {
+					["birimler", "unvanlar"].forEach(function(kind) {
+						const entries = Object.keys(sec.val[kind] || {})
+							.map(function(id) { return { id: id, deger: (sec.val[kind][id] || {}).deger }; })
+							.filter(function(e) { return e.deger; })
+							.sort(function(a, b) { return a.deger.localeCompare(b.deger, "tr"); });
+						html += '<div class="dict-section"><h3 class="dict-section-title">' + escapeHtml(sec.label) + ' · ' + kindLabels[kind] + ' <span class="dict-count">' + entries.length + '</span></h3>';
+						html += !entries.length
+							? '<p class="admin-user-empty">Kayıt yok.</p>'
+							: '<div class="dict-list">' + entries.map(function(e) {
+								// Deger, onclick STRING'İNE gömülmek yerine data-* özniteliğinden okunur
+								// (proje kuralı -- bkz. card.dataset.pid deseni, tırnak/özel karakter
+								// içeren kişi verisi inline onclick'te kaçış sorunlarına yol açıyordu).
+								return '<div class="dict-row"><span class="dict-val">' + escapeHtml(e.deger) + '</span><button type="button" class="dict-del-btn" data-list-key="' + sec.listKey + '" data-kind="' + kind + '" data-oneri-id="' + e.id + '" data-deger="' + escapeHtml(e.deger) + '" onclick="deleteDictionaryEntry(this)" title="Öneriyi sil">🗑</button></div>';
+							}).join("") + '</div>';
+						html += '</div>';
+					});
+				});
+				box.innerHTML = html;
+			}
+			async function deleteDictionaryEntry(btn) {
+				if (!requireAdmin()) return;
+				const listKey = btn.dataset.listKey, kind = btn.dataset.kind, id = btn.dataset.oneriId, deger = btn.dataset.deger;
+				if (!confirm('"' + deger + '" önerisi silinsin mi?\n\nBu SADECE otomatik tamamlama listesinden kaldırır, mevcut kişi kayıtlarına dokunmaz.')) return;
+				await guardOp("dict-del-" + id, async function() {
+					try {
+						await database.ref(dbPath("oneriler/" + listKey + "/" + kind + "/" + id)).remove();
+						database.ref(dbPath("logs/dictionary")).push({
+							by: ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email,
+							email: currentUser.email, action: "Öneri silindi (" + (kind === "birimler" ? "birim" : "unvan") + ")",
+							target: deger, timestamp: firebase.database.ServerValue.TIMESTAMP
+						}).catch(function() {});
+						showToast("Öneri silindi.", "success");
+						loadDictionary();
+					} catch (err) {
+						console.error("Öneri silinemedi:", err);
+						showToast("Öneri silinemedi (yetki sorunu olabilir).", "error");
+					}
+				});
+			}
+
 			function loadAdminLogs() {
 				if (!database || !requireAdmin()) return;
 				const listEl = document.getElementById("adminLogList");
@@ -750,13 +814,15 @@
 				database.ref("logs/il").limitToLast(50).once("value"),
 				database.ref("logs/universite").limitToLast(50).once("value"),
 				database.ref("logs/etkinlik").limitToLast(50).once("value"),
-				database.ref("logs/hesap").limitToLast(50).once("value")
+				database.ref("logs/hesap").limitToLast(50).once("value"),
+				database.ref("logs/dictionary").limitToLast(50).once("value")
 				]).then(function(snaps) {
 				const ilLogs = Object.values(snaps[0].val() || {}).map(function(e){ e._list = "il"; return e; });
 				const uniLogs = Object.values(snaps[1].val() || {}).map(function(e){ e._list = "universite"; return e; });
 				const evLogs = Object.values(snaps[2].val() || {}).map(function(e){ e._list = "etkinlik"; return e; });
 				const hesapLogs = Object.values(snaps[3].val() || {}).map(function(e){ e._list = "hesap"; return e; });
-				const entries = ilLogs.concat(uniLogs).concat(evLogs).concat(hesapLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
+				const dictLogs = Object.values(snaps[4].val() || {}).map(function(e){ e._list = "dictionary"; return e; });
+				const entries = ilLogs.concat(uniLogs).concat(evLogs).concat(hesapLogs).concat(dictLogs).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }).slice(0, 50);
 				if (!entries.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıt yok.</p>'; return; }
 				listEl.innerHTML = entries.map(function(e) {
 				const timeStr = new Date(e.timestamp || 0).toLocaleString("tr-TR");
@@ -876,7 +942,7 @@
 			}
 
 			const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
-			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi', hesap: 'Hesap' };
+			const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi', hesap: 'Hesap', dictionary: 'Veri Sözlüğü' };
 			// Site açılışında sekme HER ZAMAN Üniversite ile açılır (kullanıcı talebi). Daha önce burada
 			// localStorage'da kayıtlı son sekme (ör. 'il') okunup başlangıç değeri yapılıyordu; artık
 			// açılışta okunmuyor — switchList() elle sekme değişiminde localStorage'a yazmaya devam

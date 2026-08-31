@@ -1275,6 +1275,17 @@
 				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:12px; line-height:1.55; color:var(--muted); }
 				.admin-log-row .al-detail b{ color:var(--ink); font-weight:600; }
 
+			/* Veri Sözlüğü (Faz 10) -- birim/unvan öneri havuzu, admin-log-row ile aynı kart
+			   dilini kullanır ama satır başına bir silme düğmesi taşır. */
+			.dict-section{ margin-bottom:18px; }
+			.dict-section-title{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--ink); margin:0 0 8px; }
+			.dict-count{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--muted); background:var(--surface-subtle); border-radius:999px; padding:1px 8px; }
+			.dict-list{ display:flex; flex-direction:column; gap:4px; }
+			.dict-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 10px; background:var(--card); border:1px solid var(--border-soft); border-radius:8px; font-size:13px; }
+			.dict-val{ min-width:0; overflow-wrap:break-word; word-break:break-word; color:var(--ink); }
+			.dict-del-btn{ flex-shrink:0; background:none; border:none; cursor:pointer; font-size:14px; padding:3px 6px; border-radius:6px; opacity:.7; transition:opacity .12s, background .12s; }
+			.dict-del-btn:hover{ opacity:1; background:var(--danger-bg, rgba(176,58,58,.12)); }
+
 			/* Klavye ile gezinirken hangi öğenin odakta olduğu her zaman görünür olsun (erişilebilirlik). */
 			:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; border-radius:3px; }
 			#search:focus-visible{ outline:2px solid var(--brass); outline-offset:1px; }
