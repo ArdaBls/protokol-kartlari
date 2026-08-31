@@ -3759,6 +3759,36 @@ let calRemoteSelectionEls = {};
 // cagrisinda (asagida) yeniden uygula -- boylece takvim her acildiginda/yeniden cizildiginde
 // o an gecerli olan canli seciler de birlikte cizilir.
 let calLastLiveMap = {};
+// Kullanici geri bildirimi (31 Ağustos 2026): "bilgisayardan etkinlik yerini değiştirdiğimde
+// silüet telefona gözükmüyor" -- canlı yayın ONCEDEN SADECE bos izgarada yeni etkinlik
+// olusturma jestinde vardi (calStartGridSelectGesture). Mevcut bir etkinligi TASIMA
+// (SortableJS calOnDragMove/calOnDragEnd) hic yayin yapmiyordu. Bu iki paylasilan fonksiyon
+// artik HER IKI jest tarafindan da kullaniliyor -- ayni canliTakvimSecim/{uid} dugumu, ayni
+// throttle/onDisconnect deseni.
+let calLiveLastBroadcastTs = 0;
+let calLiveOnDisconnectSet = false;
+function calBroadcastLiveSelection(tarih, saat, bitisSaat){
+	if(!database || !currentUser || !currentUser.uid) return;
+	const now=Date.now();
+	if(now-calLiveLastBroadcastTs<150) return;
+	calLiveLastBroadcastTs=now;
+	const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
+	liveRef.set({
+		ad: (currentUser.firstName||currentUser.email||"Bir kullanıcı"),
+		tarih: tarih, saat: saat, bitisSaat: bitisSaat,
+		ts: firebase.database.ServerValue.TIMESTAMP
+	}).catch(function(err){
+		console.error("Canlı takvim seçimi yayınlanamadı (Firebase kuralı eklenmemiş olabilir):", err);
+	});
+	if(!calLiveOnDisconnectSet){ calLiveOnDisconnectSet=true; liveRef.onDisconnect().remove(); }
+}
+function calClearLiveSelection(){
+	if(!database || !currentUser || !currentUser.uid || !calLiveOnDisconnectSet) return;
+	const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
+	liveRef.remove().catch(function(){});
+	liveRef.onDisconnect().cancel();
+	calLiveOnDisconnectSet=false;
+}
 function attachLiveSelectionListener(){
 	if(!database) return;
 	if(activeLiveSelectionRef && activeLiveSelectionCallback) { activeLiveSelectionRef.off("value", activeLiveSelectionCallback); }
@@ -4694,6 +4724,23 @@ function calOnDragMove(evt){
 	if(evt.dragged){
 		const overAllDay = evt.to && evt.to.classList.contains("cal-allday-col");
 		evt.dragged.classList.toggle("cal-block-cross-preview", !!overAllDay);
+		// Kullanici geri bildirimi: mevcut bir etkinligi tasirken de (yeni etkinlik olusturmada
+		// oldugu gibi) diger kullanicilar canli silueti gorebilsin -- SADECE saat izgarasi
+		// uzerindeyken (v1 kapsam karari, tum-gun seridi haric), calMoveEvent()'teki AYNI
+		// piksel->dakika/sure hesabini (30dk snap) izler ama Firebase'e henuz YAZMAZ (onEnd yazar).
+		const overDayCol = evt.to && evt.to.classList.contains("cal-daycol");
+		if(overDayCol && xy){
+			const id=evt.dragged.dataset ? evt.dragged.dataset.evid : null;
+			const ev=id ? calEvents[id] : null;
+			const dateKey=evt.to.dataset.date;
+			if(ev && dateKey){
+				const rect=evt.to.getBoundingClientRect();
+				const mins0=Math.round(((xy.y-rect.top-calDragGrabOffsetY)/CAL_HOUR_H)*60/30)*30;
+				const mins=Math.max(0,Math.min(23*60+30,mins0));
+				const dur=(hmToMin(ev.saat)!==null && hmToMin(ev.bitisSaat)!==null && hmToMin(ev.bitisSaat)>hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat)-hmToMin(ev.saat) : 60;
+				calBroadcastLiveSelection(dateKey, minToHm(mins), minToHm(Math.min(24*60-1, mins+dur)));
+			}
+		}
 	}
 	return true; // engelleme yok, sadece izliyoruz
 }
@@ -4813,6 +4860,14 @@ function calStartGridSelectGesture(e){
 	if(!dateKey) return;
 	const pointerId=e.pointerId;
 	daycol.setPointerCapture(pointerId);
+	// Kullanici geri bildirimi (iOS/mobil): parmakla basili tutup asagi cekince tarayici bunu
+	// KENDI dikey sayfa kaydirma jesti sanip pointermove'lari gondermeden pointercancel
+	// atesliyordu -- "saatini ayarlayamadan hemen düzenle ekranı geliyor" (moved hep false
+	// kaliyor, calGridClick'in eski varsayilan-30dk davranisi devreye giriyordu). touch-action
+	// SADECE bu jest surerken 'none' yapilir, onUp'ta geri alinir -- .cal-daycol kalici olarak
+	// kilitlenirse kullanici takvimi parmagiyla hic kaydiramaz.
+	const prevTouchAction=daycol.style.touchAction;
+	daycol.style.touchAction="none";
 	const rect=daycol.getBoundingClientRect();
 	function minsFromY(y){
 		// 15dk snap -- resize'in 5dk'sindan kaba (bu sadece kaba bir ilk secim, ince ayar
@@ -4821,9 +4876,9 @@ function calStartGridSelectGesture(e){
 		return Math.max(0,Math.min(24*60,m));
 	}
 	const anchorMin=minsFromY(e.clientY);
+	const startX=e.clientX;
 	let startMin=anchorMin, endMin=anchorMin;
-	let moved=false;
-	let lastBroadcastTs=0, liveOnDisconnectSet=false;
+	let moved=false, cancelled=false;
 
 	const ghost=document.createElement("div");
 	ghost.className="cal-create-select";
@@ -4835,51 +4890,40 @@ function calStartGridSelectGesture(e){
 	}
 	applyLive();
 
-	function broadcastLive(){
-		// Kullanici istegi: "diger kullanicilar da ... silueti gorsunler ben yaparken" -- projede
-		// ILK ephemeral/presence yazimi. Throttle'li (>=150ms) -- her pointermove'da yazmak
-		// Firebase'i gereksiz yere doldururdu. onDisconnect().remove() SADECE ilk yazimdan sonra
-		// BIR KEZ kurulur -- sekme kapanirsa/baglanti koparsa silis OTOMATIK temizlenir.
-		if(!database || !currentUser || !currentUser.uid) return;
-		const now=Date.now();
-		if(now-lastBroadcastTs<150) return;
-		lastBroadcastTs=now;
-		const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
-		liveRef.set({
-			ad: (currentUser.firstName||currentUser.email||"Bir kullanıcı"),
-			tarih: dateKey, saat: minToHm(startMin), bitisSaat: minToHm(endMin),
-			ts: firebase.database.ServerValue.TIMESTAMP
-		}).catch(function(err){
-			// ESKIDEN sessizce yutuluyordu -- Firebase kuralina canliTakvimSecim henuz
-			// eklenmemisse (PERMISSION_DENIED) hicbir iz birakmadan basarisiz oluyordu, debug
-			// etmek imkansizdi. Artik en azindan konsola duser (bkz. docs/firebase-database-rules.json).
-			console.error("Canlı takvim seçimi yayınlanamadı (Firebase kuralı eklenmemiş olabilir):", err);
-		});
-		if(!liveOnDisconnectSet){ liveOnDisconnectSet=true; liveRef.onDisconnect().remove(); }
+	function cleanupListeners(){
+		try{ daycol.releasePointerCapture(pointerId); }catch(err){}
+		daycol.style.touchAction=prevTouchAction;
+		window.removeEventListener("pointermove", onMove);
+		window.removeEventListener("pointerup", onUp);
+		window.removeEventListener("pointercancel", onUp);
 	}
-	function clearLiveBroadcast(){
-		if(!database || !currentUser || !currentUser.uid || !liveOnDisconnectSet) return;
-		const liveRef=database.ref(dbPath("canliTakvimSecim/"+currentUser.uid));
-		liveRef.remove().catch(function(){});
-		liveRef.onDisconnect().cancel();
-	}
-
 	function onMove(e2){
 		if(e2.pointerId!==pointerId) return;
-		if(Math.abs(e2.clientY-e.clientY)>3) moved=true;
+		const dx=e2.clientX-startX, dy=e2.clientY-e.clientY;
+		// Kullanici geri bildirimi: gun/hafta degistirmek icin hizli sag/sol kaydirma (#calendarOverlay
+		// touchstart/touchend swipe-nav dinleyicisi, ayni parmak temasinda paralel calisiyor) bu jest
+		// tarafindan yanlislikla "surukleyerek olustur" sanilip dikeydeki kucuk sapma 3px esigini
+		// asinca DOGRUDAN duzenleme ekrani aciliyordu. Swipe-nav'daki AYNI yatay-agirlik esigiyle
+		// tespit edilirse bu jest tamamen iptal edilir, calShift()'e (sayfa navigasyonu) birakilir.
+		if(!moved && Math.abs(dx)>=40 && Math.abs(dx)>=Math.abs(dy)*1.2){
+			cancelled=true;
+			ghost.remove();
+			calGridSelectSuppressClick=true; // takip eden sentetik click de calGridClick acmasin
+			calClearLiveSelection();
+			cleanupListeners();
+			return;
+		}
+		if(Math.abs(dy)>3) moved=true;
 		const curMin=minsFromY(e2.clientY);
 		if(curMin<anchorMin){ startMin=curMin; endMin=Math.max(anchorMin, curMin+15); }
 		else { startMin=anchorMin; endMin=Math.max(anchorMin+15, curMin); }
 		applyLive();
-		if(moved) broadcastLive();
+		if(moved) calBroadcastLiveSelection(dateKey, minToHm(startMin), minToHm(endMin));
 	}
 	function onUp(e2){
-		if(e2.pointerId!==pointerId) return;
-		try{ daycol.releasePointerCapture(pointerId); }catch(err){}
-		window.removeEventListener("pointermove", onMove);
-		window.removeEventListener("pointerup", onUp);
-		window.removeEventListener("pointercancel", onUp);
-		clearLiveBroadcast(); // surukleme jesti bitti -- diger kullanicilara YAYIN durur (form doldururken degil)
+		if(e2.pointerId!==pointerId || cancelled) return;
+		cleanupListeners();
+		calClearLiveSelection(); // surukleme jesti bitti -- diger kullanicilara YAYIN durur (form doldururken degil)
 		if(!moved){ ghost.remove(); return; } // kisa tiklama -- calGridClick'in eski tek-tik davranisi CALISMAYA devam etsin
 		calGridSelectSuppressClick=true; // ayni pointerup/click ciftinde calGridClick TEKRAR acmasin
 		// Kullanici istegi: "etkinlik oluştur ekranı arka planda... seçilen saat aralığını

@@ -1,3 +1,13 @@
+// v3.11.2 (31 Ağustos 2026) -- Part D hata düzeltmeleri (devam): (1) etkinlik TAŞIMA
+// sürüklemesi (mevcut etkinliği sürükleyip günü/saatini değiştirme) diğer kullanıcılara hiç
+// canlı yayınlanmıyordu -- sadece boş ızgarada yeni etkinlik oluşturma sürüklemesi yayın
+// yapıyordu; calBroadcastLiveSelection()/calClearLiveSelection() ortak fonksiyonlarına
+// çıkarılıp calOnDragMove/calOnDragEnd'e de bağlandı. (2) iOS/mobilde boş ızgarada basılı
+// tutup aşağı çekerken tarayıcı bunu sayfa kaydırma sanıp pointermove'ları hiç göndermeden
+// jesti iptal ediyordu -- jest sürerken .cal-daycol'a geçici touch-action:none eklendi.
+// (3) hızlı sağ/sol kaydırmayla gün/hafta değiştirme (swipe-nav) aynı parmak temasında bu
+// jestle çakışıp yanlışlıkla düzenleme ekranını açıyordu -- yatay ağırlıklı hareket tespit
+// edilince jest artık tamamen iptal ediliyor, calShift()'e (sayfa navigasyonu) bırakılıyor.
 // v3.11.1 (31 Ağustos 2026) -- Part D hata düzeltmeleri: (1) canlı takvim silüeti diğer
 // kullanıcılara hiç yansımıyordu -- renderRemoteLiveSelections() sadece Firebase verisi
 // DEĞİŞİNCE çağrılıyordu, takvim açılınca/görünüm değişince çağrılmıyordu; calLastLiveMap
@@ -48,7 +58,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.11.1"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.11.2"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
