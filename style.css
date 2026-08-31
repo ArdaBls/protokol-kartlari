@@ -574,15 +574,24 @@
 			   mavi ile "seçiliyormuş" gibi vurgulanıyordu (kartların kendisi zaten korunuyordu,
 			   ama boş hücreler/saat etiketleri değil) -- tüm ızgara konteynerine uygulanır. */
 			.cal-tg-body{ display:grid; position:relative; -webkit-user-select:none; user-select:none; }
-			.cal-gutter{ border-right:1px solid var(--divider); position:relative; background:transparent; }
+			.cal-gutter{ border-right:1px solid oklch(0 0 0 / 8%); position:relative; background:transparent; }
 			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; transform:translateY(-50%); }
-			.cal-daycol{ position:relative; border-right:1px solid var(--divider-faint); background:transparent; }
+			.cal-daycol{ position:relative; border-right:1px solid oklch(0 0 0 / 8%); background:transparent; }
 			.cal-daycol:last-child{ border-right:none; }
 			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
 			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
 			/* Eskiden sabit #e6dfcd (eski sicak paletten kalma, koyu temada hic tanimlanmamisti,
-			   yeni acik temada da uyumsuz kaliyordu) -- artik degiskene bagli, ince ve notr. */
-			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid var(--divider-faint); opacity:.55; pointer-events:none; }
+			   yeni acik temada da uyumsuz kaliyordu), sonra --divider-faint token'ina baglandi --
+			   ama o krem tona (--paper) COK yakin oldugu icin acik temada cizgiler neredeyse hic
+			   gorunmuyordu (kullanici: "beyaz arka plan olunca gözükmüyor"). Artik --divider-faint
+			   (site genelinde PAYLASILAN bir token, degistirmek istenmeyen yan etkiler dogururdu)
+			   yerine, sadece takvime ozel, tema-farkinda sabit bir kontrast: acik temada hafif
+			   siyah (oklch(0 0 0/8%), "çok koyu olmasın" istegiyle tutarli), koyu temada hafif
+			   beyaz (kullanici istegi: oklch(1 0 0/10%)). */
+			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid oklch(0 0 0 / 8%); opacity:.55; pointer-events:none; }
+			[data-theme="dark"] .cal-hrline{ border-top-color:oklch(1 0 0 / 10%); }
+			[data-theme="dark"] .cal-daycol{ border-right-color:oklch(1 0 0 / 10%); }
+			[data-theme="dark"] .cal-gutter{ border-right-color:oklch(1 0 0 / 10%); }
 			.cal-nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; }
 			/* Şu anki saat: SADECE bugünün .cal-daycol'u içinde (o sütunun position:relative'ine
 			   göre), dakikada bir kendini günceller. Eskiden .cal-tg-body'nin tamamını (tüm görünen
@@ -604,6 +613,27 @@
 			.cal-block.compact .bt{ font-size:11px; }
 			.cal-block.compact .bh{ font-size:9px; }
 			.cal-block.compact .cal-status-bar{ display:none; }
+			/* Faz 9: ust/alt kenardan surukleyerek baslangic/bitis saatini ayarlama (bkz. app.js
+			   calStartResizeGesture). .cal-block{overflow:hidden} sinirinin ICINDE kalir --
+			   negatif inset YOK, .cal-lock-ico'daki inset-clipping hatasinin (yukaridaki
+			   @media pointer:coarse notu) AYNI SINIFINA dusmemek icin. z-index kilit
+			   ikonunun (4) altinda, boylece alt-sag kosede ikisi ust uste gelirse kilit
+			   ikonu kazanir. reui.io/preview/base/event-calendar-3'ün render edilmiş DOM'u
+			   (sadece görsel inceleme -- paket/kod alınmadı) aynı deseni (mutlak şerit,
+			   ns-resize, hover'da beliren küçük "grip" ipucu) doğruladığı için grip eklendi. */
+			.cal-resize-handle{ position:absolute; left:0; right:0; bottom:0; height:8px; z-index:3; cursor:ns-resize; touch-action:none; display:flex; align-items:center; justify-content:center; }
+			.cal-resize-handle-top{ top:0; bottom:auto; }
+			.cal-resize-handle::after{ content:""; width:16px; height:3px; border-radius:2px; background:rgba(255,255,255,.75); opacity:0; transition:opacity .12s ease; }
+			.cal-block:hover .cal-resize-handle::after{ opacity:.8; }
+			.cal-block.compact .cal-resize-handle{ display:none; }
+			.cal-block.cal-block-cross-preview .cal-resize-handle{ display:none; }
+			@media (pointer: coarse){ .cal-resize-handle{ height:14px; } .cal-resize-handle::after{ opacity:.6; } }
+			/* Suruklerken eski saat araligini gosteren silik "hayalet" -- kullanici istegi:
+			   "eski etkinlik altta silüet kalsın... bırakınca gitsin silüet". block'un KENDI
+			   .cal-block stilini miras alir (ayni renk/konum), sadece opaklik/kesikli kenar/
+			   tiklanamazlik eklenir. z-index block'un (3) ALTINDA (app.js'te 2 verilir). */
+			.cal-resize-ghost{ opacity:.4; pointer-events:none; cursor:default; box-shadow:none; border:1.5px dashed rgba(255,255,255,.85); }
+			.cal-resize-ghost:hover{ filter:none; }
 			/* ---- Kilit ikonu: tiklaninca suruklemeyi engeller/acar ---- */
 			.cal-lock-ico{ position:absolute; bottom:2px; right:2px; z-index:4; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; padding:0; border-radius:4px; background:rgba(255,255,255,.7); cursor:pointer; opacity:.55; }
 			.cal-lock-ico:hover{ opacity:1; }
@@ -841,6 +871,12 @@
 			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; }
 			[data-theme="dark"] .calendar-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
+			/* Sadece admin rolu icin: tepsinin tam ortasinda admin.html'e goturen 3. dugme.
+			   Gorunurluk .active-list class'i ile JS'ten kontrol edilir (renderAuthUI()) --
+			   faculty-fab'daki ayni desen, rol degisince tek satirla acilip kapanir. */
+			.admin-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; }
+			[data-theme="dark"] .admin-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
+			@media (max-width: 1049px) { .admin-fab.active-list{ display:flex; } }
 			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
 			@media (max-width: 700px) {
 				.cal-topbar{ padding:calc(9px + env(safe-area-inset-top,0px)) 10px 9px; gap:5px; }
@@ -1101,6 +1137,10 @@
 				.header-menu-user .role-dot.admin{ background:var(--brass); }
 				.header-menu .header-menu-item{ background:none; color:var(--ink); border:none; padding:9px 10px; border-radius:7px; cursor:pointer; font-weight:600; font-size:13px; text-align:left; width:100%; }
 				.header-menu .header-menu-item:hover{ background:var(--surface-subtle); }
+				/* Mobilde admin paneline giris artik liquid-glass tepsisindeki admin-fab
+				   uzerinden yapiliyor -- dropdown'daki bu ogeyi tekrar gostermeye gerek yok,
+				   masaustunde (>=1050px) dropdown'da kalmaya devam eder. */
+				@media (max-width: 1049px) { .admin-menu-item{ display:none; } }
 				/* Giris yapilmamis durumda (sadece "Giris Yap") .btn-auth eski/basit stilini korur. */
 				.header-auth .btn-auth{ background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; white-space:nowrap; }
 				.header-auth > .btn-auth:hover{ background:rgba(255,255,255,.18); }
@@ -1251,12 +1291,21 @@
 			.admin-dashboard{ display:flex; align-items:flex-start; gap:16px; width:100%; height:100%; padding:16px; box-sizing:border-box; }
 			.admin-glass{ background:rgba(255,255,255,.5); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%); border:1px solid rgba(255,255,255,.6); box-shadow:0 8px 30px rgba(22,35,61,.10); }
 			[data-theme="dark"] .admin-glass{ background:rgba(37,37,53,.55); border-color:rgba(255,255,255,.08); box-shadow:0 8px 30px rgba(0,0,0,.35); }
-			.admin-sidebar{ flex:0 0 232px; display:flex; flex-direction:column; gap:18px; padding:18px 12px; border-radius:20px; height:100%; box-sizing:border-box; }
-			.admin-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:2px 8px 14px; border-bottom:1px solid rgba(120,120,140,.15); }
+			.admin-sidebar{ flex:0 0 232px; display:flex; flex-direction:column; gap:4px; padding:18px 12px; border-radius:20px; height:100%; box-sizing:border-box; overflow-y:auto; }
+			.admin-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:2px 8px 14px; margin-bottom:10px; border-bottom:1px solid rgba(120,120,140,.15); }
 			.admin-sidebar-logo{ font-size:21px; line-height:1; }
 			.admin-sidebar-brand b{ display:block; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--ink); line-height:1.3; }
 			.admin-sidebar-sub{ display:block; font-size:10.5px; color:var(--muted); letter-spacing:.02em; }
 			.admin-nav-group{ display:flex; flex-direction:column; gap:2px; }
+			/* Faz 9: akordeon grup başlığı -- AdminLTE'nin .nav-header/.nav-arrow davranışının
+			   vanilla portu (bkz. app.js toggleAdminNavGroup/openAdminNavGroup). Kapalıyken
+			   .admin-nav-treeview display:none, .open olunca block; ok .open'da 180deg döner. */
+			.admin-nav-header{ display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 10px; border:none; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; text-align:left; cursor:pointer; border-radius:8px; }
+			.admin-nav-header:hover{ background:rgba(120,120,140,.1); color:var(--ink); }
+			.admin-nav-header .nav-arrow{ width:14px; height:14px; transition:transform .18s ease; }
+			.admin-nav-group.open .admin-nav-header .nav-arrow{ transform:rotate(180deg); }
+			.admin-nav-treeview{ display:none; flex-direction:column; gap:2px; padding-bottom:6px; }
+			.admin-nav-group.open .admin-nav-treeview{ display:flex; }
 			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:10px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; text-align:left; cursor:pointer; transition:background .12s ease, color .12s ease; position:relative; }
 			.admin-nav-item .ikon{ width:17px; height:17px; color:var(--muted); transition:color .12s ease; }
 			.admin-nav-item:hover{ background:rgba(120,120,140,.12); }
@@ -1304,9 +1353,15 @@
 			.admin-logs-scroll{ max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
 			@media (max-width: 780px){
 				.admin-dashboard{ flex-direction:column; padding:10px; gap:10px; }
-				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; height:auto; }
-				.admin-sidebar-brand{ flex:1 1 100%; border-bottom:none; padding-bottom:0; }
-				.admin-nav-group{ flex-direction:row; flex-wrap:wrap; flex:1 1 auto; }
+				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; height:auto; overflow-y:visible; }
+				.admin-sidebar-brand{ flex:1 1 100%; border-bottom:none; padding-bottom:0; margin-bottom:0; }
+				/* Faz 9: mobilde akordeon başlıkları anlamsız (dar ekranda dikey scroll zaten
+				   normal) -- .admin-nav-group'u kutudan çıkarıp (display:contents) içindeki
+				   .admin-nav-treeview'ı doğrudan sidebar'ın yatay flex-wrap satırına katıyoruz,
+				   hep açık gösteriyoruz (accordion sadece masaüstünde anlamlı). */
+				.admin-nav-group{ display:contents; }
+				.admin-nav-header{ display:none; }
+				.admin-nav-treeview{ display:flex !important; flex-direction:row; flex-wrap:wrap; gap:8px; flex:1 1 auto; padding-bottom:0; }
 				.admin-nav-item{ width:auto; flex:1 1 auto; justify-content:center; }
 				/* Faz 8: mobilde kart nav artık yan yana, sol vurgu çubuğu (::before, left:-8px)
 				   flex-wrap satırında görsel gürültü yapabileceği için kaldırılıyor -- kart

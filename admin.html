@@ -84,6 +84,14 @@
 			<symbol id="i-geri" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
 			<symbol id="i-bilgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></symbol>
 			<symbol id="i-test" viewBox="0 0 24 24"><path d="M9 2v6.5L4 18a2 2 0 0 0 1.8 3h12.4a2 2 0 0 0 1.8-3l-5-9.5V2"/><path d="M9 2h6M8.5 12h7"/></symbol>
+			<symbol id="i-arama" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+			<symbol id="i-radyo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-8.49a6 6 0 0 0 0 8.49M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></symbol>
+			<symbol id="i-gazete" viewBox="0 0 24 24"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M18 10h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4"/><path d="M4 8V4a2 2 0 0 1 2-2h10"/><rect width="8" height="8" x="4" y="8" rx="1"/></symbol>
+			<symbol id="i-kurum" viewBox="0 0 24 24"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></symbol>
+			<symbol id="i-supurge" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+			<symbol id="i-kitap" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+			<symbol id="i-disk" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3.4"/></symbol>
+			<symbol id="i-ok" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
 		</svg>
 
 		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.</div>
@@ -208,8 +216,9 @@
 		     düğmeler. Metin gittiği için erişilebilirlik aria-label/title ile sağlanıyor.
 		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
 		<div class="mobile-glass-nav" id="mobileGlassNav">
-			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi">🗓️</button>
-			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()" aria-label="Fakülte Filtrele" title="Fakülte Filtrele">🔍<span class="fab-count" id="facultyFabCount" style="display:none;"></span></button>
+			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi"><svg class="ikon"><use href="#i-takvim"/></svg></button>
+			<button type="button" class="admin-fab" id="adminFab" onclick="openAdminPanel()" aria-label="Admin Paneli" title="Admin Paneli"><svg class="ikon"><use href="#i-panel"/></svg></button>
+			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()" aria-label="Fakülte Filtrele" title="Fakülte Filtrele"><svg class="ikon"><use href="#i-arama"/></svg><span class="fab-count" id="facultyFabCount" style="display:none;"></span></button>
 		</div>
 		<div class="faculty-sheet-backdrop" id="facultySheetBackdrop" onclick="closeFacultySheet()"></div>
 		<div class="faculty-sheet" id="facultySheet">
@@ -778,11 +787,53 @@
 						<span class="admin-sidebar-logo">🗂️</span>
 						<div><b>Admin Paneli</b><span class="admin-sidebar-sub">Protokol Kartları</span></div>
 					</div>
-					<div class="admin-nav-group">
-						<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><svg class="ikon"><use href="#i-users"/></svg>Kullanıcılar</button>
-						<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><svg class="ikon"><use href="#i-akis"/></svg>Geçmiş</button>
-						<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><svg class="ikon"><use href="#i-test"/></svg>Test</button>
-						<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>İstatistikler</button>
+					<!-- Faz 9: sidebar 4 akordeon gruba bölündü (referans: AdminLTE _app-sidebar.scss/
+					     treeview.ts -- sadece davranış deseni alındı, Bootstrap/TS kodu yok). Her grup
+					     .admin-nav-header'a tıklanınca açılır, diğer gruplar otomatik kapanır
+					     (toggleAdminNavGroup(), app.js). switchAdminTab() aktif sekmenin grubunu da
+					     otomatik açar. -->
+					<div class="admin-nav-group open" id="admGroupGenel">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Genel')" aria-expanded="true">
+							<span>Genel Bakış</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabDashboardBtn" onclick="switchAdminTab('dashboard')"><svg class="ikon"><use href="#i-panel"/></svg>Kontrol Paneli</button>
+							<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>Faaliyet &amp; İstatistik</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupSaha">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Saha')" aria-expanded="false">
+							<span>Saha &amp; Haber</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabFieldOpsBtn" onclick="switchAdminTab('field-ops')"><svg class="ikon"><use href="#i-radyo"/></svg>Saha Masası</button>
+							<button class="admin-nav-item" id="adminTabEditorialBtn" onclick="switchAdminTab('editorial')"><svg class="ikon"><use href="#i-gazete"/></svg>Haber &amp; Ajans</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupProtokol">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Protokol')" aria-expanded="false">
+							<span>Protokol &amp; Veri</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabHierarchyBtn" onclick="switchAdminTab('hierarchy')"><svg class="ikon"><use href="#i-kurum"/></svg>Hiyerarşi &amp; Kadro</button>
+							<button class="admin-nav-item" id="adminTabIntegrityBtn" onclick="switchAdminTab('integrity')"><svg class="ikon"><use href="#i-supurge"/></svg>Kart Sağlığı</button>
+							<button class="admin-nav-item" id="adminTabDictionaryBtn" onclick="switchAdminTab('dictionary')"><svg class="ikon"><use href="#i-kitap"/></svg>Veri Sözlüğü</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupSistem">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Sistem')" aria-expanded="false">
+							<span>Sistem &amp; Güvenlik</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><svg class="ikon"><use href="#i-users"/></svg>Kullanıcılar &amp; PIN</button>
+							<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><svg class="ikon"><use href="#i-akis"/></svg>Denetim Günlüğü</button>
+							<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><svg class="ikon"><use href="#i-test"/></svg>Test &amp; Sistem</button>
+							<button class="admin-nav-item" id="adminTabBackupBtn" onclick="switchAdminTab('backup')"><svg class="ikon"><use href="#i-disk"/></svg>Yedekleme &amp; Çöp</button>
+						</div>
 					</div>
 					<button type="button" class="admin-back-btn" onclick="closeAdminPanel()"><svg class="ikon"><use href="#i-geri"/></svg>Kartlara Dön</button>
 				</nav>
@@ -814,8 +865,33 @@
 						</label>
 					</div>
 					<div class="admin-content-card admin-glass">
-						<h2 class="admin-main-title" id="adminMainTitle">Kullanıcılar</h2>
-						<div id="adminUsersView">
+						<h2 class="admin-main-title" id="adminMainTitle">Kontrol Paneli</h2>
+						<!-- Faz 9 iskelet: yeni 7 sekmenin gövdesi henüz "yakında" placeholder'ı --
+						     load{X}() fonksiyonları ve gerçek veri sonraki aşamalarda eklenecek
+						     (bkz. .claude/roadmap.md/plan). switchAdminTab() bunları zaten
+						     gösterip/gizleyip nav'da .active yapıyor, tıklanabilir durumdalar. -->
+						<div id="adminDashboardView">
+							<p class="hint">Acil durum kartları (bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler) yakında burada listelenecek.</p>
+						</div>
+						<div id="adminFieldOpsView" style="display:none;">
+							<p class="hint">Saha taslakları ve personel iş yükü matrisi yakında.</p>
+						</div>
+						<div id="adminEditorialView" style="display:none;">
+							<p class="hint">Haber SLA takibi ve ajans dağılımı yakında.</p>
+						</div>
+						<div id="adminHierarchyView" style="display:none;">
+							<p class="hint">Boş kadro/vekalet/rank uyuşmazlığı taraması yakında.</p>
+						</div>
+						<div id="adminIntegrityView" style="display:none;">
+							<p class="hint">Eksik fotoğraf ve mükerrer kayıt taraması yakında.</p>
+						</div>
+						<div id="adminDictionaryView" style="display:none;">
+							<p class="hint">Birim/unvan öneri havuzu birleştirme/silme araçları yakında.</p>
+						</div>
+						<div id="adminBackupView" style="display:none;">
+							<p class="hint">Birleşik yedek alma ve salt-okunur kilit yakında.</p>
+						</div>
+						<div id="adminUsersView" style="display:none;">
 							<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
 							<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
 						</div>

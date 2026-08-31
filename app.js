@@ -134,6 +134,11 @@
 			// tikla-kapa (bkz. setupHeaderMenu()).
 			function renderAuthUI() {
 				const wrap = document.getElementById("headerAuth");
+				// Mobil liquid-glass tepsisindeki 3. dugme (admin-fab) sadece admin rolunde
+				// gorunur -- faculty-fab'daki .active-list deseniyle ayni, currentUser her
+				// degistiginde (giris/cikis/rol degisimi) burada tek noktadan guncellenir.
+				const adminFab = document.getElementById("adminFab");
+				if (adminFab) adminFab.classList.toggle("active-list", !!(currentUser && currentUser.role === "admin"));
 				if (!currentUser) {
 					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>';
 					return;
@@ -141,7 +146,9 @@
 				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
 				const displayName = currentUser.firstName || currentUser.email;
 				const initial = escapeHtml((displayName || "?").trim().charAt(0).toUpperCase());
-				const adminItem = (currentUser.role === "admin") ? '<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); openAdminPanel();">🛠️ Admin Paneli</button>' : "";
+				// admin-menu-item: mobilde CSS ile gizlenir (bkz. style.css) -- mobilde bu
+				// islevi artik ortadaki admin-fab tasiyor, masaustunde dropdown'da kalmaya devam eder.
+				const adminItem = (currentUser.role === "admin") ? '<button type="button" class="header-menu-item admin-menu-item" onclick="closeHeaderMenu(); openAdminPanel();">🛠️ Admin Paneli</button>' : "";
 				wrap.innerHTML =
 				'<div class="header-profile-wrap">' +
 				'<button type="button" class="header-profile-btn ' + (currentUser.role || "pending") + '" id="headerProfileBtn" onclick="toggleHeaderMenu()" aria-haspopup="true" aria-expanded="false" title="Hesap menüsü">' +
@@ -298,7 +305,7 @@
 				document.getElementById("adminPanelBg").classList.add("open");
 				updateTestModeBanner();
 				loadTestModeLog();
-				switchAdminTab("users");
+				switchAdminTab("dashboard");
 				loadAdminOverview();
 			}
 			// Sekmeler arasında HER ZAMAN görünen özet şeridi -- switchAdminTab() sekme içeriğini
@@ -342,21 +349,67 @@
 				document.getElementById("adminPanelBg").classList.remove("open");
 			}
 
-			const ADMIN_TAB_TITLES = { users: "Kullanıcılar", logs: "Geçmiş", test: "Test", stats: "İstatistikler" };
+			// Faz 9: sidebar 4 akordeon gruba bölündü (Genel/Saha/Protokol/Sistem), 4 sekme
+			// 11'e çıktı. ADMIN_TAB_GROUPS her sekmenin hangi grupta olduğunu tutar --
+			// switchAdminTab() sekme değişince o grubu otomatik açar (openAdminNavGroup()).
+			const ADMIN_TAB_TITLES = {
+				dashboard: "Kontrol Paneli", stats: "Faaliyet & İstatistik",
+				"field-ops": "Saha Masası", editorial: "Haber & Ajans",
+				hierarchy: "Hiyerarşi & Kadro", integrity: "Kart Sağlığı", dictionary: "Veri Sözlüğü",
+				users: "Kullanıcılar & PIN", logs: "Denetim Günlüğü", test: "Test & Sistem", backup: "Yedekleme & Çöp"
+			};
+			const ADMIN_TAB_GROUPS = {
+				dashboard: "Genel", stats: "Genel",
+				"field-ops": "Saha", editorial: "Saha",
+				hierarchy: "Protokol", integrity: "Protokol", dictionary: "Protokol",
+				users: "Sistem", logs: "Sistem", test: "Sistem", backup: "Sistem"
+			};
+			// view id'si "field-ops" -> "adminFieldOpsView" gibi kebab-case'i camelCase'e çevirir --
+			// tek noktadan üretildiği için yeni sekme eklerken burada elle eşleme tutmaya gerek yok.
+			function adminTabViewId(tab) {
+				return "admin" + tab.split("-").map(function(w){ return w.charAt(0).toUpperCase() + w.slice(1); }).join("") + "View";
+			}
+			function adminTabBtnId(tab) {
+				return "adminTab" + tab.split("-").map(function(w){ return w.charAt(0).toUpperCase() + w.slice(1); }).join("") + "Btn";
+			}
 			function switchAdminTab(tab) {
 				if (!requireAdmin()) return;
-				document.getElementById("adminUsersView").style.display = (tab === "users") ? "block" : "none";
-				document.getElementById("adminLogsView").style.display = (tab === "logs") ? "block" : "none";
-				document.getElementById("adminTestView").style.display = (tab === "test") ? "block" : "none";
-				document.getElementById("adminStatsView").style.display = (tab === "stats") ? "block" : "none";
-				document.getElementById("adminTabUsersBtn").classList.toggle("active", tab === "users");
-				document.getElementById("adminTabLogsBtn").classList.toggle("active", tab === "logs");
-				document.getElementById("adminTabTestBtn").classList.toggle("active", tab === "test");
-				document.getElementById("adminTabStatsBtn").classList.toggle("active", tab === "stats");
+				Object.keys(ADMIN_TAB_TITLES).forEach(function(t) {
+					const view = document.getElementById(adminTabViewId(t));
+					if (view) view.style.display = (t === tab) ? "block" : "none";
+					const btn = document.getElementById(adminTabBtnId(t));
+					if (btn) btn.classList.toggle("active", t === tab);
+				});
 				const titleEl = document.getElementById("adminMainTitle");
 				if (titleEl) titleEl.textContent = ADMIN_TAB_TITLES[tab] || "";
-				if (tab === "users") loadAdminUsers(); else if (tab === "test") loadAdminTestPanel(); else if (tab === "stats") loadAdminStats(); else { loadAdminLogs(); loadTestModeLog(); }
-}
+				if (ADMIN_TAB_GROUPS[tab]) openAdminNavGroup(ADMIN_TAB_GROUPS[tab]);
+				if (tab === "users") loadAdminUsers();
+				else if (tab === "test") loadAdminTestPanel();
+				else if (tab === "stats") loadAdminStats();
+				else if (tab === "logs") { loadAdminLogs(); loadTestModeLog(); }
+				// field-ops/editorial/hierarchy/integrity/dictionary/backup/dashboard: henüz
+				// yükleyici fonksiyonları yok (iskelet aşaması), view "yakında" placeholder gösteriyor.
+			}
+			// Sidebar akordeon: AdminLTE'nin treeview.ts'indeki "accordion:true" davranışının vanilla
+			// portu -- Bootstrap/TS alınmadı, sadece mantık: bir grup açılınca diğerleri kapanır.
+			function openAdminNavGroup(groupId) {
+				document.querySelectorAll(".admin-nav-group").forEach(function(g) {
+					const isTarget = g.id === "admGroup" + groupId;
+					g.classList.toggle("open", isTarget);
+					const header = g.querySelector(".admin-nav-header");
+					if (header) header.setAttribute("aria-expanded", String(isTarget));
+				});
+			}
+			function toggleAdminNavGroup(groupId) {
+				const group = document.getElementById("admGroup" + groupId);
+				if (group && group.classList.contains("open")) {
+					group.classList.remove("open");
+					const header = group.querySelector(".admin-nav-header");
+					if (header) header.setAttribute("aria-expanded", "false");
+					return;
+				}
+				openAdminNavGroup(groupId);
+			}
 
 			// GitHub Actions ile regresyon testi: repo/workflow adi tek yerden - baska bir repoya
 			// tasinirsa sadece burasi degismeli.
@@ -889,6 +942,12 @@
 				}
 				const dayCol = e.target.closest('.cal-daycol');
 				if (dayCol) calGridClick(e, dayCol.dataset.date, dayCol);
+			});
+			// Faz 9: resize kolu -- ayri, delege edilmis bir pointerdown dinleyicisi. click
+			// dinleyicisiyle AYNI elemana (#calendarOverlay) bagli ama farkli olay turunde,
+			// cunku surukleme click'ten once (pointerdown) baslamak zorunda.
+			document.getElementById('calendarOverlay').addEventListener('pointerdown', function(e) {
+				calStartResizeGesture(e);
 			});
 
 			// Gun/hafta gorunumunde sola/saga kaydirarak gune-haftaya gecis -- kullanici usttteki
@@ -4071,7 +4130,12 @@ function renderWeekView(body){
 			inner+='<button type="button" class="'+calBlockClasses(e,d)+compact+'" data-evid="'+e._id+'" data-act="peek" '+
 				'style="'+calBlockStyle(e)+' top:'+top+'px; height:'+hgt+'px; left:calc('+left+'% + 2px); width:calc('+w+'% - 4px);">'+
 				'<span class="bt">'+escapeHtml(e.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(e.saat||"")+(e.bitisSaat?"–"+escapeHtml(e.bitisSaat):"")+'</span>'+badgeHtml(e)+lockIconHtml(e)+
-				'<span class="cal-status-bar" style="background:'+stBar+';"></span></button>';
+				'<span class="cal-status-bar" style="background:'+stBar+';"></span>'+
+				// Faz 9: hem UST (baslangic) hem ALT (bitis) kenardan surukleyerek saat ayarlama
+				// (bkz. calStartResizeGesture). edit-only: is-readonly govdede otomatik gizlenir
+				// (JSON indir/Silinenler butonlarindaki AYNI mekanizma).
+				'<span class="cal-resize-handle cal-resize-handle-top edit-only" data-act="resize-handle" aria-hidden="true"></span>'+
+				'<span class="cal-resize-handle edit-only" data-act="resize-handle" aria-hidden="true"></span></button>';
 		});
 		if(isToday && nowTop!==null) inner+='<div class="cal-nowline-full" style="top:'+nowTop+'px;"></div>';
 		cells+='<div class="cal-daycol'+(wd>=5?" is-weekend":"")+(isToday?" is-today":"")+'" data-date="'+k+'" style="height:'+H+'px;">'+inner+'</div>';
@@ -4279,6 +4343,11 @@ const calLock = {
 // hedefini) AKTARMIYOR -- sadece evt.item veriyor. "Kilit ikonuna mi dokunuldu" bilgisi bu
 // yuzden filter asamasinda yakalanip tek adimlik bir bayrakla onFilter'a tasinmak zorunda.
 function calSortableFilter(evt, item){
+	// Resize kolu (.cal-resize-handle) de -- ayni sebeple -- SortableJS'in kendi
+	// suruklemesine hic girmemeli; kendi ayri pointerdown/move/up jestini kullaniyor
+	// (bkz. calStartResizeGesture). Aksi halde 150ms-delay'li Sortable surukleme, kolun
+	// KENDI jestiyle YARISIR (ikisi de ayni pointerdown'i dinler).
+	if(evt && evt.target && evt.target.closest && evt.target.closest(".cal-resize-handle")) return true;
 	// Kilit ikonu suruklenebilir blogun ICINDE oldugu icin SortableJS dokunusu "surukleme
 	// olabilir" diye yakalayip delayOnTouchOnly ile 150ms bekletiyor; bu, ikonu mobilde
 	// "tiklanamaz" hissettiriyordu. filter true donerek surukleme daha basIamadan kesilir
@@ -4401,6 +4470,113 @@ async function calMoveEvent(id, dateKey, timeInfo){
 	const moveChanges=describeEventChanges(ev, moved);
 	const res=await persistEvent(id, moved, evLogName(ev.ad)+" etkinliği takvimde taşındı ("+fmtTrDate(dateKey)+")"+(moveChanges.length?" · "+moveChanges.join(" · "):""));
 	if(res){ calEvents[id]=moved; pushUndo({ type:"move", id:id, before:before, after:Object.assign({},moved) }); renderCalendar(); }
+}
+// Faz 9: etkinligin UST (baslangic) veya ALT (bitis) kenarindan surukleyerek saatini
+// ayarlama. calMoveEvent()'in AYNI kaydetme sablonunu (before/patch/moved/
+// describeEventChanges/persistEvent/pushUndo) birebir izler -- boylece log metni
+// (describeEventChanges "saat"/"bitisSaat" alan adindan otomatik "Başlangıç Saati"/
+// "Bitiş Saati" yazar), Ctrl+Z ve "baskasi degistirdi" koruma mantigi (persistEvent icinde)
+// hicbir ek kod yazilmadan BEDAVA calisir. patch tek alanli: {saat:...} veya {bitisSaat:...}.
+async function calResizeEvent(id, patch){
+	if(!id || !calEvents[id] || !requireEdit()){ renderCalendar(); return; }
+	// Ikinci savunma hatti: calStartResizeGesture zaten baslangicta kontrol ediyor, ama
+	// surukleme SIRASINDA baskasi kilitlemis olabilir (calMoveEvent'teki ayni yorum/desen).
+	if(calEvents[id].locked){ calLockNotify("Bu etkinlik kilitli, süresi değiştirilemez. Önce kilidi açın.", "error"); renderCalendar(); return; }
+	const ev=calEvents[id];
+	const before=Object.assign({}, ev);
+	const moved=Object.assign({}, ev, patch);
+	const resizeChanges=describeEventChanges(ev, moved);
+	const res=await persistEvent(id, moved, evLogName(ev.ad)+" etkinliğinin süresi ayarlandı"+(resizeChanges.length?" · "+resizeChanges.join(" · "):""));
+	if(res){ calEvents[id]=moved; pushUndo({ type:"resize", id:id, before:before, after:Object.assign({},moved) }); }
+	// Basarisiz olursa calEvents hic degismedi -- renderCalendar() gorsel-sadece onizlemeyi
+	// (surukleme sirasinda dogrudan DOM'a yazilan top/height/saat metni) otomatik olarak eski
+	// haline dondurur, ayri bir "geri al" kodu gerekmez.
+	renderCalendar();
+}
+// pointerdown/move/up ile calisan, SortableJS'ten TAMAMEN bagimsiz, kendi kendine yeten bir
+// jest. Pointer Events mouse+dokunmatigi tek API'de birlestirdigi icin (setPointerCapture)
+// ayri bir touch/mouse dali YAZILMADI -- SortableJS'in touch/mouse'u ayri ele almasi KENDI
+// API kisiti, bizim izole/yeni kolumuz buna baglı degil. .cal-resize-handle-top UST kenardan
+// (baslangic saatini), duzenli .cal-resize-handle ALT kenardan (bitis saatini) ayarlar --
+// ikisi de ayni kodu paylasir, sadece hangi ucun sabit kaldigi degisir.
+function calStartResizeGesture(e){
+	const handle=e.target.closest(".cal-resize-handle");
+	if(!handle) return;
+	e.stopPropagation(); // SortableJS/peek tiklamasina sizmasin (calSortableFilter zaten
+	                      // Sortable'in KENDI suruklemesini engelliyor, bu ayrica DOM bubble'ini keser)
+	const isTop=handle.classList.contains("cal-resize-handle-top");
+	const block=handle.closest(".cal-block[data-evid]");
+	const id=block && block.dataset ? block.dataset.evid : null;
+	const ev=id ? calEvents[id] : null;
+	if(!ev) return;
+	// Birinci savunma hatti (calSortableFilter'daki .cal-lock-ico kontroluyle ayni desen):
+	// kilitli etkinlikte jest hic baslamaz, tek-seferlik kilit uyarisi verilir.
+	if(ev.locked){ calLockNotify("Bu etkinlik kilitli, süresi değiştirilemez. Önce kilidi açın.", "error"); return; }
+	if(!requireEdit()) return;
+	const daycol=block.closest(".cal-daycol");
+	const origStartMin=hmToMin(ev.saat);
+	if(!daycol || origStartMin===null) return;
+	let origEndMin=hmToMin(ev.bitisSaat);
+	if(origEndMin===null || origEndMin<=origStartMin) origEndMin=Math.min(24*60, origStartMin+60);
+	const pointerId=e.pointerId;
+	handle.setPointerCapture(pointerId);
+	document.body.style.cursor="ns-resize";
+	let moved=false;
+	let startMin=origStartMin, endMin=origEndMin;
+
+	// Kullanici istegi: surukleme SIRASINDA eski (degismeden onceki) saat araligi silik bir
+	// "hayalet" olarak block'un ALTINDA kalsin -- "hangi saatten hangi saate" degistigi hem
+	// hayaletten (eski) hem hareket eden block'tan (yeni, canli) ayni anda gorulsun. Bırakınca
+	// (onUp) kaldirilir. block'un KENDI position:absolute stilini (top/height/left/width/renk)
+	// aynen kopyalar, ayni .cal-daycol'a eklenir.
+	const ghost=document.createElement("div");
+	ghost.className="cal-block cal-resize-ghost"+(block.classList.contains("compact")?" compact":"");
+	ghost.setAttribute("style", block.getAttribute("style"));
+	ghost.innerHTML='<span class="bt">'+escapeHtml(ev.ad||"(adsız)")+'</span><span class="bh">'+escapeHtml(ev.saat||"")+"–"+escapeHtml(minToHm(Math.min(24*60-1,origEndMin)))+'</span>';
+	daycol.appendChild(ghost);
+
+	function applyLive(){
+		block.style.top=((startMin/60)*CAL_HOUR_H)+"px";
+		block.style.height=Math.max(18, ((endMin-startMin)/60)*CAL_HOUR_H-2)+"px";
+		const bh=block.querySelector(".bh");
+		if(bh) bh.textContent=minToHm(startMin)+"–"+minToHm(Math.min(24*60-1, endMin));
+	}
+	function onMove(e2){
+		if(e2.pointerId!==pointerId) return;
+		if(Math.abs(e2.clientY-e.clientY)>3) moved=true;
+		const rect=daycol.getBoundingClientRect();
+		const rawMin=((e2.clientY-rect.top)/CAL_HOUR_H)*60;
+		// 5 dakikaya yuvarla -- tasima/tik-olusturmanin 30dk'lik snap'inden (calMoveEvent,
+		// calGridClick) BILINCLI olarak daha ince, cunku resize'in amaci ince ayar yapmak.
+		let snapped=Math.round(rawMin/5)*5;
+		if(isTop){
+			// UST kenar: bitis (origEndMin) SABIT kalir, baslangic gun basiyla bitis-5dk arasinda kelepcelenir.
+			snapped=Math.max(0, Math.min(origEndMin-5, snapped));
+			startMin=snapped;
+		} else {
+			// ALT kenar: baslangic (origStartMin) SABIT kalir, bitis baslangic+5dk ile gun sonu arasinda kelepcelenir.
+			snapped=Math.max(origStartMin+5, Math.min(24*60, snapped));
+			endMin=snapped;
+		}
+		applyLive(); // SADECE gorsel onizleme -- Firebase'e henuz yazilmiyor, bkz. onUp().
+	}
+	function onUp(e2){
+		if(e2.pointerId!==pointerId) return;
+		try{ handle.releasePointerCapture(pointerId); }catch(err){}
+		document.body.style.cursor="";
+		window.removeEventListener("pointermove", onMove);
+		window.removeEventListener("pointerup", onUp);
+		window.removeEventListener("pointercancel", onUp);
+		ghost.remove(); // "ama bırakınca gitsin silüet"
+		if(!moved) return; // yanlislikla tiklama -- degisiklik yok, kaydetmeye gerek yok
+		// 24*60-1 (23:59) ile kelepceleniyor, TAM 24*60 degil -- minToHm(1440) "00:00" donup
+		// (Math.floor(1440/60)%24===0) bitis saatini yanlislikla GUN BASI gibi gostermesin diye.
+		const patch=isTop ? { saat: minToHm(startMin) } : { bitisSaat: minToHm(Math.min(24*60-1, endMin)) };
+		calResizeEvent(id, patch);
+	}
+	window.addEventListener("pointermove", onMove);
+	window.addEventListener("pointerup", onUp);
+	window.addEventListener("pointercancel", onUp);
 }
 // SortableJS onEnd adaptoru -- ince katman, sadece Sortable'in evt seklinden gerekli bilgiyi
 // (id/hedef tarih/isaretci konumu) cikarip calMoveEvent()'e devreder. Testler calMoveEvent()'i
@@ -5014,7 +5190,7 @@ async function undoLastCalendarAction(){
 		ok=!!res;
 	} else {
 		const changes=describeEventChanges(entry.after, entry.before);
-		const label=adName+" etkinliğinin "+(entry.type==="move"?"taşınması":"düzenlemesi")+" geri alındı (Ctrl+Z, oturumda #"+undoCount+")"+(changes.length?" · "+changes.join(" · "):"");
+		const label=adName+" etkinliğinin "+(entry.type==="move"?"taşınması":entry.type==="resize"?"süresinin ayarlanması":"düzenlemesi")+" geri alındı (Ctrl+Z, oturumda #"+undoCount+")"+(changes.length?" · "+changes.join(" · "):"");
 		const res=await persistEvent(entry.id, entry.before, label);
 		if(res) calEvents[entry.id]=entry.before;
 		ok=!!res;
