@@ -50,7 +50,9 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	// index.html DEĞİL, takvim.html -- çok sayfalı mimari geçişinden sonra openCalendar()
+	// PAGE!=="takvim" iken gerçek bir location.href yönlendirmesi yapıyor (bkz. app.js).
+	await page.goto(`http://localhost:${PORT}/takvim.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
 	// --- Ortak kurulum: editor olarak "oturum ac", basinGorevlileri/users yollarini
@@ -118,7 +120,10 @@ function serve() {
 			return r;
 		};
 
-		openCalendar();
+		// openCalendar() DEGIL, dogrudan renderCalendar() -- takvim.html kendi otomatik
+		// acilisiyla openCalendar()'i zaten cagirmis oluyor, ikinci cagri no-op olup yeni
+		// calEvents'i hic cizmez (calendar-resize-test.js'teki AYNI cozum).
+		renderCalendar();
 		return { calendarOpen: document.getElementById('calendarOverlay').classList.contains('open') };
 	});
 	await page.waitForTimeout(150);

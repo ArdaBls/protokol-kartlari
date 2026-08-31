@@ -42,7 +42,13 @@ async function newPage(browser, width, height, mobile) {
 	await page.route('**Sortable.min.js', (r) => r.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (r) => r.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (r) => r.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	// index.html DEĞİL, protokol.html -- çok sayfalı mimari geçişinden (index.html artık
+	// SADECE giriş/kayıt) sonra kart ızgarası/header index.html'de CSS ile gizli, ayrıca
+	// openCalendar()/openAdminPanel() de PAGE!=="takvim"/"admin" iken gerçek bir
+	// location.href yönlendirmesi yapıyor. protokol.html'de kart ızgarası+header GÖRÜNÜR
+	// kalıyor, takvim/admin ise (bu dosyada aşağıda) doğrudan DOM manipülasyonuyla (gate
+	// fonksiyonlarını bypass ederek) açılıyor -- tek bir sayfa örneğinde hepsi test edilebiliyor.
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(250);
 	return page;
 }
@@ -67,7 +73,10 @@ async function newPage(browser, width, height, mobile) {
 			evStamp: { ad: 'Damgalanacak', tur: 'panel', durum: 'planlandi', tarih: '2026-04-06', saat: '', bitisSaat: '', locked: false, yer: '', birim: '', planlayan: '', gorevli: '', not: '' },
 			evGone: { ad: 'Uzaktan Silinecek', tur: 'diger', durum: 'planlandi', tarih: '2026-04-07', saat: '11:00', bitisSaat: '12:00', locked: false, yer: '', birim: '', planlayan: '', gorevli: '', not: '' }
 		};
-		openCalendar();
+		// openCalendar() DEGIL -- protokol.html'de PAGE!=="takvim" oldugu icin gercek bir
+		// location.href yonlendirmesi yapar. Kapi fonksiyonu bypass edilip DOGRUDAN acilir.
+		document.getElementById('calendarOverlay').classList.add('open');
+		renderCalendar();
 	});
 	await page.waitForTimeout(150);
 
@@ -169,7 +178,10 @@ async function newPage(browser, width, height, mobile) {
 	const k5 = await page.evaluate(async () => {
 		currentUser = { uid: 'ed1', role: 'editor', firstName: 'T', lastName: 'K', email: 't@t.com' };
 		applyPermissions();
-		closeCalendar();
+		// closeCalendar() DEGIL -- protokol.html'de PAGE==="takvim" DEGIL, redirect tetiklenmez
+		// aslinda (sadece PAGE==="takvim" iken yonlendirir) ama tutarlilik icin yine de
+		// alt-seviye fonksiyon kullanilir (gercek DOM/animasyon yan etkilerine gerek yok).
+		_hideCalendarOverlay();
 		people = {
 			pid1: { name: 'Birinci Kisi', title: 'Unvan1', prefix: '', unit: '', status: 'aktif', rank: 1, photo: '', start: '', end: '', note: '' },
 			pid2: { name: 'Ikinci Kisi', title: 'Unvan2', prefix: '', unit: '', status: 'aktif', rank: 2, photo: '', start: '', end: '', note: '' },
@@ -410,17 +422,29 @@ async function newPage(browser, width, height, mobile) {
 			r.headerIsStatic = getComputedStyle(document.getElementById('headerAuth')).position === 'static';
 			// Sayfa yatay tasmasi
 			r.noPageOverflow = document.documentElement.scrollWidth <= document.documentElement.clientWidth;
-			// Admin sekmeleri ekrana sigiyor mu
-			openAdminPanel();
-			const tabs = Array.from(document.querySelectorAll('.admin-tabs .btn'));
+			// Admin sekmeleri ekrana sigiyor mu -- openAdminPanel() DEGIL (protokol.html'de
+			// PAGE!=="admin" oldugu icin gercek bir location.href yonlendirmesi yapar), kapi
+			// fonksiyonu bypass edilip DOGRUDAN acilir.
+			document.getElementById('adminPanelBg').classList.add('open');
+			// .admin-tabs/.btn DEGIL -- Part B'nin akordeon sidebar yenilemesinden (Faz 9) sonra
+			// tum sekme dugmeleri .admin-sidebar icinde .admin-nav-item class'ini tasiyor.
+			// Mobilde TUM gruplar (accordion) DOM'da mevcut ama kapali gruplarin treeview'i
+			// display:none -- sadece GORUNEN (fiili genislik/yuksekligi olan) dugmeler sayilir,
+			// kapali bir akordeonun ekran disi kalmasi yanlislikla "tasma" sayilmasin diye.
+			const tabs = Array.from(document.querySelectorAll('.admin-sidebar .admin-nav-item')).filter((b) => b.getBoundingClientRect().width > 0);
 			r.adminTabCount = tabs.length;
 			r.adminTabsOnScreen = tabs.every((b) => { const x = b.getBoundingClientRect(); return x.right <= window.innerWidth + 0.5 && x.left >= -0.5; });
-			const am = document.querySelector('#adminPanelBg .modal');
+			// #adminPanelBg .modal DEGIL -- admin paneli Faz 7'den beri kucuk bir dialog degil,
+			// tam sayfa .admin-dashboard iskeleti.
+			const am = document.querySelector('#adminPanelBg .admin-dashboard');
 			r.adminModalNoOverflow = am.scrollWidth <= am.clientWidth + 1;
 			closeAdminPanel();
-			// Yil gorunumu
+			// Yil gorunumu -- openCalendar() DEGIL (ayni redirect sorunu).
 			calEvents = { e1: { ad: 'Cok Uzun Bir Etkinlik Adi Burada', tur: 'panel', durum: 'planlandi', tarih: '2026-03-10', saat: '10:00', bitisSaat: '11:00', locked: false, yer: '', birim: '', planlayan: '', gorevli: '', not: '' } };
-			calAnchor = parseKey('2026-03-10'); openCalendar(); calSetView('year');
+			calAnchor = parseKey('2026-03-10');
+			document.getElementById('calendarOverlay').classList.add('open');
+			renderCalendar();
+			calSetView('year');
 			const yg = document.querySelector('.cal-year-grid');
 			r.yearGridInViewport = yg.getBoundingClientRect().right <= window.innerWidth + 0.5;
 			r.yearMonthsNoOverflow = Array.from(document.querySelectorAll('.cal-year-month')).every((m) => m.scrollWidth <= m.clientWidth + 1);
@@ -443,7 +467,7 @@ async function newPage(browser, width, height, mobile) {
 			// mdayadd dokunmatikte gorunur olmali
 			const add = document.querySelector('.cal-mdayadd');
 			r.mdayAddVisible = !!add && parseFloat(getComputedStyle(add).opacity) > 0.2;
-			closeCalendar();
+			_hideCalendarOverlay();
 			// Kart izgarasi: 2'li/3'lu/4'lu modlarda farkli uzunlukta isim/unvan/birim
 			// icerigiyle yukseklik tutarliligi + .meta ("devam ediyor"/tarih) cakismamasi.
 			// Bilerek "il" listesinde test ediliyor -- kart CSS/JS'i universite/il arasinda

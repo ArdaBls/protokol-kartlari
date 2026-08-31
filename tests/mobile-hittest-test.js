@@ -55,7 +55,12 @@ function serve() {
 	await page.route('**/firebasejs/**/firebase-auth-compat.js', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	// index.html DEĞİL, takvim.html -- 30 Ağustos 2026'daki çok sayfalı mimari geçişinden
+	// (index.html artık SADECE giriş/kayıt ekranı) SONRA openCalendar() PAGE!=="takvim" iken
+	// gerçek bir location.href yönlendirmesi yapıyor (bkz. app.js:4182), bu test o zaman
+	// güncellenmemişti. Modal/kişi düzenleme testi (Senaryo 2) DOM'u her sayfada aynı olduğu
+	// için (sadece CSS ile gizleniyor) takvim.html'de de sorunsuz çalışır.
+	await page.goto(`http://localhost:${PORT}/takvim.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(500);
 
 	// pointer:coarse gercekten aktif mi? (aktif degilse bu testin tamami anlamsiz olurdu)
@@ -70,7 +75,11 @@ function serve() {
 		calEvents = {
 			'evAllDay': { ad: 'Tum Gun Etkinlik', tur: 'diger', durum: 'planlandi', tarih: '2026-01-12', saat: '', bitisSaat: '', locked: false, yer: '', birim: '', planlayan: '', gorevli: '', not: '' }
 		};
-		openCalendar();
+		// openCalendar() DEGIL, dogrudan renderCalendar() -- takvim.html kendi otomatik
+		// acilisiyla openCalendar()'i SAYFA YUKLENIRKEN zaten cagirmis oluyor (routeForCurrentPage),
+		// ikinci cagri "zaten acik" guard'ina takilip no-op olur ve yeni calEvents hic cizilmez
+		// (calendar-resize-test.js'teki AYNI cozum).
+		renderCalendar();
 	});
 	await page.waitForTimeout(400);
 
@@ -114,7 +123,10 @@ function serve() {
 	});
 
 	// Takvimi kapat (sonraki senaryo modal aciyor)
-	await page.evaluate(() => { if (typeof closeCalendar === 'function') closeCalendar(); });
+	// closeCalendar() DEGIL -- takvim.html'de PAGE==="takvim" oldugu icin gercek bir
+	// location.href="protokol.html" yonlendirmesi yapar (bkz. app.js), bu da context'i yok
+	// eder. Sadece gorsel olarak kapatmak icin alt-seviye _hideCalendarOverlay() kullanilir.
+	await page.evaluate(() => { if (typeof _hideCalendarOverlay === 'function') _hideCalendarOverlay(); });
 	await page.waitForTimeout(400);
 
 	// --- SENARYO 2: mobilde Gorev Gecmisi oku modalin ustunde ve tiklanabilir olmali ---

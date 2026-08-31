@@ -21,7 +21,12 @@ function serve() {
 (async () => {
 	const server = await serve();
 	const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-	const page = await browser.newPage();
+	// serviceWorkers:'block' KRİTİK -- sw.js aktifleşince (app.js sayfa yüklenince kaydediyor)
+	// api.github.com'a giden fetch() SW'nin KENDİ fetch handler'ından geçiyor, bu da
+	// page.route() mock'unu ATLAYIP GERÇEK GitHub API'sine gidiyordu (sandbox'ın gerçek
+	// internet erişimi olduğu için sessizce "başarılı" görünüyordu, ama mocklanan
+	// senaryolar hiç test edilmemiş oluyordu). SW bu testler için tamamen kapatılır.
+	const page = await browser.newPage({ serviceWorkers: 'block' });
 	const pageErrors = [];
 	page.on('pageerror', (e) => pageErrors.push(e.message));
 	await page.route('**/firebasejs/**/firebase-app-compat.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-firebase.js'), contentType: 'application/javascript' }));
@@ -37,7 +42,12 @@ function serve() {
 		route.fulfill({ status: mockApiResponse.status, contentType: 'application/json', body: JSON.stringify(mockApiResponse.body) });
 	});
 
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	// index.html DEĞİL, admin.html -- çok sayfalı mimari geçişinden sonra openAdminPanel()
+	// PAGE!=="admin" iken gerçek bir location.href yönlendirmesi yapıyor (bkz. app.js).
+	// admin.html'in KENDİ koruma mantığı (misafir girişinde index.html'e location.replace)
+	// __mockSimulateOfflineHang ile atlatılır (admin-tabs-test.js'teki AYNI teknik).
+	await page.addInitScript(() => { window.__mockSimulateOfflineHang = true; });
+	await page.goto(`http://localhost:${PORT}/admin.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
 	// --- Yetkisiz (editor) kullanici: sekmeye gecemez, fonksiyonlar sessizce no-op olmali ---
@@ -61,7 +71,9 @@ function serve() {
 		return {
 			viewVisible: document.getElementById('adminTestView').style.display === 'block',
 			otherViewsHidden: document.getElementById('adminUsersView').style.display === 'none' && document.getElementById('adminLogsView').style.display === 'none',
-			tabBtnActive: document.getElementById('adminTabTestBtn').classList.contains('btn-primary')
+			// btn-primary DEGIL -- Part B'nin akordeon sidebar yenilemesinden (Faz 9) sonra
+			// "secili sekme" .active class'iyla isaretleniyor (bkz. switchAdminTab(), app.js).
+			tabBtnActive: document.getElementById('adminTabTestBtn').classList.contains('active')
 		};
 	});
 

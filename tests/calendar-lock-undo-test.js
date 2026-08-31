@@ -51,7 +51,10 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	// index.html DEĞİL, takvim.html -- çok sayfalı mimari geçişinden (index.html artık SADECE
+	// giriş/kayıt) sonra openCalendar() PAGE!=="takvim" iken gerçek bir location.href
+	// yönlendirmesi yapıyor (bkz. app.js:openCalendar), bu test o zaman güncellenmemişti.
+	await page.goto(`http://localhost:${PORT}/takvim.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
 	// --- Ortak kurulum: editor olarak "oturum aç", takvimi 2026-01-12 (Pazartesi) haftasında aç ---
@@ -67,7 +70,11 @@ function serve() {
 			'evEdit': { ad: 'Duzenleme Testi', tur: 'konferans', durum: 'planlandi', tarih: '2026-01-14', saat: '09:00', bitisSaat: '10:00', locked: false, yer: 'Eski Yer', birim: '', planlayan: '', gorevli: '', not: '' },
 			'evConc': { ad: 'Eszamanlilik Testi', tur: 'diger', durum: 'planlandi', tarih: '2026-01-15', saat: '11:00', bitisSaat: '12:00', locked: false, yer: 'Baslangic Yer', birim: '', planlayan: '', gorevli: '', not: '' }
 		};
-		openCalendar();
+		// openCalendar() DEGIL, dogrudan renderCalendar() -- takvim.html kendi otomatik
+		// acilisiyla openCalendar()'i SAYFA YUKLENIRKEN zaten cagirmis oluyor, ikinci cagri
+		// "zaten acik" guard'ina takilip yeni calEvents'i hic cizmez (calendar-resize-test.js'teki
+		// AYNI cozum).
+		renderCalendar();
 		return { overlayOpen: document.getElementById('calendarOverlay').classList.contains('open'), canEdit: canEditData() };
 	});
 
@@ -281,7 +288,10 @@ function serve() {
 	const timeRecomputeTest = await page.evaluate(async () => {
 		calEvents['evMove'] = { ad: 'Saat Testi', tur: 'diger', durum: 'planlandi', tarih: '2026-01-12', saat: '10:00', bitisSaat: '11:00', locked: false, yer: '', birim: '', planlayan: '', gorevli: '', not: '' };
 		const fakeEvt = {
-			item: { dataset: { evid: 'evMove' } },
+			// style:{} GEREKLI -- calOnDragEnd artık taşıma bitince evt.item.style.opacity'yi
+			// sıfırlıyor (hayalet/opaklık düzeltmesi), gerçek bir DOM elemanının her zaman
+			// sahip olduğu bu özellik sahte evt nesnesinde eksikti.
+			item: { dataset: { evid: 'evMove' }, style: {}, classList: { remove: () => {} } },
 			to: { dataset: { date: '2026-01-13' }, classList: { contains: (c) => c === 'cal-daycol' }, getBoundingClientRect: () => ({ top: 0 }) },
 			originalEvent: { clientY: 180 }
 		};

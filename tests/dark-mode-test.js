@@ -90,7 +90,11 @@ const CONTRAST_HELPERS_SRC = `
 		return {
 			attrIsDark: document.documentElement.getAttribute('data-theme') === 'dark',
 			localStorageIsDark: localStorage.getItem('omuProtokolTema') === 'dark',
-			bodyBgDark: getComputedStyle(document.body).backgroundColor.indexOf('33, 31, 28') !== -1
+			// Koyu --paper #1F1F2B (bkz. style.css :root[data-theme=dark]) = rgb(31,31,43).
+			// Eski değer (33,31,28) palet güncellemesinden ("v3.7.0: yeni renk paleti") önceki
+			// bir dokuya aitti, hiç güncellenmemişti -- gerçek bir site hatası DEĞİLDİ, testin
+			// kendisi güncel palete uydurulmadan bırakılmıştı.
+			bodyBgDark: getComputedStyle(document.body).backgroundColor.indexOf('31, 31, 43') !== -1
 		};
 	});
 
