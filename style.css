@@ -488,7 +488,7 @@
 			@media (prefers-reduced-motion: reduce){
 				.cal-overlay, .cal-shell, .cal-launch-backdrop, .cal-rail-btn, .calendar-fab{ transition:none !important; }
 			}
-			.cal-rail-left{ flex:0 0 232px; border-right:1px solid var(--divider-soft); background:rgba(22,35,61,.045); padding:16px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
+			.cal-rail-left{ flex:0 0 232px; border-right:1px solid var(--divider-faint); background:rgba(22,35,61,.045); padding:20px 16px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
 			.cal-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
 
 			/* ---- Mini ay takvimi (sol ray) ---- */
@@ -527,7 +527,7 @@
 			/* ---- Üst bar ---- */
 			/* iPhone centik/Dynamic Island: takvim tam ekran oldugu icin (position:fixed;inset:0)
 			   ust bar dogrudan centigin altinda kalip "Kapat" ve "Bugun" butonlarina dokunulamiyordu. */
-			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px; border-bottom:1px solid var(--divider-soft); background:transparent; }
+			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:calc(16px + env(safe-area-inset-top,0px)) 18px 16px; border-bottom:1px solid var(--divider-faint); background:transparent; }
 			.cal-month-label{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--navy); }
 			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
 			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -547,9 +547,9 @@
 
 			/* ---- Hafta / gün: saat ızgarası ---- */
 			.cal-tg{ display:flex; flex-direction:column; height:100%; min-height:0; }
-			.cal-tg-head{ flex-shrink:0; display:grid; border-bottom:1px solid var(--divider-soft); background:transparent; }
+			.cal-tg-head{ flex-shrink:0; display:grid; border-bottom:1px solid var(--divider-faint); background:transparent; }
 			.cal-gutter-cell{ border-right:1px solid var(--surface-hover); }
-			.cal-dhead{ text-align:center; padding:7px 4px 8px; border-right:1px solid var(--divider); }
+			.cal-dhead{ text-align:center; padding:10px 4px 10px; border-right:1px solid var(--divider-faint); }
 			.cal-dhead:last-child{ border-right:none; }
 			.cal-dhead .dw{ display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
 			.cal-dhead .dn{ display:inline-flex; align-items:center; justify-content:center; min-width:25px; height:25px; padding:0 5px; font-size:15px; font-weight:600; color:var(--ink); border-radius:7px; margin-top:2px; }
@@ -571,13 +571,13 @@
 			.cal-tg-body{ display:grid; position:relative; -webkit-user-select:none; user-select:none; }
 			.cal-gutter{ border-right:1px solid var(--divider); position:relative; background:transparent; }
 			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; transform:translateY(-50%); }
-			.cal-daycol{ position:relative; border-right:1px solid var(--divider); background:transparent; }
+			.cal-daycol{ position:relative; border-right:1px solid var(--divider-faint); background:transparent; }
 			.cal-daycol:last-child{ border-right:none; }
 			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
 			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
 			/* Eskiden sabit #e6dfcd (eski sicak paletten kalma, koyu temada hic tanimlanmamisti,
 			   yeni acik temada da uyumsuz kaliyordu) -- artik degiskene bagli, ince ve notr. */
-			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid var(--divider-faint); pointer-events:none; }
+			.cal-hrline{ position:absolute; left:0; right:0; border-top:1px solid var(--divider-faint); opacity:.55; pointer-events:none; }
 			.cal-nowline{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; }
 			/* Şu anki saat: SADECE bugünün .cal-daycol'u içinde (o sütunun position:relative'ine
 			   göre), dakikada bir kendini günceller. Eskiden .cal-tg-body'nin tamamını (tüm görünen

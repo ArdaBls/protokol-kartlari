@@ -1,4 +1,8 @@
-// v3.7.9 (31 Ağustos 2026) -- takvim kanvasının brass-tint radial-gradient opaklığı .10'dan
+// v3.8.0 (31 Ağustos 2026) -- takvim çizgi/panel dili modernleştirildi (inspora.design
+// referansı): gün sütunları arası, saat çizgileri, üst bar ve sol panel kenarlıkları
+// var(--divider-faint)'e soluklaştırıldı, saat çizgisi opacity:.55, dört panelde padding
+// artırıldı (nefes alanı) -- boşlukla ayrım, ağır çizgi yerine. Kartların renkleri değişmedi.
+// v3.7.9: takvim kanvasının brass-tint radial-gradient opaklığı .10'dan
 // .035'e düşürüldü -- referans videodaki gibi neredeyse dumduz/nötr bir zemin, tüm rengi
 // doygun etkinlik kartları taşıyor (kartların kendisi değişmedi).
 // v3.7.8: Faz 7 v2/v3: admin dashboard "liquid glass" diline çevrildi
@@ -27,7 +31,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.7.9"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.8.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
