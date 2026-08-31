@@ -461,7 +461,12 @@
 			/* ---- Tam ekran kabuk ---- */
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
-			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			/* Faz 7 v4 (kullanıcı isteği): eskiden diğer sayfalarla aynı guclu brass-tint
+			   radial-gradient kullanılıyordu -- referans videodaki (Juli.so tarzı) takvimin
+			   kanvası neredeyse dumduz, kırık-beyaz ve NÖTR, tüm rengi doygun etkinlik
+			   kartları taşıyor. Marka tutarlılığı için gradyan TAMAMEN kaldırılmadı, sadece
+			   opaklığı çok azaltıldı (.10 -> .035) -- kanvas artık kartların önüne geçmiyor. */
+			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.035), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
 			/* Denetim maddesi #4: modern tarayicilarda dvh, --vh JS degiskenine (visualViewport
 			   izleyen, resize olayina bagli) gore daha DOGRU/aninda tepki verir (araç çubuğu
 			   animasyonu sirasinda JS henuz --vh'i guncellemeden bir kare "eski" boyut kalabiliyor).
