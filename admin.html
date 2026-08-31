@@ -92,6 +92,7 @@
 			<symbol id="i-kitap" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
 			<symbol id="i-disk" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3.4"/></symbol>
 			<symbol id="i-ok" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+			<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
 		</svg>
 
 		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.</div>
@@ -782,7 +783,18 @@
 			     geniş içerik alanı). #adminPanelBg/.open ve switchAdminTab() JS mantığı aynen
 			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
 			<div class="admin-dashboard">
-				<nav class="admin-sidebar admin-glass">
+				<!-- Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar sekmeleri artık
+				     üstte yatay satıra dizilmiyor -- soldan kayan bir çekmece (nav drawer) oldu.
+				     Desen: namethatui.com/web/hamburger-menu referansı (aria-expanded+aria-controls
+				     hamburger düğmesi + scrim üzerinden kayan <nav>, shadcn Sheet side="left" /
+				     Material NavigationDrawer mantığı) -- kod kopyalanmadı, sadece davranış deseni
+				     app.js'e (toggleAdminDrawer/openAdminDrawer/closeAdminDrawer) elle yazıldı.
+				     Masaüstünde (>780px) ikisi de CSS ile gizli/etkisiz, davranış DEĞİŞMEDİ. -->
+				<button type="button" class="admin-drawer-toggle" id="adminDrawerToggle" aria-expanded="false" aria-controls="adminSidebarDrawer" aria-label="Menüyü aç" onclick="toggleAdminDrawer()">
+					<svg class="ikon"><use href="#i-menu"/></svg>
+				</button>
+				<div class="admin-drawer-scrim" id="adminDrawerScrim" onclick="closeAdminDrawer()"></div>
+				<nav class="admin-sidebar admin-glass" id="adminSidebarDrawer">
 					<div class="admin-sidebar-brand">
 						<span class="admin-sidebar-logo">🗂️</span>
 						<div><b>Admin Paneli</b><span class="admin-sidebar-sub">Protokol Kartları</span></div>

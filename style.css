@@ -872,21 +872,31 @@
 			   TEPSIDE, dugmeler kendi ic renklerini (brass/navy) korur ama duz segment olarak.
 			   Faculty-fab'in .active-list ile kosullu gorunurlugu (bkz. asagida) DEGISMEDI --
 			   sadece o dugme gizliyken tepsi tek dugmeye kuculur, bos gorunmez. */
-			.mobile-glass-nav{ display:none; position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:70; align-items:center; gap:8px; padding:6px; border-radius:32px; background:rgba(255,255,255,.55); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.45); box-shadow:0 8px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.5); }
+			/* 31 Ağustos 2026: uiverse.io by mymiamo'nun "liquid glass" mobil menü desenini
+			   (daha güçlü blur+saturate+contrast, ::after ile iç kenarlarda ince ışık halkası)
+			   inceleyip mevcut 3-daire yapımıza (kod KOPYALANMADI, sadece görsel teknik) elle
+			   uyarlandı -- etiket metni/aktif-sekme kavramı YOK (önceki oturumda bilinçli olarak
+			   kaldırılmıştı), sadece camın kendisi daha "gerçek" hissettiriliyor. */
+			.mobile-glass-nav{ display:none; position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:70; align-items:center; gap:8px; padding:6px; border-radius:32px; background:rgba(255,255,255,.55); backdrop-filter:blur(20px) saturate(180%) contrast(120%); -webkit-backdrop-filter:blur(20px) saturate(180%) contrast(120%); border:1px solid rgba(255,255,255,.45); box-shadow:0 8px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.5); }
 			@media (max-width: 1049px) { .mobile-glass-nav{ display:flex; } }
 			[data-theme="dark"] .mobile-glass-nav{ background:rgba(28,28,38,.5); border-color:rgba(255,255,255,.14); box-shadow:0 8px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
+			.mobile-glass-nav::after{ content:""; position:absolute; inset:0; border-radius:inherit; box-shadow:inset 1px 1px 3px rgba(255,255,255,.5), inset -1px -1px 3px rgba(255,255,255,.25); pointer-events:none; }
+			[data-theme="dark"] .mobile-glass-nav::after{ box-shadow:inset 1px 1px 3px rgba(255,255,255,.12), inset -1px -1px 3px rgba(255,255,255,.05); }
 			/* Faz 6 (kullanici istegi): tepsi dugmelerinden etiket metni kaldirildi, ikisi de
 			   sadece ikon tasiyan esit capli DAIRE. width==height + border-radius:50% ile tam
 			   daire; 48px dokunma hedefi icin asgari onerilen boyutun uzerinde. */
-			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; }
+			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .calendar-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
 			/* Sadece admin rolu icin: tepsinin tam ortasinda admin.html'e goturen 3. dugme.
 			   Gorunurluk .active-list class'i ile JS'ten kontrol edilir (renderAuthUI()) --
 			   faculty-fab'daki ayni desen, rol degisince tek satirla acilip kapanir. */
-			.admin-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; }
+			.admin-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .admin-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .admin-fab.active-list{ display:flex; } }
+			.calendar-fab:hover, .admin-fab:hover, .faculty-fab:hover{ background:rgba(255,255,255,.55); }
+			[data-theme="dark"] .calendar-fab:hover, [data-theme="dark"] .admin-fab:hover, [data-theme="dark"] .faculty-fab:hover{ background:rgba(255,255,255,.16); }
+			.calendar-fab:active, .admin-fab:active, .faculty-fab:active{ transform:scale(.92); }
 			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
 			@media (max-width: 700px) {
 				.cal-topbar{ padding:calc(9px + env(safe-area-inset-top,0px)) 10px 9px; gap:5px; }
@@ -907,7 +917,7 @@
 			/* ---------- TAKVİM SONU ---------- */
 			/* Mobil/tablet (<1050px): sol panel yerine alttan yukarı açılan filtre çekmecesi */
 			/* .calendar-fab ile ayni daire olcusu -- ikisi tepside esit gorunsun. */
-			.faculty-fab{ display:none; position:relative; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; }
+			.faculty-fab{ display:none; position:relative; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; font-family:'Roboto',sans-serif; font-size:20px; line-height:1; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .faculty-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			/* Secili fakulte sayisi rozeti: dairenin sag-ust kosesinden disari tasar. */
 			.faculty-fab .fab-count{ position:absolute; top:-2px; right:-2px; background:var(--brass); color:var(--navy); border-radius:50%; min-width:18px; height:18px; font-size:10px; font-weight:700; align-items:center; justify-content:center; padding:0 3px; box-shadow:0 0 0 2px rgba(255,255,255,.65); }
@@ -1084,24 +1094,67 @@
 				   sızıyordu. Bu kural, ikisinin de kendi tanimlarindan SONRA gelmeli (ayni
 				   ozgulluk -- sonra gelen kazanir), o yuzden burada. */
 				@supports (height: 100dvh){ .modal-bg, .authform-bg{ height:100dvh; } }
-				.af-wrap{ position:relative; }
+				/* width sabitlenmezse .af-wrap (position:relative, boyutu icerigine gore
+				   otomatik) sadece o an DISPLAY:BLOCK olan formun genisligine gore daralip
+				   genisliyordu -- giris (2 alan) ve kayit (5 alan, "Ad"/"Soyad" yan yana)
+				   formlari arasinda gecince kartin ENI de ziplyordu (kullanici: "genislikler
+				   de aynı olsun"). min() ile 350px'e sabitlenir, dar ekranda tasmaz. */
+				.af-wrap{ position:relative; width:min(350px, 100%); }
 				.af-close{ position:absolute; top:14px; right:14px; background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.7; z-index:2; }
 				.af-close:hover{ opacity:1; }
-				.af-form{ display:flex; flex-direction:column; gap:10px; max-width:350px; width:100%; padding:26px; border-radius:20px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+				/* Kart + alan koseleri (31 Ağustos 2026, uiverse.io by Praashoo7 referansindan
+				   ILHAM alindi -- kod KOPYALANMADI, sadece "yuvarlak kart + iceri gomulu ikonlu
+				   alan" gorsel dili incelenip projenin navy/brass token'larina elle uyarlandi):
+				   kart 20px'ten 28px'e, alanlar 10px'ten 16px'e yuvarlatildi, CTA tam pill oldu. */
+				/* Giriş (2 alan) ve Kayıt (5 alan) formları farklı yükseklikte olduğu için
+				   ikisi arasında geçince kart boyu zıplıyordu (kullanıcı: "boyutu aynı değil,
+				   eşit olsun") -- kayıt formunun doğal yüksekliğine (~472px) sabit min-height
+				   verilip, daha kısa giriş formu justify-content:center ile o boşlukta ortalanır. */
+				.af-form{ display:flex; flex-direction:column; justify-content:center; gap:10px; max-width:350px; width:100%; min-height:472px; box-sizing:border-box; padding:28px; border-radius:28px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
 				.af-title{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; letter-spacing:-1px; position:relative; display:flex; align-items:center; padding-left:26px; color:var(--brass-light); margin:0; }
 				.af-title::before,.af-title::after{ position:absolute; content:""; height:14px; width:14px; border-radius:50%; left:0; background-color:var(--brass-light); }
 				.af-title::after{ animation: afPulse 1s linear infinite; }
 				.af-message,.af-signin{ font-size:14px; color:rgba(255,255,255,.65); margin:0; }
 				.af-signin{ text-align:center; }
-				.af-signin a{ color:var(--brass-light); cursor:pointer; } .af-signin a:hover{ text-decoration:underline; }
+				/* Giris/Kayit gecis linki artik kucuk bir yuvarlak "pill" cip -- sade metin
+				   yerine dokunsal bir hedef (kart genelindeki yuvarlak dile uyum). */
+				.af-signin a{ display:inline-block; margin-top:2px; padding:5px 14px; border-radius:999px; border:1px solid rgba(217,181,104,.4); color:var(--brass-light); cursor:pointer; font-weight:600; transition:background .15s, border-color .15s; }
+				.af-signin a:hover{ background:rgba(217,181,104,.12); border-color:var(--brass-light); text-decoration:none; }
 				.af-flex{ display:flex; width:100%; gap:6px; }
 				.af-form label{ position:relative; display:block; }
-				.af-input{ background:rgba(255,255,255,.08); color:#fff; width:100%; padding:19px 10px 6px; outline:0; border:1px solid rgba(255,255,255,.15); border-radius:10px; font-size:14px; font-family:'Roboto',sans-serif; }
+				.af-input{ background:rgba(255,255,255,.08); color:#fff; width:100%; padding:19px 10px 6px; outline:0; border:1px solid rgba(255,255,255,.15); border-radius:16px; font-size:14px; font-family:'Roboto',sans-serif; box-shadow:inset 0 2px 6px rgba(0,0,0,.18); transition:border-color .15s, box-shadow .15s; }
+				.af-input:focus{ border-color:rgba(217,181,104,.55); }
 				.af-input + span{ color:rgba(255,255,255,.5); position:absolute; left:11px; top:0; font-size:.9em; cursor:text; transition:.2s ease; pointer-events:none; }
 				.af-input:placeholder-shown + span{ top:13px; font-size:.9em; }
 				.af-input:focus + span, .af-input:valid + span{ color:var(--brass-light); top:0; font-size:.7em; font-weight:600; }
-				.af-submit{ border:none; outline:0; padding:11px; border-radius:10px; color:var(--navy); font-weight:700; font-size:15px; background:var(--brass-light); cursor:pointer; transition:background .2s; margin-top:4px; }
-				.af-submit:hover{ background:#f0dca0; } .af-submit:disabled{ opacity:.6; cursor:not-allowed; }
+				/* E-posta/şifre alanlarının SOLUNA gömülü ikon -- HTML'e dokunmadan (4 sayfada
+				   aynı DOM'u kırmamak için) input[type] üzerinden :has() ile hedeflenir, mask +
+				   currentColor tekniğiyle çizilir (proje zaten :has() kullanıyor, bkz. body:has()
+				   modal kuralları). Odaklanınca ikon rengi brass'a döner. */
+				.af-form label:has(> input[type="email"]),
+				.af-form label:has(> input[type="password"]){ display:flex; align-items:center; }
+				.af-form label:has(> input[type="email"])::before,
+				.af-form label:has(> input[type="password"])::before{
+					content:""; position:absolute; left:14px; top:50%; transform:translateY(-50%);
+					width:15px; height:15px; background-color:rgba(255,255,255,.4);
+					-webkit-mask:no-repeat center/contain; mask:no-repeat center/contain; pointer-events:none; z-index:1;
+					transition:background-color .15s;
+				}
+				.af-form label:has(> input[type="email"])::before{
+					-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E");
+					mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E");
+				}
+				.af-form label:has(> input[type="password"])::before{
+					-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
+					mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
+				}
+				.af-form label:has(> input:focus)::before{ background-color:var(--brass-light); }
+				.af-form label:has(> input[type="email"]) .af-input,
+				.af-form label:has(> input[type="password"]) .af-input{ padding-left:2.5em; }
+				.af-form label:has(> input[type="email"]) .af-input + span,
+				.af-form label:has(> input[type="password"]) .af-input + span{ left:2.5em; }
+				.af-submit{ border:none; outline:0; padding:12px; border-radius:999px; color:var(--navy); font-weight:700; font-size:15px; background:var(--brass-light); cursor:pointer; transition:background .2s, transform .15s; margin-top:4px; }
+				.af-submit:hover{ background:#f0dca0; } .af-submit:active{ transform:scale(.98); } .af-submit:disabled{ opacity:.6; cursor:not-allowed; }
 				.af-error{ color:#ff9a9a; font-size:13px; min-height:16px; margin:0; }
 				@keyframes afPulse{ from{ transform:scale(.9); opacity:1;} to{ transform:scale(1.8); opacity:0;} }
 
@@ -1361,23 +1414,30 @@
 			.admin-logs-col-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
 			.admin-logs-col-title{ font-size:12.5px; font-weight:600; color:var(--ink); }
 			.admin-logs-scroll{ max-height:520px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+			/* Faz 10 (kullanıcı isteği, 31 Ağustos 2026): mobilde sidebar artık üstte yatay
+			   satıra dizilmiyordu ("sekmeler üstte sıralanıyor onu bir sol panele alalım ordan
+			   açılsın") -- soldan kayan bir çekmece (nav drawer) oldu, referans:
+			   namethatui.com/web/hamburger-menu (aria-expanded+aria-controls hamburger düğmesi +
+			   scrim üzerinden kayan <nav>). Masaüstünde ikisi de display:none, davranış YOK. */
+			.admin-drawer-toggle, .admin-drawer-scrim{ display:none; }
 			@media (max-width: 780px){
 				.admin-dashboard{ flex-direction:column; padding:10px; gap:10px; }
-				.admin-sidebar{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 14px; height:auto; overflow-y:visible; }
-				.admin-sidebar-brand{ flex:1 1 100%; border-bottom:none; padding-bottom:0; margin-bottom:0; }
-				/* Faz 9: mobilde akordeon başlıkları anlamsız (dar ekranda dikey scroll zaten
-				   normal) -- .admin-nav-group'u kutudan çıkarıp (display:contents) içindeki
-				   .admin-nav-treeview'ı doğrudan sidebar'ın yatay flex-wrap satırına katıyoruz,
-				   hep açık gösteriyoruz (accordion sadece masaüstünde anlamlı). */
-				.admin-nav-group{ display:contents; }
-				.admin-nav-header{ display:none; }
-				.admin-nav-treeview{ display:flex !important; flex-direction:row; flex-wrap:wrap; gap:8px; flex:1 1 auto; padding-bottom:0; }
-				.admin-nav-item{ width:auto; flex:1 1 auto; justify-content:center; }
-				/* Faz 8: mobilde kart nav artık yan yana, sol vurgu çubuğu (::before, left:-8px)
-				   flex-wrap satırında görsel gürültü yapabileceği için kaldırılıyor -- kart
-				   arka planı + ikon rengi zaten "seçili" durumu yeterince belirgin gösteriyor. */
-				.admin-nav-item.active::before{ display:none; }
-				.admin-back-btn{ margin-top:0; }
+				.admin-drawer-toggle{ display:flex; align-items:center; justify-content:center; position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:14px; z-index:401; width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--ink); box-shadow:var(--shadow); cursor:pointer; padding:0; }
+				.admin-drawer-toggle .ikon{ width:18px; height:18px; }
+				.admin-drawer-toggle:active{ transform:scale(.93); }
+				/* Scrim: acilis/kapanista GORUNMEZ->GORUNUR gecisinde opacity animasyonu, ama
+				   "kapali" halde tiklanamaz olsun diye visibility de birlikte gecikmeli degisir
+				   (.modal-bg'deki AYNI teknik, bkz. yukarida). */
+				.admin-drawer-scrim{ display:block; position:fixed; inset:0; z-index:399; background:rgba(10,14,26,.5); opacity:0; visibility:hidden; transition:opacity .2s ease, visibility 0s linear .2s; }
+				.admin-drawer-scrim.open{ opacity:1; visibility:visible; transition:opacity .2s ease, visibility 0s linear 0s; }
+				/* Sidebar artik gercek bir off-canvas panel -- masaustundeki DIKEY akordeon
+				   duzeni (grup basliklari + .admin-nav-item'lar) AYNEN korunur, sadece konumu
+				   (position:fixed, soldan kayan) degisir. Onceki "yatay satira dagit" ozel
+				   mobil CSS'i (display:contents/flex-wrap) TAMAMEN kaldirildi -- artik geregi yok. */
+				.admin-sidebar{ position:fixed; top:0; left:0; height:100%; width:min(272px, 82vw); max-width:272px; z-index:400; border-radius:0 20px 20px 0; transform:translateX(-100%); transition:transform .25s ease; box-shadow:8px 0 30px rgba(0,0,0,.25); }
+				.admin-sidebar.open{ transform:translateX(0); }
+				/* İçerik hamburger düğmesiyle çakışmasın diye üstten boşluk. */
+				.admin-main{ padding-top:52px; }
 				.admin-content-card{ padding:16px 16px 22px; }
 				.admin-logs-grid{ grid-template-columns:1fr; gap:18px; }
 				.admin-logs-col{ padding:0 !important; border-right:none !important; }
@@ -1615,6 +1675,13 @@
 			body[data-page="login"] .actions-row,
 			body[data-page="login"] .main-layout,
 			body[data-page="login"] .mobile-glass-nav,
+			/* Kullanıcı isteği (31 Ağustos 2026): "sadece giriş ve kayıt ekranı gözükecek,
+			   başka element olmayacak" -- header (logo/başlık/tema düğmesi), footer (telif/
+			   sürüm) ve test-modu şeridi ekranda kartın DIŞINDA hiçbir şey bırakmayacak
+			   şekilde login sayfasında tamamen gizlenir (masaüstü + mobil, ayrım yok). */
+			body[data-page="login"] header,
+			body[data-page="login"] footer,
+			body[data-page="login"] #testModeBanner,
 			body[data-page="takvim"] .list-switch-wrap,
 			body[data-page="takvim"] .controls,
 			body[data-page="takvim"] .actions-row,
@@ -1631,6 +1698,10 @@
 			body[data-page="login"] #authFormBg{ display:flex !important; position:static; background:none; backdrop-filter:none; padding:40px 16px; }
 			body[data-page="login"] #authFormBg .af-close{ display:none; }
 			body[data-page="login"] #headerAuth{ display:none; }
+			/* Test Modu şeridi login sayfasında yukarıda zaten display:none !important --
+			   ama body.test-mode-active'in genel padding-top'u (bkz. Test Modu bölümü) o
+			   şeridin BOŞLUĞUNU hâlâ ayırırdı, kart merkezden aşağı kayardı. Sıfırlanır. */
+			body[data-page="login"].test-mode-active{ padding-top:0; }
 
 			/* Onboarding rehberi nokta göstergesi */
 			.onboarding-dots{ display:flex; gap:6px; justify-content:center; margin:14px 0; }

@@ -394,6 +394,41 @@
 				else if (tab === "integrity") loadIntegrity();
 				// dictionary/backup: henüz yükleyici fonksiyonları yok (sonraki aşama), view
 				// "yakında" placeholder gösteriyor.
+				// Mobilde bir sekme seçilince çekmece kapanır -- masaüstünde drawer zaten hiç
+				// açılmadığı (CSS'te display:none) için burada no-op, ekstra bir genişlik
+				// kontrolüne gerek yok.
+				closeAdminDrawer();
+			}
+			// Faz 10: mobil sidebar çekmecesi (nav drawer). namethatui.com/web/hamburger-menu
+			// deseni: aria-expanded/aria-controls senkron tutulur, Escape ve scrim tıklamasıyla
+			// kapanır, kapanınca odak tetikleyici düğmeye döner. Body kaydırma kilidi AYRI kod
+			// YAZILMADI -- #adminDrawerScrim zaten "Arka plan kaydırma kilidi" gözlemcisinin
+			// (aşağıda, setupScrollLock) izlediği listeye eklendi, .open class'ı otomatik kilitler.
+			let adminDrawerEscHandler = null;
+			function openAdminDrawer() {
+				const sidebar = document.getElementById("adminSidebarDrawer");
+				const scrim = document.getElementById("adminDrawerScrim");
+				const toggle = document.getElementById("adminDrawerToggle");
+				if (!sidebar || !scrim || !toggle) return;
+				sidebar.classList.add("open");
+				scrim.classList.add("open");
+				toggle.setAttribute("aria-expanded", "true");
+				adminDrawerEscHandler = function(e) { if (e.key === "Escape") closeAdminDrawer(); };
+				document.addEventListener("keydown", adminDrawerEscHandler);
+			}
+			function closeAdminDrawer() {
+				const sidebar = document.getElementById("adminSidebarDrawer");
+				const scrim = document.getElementById("adminDrawerScrim");
+				const toggle = document.getElementById("adminDrawerToggle");
+				if (!sidebar || !sidebar.classList.contains("open")) return; // zaten kapalı -- odağı GEREKSİZ YERE tetikleyiciye çekme
+				sidebar.classList.remove("open");
+				if (scrim) scrim.classList.remove("open");
+				if (toggle) { toggle.setAttribute("aria-expanded", "false"); toggle.focus(); }
+				if (adminDrawerEscHandler) { document.removeEventListener("keydown", adminDrawerEscHandler); adminDrawerEscHandler = null; }
+			}
+			function toggleAdminDrawer() {
+				const sidebar = document.getElementById("adminSidebarDrawer");
+				if (sidebar && sidebar.classList.contains("open")) closeAdminDrawer(); else openAdminDrawer();
 			}
 			// Sidebar akordeon: AdminLTE'nin treeview.ts'indeki "accordion:true" davranışının vanilla
 			// portu -- Bootstrap/TS alınmadı, sadece mantık: bir grup açılınca diğerleri kapanır.
@@ -5799,7 +5834,7 @@ function generateNewsFromEvent(){
 			window.scrollTo(0, scrollLockY);
 		}
 		(function setupScrollLock(){
-			var watched = Array.prototype.slice.call(document.querySelectorAll(".modal-bg, #calendarOverlay, #authFormBg, #facultySheetBackdrop, #loadingOverlay"));
+			var watched = Array.prototype.slice.call(document.querySelectorAll(".modal-bg, #calendarOverlay, #authFormBg, #facultySheetBackdrop, #loadingOverlay, #adminDrawerScrim"));
 			function recomputeLock(){
 				var anyOpen = watched.some(function(el){ return el.classList.contains("open"); });
 				if (anyOpen) lockBodyScroll(); else unlockBodyScroll();

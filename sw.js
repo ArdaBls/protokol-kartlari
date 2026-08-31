@@ -1,3 +1,15 @@
+// v3.12.0 (31 Ağustos 2026) -- Faz 10: (1) Giriş/Kayıt ekranı tamamen yeniden tasarlandı
+// (uiverse.io by Praashoo7 referansından ilham, kod kopyalanmadı) -- yuvarlak (28px) kart,
+// e-posta/şifre alanlarına gömülü ikon (CSS mask+:has(), HTML değişmedi), tam pill CTA
+// butonu, iki formun boyu/eni artık EŞİT (min-height:472px + width:min(350px,100%)). Login
+// sayfasında artık header/footer/test-modu şeridi TAMAMEN gizli -- sadece kart görünüyor.
+// (2) Mobil liquid-glass alt navigasyon (uiverse.io by mymiamo referansından ilham) daha
+// güçlü blur/saturate/contrast + iç kenarlarda ince ışık halkası (::after) aldı.
+// (3) Admin panelinde mobil sidebar artık üstte yatay sıralanmıyor -- soldan kayan bir
+// çekmece (nav drawer, namethatui.com/web/hamburger-menu deseni: aria-expanded/aria-controls,
+// scrim, Escape/scrim-tap ile kapanma, odak geri dönüşü, body scroll kilidi) oldu
+// (toggleAdminDrawer/openAdminDrawer/closeAdminDrawer, app.js). Şu an OVERLAY (üste biner) --
+// kullanıcı "sağa daralt/push" davranışını istedi, bu ayrı bir iş kalemi olarak sıraya alındı.
 // v3.11.3 (31 Ağustos 2026) -- Çapraz-kullanıcı canlı takvim silüeti (Part D'nin
 // canliTakvimSecim yayın/dinleme özelliği) tamamen kaldırıldı -- gerçek cihazlarda ısrarla
 // çalışmadığı doğrulanamadı, kullanıcı isteğiyle geri alındı. Sürükleme sırasındaki YEREL
@@ -66,7 +78,7 @@
 // user-select:none. v3.6.0: Faz 5. v3.5.0: Faz 4. v3.4.0: Faz 3. v3.3.0: Faz 2. v3.2.0: onboarding
 // + PIN. v3.1.0: çok sayfalı mimari. Ana sürüm = kırılgan/mimari değişiklik, ikinci hane = yeni
 // özellik, üçüncü hane = hata düzeltmesi.
-const CACHE_NAME = "omu-protokol-v3.11.3"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
+const CACHE_NAME = "omu-protokol-v3.12.0"; // Her büyük değişiklikte veya ikon değişiminde bu numarayı artır
 
 // Kendi sitenin dosyaları (uygulama iskeleti)
 const APP_SHELL = [
