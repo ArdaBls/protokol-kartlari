@@ -315,6 +315,7 @@ function layoutMultiDayRow(bars) {
 // ── Render dispatcher ──
 
 function renderCalendar() {
+  calCancelPendingCreate();
   sortableInstances.forEach((inst) => inst.destroy()); sortableInstances = [];
   renderTopbar();
   const body = document.getElementById('calMainBody'); if (!body) { return; }
@@ -680,6 +681,37 @@ function calSortableOptions(groupName) {
 // ── Pointer gestures: grid-select-create / edge-resize / multi-day drag ──
 
 let calGridSelectSuppressClick = false;
+// Kullanıcı isteği: sürükleyerek oluşturma jesti bırakılınca modal HEMEN açılmasın —
+// ghost + küçük bir "Oluştur/Vazgeç" onay çubuğu gösterilir, modal SADECE "Oluştur"a
+// basılınca açılır (yanlış saat aralığı bırakılırsa modale hiç girmeden düzeltme fırsatı).
+let calPendingCreate = null;
+function calShowPendingCreateBar(ghost, dateKey, startMin, endMin) {
+  calCancelPendingCreate();
+  ghost.classList.add('cal-create-select-pending');
+  const bar = document.createElement('div');
+  bar.className = 'cal-create-confirm-bar';
+  bar.innerHTML =
+    '<span class="ccb-time">' + escapeHtml(fmtTrDate(dateKey)) + ' · ' + minToHm(startMin) + '–' + minToHm(endMin) + '</span>' +
+    '<button type="button" class="ccb-cancel">✕ Vazgeç</button>' +
+    '<button type="button" class="ccb-confirm">✓ Oluştur</button>';
+  document.body.appendChild(bar);
+  bar.querySelector('.ccb-confirm').addEventListener('click', calConfirmPendingCreate);
+  bar.querySelector('.ccb-cancel').addEventListener('click', calCancelPendingCreate);
+  calPendingCreate = { ghost, bar, dateKey, startMin, endMin };
+}
+function calConfirmPendingCreate() {
+  if (!calPendingCreate) { return; }
+  const p = calPendingCreate; calPendingCreate = null;
+  p.bar.remove();
+  p.ghost.remove();
+  openEventModal(null, p.dateKey, minToHm(p.startMin), minToHm(p.endMin));
+}
+function calCancelPendingCreate() {
+  if (!calPendingCreate) { return; }
+  const p = calPendingCreate; calPendingCreate = null;
+  p.ghost.remove();
+  p.bar.remove();
+}
 
 function calStartGridSelectGesture(e) {
   if (e.target.closest('.cal-resize-handle')) { return; }
@@ -727,10 +759,9 @@ function calStartGridSelectGesture(e) {
   function onUp(e2) {
     if (e2.pointerId !== pointerId) { return; }
     cleanup();
-    ghost.remove();
-    if (!moved) { return; }
+    if (!moved) { ghost.remove(); return; }
     calGridSelectSuppressClick = true;
-    openEventModal(null, dateKey, minToHm(startMin), minToHm(endMin));
+    calShowPendingCreateBar(ghost, dateKey, startMin, endMin);
   }
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
