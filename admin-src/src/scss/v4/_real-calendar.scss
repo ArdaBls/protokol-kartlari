@@ -184,6 +184,39 @@
 .cal-ev-form-check { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); cursor: pointer; }
 .cal-ev-form-check input { width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
 
+// Tam-parite alanları (rozetler, tarih/saat "şimdi" tuşları, basın görevlisi/haberi
+// yazan(lar)/katılımcılar arama kutulu çoklu seçim listeleri) — ana sitedeki
+// style.css'teki .ev-* sınıflarının Gentelella v4 custom property'lerine çevrilmiş hali.
+.cal-ev-badge-box { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.cal-ev-badge-box label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text); cursor: pointer; }
+.cal-ev-badge-box input { cursor: pointer; }
+
+.cal-ev-datetime-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.cal-ev-datetime-row .cal-ev-date { flex: 1 1 150px; min-width: 0; }
+.cal-ev-datetime-row .cal-ev-time { flex: 0 0 142px; min-width: 0; }
+
+.cal-ev-time-wrap { display: flex; gap: 4px; align-items: stretch; }
+.cal-ev-time-wrap input[type='time'] { flex: 1; min-width: 0; }
+.cal-ev-now-btn {
+  flex: 0 0 auto; border: 1px solid var(--primary); background: var(--primary-lt); color: var(--primary-dk);
+  border-radius: 6px; padding: 0 7px; font-size: 14px; line-height: 1; cursor: pointer; white-space: nowrap;
+}
+.cal-ev-now-btn:hover { background: var(--primary); color: #fff; }
+.cal-ev-now-btn:active { transform: scale(.94); }
+
+.cal-ev-att-search {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--border-color); border-radius: 8px;
+  font-size: 13px; margin-bottom: 6px; box-sizing: border-box; background: var(--bg-surface); color: var(--text);
+}
+.cal-ev-att-box { max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; }
+.cal-ev-att-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+.cal-ev-att-item:hover { background: var(--primary-lt); }
+.cal-ev-att-item .sub { color: var(--text-muted); font-size: 11px; }
+.cal-ev-att-empty { margin: 6px; font-size: 12px; color: var(--text-muted); }
+
+.cal-ev-il-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); cursor: pointer; margin: 2px 0 6px; }
+.cal-ev-il-toggle input { cursor: pointer; }
+
 // Gün/Hafta/Ay/Yıl/Liste sekmeleri dar ekranda konteynerden taşıp yatay
 // scrollbar/overflow yaratıyordu -- yatay kaydırılabilir yapıp taşmayı
 // konteyner içine hapsediyoruz (flex-wrap yerine bunu tercih ettik çünkü

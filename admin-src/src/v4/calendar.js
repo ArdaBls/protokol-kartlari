@@ -55,6 +55,12 @@ const EVENT_STATUS = [
   { key: 'tamamlandi', ad: 'Tamamlandı',      renk: '#15803d' },
   { key: 'iptal',      ad: 'İptal',           renk: '#b03a3a' }
 ];
+// Ana sitedeki (app.js) EVENT_BADGES ile BİREBİR aynı — rozetler bu listeden okunur/yazılır.
+const EVENT_BADGES = [
+  { key: 'basina_kapali', ad: 'Basına Kapalı', renk: '#b91c1c', bg: '#fee2e2' },
+  { key: 'dis_katilimli', ad: 'Dış Katılımlı', renk: '#1d4ed8', bg: '#dbeafe' },
+  { key: 'canli_yayin',   ad: 'Canlı Yayın',   renk: '#b45309', bg: '#fef3c7' }
+];
 
 const FACULTY_GROUPS = [
   { title: 'Rektörlük', items: ['Rektör', 'Rektör Yardımcısı'] },
@@ -88,6 +94,13 @@ const FACULTY_GROUPS = [
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function evType(k) { return EVENT_TYPES.find((t) => t.key === k) || EVENT_TYPES[EVENT_TYPES.length - 1]; }
 function evStatus(k) { return EVENT_STATUS.find((s) => s.key === k) || EVENT_STATUS[0]; }
+// Arşiv bağlantısı <a href> yerine sadece metin olarak kaydediliyor olsa da (admin panelinde
+// henüz bağlantı olarak render edilmiyor), ana siteyle AYNI şema/güvenlik davranışı için
+// javascript: gibi şemalar burada da baştan elenir (ana sitedeki safeLinkUrl ile birebir aynı).
+function safeLinkUrl(u) { const s = String(u === undefined || u === null ? '' : u).trim(); return /^https?:\/\//i.test(s) ? s : ''; }
+// "Basın Görevlisi" / "Haberi Yazan(lar)" alanları Firebase'de virgülle ayrılmış tek bir string
+// olarak tutulur (ana sitedeki parseGorevliString ile birebir aynı ters/düz dönüşüm).
+function parseGorevliString(s) { return String(s || '').split(',').map((x) => x.trim()).filter(Boolean); }
 
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 function dKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -128,6 +141,19 @@ let EVENTS = {}; // id -> event
 let calView = 'week';
 let calAnchor = new Date();
 let sortableInstances = [];
+
+// Düzenleme modalındaki "Basın Görevlisi"/"Haberi Yazan(lar)" ve "Katılımcılar" pickerlarının
+// veri havuzları. Ana sitedeki (app.js) gorevliLoadToken deseninin admin-src karşılığı:
+// pressOfficerPool oturum boyunca modül seviyesinde önbelleklenir (her modal açılışında
+// TEKRAR Firebase'den okunup tazelenir, ama iki açılış arasında eski değer ekranda kalabilir
+// diye önce eski değerle render edilir); ilPoolCache ise ana sitedeki gibi kalıcı bir ikinci
+// dinleyici AÇMADAN, "İl Protokolünü de dahil et" kutusu ilk işaretlendiğinde tek seferlik
+// okunup önbelleğe alınır. calAttendees/calPressStaff/calNewsWriters ise (ana sitedeki gibi
+// global DEĞİL) her openEventModal() çağrısında o modale özel yerel değişkenler olarak tutulur.
+let pressOfficerPool = [];
+let peoplePoolCache = null;
+let ilPoolCache = null;
+let openEventModalToken = 0;
 
 function calDayCount() {
   if (calView === 'day') { return 1; }
@@ -927,7 +953,7 @@ function calStartMultiDayGesture(e) {
   window.addEventListener('pointercancel', onUp);
 }
 
-// ── Edit modal (v1: core fields only) ──
+// ── Edit modal (tam parite: ana sitedeki (app.js) openEventModal'ın TÜM alanları) ──
 
 function facultyOptionsHtml(selected) {
   return FACULTY_GROUPS.map((g) => '<optgroup label="' + escapeHtml(g.title) + '">' +
@@ -935,23 +961,140 @@ function facultyOptionsHtml(selected) {
     '</optgroup>').join('');
 }
 
+// "Basın Görevlisi" havuzu: admin tarafından işaretlenmiş kullanıcılar (basinGorevlileri
+// düğümü). Ana sitedeki loadPressOfficerPool ile birebir aynı — her openEventModal()
+// çağrısında yeniden okunur (oturum içi kısa ömürlü önbellek, kalıcı dinleyici YOK).
+function loadPressOfficerPool() {
+  if (!database) { return Promise.resolve(); }
+  return database.ref('basinGorevlileri').once('value').then((snap) => {
+    const obj = snap.val() || {};
+    pressOfficerPool = Object.keys(obj).map((uid) => ({ uid, name: String(obj[uid] || '').trim() })).filter((p) => p.name);
+    pressOfficerPool.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  }).catch(() => { /* sessizce yut: pool boş gelir ama modal çalışmaya devam eder */ });
+}
+// "Katılımcılar" havuzu: ana sitedeki peopleList() ile AYNI kaynak (universiteProtokolVerileri).
+// Admin panelinde bu düğüme kalıcı bir dinleyici henüz bağlı olmadığı için (bkz. görev notu),
+// basınGörevlisi havuzuyla aynı desende her modal açılışında tek seferlik okunur.
+function loadPeoplePool() {
+  if (!database) { return Promise.resolve(); }
+  return database.ref('universiteProtokolVerileri').once('value').then((snap) => {
+    const obj = snap.val() || {};
+    peoplePoolCache = Object.keys(obj).map((id) => {
+      const p = obj[id];
+      return (p && typeof p === 'object') ? Object.assign({ _id: id }, p) : null;
+    }).filter(Boolean);
+  }).catch(() => { peoplePoolCache = peoplePoolCache || []; });
+}
+
+// Basın görevlisi / haberi yazan(lar) — AYNI pressOfficerPool havuzundan, iki ayrı isim listesi.
+function renderPressStaffPicker(bodyEl, calPressStaff) {
+  const box = bodyEl.querySelector('#cef-gorevliBox'); if (!box) { return; }
+  const searchEl = bodyEl.querySelector('#cef-gorevliSearch');
+  const q = ((searchEl && searchEl.value) || '').trim().toLocaleLowerCase('tr');
+  const filtered = pressOfficerPool.filter((p) => p.name.toLocaleLowerCase('tr').includes(q));
+  let html = '';
+  calPressStaff.forEach((name) => {
+    if (filtered.some((p) => p.name === name)) { return; }
+    html += '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-gorevli-cb" data-name="' + escapeHtml(name) + '" checked><span><b>' + escapeHtml(name) + '</b></span></label>';
+  });
+  html += filtered.map((p) => '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-gorevli-cb" data-name="' + escapeHtml(p.name) + '" ' + (calPressStaff.indexOf(p.name) !== -1 ? 'checked' : '') + '><span><b>' + escapeHtml(p.name) + '</b></span></label>').join('');
+  if (!html) { html = '<p class="cal-ev-att-empty">' + (pressOfficerPool.length ? 'Eşleşen kişi yok.' : 'Henüz admin tarafından işaretlenmiş basın görevlisi yok.') + '</p>'; }
+  box.innerHTML = html;
+}
+function renderNewsWriterPicker(bodyEl, calNewsWriters) {
+  const box = bodyEl.querySelector('#cef-haberYazanlariBox'); if (!box) { return; }
+  const searchEl = bodyEl.querySelector('#cef-haberYazanlariSearch');
+  const q = ((searchEl && searchEl.value) || '').trim().toLocaleLowerCase('tr');
+  const filtered = pressOfficerPool.filter((p) => p.name.toLocaleLowerCase('tr').includes(q));
+  let html = '';
+  calNewsWriters.forEach((name) => {
+    if (filtered.some((p) => p.name === name)) { return; }
+    html += '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-haberyazani-cb" data-name="' + escapeHtml(name) + '" checked><span><b>' + escapeHtml(name) + '</b></span></label>';
+  });
+  html += filtered.map((p) => '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-haberyazani-cb" data-name="' + escapeHtml(p.name) + '" ' + (calNewsWriters.indexOf(p.name) !== -1 ? 'checked' : '') + '><span><b>' + escapeHtml(p.name) + '</b></span></label>').join('');
+  if (!html) { html = '<p class="cal-ev-att-empty">' + (pressOfficerPool.length ? 'Eşleşen kişi yok.' : 'Henüz admin tarafından işaretlenmiş basın görevlisi yok.') + '</p>'; }
+  box.innerHTML = html;
+}
+// Katılımcılar: peoplePoolCache (üniversite) + isteğe bağlı ilPoolCache (İl Protokolü) —
+// ana sitedeki renderEventAttendeePicker ile birebir aynı birleştirme/öncelik mantığı.
+function renderAttendeePicker(bodyEl, calAttendees) {
+  const box = bodyEl.querySelector('#cef-attendeeBox'); if (!box) { return; }
+  const searchEl = bodyEl.querySelector('#cef-attSearch');
+  const q = ((searchEl && searchEl.value) || '').trim().toLocaleLowerCase('tr');
+  const includeIlEl = bodyEl.querySelector('#cef-attIncludeIl');
+  const includeIl = !!(includeIlEl && includeIlEl.checked && ilPoolCache);
+  let pool;
+  if (includeIl) {
+    const merged = new Map();
+    function addAll(list, kaynak) {
+      (list || []).forEach((p) => {
+        if ((p.status && p.status !== 'aktif') || !p.name) { return; }
+        const key = (p.name || '').trim().toLocaleLowerCase('tr') + '|' + (p.unit || '').trim().toLocaleLowerCase('tr');
+        merged.set(key, Object.assign({}, p, { kaynak }));
+      });
+    }
+    addAll(peoplePoolCache, 'universite'); addAll(ilPoolCache, 'il');
+    pool = Array.from(merged.values());
+  } else {
+    pool = (peoplePoolCache || []).filter((p) => (!p.status || p.status === 'aktif') && p.name);
+  }
+  const filtered = pool.filter((p) => ((p.name || '') + ' ' + (p.title || '') + ' ' + (p.unit || '')).toLocaleLowerCase('tr').includes(q)).slice(0, 120);
+  const selKeys = new Set(calAttendees.map((a) => (a.name || '') + '|' + (a.title || '')));
+  let html = '';
+  calAttendees.forEach((a) => {
+    const k = (a.name || '') + '|' + (a.title || '');
+    if (filtered.some((p) => (p.name || '') + '|' + (p.title || '') === k)) { return; }
+    html += '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-att-cb" data-key="' + escapeHtml(k) + '" checked><span><b>' + escapeHtml(a.name) + '</b> <span class="sub">' + escapeHtml(a.title || '') + '</span></span></label>';
+  });
+  html += filtered.map((p) => {
+    const k = (p.name || '') + '|' + (p.title || '');
+    return '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-att-cb" data-key="' + escapeHtml(k) + '" data-prefix="' + escapeHtml(p.prefix || '') + '" data-name="' + escapeHtml(p.name || '') + '" data-title="' + escapeHtml(p.title || '') + '" data-rank="' + escapeHtml(p.rank !== undefined && p.rank !== null ? String(p.rank) : '') + '" data-kaynak="' + escapeHtml(p.kaynak || 'universite') + '" ' + (selKeys.has(k) ? 'checked' : '') + '><span><b>' + escapeHtml(p.name) + '</b> <span class="sub">' + escapeHtml(p.title || '') + '</span></span></label>';
+  }).join('');
+  if (!html) { html = '<p class="cal-ev-att-empty">Eşleşen kişi yok.</p>'; }
+  box.innerHTML = html;
+}
+
 function openEventModal(id, presetDate, presetTime, presetEndTime) {
   const ev = id ? EVENTS[id] : null;
   const tarih = ev ? (ev.tarih || '') : (presetDate || dKey(calAnchor));
   const saat = ev ? (ev.saat || '') : (presetTime || '');
   const bitisSaat = ev ? (ev.bitisSaat || '') : (presetEndTime || '');
+  // Faz 11 (ana siteyle aynı v1 kapsam kararı): çok günlü etkinlikler HER ZAMAN "tüm gün" kabul
+  // edilir, bitisTarihi tarih'ten FARKLIYSA anahtar başlangıçta işaretli gelir.
+  const isMultiDay = !!(ev && ev.bitisTarihi && ev.bitisTarihi !== ev.tarih);
+  const bitisTarihi = (ev && ev.bitisTarihi) ? ev.bitisTarihi : tarih;
+  const selectedBadges = new Set(ev && Array.isArray(ev.rozetler) ? ev.rozetler : []);
+
   const bodyHtml =
     '<form class="cal-ev-form" id="calEvForm">' +
       '<div class="cal-ev-form-row"><label for="cef-ad">Etkinlik Adı</label><input type="text" id="cef-ad" class="form-control" value="' + escapeHtml(ev ? ev.ad : '') + '" required></div>' +
       '<div class="cal-ev-form-grid">' +
-        '<div class="cal-ev-form-row"><label for="cef-tarih">Tarih</label><input type="date" id="cef-tarih" class="form-control" value="' + escapeHtml(tarih) + '" required></div>' +
-        '<div class="cal-ev-form-row"><label for="cef-yer">Yer / Mekân</label><input type="text" id="cef-yer" class="form-control" value="' + escapeHtml(ev ? ev.yer : '') + '"></div>' +
-        '<div class="cal-ev-form-row"><label for="cef-saat">Başlangıç Saati</label><input type="time" id="cef-saat" class="form-control" value="' + escapeHtml(saat) + '"></div>' +
-        '<div class="cal-ev-form-row"><label for="cef-bitis">Bitiş Saati</label><input type="time" id="cef-bitis" class="form-control" value="' + escapeHtml(bitisSaat) + '"></div>' +
         '<div class="cal-ev-form-row"><label for="cef-tur">Tür</label><select id="cef-tur" class="form-control">' + EVENT_TYPES.map((t) => '<option value="' + t.key + '"' + (ev && ev.tur === t.key ? ' selected' : '') + '>' + escapeHtml(t.ad) + '</option>').join('') + '</select></div>' +
         '<div class="cal-ev-form-row"><label for="cef-durum">Durum</label><select id="cef-durum" class="form-control">' + EVENT_STATUS.map((s) => '<option value="' + s.key + '"' + (ev && ev.durum === s.key ? ' selected' : '') + '>' + escapeHtml(s.ad) + '</option>').join('') + '</select></div>' +
       '</div>' +
+      '<div class="cal-ev-form-row"><label>Rozetler <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, birden fazla seçilebilir)</span></label>' +
+        '<div class="cal-ev-badge-box" id="cef-badgeBox">' + EVENT_BADGES.map((b) => '<label><input type="checkbox" class="cal-ev-badge-cb" value="' + b.key + '" ' + (selectedBadges.has(b.key) ? 'checked' : '') + '> ' + escapeHtml(b.ad) + '</label>').join('') + '</div></div>' +
+      '<label class="cal-ev-form-check"><input type="checkbox" id="cef-cokgunlu"' + (isMultiDay ? ' checked' : '') + '> Çok günlü etkinlik (birden fazla gün sürer)</label>' +
+      '<div class="cal-ev-datetime-row">' +
+        '<div class="cal-ev-form-row cal-ev-date"><label for="cef-tarih">Tarih</label><input type="date" id="cef-tarih" class="form-control" value="' + escapeHtml(tarih) + '" required></div>' +
+        '<div class="cal-ev-form-row cal-ev-time" style="display:' + (isMultiDay ? 'none' : '') + ';"><label for="cef-saat">Başlangıç Saati</label><div class="cal-ev-time-wrap"><input type="time" id="cef-saat" class="form-control" value="' + escapeHtml(saat) + '"><button type="button" class="cal-ev-now-btn" data-now-target="cef-saat" title="Şu anki saati yaz">⏱</button></div></div>' +
+        '<div class="cal-ev-form-row cal-ev-time" style="display:' + (isMultiDay ? 'none' : '') + ';"><label for="cef-bitis">Bitiş Saati</label><div class="cal-ev-time-wrap"><input type="time" id="cef-bitis" class="form-control" value="' + escapeHtml(bitisSaat) + '"><button type="button" class="cal-ev-now-btn" data-now-target="cef-bitis" title="Şu anki saati yaz">⏱</button></div></div>' +
+        '<div class="cal-ev-form-row cal-ev-date" id="cef-bitisTarihiWrap" style="display:' + (isMultiDay ? '' : 'none') + ';"><label for="cef-bitisTarihi">Bitiş Tarihi</label><input type="date" id="cef-bitisTarihi" class="form-control" value="' + escapeHtml(bitisTarihi) + '"></div>' +
+      '</div>' +
+      '<div class="cal-ev-form-row"><label for="cef-yer">Yer / Mekân</label><input type="text" id="cef-yer" class="form-control" value="' + escapeHtml(ev ? ev.yer : '') + '" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>' +
       '<div class="cal-ev-form-row"><label for="cef-birim">Düzenleyen Birim</label><select id="cef-birim" class="form-control"><option value="">—</option>' + facultyOptionsHtml(ev ? ev.birim : '') + '</select></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-planlayan">Planlayan / Sorumlu</label><input type="text" id="cef-planlayan" class="form-control" value="' + escapeHtml(ev ? ev.planlayan : '') + '" placeholder="Etkinliği planlayan kişi/birim"></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-gorevliSearch">Basın Görevlisi <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>' +
+        '<input type="text" class="cal-ev-att-search" id="cef-gorevliSearch" placeholder="İsim ara…"><div class="cal-ev-att-box" id="cef-gorevliBox"></div></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-haberYazanlariSearch">Haberi Yazan(lar) <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(etkinlik gerçekleştikten sonra, haberi kim/kimler yazdıysa işaretlenir)</span></label>' +
+        '<input type="text" class="cal-ev-att-search" id="cef-haberYazanlariSearch" placeholder="İsim ara…"><div class="cal-ev-att-box" id="cef-haberYazanlariBox"></div></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-haberMetni">Haber Metni <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(yayınlanan/yazılan son haber metni, arşiv amaçlı buraya girilir)</span></label>' +
+        '<textarea id="cef-haberMetni" class="form-control" rows="4" placeholder="Haber Metni Üretici ile oluşturduğunuz veya elle yazdığınız son metni buraya yapıştırın…">' + escapeHtml(ev ? ev.haberMetni : '') + '</textarea></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-attSearch">Katılımcılar <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>' +
+        '<label class="cal-ev-il-toggle"><input type="checkbox" id="cef-attIncludeIl"> İl Protokolünü de dahil et</label>' +
+        '<input type="text" class="cal-ev-att-search" id="cef-attSearch" placeholder="İsim veya unvan ara…"><div class="cal-ev-att-box" id="cef-attendeeBox"></div></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-arsiv">Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="cef-arsiv" class="form-control" value="' + escapeHtml(ev ? ev.arsiv : '') + '" placeholder="https://drive.google.com/..."></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-haberKaynagi">Haber Kaynağı <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="cef-haberKaynagi" class="form-control"><option value="">(Belirtilmedi)</option>' + ['İHA', 'AA', 'DHA', 'ANKA'].map((k) => '<option value="' + k + '"' + (ev && ev.haberKaynagi === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
       '<label class="cal-ev-form-check"><input type="checkbox" id="cef-locked"' + (ev && ev.locked ? ' checked' : '') + '> 🔒 Kilitli — sürüklenip taşınamasın / boyutlandırılamasın</label>' +
     '</form>';
@@ -964,24 +1107,57 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
     } });
   }
   actions.push({ label: 'Vazgeç', variant: 'outline' });
+
+  // calAttendees/calPressStaff/calNewsWriters -- ana sitedeki gibi GLOBAL değil, sadece bu
+  // modal açıkken yaşayan yerel değişkenler (bkz. dosya başındaki state açıklaması).
+  const calAttendees = (ev && Array.isArray(ev.katilimcilar)) ? ev.katilimcilar.map((a) => ({ prefix: a.prefix || '', name: a.name || '', title: a.title || '', rank: a.rank !== undefined ? a.rank : '', kaynak: a.kaynak || 'universite' })) : [];
+  const calPressStaff = ev ? parseGorevliString(ev.gorevli) : [];
+  const calNewsWriters = ev ? parseGorevliString(ev.haberYazanlari) : [];
+
   if (canWrite) {
     actions.push({ label: id ? 'Kaydet' : 'Oluştur', variant: 'primary', action: ({ body }) => {
       const form = body.querySelector('#calEvForm');
       const ad = form.querySelector('#cef-ad').value.trim();
       if (!ad) { showToast('Etkinlik adı zorunlu.', { variant: 'warning' }); return false; }
+      const tarihVal = form.querySelector('#cef-tarih').value;
+      if (!parseKey(tarihVal)) { showToast('Geçerli bir tarih seçin!', { variant: 'warning' }); return false; }
+      const cokGunlu = form.querySelector('#cef-cokgunlu').checked;
+      let bitisTarihiVal = '';
+      if (cokGunlu) {
+        bitisTarihiVal = form.querySelector('#cef-bitisTarihi').value;
+        if (!parseKey(bitisTarihiVal)) { showToast('Geçerli bir bitiş tarihi seçin!', { variant: 'warning' }); return false; }
+        if (bitisTarihiVal < tarihVal) { showToast('Bitiş tarihi, başlangıç tarihinden önce olamaz.', { variant: 'warning' }); return false; }
+      }
+      const saatVal = cokGunlu ? '' : form.querySelector('#cef-saat').value;
+      const bitisVal = cokGunlu ? '' : form.querySelector('#cef-bitis').value;
+      if (saatVal && bitisVal && hmToMin(bitisVal) !== null && hmToMin(saatVal) !== null && hmToMin(bitisVal) <= hmToMin(saatVal)) {
+        const geceYarisiOnay = window.confirm('Bitiş saati (' + bitisVal + '), başlangıçtan (' + saatVal + ') önce görünüyor.\n\nBu etkinlik gece yarısını geçiyor mu (bitiş ertesi gün)?\n\n"Tamam" derseniz bu şekilde kaydedilir, "İptal" ile saatleri düzeltebilirsiniz.');
+        if (!geceYarisiOnay) { showToast('Bitiş saati başlangıçtan sonra olmalı.', { variant: 'warning' }); return false; }
+      }
       const patch = {
         ad,
-        tarih: form.querySelector('#cef-tarih').value,
-        saat: form.querySelector('#cef-saat').value,
-        bitisSaat: form.querySelector('#cef-bitis').value,
         tur: form.querySelector('#cef-tur').value,
         durum: form.querySelector('#cef-durum').value,
+        rozetler: Array.from(form.querySelectorAll('.cal-ev-badge-cb:checked')).map((cb) => cb.value),
+        tarih: tarihVal,
+        saat: saatVal || '',
+        bitisSaat: bitisVal || '',
+        // Sadece GERÇEKTEN çok günlüyse (tarih!==bitisTarihi) set edilir; aksi halde null
+        // gönderilir ki persistEvent'in merge'i eski (varsa) bitisTarihi'ni SİLSİN (bkz.
+        // persistEvent: nesnenin bir leaf'i null ise Firebase o alanı hiç yazmaz/kaldırır).
+        bitisTarihi: (cokGunlu && bitisTarihiVal && bitisTarihiVal !== tarihVal) ? bitisTarihiVal : null,
         yer: form.querySelector('#cef-yer').value.trim(),
         birim: form.querySelector('#cef-birim').value,
+        planlayan: form.querySelector('#cef-planlayan').value.trim(),
+        gorevli: calPressStaff.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
+        haberYazanlari: calNewsWriters.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
+        haberMetni: (form.querySelector('#cef-haberMetni')?.value || '').trim(),
+        katilimcilar: calAttendees.slice(),
+        arsiv: safeLinkUrl(form.querySelector('#cef-arsiv').value),
+        haberKaynagi: form.querySelector('#cef-haberKaynagi').value,
         not: form.querySelector('#cef-not').value.trim(),
         locked: form.querySelector('#cef-locked').checked
       };
-      if (!patch.tarih) { showToast('Tarih zorunlu.', { variant: 'warning' }); return false; }
       const ref = EVENTS[id];
       const logLabel = id
         ? evLogName(ad) + ' etkinliği düzenlendi' + (ref ? (() => { const c = describeChanges(ref, Object.assign({}, ref, patch)); return c.length ? ' · ' + c.join(' · ') : ''; })() : '')
@@ -993,7 +1169,100 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
     } });
   }
 
-  showModal({ title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'md' });
+  const modalHandle = showModal({ title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'md' });
+  const bodyEl = modalHandle.body;
+  const modalToken = ++openEventModalToken;
+
+  // Pickerlar önce (boş/eski önbellekle) render edilir, havuzlar tazelendikçe (bu modal hâlâ
+  // AÇIKSA -- modalToken kontrolü ana sitedeki gorevliLoadToken yarış-durumu korumasının aynısı)
+  // yeniden çizilir.
+  renderPressStaffPicker(bodyEl, calPressStaff);
+  renderNewsWriterPicker(bodyEl, calNewsWriters);
+  renderAttendeePicker(bodyEl, calAttendees);
+  loadPressOfficerPool().then(() => {
+    if (modalToken !== openEventModalToken) { return; }
+    renderPressStaffPicker(bodyEl, calPressStaff);
+    renderNewsWriterPicker(bodyEl, calNewsWriters);
+  });
+  loadPeoplePool().then(() => {
+    if (modalToken !== openEventModalToken) { return; }
+    renderAttendeePicker(bodyEl, calAttendees);
+  });
+
+  bodyEl.addEventListener('input', (e) => {
+    if (e.target.id === 'cef-gorevliSearch') { renderPressStaffPicker(bodyEl, calPressStaff); }
+    else if (e.target.id === 'cef-haberYazanlariSearch') { renderNewsWriterPicker(bodyEl, calNewsWriters); }
+    else if (e.target.id === 'cef-attSearch') { renderAttendeePicker(bodyEl, calAttendees); }
+  });
+
+  bodyEl.addEventListener('click', (e) => {
+    const nowBtn = e.target.closest('.cal-ev-now-btn');
+    if (!nowBtn) { return; }
+    const target = bodyEl.querySelector('#' + nowBtn.dataset.nowTarget);
+    if (!target) { return; }
+    const nw = new Date();
+    target.value = pad2(nw.getHours()) + ':' + pad2(nw.getMinutes());
+    if (nowBtn.dataset.nowTarget === 'cef-bitis' && !bodyEl.querySelector('#cef-saat').value) {
+      showToast('Başlangıç saati de girilmeli.', { variant: 'warning' });
+    }
+  });
+
+  bodyEl.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.id === 'cef-cokgunlu') {
+      const on = t.checked;
+      bodyEl.querySelectorAll('.cal-ev-datetime-row .cal-ev-time').forEach((el) => { el.style.display = on ? 'none' : ''; });
+      const wrap = bodyEl.querySelector('#cef-bitisTarihiWrap');
+      if (wrap) { wrap.style.display = on ? '' : 'none'; }
+      if (on) {
+        const bt = bodyEl.querySelector('#cef-bitisTarihi');
+        const tv = bodyEl.querySelector('#cef-tarih').value;
+        if (bt && (!bt.value || bt.value < tv)) { bt.value = tv; }
+      }
+      return;
+    }
+    if (t.id === 'cef-attIncludeIl') {
+      if (!t.checked || ilPoolCache !== null) { renderAttendeePicker(bodyEl, calAttendees); return; }
+      if (!database) { renderAttendeePicker(bodyEl, calAttendees); return; }
+      database.ref('ilProtokolVerileri').once('value').then((snap) => {
+        const v = snap.val() || {};
+        ilPoolCache = Object.keys(v).map((pid) => {
+          const p = v[pid];
+          return (p && typeof p === 'object') ? Object.assign({ _id: pid }, p) : null;
+        }).filter(Boolean);
+        if (modalToken === openEventModalToken) { renderAttendeePicker(bodyEl, calAttendees); }
+      }).catch((err) => {
+        console.error('İl Protokolü okunamadı:', err);
+        showToast('İl Protokolü okunamadı.', { variant: 'error' });
+        t.checked = false;
+        renderAttendeePicker(bodyEl, calAttendees);
+      });
+      return;
+    }
+    if (t.classList.contains('cal-ev-gorevli-cb')) {
+      const name = t.dataset.name || '';
+      if (t.checked) { if (calPressStaff.indexOf(name) === -1) { calPressStaff.push(name); } }
+      else { const idx = calPressStaff.indexOf(name); if (idx !== -1) { calPressStaff.splice(idx, 1); } }
+      return;
+    }
+    if (t.classList.contains('cal-ev-haberyazani-cb')) {
+      const name = t.dataset.name || '';
+      if (t.checked) { if (calNewsWriters.indexOf(name) === -1) { calNewsWriters.push(name); } }
+      else { const idx = calNewsWriters.indexOf(name); if (idx !== -1) { calNewsWriters.splice(idx, 1); } }
+      return;
+    }
+    if (t.classList.contains('cal-ev-att-cb')) {
+      const key = t.dataset.key;
+      if (t.checked) {
+        if (!calAttendees.some((a) => (a.name || '') + '|' + (a.title || '') === key)) {
+          calAttendees.push({ prefix: t.dataset.prefix || '', name: t.dataset.name || key.split('|')[0], title: t.dataset.title || key.split('|')[1] || '', rank: t.dataset.rank || '', kaynak: t.dataset.kaynak || 'universite' });
+        }
+      } else {
+        const idx = calAttendees.findIndex((a) => (a.name || '') + '|' + (a.title || '') === key);
+        if (idx !== -1) { calAttendees.splice(idx, 1); }
+      }
+    }
+  });
 }
 
 // ── Wiring ──
