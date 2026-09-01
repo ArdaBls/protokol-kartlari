@@ -1,14 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Map | Protokol</title>
+<title>Birim haritası | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. etkinlikler
+     düğümü herkese açık okunur (.read:true) -- bu sayfa girişsiz de çalışır. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <link rel="manifest" href="/admin/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -16,22 +20,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/admin/images/apple-touch-icon.svg">
-<meta name="description" content="Map — Map. OMÜ Protokol Kartları admin paneli.">
+<meta name="description" content="Birim haritası — Harita. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Map">
-<meta property="og:description" content="Map — Map. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:title" content="Birim haritası">
+<meta property="og:description" content="Birim haritası — Harita. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/admin/images/android-chrome-512x512.svg">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/admin/js/map-DlQL6eMq.js"></script>
+  <script type="module" crossorigin src="/admin/js/map-Bu861lmd.js"></script>
   <link rel="modulepreload" crossorigin href="/admin/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/admin/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/admin/js/modal-MTuCfURV.js">
   <link rel="modulepreload" crossorigin href="/admin/js/main-v4-4VJLCbnx.js">
   <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-MQSmH7v_.css">
 </head>
-<body data-shell="admin" data-page="map" data-breadcrumb="Home > Map">
+<body data-shell="admin" data-page="map" data-breadcrumb="Anasayfa|index.html > Harita">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -172,7 +176,7 @@
         <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Map</span></nav>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Harita</span></nav>
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
@@ -197,29 +201,24 @@
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Geo</div>
-        <h1 class="page-title">Customer map</h1>
+        <div class="page-pretitle">Etkinlikler</div>
+        <h1 class="page-title">Birim etkinlik haritası</h1>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline">Filters</button>
+        <select class="form-control" id="year-select" style="width:120px;height:32px"></select>
       </div>
     </div>
   </div>
 
   <div class="row col-8-4">
     <div class="card">
-      <div id="map" style="height:520px;border-radius:var(--radius-lg)"></div>
+      <div id="map" style="height:560px;border-radius:var(--radius-lg)"></div>
     </div>
 
     <div class="card">
-      <div class="card-header"><div><div class="card-title">Top regions</div><div class="card-subtitle">Active customers by city</div></div></div>
-      <div class="card-body" style="padding:8px 16px">
-        <div class="visitor-row"><span class="visitor-flag">🇺🇸</span><span class="visitor-name">San Francisco</span><span class="visitor-pct">182</span><div class="visitor-bar"><div class="fill" style="width:82%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇬🇧</span><span class="visitor-name">London</span><span class="visitor-pct">147</span><div class="visitor-bar"><div class="fill" style="width:64%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇩🇪</span><span class="visitor-name">Berlin</span><span class="visitor-pct">98</span><div class="visitor-bar"><div class="fill" style="width:45%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇯🇵</span><span class="visitor-name">Tokyo</span><span class="visitor-pct">76</span><div class="visitor-bar"><div class="fill" style="width:35%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇧🇷</span><span class="visitor-name">São Paulo</span><span class="visitor-pct">52</span><div class="visitor-bar"><div class="fill" style="width:24%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇱🇻</span><span class="visitor-name">Riga</span><span class="visitor-pct">31</span><div class="visitor-bar"><div class="fill" style="width:14%"></div></div></div>
+      <div class="card-header"><div><div class="card-title">Birimler</div><div class="card-subtitle" id="year-sub">Etkinlik sayısına göre</div></div></div>
+      <div class="card-body" style="padding:8px 16px;max-height:560px;overflow-y:auto" id="unit-list">
+        <div style="text-align:center;color:var(--text-muted);padding:24px">Yükleniyor…</div>
       </div>
     </div>
   </div>

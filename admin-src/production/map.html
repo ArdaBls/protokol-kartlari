@@ -1,17 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Map | Protokol</title>
+<title>Birim haritası | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. etkinlikler
+     düğümü herkese açık okunur (.read:true) -- bu sayfa girişsiz de çalışır. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
-<body data-shell="admin" data-page="map" data-breadcrumb="Home > Map">
+<body data-shell="admin" data-page="map" data-breadcrumb="Anasayfa|index.html > Harita">
 
 <main class="main">
 <div class="page-wrapper">
@@ -19,29 +23,24 @@
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Geo</div>
-        <h1 class="page-title">Customer map</h1>
+        <div class="page-pretitle">Etkinlikler</div>
+        <h1 class="page-title">Birim etkinlik haritası</h1>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline">Filters</button>
+        <select class="form-control" id="year-select" style="width:120px;height:32px"></select>
       </div>
     </div>
   </div>
 
   <div class="row col-8-4">
     <div class="card">
-      <div id="map" style="height:520px;border-radius:var(--radius-lg)"></div>
+      <div id="map" style="height:560px;border-radius:var(--radius-lg)"></div>
     </div>
 
     <div class="card">
-      <div class="card-header"><div><div class="card-title">Top regions</div><div class="card-subtitle">Active customers by city</div></div></div>
-      <div class="card-body" style="padding:8px 16px">
-        <div class="visitor-row"><span class="visitor-flag">🇺🇸</span><span class="visitor-name">San Francisco</span><span class="visitor-pct">182</span><div class="visitor-bar"><div class="fill" style="width:82%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇬🇧</span><span class="visitor-name">London</span><span class="visitor-pct">147</span><div class="visitor-bar"><div class="fill" style="width:64%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇩🇪</span><span class="visitor-name">Berlin</span><span class="visitor-pct">98</span><div class="visitor-bar"><div class="fill" style="width:45%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇯🇵</span><span class="visitor-name">Tokyo</span><span class="visitor-pct">76</span><div class="visitor-bar"><div class="fill" style="width:35%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇧🇷</span><span class="visitor-name">São Paulo</span><span class="visitor-pct">52</span><div class="visitor-bar"><div class="fill" style="width:24%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇱🇻</span><span class="visitor-name">Riga</span><span class="visitor-pct">31</span><div class="visitor-bar"><div class="fill" style="width:14%"></div></div></div>
+      <div class="card-header"><div><div class="card-title">Birimler</div><div class="card-subtitle" id="year-sub">Etkinlik sayısına göre</div></div></div>
+      <div class="card-body" style="padding:8px 16px;max-height:560px;overflow-y:auto" id="unit-list">
+        <div style="text-align:center;color:var(--text-muted);padding:24px">Yükleniyor…</div>
       </div>
     </div>
   </div>
@@ -50,25 +49,135 @@
 </main>
 
 <script type="module">
-import('leaflet').then(({ default: L }) => {
-  const map = L.map('map').setView([30, 10], 2);
+import { UNIT_COORDS, resolveUnitName } from '/src/v4/unit-coords.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Sabit boyutlu daire (piksel cinsinden, zoom'dan bağımsız) + say gittikçe kırmızıya
+// giden bir renk skalası -- fakülteler kampüste birbirine yakın olduğu için büyüyen
+// daireler üst üste biner, renk skalası çakışmadan yoğunluğu gösterir.
+const MARKER_RADIUS = 15;
+function colorForCount(count, max) {
+  if (!count) return '#9ca3af'; // gri: bu birimde bu yıl hiç etkinlik yok
+  const t = max > 0 ? count / max : 0;
+  // #fde68a (açık amber) -> #b91c1c (koyu kırmızı)
+  const from = [253, 230, 138], to = [185, 28, 28];
+  const rgb = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+  return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+}
+
+let allEvents = [];
+let map, markers = {};
+
+function populateYearSelect() {
+  const years = new Set(allEvents.map((e) => (e.tarih || '').slice(0, 4)).filter(Boolean));
+  const thisYear = String(new Date().getFullYear());
+  years.add(thisYear);
+  const sorted = Array.from(years).sort().reverse();
+  const sel = document.getElementById('year-select');
+  sel.innerHTML = sorted.map((y) => `<option value="${y}">${y}</option>`).join('');
+  sel.value = sorted.includes(thisYear) ? thisYear : sorted[0];
+  sel.addEventListener('change', render);
+}
+
+function countsForYear(year) {
+  const counts = {};
+  allEvents.forEach((e) => {
+    if ((e.tarih || '').slice(0, 4) !== year) return;
+    const unit = resolveUnitName(e.birim);
+    if (!unit) return;
+    counts[unit] = (counts[unit] || 0) + 1;
+  });
+  return counts;
+}
+
+function render() {
+  const year = document.getElementById('year-select').value;
+  const counts = countsForYear(year);
+  const max = Math.max(0, ...Object.values(counts));
+
+  // Koordinatı olan TÜM birimler haritada görünür (0 etkinlik = gri), böylece dağılım
+  // ve "en yoğun nerede" bir arada okunur.
+  Object.values(markers).forEach((m) => map.removeLayer(m));
+  markers = {};
+  Object.entries(UNIT_COORDS).forEach(([unit, coords]) => {
+    const count = counts[unit] || 0;
+    const marker = L.circleMarker(coords, {
+      radius: MARKER_RADIUS,
+      color: colorForCount(count, max),
+      fillColor: colorForCount(count, max),
+      fillOpacity: 0.75,
+      weight: 2
+    }).addTo(map).bindPopup(`<strong>${escapeHtml(unit)}</strong><br>${year}: ${count} etkinlik`);
+    markers[unit] = marker;
+  });
+
+  const noCoord = Object.keys(countsForYear(year)).filter((u) => !UNIT_COORDS[u]);
+
+  const rows = Object.keys(UNIT_COORDS)
+    .map((u) => ({ u, n: counts[u] || 0 }))
+    .sort((a, b) => b.n - a.n || a.u.localeCompare(b.u, 'tr'));
+
+  document.getElementById('year-sub').textContent = `${year} · Etkinlik sayısına göre`;
+  document.getElementById('unit-list').innerHTML =
+    rows.map((r) => `
+      <div class="visitor-row" data-unit="${escapeHtml(r.u)}" style="cursor:pointer">
+        <span class="visitor-name">${escapeHtml(r.u)}</span>
+        <span class="visitor-pct">${r.n}</span>
+        <div class="visitor-bar"><div class="fill" style="width:${max ? Math.round((r.n / max) * 100) : 0}%;background:${colorForCount(r.n, max)}"></div></div>
+      </div>
+    `).join('')
+    + (noCoord.length ? `<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border-color-light);font-size:11.5px;color:var(--text-muted)">Konumu bilinmeyen: ${noCoord.map(escapeHtml).join(', ')}</div>` : '');
+}
+
+document.getElementById('unit-list').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-unit]');
+  if (!row) return;
+  const unit = row.dataset.unit;
+  const coords = UNIT_COORDS[unit];
+  const marker = markers[unit];
+  if (!coords || !marker) return;
+  map.flyTo(coords, 16, { duration: 0.6 });
+  marker.openPopup();
+});
+
+import('leaflet').then(({ default: LeafletLib }) => {
+  window.L = LeafletLib;
+  map = L.map('map').setView([41.3641, 36.1946], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 18
   }).addTo(map);
-  const cities = [
-    [37.7749, -122.4194, 'San Francisco', 182],
-    [51.5074, -0.1278,   'London',        147],
-    [52.5200, 13.4050,   'Berlin',         98],
-    [35.6762, 139.6503,  'Tokyo',          76],
-    [-23.5505, -46.6333, 'São Paulo',      52],
-    [56.9496, 24.1052,   'Riga',           31]
-  ];
-  cities.forEach(([lat, lng, name, count]) => {
-    L.circleMarker([lat, lng], {
-      radius: Math.max(6, Math.sqrt(count) * 1.5),
-      color: '#1ABB9C', fillColor: '#1ABB9C', fillOpacity: 0.4, weight: 2
-    }).addTo(map).bindPopup(`<strong>${name}</strong><br>${count} customers`);
+
+  // Bilinen Leaflet sorunu: #map kutusu ilk çizimde henüz gerçek boyutuna
+  // oturmamışsa (shell/sidebar geç yerleşiyor, font yükleniyor vb.) harita
+  // devasa bir transform/scale ile "kaçık" görünür (translate3d(...) scale(8192)
+  // gibi). invalidateSize() gerçek boyutu ölçüp haritayı yeniden hizalar --
+  // hem ilk çizimden hemen sonra hem de pencere/kenar çubuğu boyutu her
+  // değiştiğinde çağrılır.
+  const fixSize = () => map.invalidateSize();
+  requestAnimationFrame(fixSize);
+  setTimeout(fixSize, 250);
+  window.addEventListener('resize', fixSize);
+  document.querySelector('.sidebar-toggle')?.addEventListener('click', () => setTimeout(fixSize, 300));
+
+  database.ref('etkinlikler').once('value').then((snap) => {
+    allEvents = Object.values(snap.val() || {});
+    populateYearSelect();
+    render();
+    fixSize();
+  }).catch((err) => {
+    console.error('Etkinlikler yüklenemedi:', err);
+    document.getElementById('unit-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:24px">Etkinlikler yüklenemedi.</div>';
   });
 });
 </script>
