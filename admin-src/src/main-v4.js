@@ -26,9 +26,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 }
 
 // Lazy-load page-specific modules only when their host element is on the page.
-if (document.getElementById('inbox-root')) {
-  import('./v4/inbox.js').then((m) => m.initInbox());
-}
 if (document.querySelector('.calendar-grid')) {
   import('./v4/calendar.js').then((m) => m.initCalendar());
 }

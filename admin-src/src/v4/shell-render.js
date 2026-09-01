@@ -27,10 +27,7 @@ export const NAV = [
   {
     label: 'Uygulamalar',
     items: [
-      { key: 'chat',          href: 'chat.html',          text: 'Sohbet',       icon: 'chat', badge: { text: '3', cls: 'badge-teal' } },
-      { key: 'inbox',         href: 'inbox.html',         text: 'Gelen kutusu', icon: 'mail' },
       { key: 'kanban',        href: 'kanban.html',        text: 'Kanban',       icon: 'kanban' },
-      { key: 'files',         href: 'file_manager.html',  text: 'Dosyalar',     icon: 'files' },
       { key: 'notifications', href: 'notifications.html', text: 'Bildirimler',  icon: 'bell' }
     ]
   },
@@ -229,13 +226,9 @@ export function renderTopbar(breadcrumb) {
           <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <button class="tb-btn tb-notifications" type="button" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">
+        <a class="tb-btn" href="notifications.html" title="Bildirimler" aria-label="Bildirimler">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
-          <span class="dot"></span>
-        </button>
-        <button class="tb-btn tb-messages" type="button" title="Messages" aria-label="Messages" aria-haspopup="dialog" aria-expanded="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 7l10 6 10-6"/></svg>
-        </button>
+        </a>
         <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">A</button>
       </div>
     </header>

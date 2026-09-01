@@ -554,8 +554,7 @@
   // context. Avatar gets a real touch target.
   .topbar .breadcrumb,
   .topbar .search-box,
-  .topbar .tb-notifications,
-  .topbar .tb-messages { display: none; }
+  .topbar .tb-notifications { display: none; }
   .topbar .tb-avatar { width: 32px; height: 32px; }
   // minmax(0, 1fr) — without it a wide intrinsic child (table, code block,
   // long unbroken text) pushes the column wider than the viewport, which

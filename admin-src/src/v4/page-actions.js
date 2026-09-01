@@ -217,7 +217,7 @@ export function initPageActions() {
   const SKIP_SELECTOR = [
     '.toggle', '.todo-cb', '.chart-tab', '.card-opt-btn', '.chip', '.chip-close',
     '.menu-item', '.sidebar-toggle', '.theme-toggle', '.more-btn', '.nav-link',
-    '.inbox-folder', '.tb-notifications', '.tb-messages', '.tb-avatar', '.modal-close'
+    '.tb-avatar', '.modal-close'
   ].join(', ');
 
   document.addEventListener('click', (e) => {
@@ -226,7 +226,7 @@ export function initPageActions() {
     if (!btn) {return;}
 
     // Buttons inside floating UI / interactive lists handle themselves.
-    if (btn.closest('.menu-popover, .toast-host, .calendar-grid, #inbox-list, #inbox-root, #fm-grid, .modal-backdrop, [data-rich-text]')) {return;}
+    if (btn.closest('.menu-popover, .toast-host, .calendar-grid, .modal-backdrop, [data-rich-text]')) {return;}
     if (btn.matches(SKIP_SELECTOR)) {return;}
     if (!btn.matches('.btn, .tb-btn')) {return;}
 

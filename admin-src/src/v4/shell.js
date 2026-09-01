@@ -6,7 +6,7 @@
 // always wires up runtime behavior (mobile drawer, theme toggle).
 
 import { renderShell } from './shell-render.js';
-import { openPanel, openMenu } from './menus.js';
+import { openMenu } from './menus.js';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 
@@ -237,21 +237,6 @@ function bindThemeToggle() {
 //  TOPBAR DROPDOWNS
 // ────────────────────────
 
-const NOTIFICATIONS = [
-  { kind: 'info',   from: 'Stripe',  text: 'Payment of $499.00 received', time: '2m', unread: true },
-  { kind: 'task',   from: 'GitHub',  text: 'PR #248 ready for review',     time: '14m', unread: true },
-  { kind: 'alert',  from: 'Linear',  text: 'GEN-128 marked as urgent',     time: '1h', unread: true },
-  { kind: 'info',   from: 'Vercel',  text: 'Deployment succeeded in 28s',  time: '3h', unread: false },
-  { kind: 'info',   from: 'Notion',  text: 'You were mentioned in Q2 OKRs', time: 'Yesterday', unread: false }
-];
-
-const MESSAGES = [
-  { from: 'Sarah K.',     text: 'Can you take a look at the design?', initials: 'SK', color: 'var(--primary)',  time: '4m', unread: true },
-  { from: 'Michael R.',   text: 'Lunch tomorrow at noon?',            initials: 'MR', color: 'var(--blue)',     time: '32m', unread: true },
-  { from: 'Emily W.',     text: 'Sprint retro notes posted',          initials: 'EW', color: 'var(--purple)',   time: '2h', unread: false },
-  { from: 'Diego R.',     text: 'Customer feedback summary ready',    initials: 'DR', color: 'var(--yellow)',   time: 'Mon', unread: false }
-];
-
 function openShortcutsModal() {
   const row = (k, label) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color-light);font-size:13px"><span style="color:var(--text)">${label}</span><span>${k.split('+').map((key) => `<kbd style="font-family:var(--font);font-size:11px;background:var(--bg-surface-secondary);border:1px solid var(--border-color);border-radius:3px;padding:2px 6px;margin-left:3px">${key}</kbd>`).join('')}</span></div>`;
   showModal({
@@ -266,18 +251,10 @@ function openShortcutsModal() {
           ${row('Esc', 'Close modal / palette')}
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:14px 0 6px">Navigation</div>
           ${row('G then D', 'Go to dashboard')}
-          ${row('G then I', 'Go to inbox')}
           ${row('G then K', 'Go to kanban')}
         </div>
         <div>
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:4px 0 6px">Inbox</div>
-          ${row('J', 'Next message')}
-          ${row('K', 'Previous message')}
-          ${row('R', 'Reply')}
-          ${row('S', 'Star message')}
-          ${row('#', 'Move to trash')}
-          ${row('C', 'Compose new')}
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:14px 0 6px">Editor</div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:4px 0 6px">Editor</div>
           ${row('⌘+B', 'Bold')}
           ${row('⌘+I', 'Italic')}
           ${row('⌘+K', 'Insert link')}
@@ -317,167 +294,7 @@ const USER_MENU = [
   { label: 'Sign out',           action: openSignOutModal }
 ];
 
-function buildNotificationsPanel() {
-  const unreadCount = NOTIFICATIONS.filter((n) => n.unread).length;
-  const wrap = document.createElement('div');
-  wrap.className = 'panel-content';
-  wrap.innerHTML = `
-    <div class="panel-header">
-      <span class="panel-title">Notifications</span>
-      ${unreadCount ? `<span class="panel-badge">${unreadCount} new</span>` : ''}
-      <button type="button" class="panel-action" data-action="mark-all">Mark all read</button>
-    </div>
-    <div class="panel-list">
-      ${NOTIFICATIONS.map((n, i) => `
-        <button type="button" class="panel-row${n.unread ? ' unread' : ''}" data-i="${i}">
-          <span class="panel-icon panel-icon-${n.kind}" aria-hidden="true">
-            ${n.kind === 'alert' ? '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4"/><circle cx="8" cy="12" r="0.5"/></svg>'
-    : n.kind === 'task' ? '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>'
-      : '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>'}
-          </span>
-          <span class="panel-body">
-            <span class="panel-from">${n.from}</span>
-            <span class="panel-text">${n.text}</span>
-          </span>
-          <span class="panel-time">${n.time}</span>
-        </button>
-      `).join('')}
-    </div>
-    <div class="panel-footer">
-      <a href="notifications.html" class="panel-link">View all notifications</a>
-    </div>
-  `;
-  return wrap;
-}
-
-function buildMessagesPanel() {
-  const unreadCount = MESSAGES.filter((m) => m.unread).length;
-  const wrap = document.createElement('div');
-  wrap.className = 'panel-content';
-  wrap.innerHTML = `
-    <div class="panel-header">
-      <span class="panel-title">Messages</span>
-      ${unreadCount ? `<span class="panel-badge">${unreadCount} new</span>` : ''}
-      <a href="inbox.html" class="panel-action">Open inbox</a>
-    </div>
-    <div class="panel-list">
-      ${MESSAGES.map((m, i) => `
-        <button type="button" class="panel-row${m.unread ? ' unread' : ''}" data-i="${i}">
-          <span class="panel-avatar" style="background:${m.color}">${m.initials}</span>
-          <span class="panel-body">
-            <span class="panel-from">${m.from}</span>
-            <span class="panel-text">${m.text}</span>
-          </span>
-          <span class="panel-time">${m.time}</span>
-        </button>
-      `).join('')}
-    </div>
-    <div class="panel-footer">
-      <a href="inbox.html" class="panel-link">View all messages</a>
-    </div>
-  `;
-  return wrap;
-}
-
-function openNotificationDetail(n) {
-  showModal({
-    title: n.from,
-    size: 'sm',
-    body: `
-      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
-        <div style="width:36px;height:36px;border-radius:8px;background:var(--${n.kind === 'alert' ? 'red' : n.kind === 'task' ? 'green' : 'blue'}-lt);color:var(--${n.kind === 'alert' ? 'red' : n.kind === 'task' ? 'green' : 'blue'});display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          ${n.kind === 'alert' ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4"/></svg>'
-    : n.kind === 'task' ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>'}
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13.5px;color:var(--text);line-height:1.5;margin-bottom:6px">${n.text}</div>
-          <div style="font-size:11.5px;color:var(--text-muted)">${n.time}</div>
-        </div>
-      </div>
-    `,
-    actions: [
-      { label: 'Dismiss', variant: 'ghost' },
-      { label: 'View all', variant: 'outline', action: () => { window.location.href = 'notifications.html'; } }
-    ]
-  });
-}
-
-function openMessageDetail(m) {
-  showModal({
-    title: m.from,
-    size: 'md',
-    body: `
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-color-light)">
-        <div style="width:38px;height:38px;border-radius:50%;background:${m.color};color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">${m.initials}</div>
-        <div style="flex:1">
-          <div style="font-size:13.5px;font-weight:600;color:var(--text)">${m.from}</div>
-          <div style="font-size:11.5px;color:var(--text-muted)">${m.time}</div>
-        </div>
-      </div>
-      <div style="font-size:13.5px;color:var(--text);line-height:1.6;margin-bottom:16px">${m.text}</div>
-      <textarea class="form-control" rows="3" placeholder="Type a reply…" style="margin-bottom:0"></textarea>
-    `,
-    actions: [
-      { label: 'Cancel', variant: 'ghost' },
-      { label: 'Open in inbox', variant: 'outline', action: () => { window.location.href = 'inbox.html'; } },
-      { label: 'Send reply', variant: 'primary', action: () => showToast('Reply sent', { variant: 'success' }) }
-    ]
-  });
-}
-
 function bindTopbarPanels() {
-  const bell = document.querySelector('.tb-notifications');
-  if (bell) {
-    bell.addEventListener('click', (e) => {
-      e.preventDefault(); e.stopPropagation();
-      const panel = buildNotificationsPanel();
-      panel.addEventListener('click', (ev) => {
-        const markAll = ev.target.closest('[data-action="mark-all"]');
-        if (markAll) {
-          ev.stopPropagation();
-          NOTIFICATIONS.forEach((n) => { n.unread = false; });
-          panel.querySelectorAll('.panel-row.unread').forEach((r) => r.classList.remove('unread'));
-          panel.querySelector('.panel-badge')?.remove();
-          bell.querySelector('.dot')?.style.setProperty('display', 'none');
-          showToast('All notifications marked read', { variant: 'success' });
-          return;
-        }
-        const row = ev.target.closest('.panel-row');
-        if (row) {
-          ev.stopPropagation();
-          const i = parseInt(row.dataset.i, 10);
-          NOTIFICATIONS[i].unread = false;
-          row.classList.remove('unread');
-          // Close the panel before opening the modal so they don't fight.
-          row.closest('.menu-popover')?.remove();
-          openNotificationDetail(NOTIFICATIONS[i]);
-        }
-      });
-      openPanel(bell, panel, { className: 'panel-notifications', width: 360 });
-    });
-  }
-
-  const msg = document.querySelector('.tb-messages');
-  if (msg) {
-    msg.addEventListener('click', (e) => {
-      e.preventDefault(); e.stopPropagation();
-      const panel = buildMessagesPanel();
-      panel.addEventListener('click', (ev) => {
-        const row = ev.target.closest('.panel-row');
-        if (row) {
-          ev.stopPropagation();
-          const i = parseInt(row.dataset.i, 10);
-          MESSAGES[i].unread = false;
-          row.classList.remove('unread');
-          row.closest('.menu-popover')?.remove();
-          openMessageDetail(MESSAGES[i]);
-        }
-      });
-      openPanel(msg, panel, { className: 'panel-messages', width: 360 });
-    });
-  }
-
   const avatar = document.querySelector('.tb-avatar');
   if (avatar) {
     avatar.addEventListener('click', (e) => {

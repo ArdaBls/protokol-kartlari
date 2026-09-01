@@ -1,13 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notifications | Protokol</title>
+<title>Bildirimler | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. app.js'teki
+     loadAdminLogs() ile aynı logs/{il,universite,etkinlik,hesap,dictionary} düğümlerini okur --
+     bu sayfa o günlüğün salt-okunur, tam listeli hâlidir. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/admin/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -15,23 +21,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/admin/images/apple-touch-icon.svg">
-<meta name="description" content="Notifications — Notifications. OMÜ Protokol Kartları admin paneli.">
+<meta name="description" content="Bildirimler — Bildirimler. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Notifications">
-<meta property="og:description" content="Notifications — Notifications. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:title" content="Bildirimler">
+<meta property="og:description" content="Bildirimler — Bildirimler. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/admin/images/android-chrome-512x512.svg">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/admin/js/notifications-B1TM5O_W.js"></script>
+  <script type="module" crossorigin src="/admin/js/notifications-De04Z9YP.js"></script>
   <link rel="modulepreload" crossorigin href="/admin/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/admin/js/toast-CBtjS_PZ.js">
-  <link rel="modulepreload" crossorigin href="/admin/js/menus-BJGD7GPP.js">
   <link rel="modulepreload" crossorigin href="/admin/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/admin/js/main-v4-CKFQz50n.js">
-  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-DgaN1GCJ.css">
+  <link rel="modulepreload" crossorigin href="/admin/js/main-v4-4VJLCbnx.js">
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-MQSmH7v_.css">
 </head>
-<body data-shell="admin" data-page="notifications" data-breadcrumb="Home > Notifications">
+<body data-shell="admin" data-page="notifications" data-breadcrumb="Anasayfa|index.html > Bildirimler">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -71,27 +76,9 @@
     <div class="nav-group">
       <div class="nav-label">Uygulamalar</div>
       
-    <a class="nav-link" href="chat.html">
-      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-      <span class="nav-text">Sohbet</span>
-      <span class="badge badge-teal">3</span>
-    </a>
-  
-    <a class="nav-link" href="inbox.html">
-      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 7l10 6 10-6"/></svg>
-      <span class="nav-text">Gelen kutusu</span>
-      
-    </a>
-  
     <a class="nav-link" href="kanban.html">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="14" rx="1.5"/><rect x="11" y="3" width="6" height="9" rx="1.5"/><rect x="19" y="3" width="2" height="6" rx="0.5"/></svg>
       <span class="nav-text">Kanban</span>
-      
-    </a>
-  
-    <a class="nav-link" href="file_manager.html">
-      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7a2 2 0 012-2h4l2 2h7a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-      <span class="nav-text">Dosyalar</span>
       
     </a>
   
@@ -190,7 +177,7 @@
         <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Notifications</span></nav>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Bildirimler</span></nav>
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
@@ -202,13 +189,9 @@
           <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <button class="tb-btn tb-notifications" type="button" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">
+        <a class="tb-btn" href="notifications.html" title="Bildirimler" aria-label="Bildirimler">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
-          <span class="dot"></span>
-        </button>
-        <button class="tb-btn tb-messages" type="button" title="Messages" aria-label="Messages" aria-haspopup="dialog" aria-expanded="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 7l10 6 10-6"/></svg>
-        </button>
+        </a>
         <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">A</button>
       </div>
     </header>
@@ -219,15 +202,8 @@
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Activity</div>
-        <h1 class="page-title">Notifications</h1>
-      </div>
-      <div class="page-actions">
-        <button class="btn btn-outline" id="mark-all-read">Mark all read</button>
-        <button class="btn btn-outline">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/></svg>
-          Settings
-        </button>
+        <div class="page-pretitle">Etkinlik geçmişi</div>
+        <h1 class="page-title">Bildirimler</h1>
       </div>
     </div>
   </div>
@@ -235,20 +211,21 @@
   <div class="card">
     <div class="card-header" style="border-bottom:1px solid var(--border-color-light)">
       <div class="chart-tabs notif-tabs" id="notif-tabs">
-        <button class="chart-tab active" data-filter="all">All</button>
-        <button class="chart-tab" data-filter="unread">Unread <span class="notif-tab-count" id="count-unread">0</span></button>
-        <button class="chart-tab" data-filter="mentions">Mentions</button>
-        <button class="chart-tab" data-filter="reviews">Reviews</button>
+        <button class="chart-tab active" data-filter="all">Tümü</button>
+        <button class="chart-tab" data-filter="il">İl Protokolü</button>
+        <button class="chart-tab" data-filter="universite">Üniversite Protokolü</button>
+        <button class="chart-tab" data-filter="etkinlik">Etkinlik Takvimi</button>
+        <button class="chart-tab" data-filter="hesap">Hesap</button>
       </div>
     </div>
     <div class="card-body" style="padding:0">
       <div class="notifications-list" id="notif-list">
-        <!-- rendered by inline script -->
+        <div style="text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
       </div>
       <div class="notifications-empty" id="notif-empty" hidden>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/></svg>
-        <div class="empty-title">All caught up</div>
-        <div class="empty-desc">No notifications match this filter.</div>
+        <div class="empty-title">Kayıt yok</div>
+        <div class="empty-desc">Bu filtreyle eşleşen bir kayıt bulunamadı.</div>
       </div>
     </div>
   </div>

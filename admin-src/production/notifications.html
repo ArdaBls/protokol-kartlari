@@ -1,16 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notifications | Protokol</title>
+<title>Bildirimler | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. app.js'teki
+     loadAdminLogs() ile aynı logs/{il,universite,etkinlik,hesap,dictionary} düğümlerini okur --
+     bu sayfa o günlüğün salt-okunur, tam listeli hâlidir. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
-<body data-shell="admin" data-page="notifications" data-breadcrumb="Home > Notifications">
+<body data-shell="admin" data-page="notifications" data-breadcrumb="Anasayfa|index.html > Bildirimler">
 
 <main class="main">
 <div class="page-wrapper">
@@ -18,15 +24,8 @@
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Activity</div>
-        <h1 class="page-title">Notifications</h1>
-      </div>
-      <div class="page-actions">
-        <button class="btn btn-outline" id="mark-all-read">Mark all read</button>
-        <button class="btn btn-outline">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/></svg>
-          Settings
-        </button>
+        <div class="page-pretitle">Etkinlik geçmişi</div>
+        <h1 class="page-title">Bildirimler</h1>
       </div>
     </div>
   </div>
@@ -34,20 +33,21 @@
   <div class="card">
     <div class="card-header" style="border-bottom:1px solid var(--border-color-light)">
       <div class="chart-tabs notif-tabs" id="notif-tabs">
-        <button class="chart-tab active" data-filter="all">All</button>
-        <button class="chart-tab" data-filter="unread">Unread <span class="notif-tab-count" id="count-unread">0</span></button>
-        <button class="chart-tab" data-filter="mentions">Mentions</button>
-        <button class="chart-tab" data-filter="reviews">Reviews</button>
+        <button class="chart-tab active" data-filter="all">Tümü</button>
+        <button class="chart-tab" data-filter="il">İl Protokolü</button>
+        <button class="chart-tab" data-filter="universite">Üniversite Protokolü</button>
+        <button class="chart-tab" data-filter="etkinlik">Etkinlik Takvimi</button>
+        <button class="chart-tab" data-filter="hesap">Hesap</button>
       </div>
     </div>
     <div class="card-body" style="padding:0">
       <div class="notifications-list" id="notif-list">
-        <!-- rendered by inline script -->
+        <div style="text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
       </div>
       <div class="notifications-empty" id="notif-empty" hidden>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/></svg>
-        <div class="empty-title">All caught up</div>
-        <div class="empty-desc">No notifications match this filter.</div>
+        <div class="empty-title">Kayıt yok</div>
+        <div class="empty-desc">Bu filtreyle eşleşen bir kayıt bulunamadı.</div>
       </div>
     </div>
   </div>
@@ -56,21 +56,18 @@
 </main>
 
 <script type="module">
-const notifications = [
-  { id:1, kind:'info',    cat:'all',      from:'Stripe',     text:'Payment of $499.00 received from Acme Corp', time:'2 min ago',   unread:true },
-  { id:2, kind:'task',    cat:'reviews',  from:'GitHub',     text:'PR #248 ready for review on the analytics-pipeline repo', time:'14 min ago',  unread:true },
-  { id:3, kind:'alert',   cat:'all',      from:'Linear',     text:'GEN-128 marked as urgent — needs attention before EOD', time:'1 hour ago',  unread:true },
-  { id:4, kind:'mention', cat:'mentions', from:'Sarah K.',   text:'Mentioned you in a comment on "Q2 Marketing Campaign"', time:'2 hours ago', unread:true },
-  { id:5, kind:'info',    cat:'all',      from:'Vercel',     text:'Deployment succeeded — protokol-admin.vercel.app live in 28s', time:'3 hours ago', unread:false },
-  { id:6, kind:'task',    cat:'reviews',  from:'GitHub',     text:'PR #246 was merged into main by Michael R.', time:'5 hours ago', unread:false },
-  { id:7, kind:'mention', cat:'mentions', from:'Notion',     text:'You were mentioned in "Q2 OKRs" by Emily Wang', time:'Yesterday',   unread:false },
-  { id:8, kind:'info',    cat:'all',      from:'Stripe',     text:'Subscription renewed — Pro plan $29 billed for May 2026', time:'Yesterday',   unread:false },
-  { id:9, kind:'alert',   cat:'all',      from:'System',     text:'Scheduled maintenance window: April 30 02:00–04:00 UTC', time:'2 days ago',  unread:false },
-  { id:10, kind:'task',   cat:'reviews',  from:'Linear',     text:'GEN-129 assigned to you — fix table sort indicators', time:'2 days ago',  unread:false },
-  { id:11, kind:'mention', cat:'mentions', from:'Diego R.',  text:'Replied to your comment on "Customer feedback summary"', time:'3 days ago',  unread:false },
-  { id:12, kind:'info',   cat:'all',      from:'Notion',     text:'Page "API integration guide" was edited by Tom Hardy', time:'4 days ago',  unread:false }
-];
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
 
+const LIST_LABELS = { il: 'İl Protokol Sırası', universite: 'Üniversite Protokol Sırası', etkinlik: 'Etkinlik Takvimi', hesap: 'Hesap', dictionary: 'Veri Sözlüğü' };
+const LIST_ICON = { il: 'info', universite: 'info', etkinlik: 'task', hesap: 'alert', dictionary: 'mention' };
 const ICON = {
   info:    '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>',
   task:    '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>',
@@ -78,12 +75,19 @@ const ICON = {
   mention: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M11 8v1a2 2 0 004 0V8a7 7 0 10-2.7 5.5"/></svg>'
 };
 
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let ENTRIES = [];
 let filter = 'all';
 
+function setState(html) {
+  document.getElementById('notif-list').innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
+  document.getElementById('notif-empty').hidden = true;
+}
+
 function visible() {
-  if (filter === 'all') return notifications;
-  if (filter === 'unread') return notifications.filter((n) => n.unread);
-  return notifications.filter((n) => n.cat === filter);
+  if (filter === 'all') return ENTRIES;
+  return ENTRIES.filter((e) => e._list === filter);
 }
 
 function render() {
@@ -93,49 +97,72 @@ function render() {
   if (!items.length) {
     list.innerHTML = '';
     empty.hidden = false;
-  } else {
-    empty.hidden = true;
-    list.innerHTML = items.map((n) => `
-      <button type="button" class="notification-row${n.unread ? ' unread' : ''}" data-id="${n.id}">
-        <span class="notif-icon notif-${n.kind}" aria-hidden="true">${ICON[n.kind] || ICON.info}</span>
-        <span class="notif-body">
-          <span class="notif-from">${n.from}</span>
-          <span class="notif-text">${n.text}</span>
-        </span>
-        <span class="notif-time">${n.time}</span>
-      </button>
-    `).join('');
+    return;
   }
-  // Update unread counter
-  const unread = notifications.filter((n) => n.unread).length;
-  const badge = document.getElementById('count-unread');
-  badge.textContent = unread;
-  badge.style.display = unread ? '' : 'none';
+  empty.hidden = true;
+  list.innerHTML = items.map((e) => {
+    const kind = LIST_ICON[e._list] || 'info';
+    const timeStr = new Date(e.timestamp || 0).toLocaleString('tr-TR');
+    const parts = String(e.action || '').split(' · ');
+    const headline = parts.shift() || '';
+    const detail = parts.join(' · ');
+    return `
+      <div class="notification-row">
+        <span class="notif-icon notif-${kind}" aria-hidden="true">${ICON[kind]}</span>
+        <span class="notif-body">
+          <span class="notif-from">${escapeHtml(e.by || e.email || '?')} <span style="color:var(--text-muted);font-weight:400">· ${escapeHtml(LIST_LABELS[e._list] || e._list)}</span></span>
+          <span class="notif-text">${e.target ? `<strong>${escapeHtml(e.target)}</strong> ` : ''}${escapeHtml(headline)}${detail ? ` — ${escapeHtml(detail)}` : ''}</span>
+        </span>
+        <span class="notif-time">${timeStr}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 document.getElementById('notif-tabs').addEventListener('click', (e) => {
   const btn = e.target.closest('.chart-tab');
   if (!btn) return;
+  document.querySelectorAll('#notif-tabs .chart-tab').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
   filter = btn.dataset.filter;
   render();
 });
 
-document.getElementById('notif-list').addEventListener('click', (e) => {
-  const row = e.target.closest('.notification-row');
-  if (!row) return;
-  const id = parseInt(row.dataset.id, 10);
-  const n = notifications.find((x) => x.id === id);
-  if (n) n.unread = false;
-  render();
-});
+function loadLogs() {
+  setState('Yükleniyor…');
+  Promise.all([
+    database.ref('logs/il').limitToLast(50).once('value'),
+    database.ref('logs/universite').limitToLast(50).once('value'),
+    database.ref('logs/etkinlik').limitToLast(50).once('value'),
+    database.ref('logs/hesap').limitToLast(50).once('value'),
+    database.ref('logs/dictionary').limitToLast(50).once('value')
+  ]).then((snaps) => {
+    const lists = ['il', 'universite', 'etkinlik', 'hesap', 'dictionary'];
+    ENTRIES = snaps.flatMap((snap, i) => Object.values(snap.val() || {}).map((e) => ({ ...e, _list: lists[i] })))
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      .slice(0, 100);
+    if (!ENTRIES.length) { setState('Henüz kayıt yok.'); return; }
+    render();
+  }).catch((err) => {
+    console.error('Kayıtlar yüklenemedi:', err);
+    setState('Kayıtlar yüklenemedi.');
+  });
+}
 
-document.getElementById('mark-all-read').addEventListener('click', (e) => {
-  e.stopPropagation();
-  notifications.forEach((n) => { n.unread = false; });
-  render();
+auth.onAuthStateChanged((user) => {
+  if (!user) { setState('Bu sayfayı görüntülemek için giriş yapmış olmanız gerekir.'); return; }
+  database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
+    const role = snap.val();
+    if (role !== 'admin' && role !== 'owner') {
+      setState('Bildirimler yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
+      return;
+    }
+    loadLogs();
+  }).catch((err) => {
+    console.error('Yetki kontrol edilemedi:', err);
+    setState('Yetki kontrol edilemedi.');
+  });
 });
-
-render();
 </script>
 
 </body>
