@@ -163,6 +163,14 @@
 				// admin-menu-item: mobilde CSS ile gizlenir (bkz. style.css) -- mobilde bu
 				// islevi artik ortadaki admin-fab tasiyor, masaustunde dropdown'da kalmaya devam eder.
 				const adminItem = (currentUser.role === "admin" || currentUser.role === "owner") ? '<button type="button" class="header-menu-item admin-menu-item" onclick="closeHeaderMenu(); openAdminPanel();">🛠️ Admin Paneli</button>' : "";
+				// Yeni Vite/Gentelella tabanlı admin paneli (admin/ alt klasörü) -- ayrı bir statik
+				// site olduğu için openAdminPanel()'in SPA-içi yönlendirmesinden geçmiyor, düz bir
+				// sayfa navigasyonu. Eski panel (admin.html) tamamen kaldırılıp bu yeni panel tek
+				// giriş noktası olana kadar İKİSİ birden burada listelenir.
+				// admin-menu-item DEĞİL: o sınıf mobilde gizleniyor (mobilde eski panele erişimi
+				// admin-fab karşılıyor) -- yeni panelin mobilde henüz kendi fab'ı yok, dropdown'da
+				// her ekran boyutunda görünür kalmalı.
+				const newAdminItem = (currentUser.role === "admin" || currentUser.role === "owner") ? '<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); location.href=\'admin/production/index.html\';">🆕 Yeni Admin Paneli</button>' : "";
 				wrap.innerHTML =
 				'<div class="header-profile-wrap">' +
 				'<button type="button" class="header-profile-btn ' + (currentUser.role || "pending") + '" id="headerProfileBtn" onclick="toggleHeaderMenu()" aria-haspopup="true" aria-expanded="false" title="Hesap menüsü">' +
@@ -173,6 +181,7 @@
 				'<div class="header-menu" id="headerMenu">' +
 					'<div class="header-menu-user"><span class="role-dot ' + (currentUser.role || "pending") + '"></span><span class="hm-name">' + escapeHtml(displayName) + '</span><span class="hm-role">' + roleLabel + '</span></div>' +
 					adminItem +
+					newAdminItem +
 					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); openPinSwitchModal();">🔑 PIN ile Hızlı Hesap Değiştir</button>' +
 					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); handleLogout();">↩ Çıkış</button>' +
 				'</div>' +
