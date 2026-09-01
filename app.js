@@ -50,7 +50,7 @@
 				// Sadece admin.html giriş + admin rolü ister.
 				if (PAGE === "admin") {
 					if (!currentUser) { location.replace("index.html"); return; }
-					if (currentUser.role !== "admin") {
+					if (currentUser.role !== "admin" && currentUser.role !== "owner") {
 						showToast("Bu bölüm sadece yöneticilere açık.", "error");
 						location.replace("protokol.html");
 						return;
@@ -123,8 +123,8 @@
 			// requireEdit() de canEditData()'dan geçiyor -- kilit açılınca admin DAHİL kimse
 			// (rolü ne olursa olsun) veri düzenleyemez, tek satırlık bu kontrol otomatik olarak
 			// TÜM mevcut yazma yollarına yayılır.
-			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin") && !saltOkunurEnabled); }
-			function isAdminUser() { return !!(currentUser && currentUser.role === "admin"); }
+			function canEditData() { return !!(currentUser && (currentUser.role === "editor" || currentUser.role === "admin" || currentUser.role === "owner") && !saltOkunurEnabled); }
+			function isAdminUser() { return !!(currentUser && (currentUser.role === "admin" || currentUser.role === "owner")); }
 
 			// .edit-only sınıfı butonları sadece GİZLİYOR; fonksiyonlar global olduğu için konsoldan veya
 			// klavyeyle hâlâ çağrılabiliyordu. Yazma yapan her fonksiyon artık bu kapıdan geçiyor.
@@ -152,17 +152,17 @@
 				// gorunur -- faculty-fab'daki .active-list deseniyle ayni, currentUser her
 				// degistiginde (giris/cikis/rol degisimi) burada tek noktadan guncellenir.
 				const adminFab = document.getElementById("adminFab");
-				if (adminFab) adminFab.classList.toggle("active-list", !!(currentUser && currentUser.role === "admin"));
+				if (adminFab) adminFab.classList.toggle("active-list", !!(currentUser && (currentUser.role === "admin" || currentUser.role === "owner")));
 				if (!currentUser) {
 					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>';
 					return;
 				}
-				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" }[currentUser.role] || "Onay Bekliyor";
+				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin", owner: "Kurucu" }[currentUser.role] || "Onay Bekliyor";
 				const displayName = currentUser.firstName || currentUser.email;
 				const initial = escapeHtml((displayName || "?").trim().charAt(0).toUpperCase());
 				// admin-menu-item: mobilde CSS ile gizlenir (bkz. style.css) -- mobilde bu
 				// islevi artik ortadaki admin-fab tasiyor, masaustunde dropdown'da kalmaya devam eder.
-				const adminItem = (currentUser.role === "admin") ? '<button type="button" class="header-menu-item admin-menu-item" onclick="closeHeaderMenu(); openAdminPanel();">🛠️ Admin Paneli</button>' : "";
+				const adminItem = (currentUser.role === "admin" || currentUser.role === "owner") ? '<button type="button" class="header-menu-item admin-menu-item" onclick="closeHeaderMenu(); openAdminPanel();">🛠️ Admin Paneli</button>' : "";
 				wrap.innerHTML =
 				'<div class="header-profile-wrap">' +
 				'<button type="button" class="header-profile-btn ' + (currentUser.role || "pending") + '" id="headerProfileBtn" onclick="toggleHeaderMenu()" aria-haspopup="true" aria-expanded="false" title="Hesap menüsü">' +
@@ -314,7 +314,7 @@
 			}
 
 			function openAdminPanel() {
-				if (!currentUser || currentUser.role !== "admin") return;
+				if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "owner")) return;
 				if (PAGE !== "admin") { location.href = "admin.html"; return; }
 				document.getElementById("adminPanelBg").classList.add("open");
 				updateStatusBanner();
@@ -554,12 +554,14 @@
 				const turCounts = {}; events.forEach(function(e){ const t = evType(e.tur); turCounts[t.ad] = (turCounts[t.ad]||0)+1; });
 				const birimCounts = {}; events.forEach(function(e){ const b = (e.birim||"").trim(); if (b) birimCounts[b] = (birimCounts[b]||0)+1; });
 				const gorevliCounts = {}; events.forEach(function(e){ parseGorevliString(e.gorevli).forEach(function(name){ gorevliCounts[name] = (gorevliCounts[name]||0)+1; }); });
+				const haberYazanCounts = {}; events.forEach(function(e){ parseGorevliString(e.haberYazanlari).forEach(function(name){ haberYazanCounts[name] = (haberYazanCounts[name]||0)+1; }); });
 				box.innerHTML =
 					'<div class="admin-stats-kpi"><span class="ak-num">' + events.length + '</span><span class="ak-label">Toplam Etkinlik</span></div>' +
 					'<div class="admin-stats-grid">' +
 						'<div class="admin-stats-section"><h4>Etkinlik Türüne Göre</h4>' + barsHtml(topList(turCounts), events.length) + '</div>' +
 						'<div class="admin-stats-section"><h4>En Çok Etkinlik Düzenleyen Birimler</h4>' + (Object.keys(birimCounts).length ? barsHtml(topList(birimCounts), events.length) : '<p class="admin-user-empty">Birim bilgisi girilmemiş.</p>') + '</div>' +
 						'<div class="admin-stats-section"><h4>Basın Görevlisi Bazında Takip</h4>' + (Object.keys(gorevliCounts).length ? barsHtml(topList(gorevliCounts), events.length) : '<p class="admin-user-empty">Basın görevlisi atanmamış.</p>') + '</div>' +
+						'<div class="admin-stats-section"><h4>Haber Yazarı Bazında Takip</h4>' + (Object.keys(haberYazanCounts).length ? barsHtml(topList(haberYazanCounts), events.length) : '<p class="admin-user-empty">Henüz haber yazarı işlenmemiş.</p>') + '</div>' +
 					'</div>';
 			}
 
@@ -625,7 +627,7 @@
 				const today = todayDate();
 				const archiveMissing = Object.values(calEvents || {}).filter(function(e) {
 					if (!e || !e.tarih) return false;
-					if (e.durum !== "cekildi" && e.durum !== "haber" && e.durum !== "yayinlandi") return false;
+					if (e.durum !== "yaziliyor" && e.durum !== "incelemede" && e.durum !== "tamamlandi") return false;
 					const d = parseKey(e.tarih); if (!d || d >= today) return false;
 					return !e.arsiv;
 				});
@@ -671,14 +673,15 @@
 				const box = document.getElementById("adminEditorialBody");
 				if (!box) return;
 				const events = Object.values(calEvents || {});
-				const pendingNews = events.filter(function(e) { return e.durum === "cekildi"; })
+				const today = todayDate();
+				const pendingNews = events.filter(function(e) { const d = e.tarih ? parseKey(e.tarih) : null; return e.durum === "planlandi" && d && d < today; })
 					.sort(function(a, b) { return (a.guncellemeTs || 0) - (b.guncellemeTs || 0); });
 				const agencyCounts = {};
 				events.forEach(function(e) { if (e.haberKaynagi) agencyCounts[e.haberKaynagi] = (agencyCounts[e.haberKaynagi] || 0) + 1; });
 				const agencyRows = Object.keys(agencyCounts).map(function(k) { return { k: k, n: agencyCounts[k] }; });
 				const agencyColors = { "İHA": "#1d4ed8", "AA": "#b45309", "DHA": "#15803d", "ANKA": "#7c3aed" };
 				box.innerHTML =
-					'<h4 class="dash-alert-subhead">Haber Bekleyen (Gerçekleşti → Haber Yazılmadı), en eski önce</h4>' +
+					'<h4 class="dash-alert-subhead">Haber Bekleyen (Tarihi Geçti → Haber Yazılmadı), en eski önce</h4>' +
 					(pendingNews.length ? '<div class="stat-expiry-list">' + pendingNews.slice(0, 15).map(function(e) {
 						const days = daysSince(e.guncellemeTs);
 						return '<div class="stat-expiry-row"><span class="stat-expiry-badge' + (days >= 3 ? " warn" : "") + '">' + (days === null ? "?" : days) + 'g</span><span class="stat-expiry-name">' + escapeHtml(e.ad || "(adsız)") + ' · ' + escapeHtml(fmtTrDate(e.tarih)) + '</span><button type="button" class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="openEventModal(\'' + escapeHtml(e._id) + '\')">Düzenle</button></div>';
@@ -871,14 +874,18 @@
 					const uids = Object.keys(usersObj);
 					if (!uids.length) { listEl.innerHTML = '<p class="admin-user-empty">Henüz kayıtlı kullanıcı yok.</p>'; return; }
 					uids.sort(function(a,b){ return (usersObj[b].createdAt||0) - (usersObj[a].createdAt||0); });
+					const roleLabelsForList = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin", owner: "Kurucu" };
 					listEl.innerHTML = uids.map(function(uid) {
 						const u = usersObj[uid];
 						const fullName = ((u.firstName||"") + " " + (u.lastName||"")).trim() || "(isim yok)";
 						const role = u.role || "pending";
 						const isSelf = currentUser && uid === currentUser.uid;
-						const selectHtml = isSelf
-							? '<select disabled title="Kendi yetkini burada değiştiremezsin (güvenlik için).">' +
-								'<option selected>Admin (Siz)</option>' +
+						// owner rolu bu ekrandan KIMSE tarafindan degistirilemez (kendisi dahil) --
+						// tek yol docs/firebase-database-rules.json'daki bootstrap/devir kurali,
+						// bkz. o dosyadaki "role" validate acikllamasi.
+						const selectHtml = (isSelf || role === "owner")
+							? '<select disabled title="' + (role === "owner" ? "Kurucu rolü bu ekrandan değiştirilemez." : "Kendi yetkini burada değiştiremezsin (güvenlik için).") + '">' +
+								'<option selected>' + (roleLabelsForList[role] || role) + (isSelf ? " (Siz)" : "") + '</option>' +
 							'</select>'
 							: '<select onchange="setUserRole(\'' + uid + '\', this.value)">' +
 								'<option value="pending"' + (role==="pending"?' selected':'') + '>Onay Bekliyor</option>' +
@@ -907,18 +914,22 @@
 					const snap = await database.ref("users/" + uid).once("value");
 					const u = snap.val() || {};
 					const oldRole = u.role || "pending";
-					const roleLabels = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin" };
+					// owner rolu bu fonksiyondan asla degistirilemez (UI'da zaten kilitli <select>
+					// ile hicbir zaman buraya newRole gonderilmiyor, ama global fonksiyon konsoldan
+					// keyfi cagrilabildigi icin bu kapi da ZORUNLU).
+					if (oldRole === "owner") { showToast("Kurucu rolü bu ekrandan değiştirilemez.", "error"); return; }
+					const roleLabels = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin", owner: "Kurucu" };
 					const fullName = ((u.firstName || "") + " " + (u.lastName || "")).trim() || u.email || uid;
-					// SON ADMIN KORUMASI: Rules seviyesinde "en az bir admin kalmali" kisitini ifade
-					// etmek pratik degil (tum users dugumunu saymak gerekir, kirilgan/pahali olur) --
-					// bkz. docs/firebase-database-rules.json notu. Bunun yerine burada, istemci
-					// tarafinda, mevcut TUM admin sayisi kontrol edilir; bu kisi son admin ise
-					// rolu düşürülemez.
-					if (oldRole === "admin" && newRole !== "admin") {
+					// SON YETKILI KORUMASI: Rules seviyesinde "en az bir admin/owner kalmali" kisitini
+					// ifade etmek pratik degil (tum users dugumunu saymak gerekir, kirilgan/pahali
+					// olur) -- bkz. docs/firebase-database-rules.json notu. Bunun yerine burada,
+					// istemci tarafinda, mevcut TUM admin+owner sayisi kontrol edilir; bu kisi
+					// son admin/owner ise rolu düşürülemez.
+					if ((oldRole === "admin" || oldRole === "owner") && newRole !== "admin") {
 						const allSnap = await database.ref("users").once("value");
 						const allUsers = allSnap.val() || {};
-						const adminCount = Object.keys(allUsers).filter(function(k){ return allUsers[k] && allUsers[k].role === "admin"; }).length;
-						if (adminCount <= 1) { showToast("Son admin kullanıcının rolü düşürülemez. Önce başka bir admin atayın.", "error"); loadAdminUsers(); return; }
+						const adminCount = Object.keys(allUsers).filter(function(k){ return allUsers[k] && (allUsers[k].role === "admin" || allUsers[k].role === "owner"); }).length;
+						if (adminCount <= 1) { showToast("Son yönetici kullanıcının rolü düşürülemez. Önce başka bir admin atayın.", "error"); loadAdminUsers(); return; }
 					}
 					await database.ref("users/" + uid + "/role").set(newRole);
 					await logDebugAction(logValueOrEmpty(fullName) + " kullanıcısının rolü değiştirildi · Rol: " + (roleLabels[oldRole] || oldRole) + " → " + (roleLabels[newRole] || newRole), fullName);
@@ -3769,6 +3780,8 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 								tarih: String(item.tarih), saat: item.saat ? String(item.saat) : "", bitisSaat: item.bitisSaat ? String(item.bitisSaat) : "",
 								yer: item.yer ? String(item.yer) : "", birim: item.birim ? String(item.birim) : "",
 								planlayan: item.planlayan ? String(item.planlayan) : "", gorevli: item.gorevli ? String(item.gorevli) : "",
+							haberYazanlari: item.haberYazanlari ? String(item.haberYazanlari) : "",
+							haberMetni: item.haberMetni ? String(item.haberMetni) : "",
 								// katilimcilar dizisi de digerleri gibi normalize edilir; ham nesne gecirmek
 								// bozuk yedeklerde beklenmedik alanlari veritabanina tasiyordu.
 								katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter(function(a){ return a && typeof a === "object"; }).map(function(a){ return { prefix: String(a.prefix || ""), name: String(a.name || ""), title: String(a.title || ""), rank: (a.rank !== undefined && a.rank !== null) ? a.rank : "", kaynak: a.kaynak === "il" ? "il" : "universite" }; }),
@@ -3854,12 +3867,19 @@ const EVENT_STATUS = [
 	// renk: .cal-tag'de her zaman beyaz metinle (#fff) kullanılıyor (tema farketmez, bkz. .cal-tag{color:#fff}).
 	// Eski #8a8f98 beyaz üstünde 3.25:1 idi (WCAG AA metin hedefi 4.5:1'in altında). #6b7280 ~4.83:1 verir,
 	// aynı nötr gri tonunu korur (görsel fark minimal).
-	{ key:"planlandi",  ad:"Planlandı",     renk:"#6b7280" },
-	{ key:"cekildi",    ad:"Gerçekleşti",       renk:"#1d4ed8" },
-	{ key:"haber",      ad:"Haber Yazıldı", renk:"#b45309" },
-	{ key:"yayinlandi", ad:"Yayınlandı",    renk:"#15803d" },
-	{ key:"iptal",      ad:"İptal",         renk:"#b03a3a" }
+	{ key:"planlandi",   ad:"Planlandı",       renk:"#6b7280" },
+	{ key:"yaziliyor",   ad:"Haber yazılıyor", renk:"#b45309" },
+	{ key:"incelemede",  ad:"İncelemede",      renk:"#7c3aed" },
+	{ key:"tamamlandi",  ad:"Tamamlandı",      renk:"#15803d" },
+	{ key:"iptal",       ad:"İptal",           renk:"#b03a3a" }
 ];
+// Eski durum degerleri (cekildi/haber/yayinlandi) -- "Gerçekleşti" ayrı bir aşama olmaktan
+// çıkarıldı, kanban panosunun 4 iş akışı sütunuyla (Planlandı/Haber yazılıyor/İncelemede/
+// Tamamlandı) BİREBİR eşleşsin diye durum tek bir alanda birleştirildi. evStatus() zaten
+// tanınmayan bir key için EVENT_STATUS[0] (Planlandı) döndürüyor, o yüzden eski kayıtlar
+// otomatik olarak "Planlandı" görünür -- kimse elle o etkinliği tekrar kaydedince (veya
+// kanban'da sürükleyince) yeni değerlerden biriyle güncellenir. Ayrı bir toplu veri
+// göçü YAPILMADI (canlı veritabanına elle dokunmamak için).
 const CAL_DOW = ["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"];
 const CAL_DOW_MINI = ["P","S","Ç","P","C","C","P"];
 const CAL_MONTHS = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
@@ -3891,6 +3911,7 @@ let calPeekedId = null;
 let calEditingId = null;
 let calAttendees = [];           // etkinlik formunda seçili katılımcılar
 let calPressStaff = [];          // etkinlik formunda seçili basın görevlileri (isim dizisi)
+let calNewsWriters = [];         // etkinlik formunda seçili "haberi yazan(lar)" (isim dizisi) -- ayni havuzdan (basinGorevlileri), etkinlik gerçekleştikten sonra doldurulur
 let pressOfficerPool = [];       // admin tarafından "basın görevlisi" işaretlenmiş kullanıcılar: {uid,name}
 let gorevliLoadToken = 0;        // ardışık modal açılışlarında eski bir yüklemenin geç gelip güncel seçimi ezmesini önler
 let calSortableInstances = [];  // renderWeekView/renderMonthView'in olusturdugu Sortable orneklerinin yasam dongusu (person-list'teki sortableInstances'tan AYRI -- ayri IIFE kapsaminda)
@@ -4155,7 +4176,7 @@ async function startQuickDraftEvent(){
 	const obj = {
 		ad: QUICK_DRAFT_NAME, tur: "diger", durum: "planlandi",
 		tarih: dKey(now), saat: pad(now.getHours())+":"+pad(now.getMinutes()), bitisSaat: pad(end.getHours())+":"+pad(end.getMinutes()),
-		yer: "", birim: "", planlayan: "", gorevli: "", katilimcilar: [], arsiv: "", not: "", rozetler: [], haberKaynagi: "",
+		yer: "", birim: "", planlayan: "", gorevli: "", haberYazanlari: "", haberMetni: "", katilimcilar: [], arsiv: "", not: "", rozetler: [], haberKaynagi: "",
 		olusturan: (currentUser ? (((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim()||currentUser.email) : ""),
 		olusturmaTs: Date.now(), guncellemeTs: Date.now(), locked: false
 	};
@@ -4473,7 +4494,7 @@ function calBlockStyle(ev){
 function calBlockClasses(ev, dayDate){
 	let c="cal-block";
 	const st=ev.durum||"planlandi";
-	if(st==="yayinlandi"||st==="haber") c+=" done";
+	if(st==="tamamlandi") c+=" done";
 	if(st==="iptal") c+=" cancelled";
 	if(dayDate && dayDate<todayDate()) c+=" past";
 	return c;
@@ -4594,7 +4615,7 @@ function renderWeekView(body){
 		multiday+=multiDayBars.map(function(b){
 			const e=b.ev; const ty=evType(e.tur);
 			const gc='grid-column:'+(b.startIdx+2)+' / '+(b.endIdx+3)+'; grid-row:'+(b.row+1)+';';
-			const cls='cal-multiday-bar'+(b.continuesLeft?" continues-left":"")+(b.continuesRight?" continues-right":"")+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"");
+			const cls='cal-multiday-bar'+(b.continuesLeft?" continues-left":"")+(b.continuesRight?" continues-right":"")+((e.durum==="tamamlandi")?" done":"");
 			return '<button type="button" class="'+cls+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="'+gc+' background:'+ty.renk+'; border-color:'+ty.renk+'; color:#fff;">'+
 				'<span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+
 				'<span class="cal-multiday-handle cal-multiday-handle-l edit-only" data-act="multiday-resize-l" aria-hidden="true"></span>'+
@@ -4613,7 +4634,7 @@ function renderWeekView(body){
 		allday+='<div class="cal-allday-col" data-date="'+k+'">'+
 			evs.map(function(e){
 				const ty=evType(e.tur);
-				return '<button type="button" class="cal-allday-chip'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="background:'+ty.renk+'; border-left-color:'+ty.renk+'; color:#fff;"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
+				return '<button type="button" class="cal-allday-chip'+((e.durum==="tamamlandi")?" done":"")+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="background:'+ty.renk+'; border-left-color:'+ty.renk+'; color:#fff;"><span class="t">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+lockIconHtml(e)+'</button>';
 			}).join("")+'</div>';
 	});
 	allday+='</div>';
@@ -4748,7 +4769,7 @@ function renderMonthView(body){
 		const shown=evs.slice(0,3);
 		let chips=shown.map(function(e){
 			const ty=evType(e.tur);
-			return '<button type="button" class="cal-block compact'+((e.durum==="yayinlandi"||e.durum==="haber")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="position:relative; '+calBlockStyle(e)+'">'+
+			return '<button type="button" class="cal-block compact'+((e.durum==="tamamlandi")?" done":"")+((e.durum==="iptal")?" cancelled":"")+'" data-evid="'+escapeHtml(e._id)+'" data-act="peek" style="position:relative; '+calBlockStyle(e)+'">'+
 				// Çok günlü etkinlikte saat yerine kısa tarih aralığı ("12–14 Oca") gösterilir --
 			// v1 kapsam kararı: ay görünümünde TAM çubuk render'ı yok, sadece başlangıç gününde
 			// bir ipucuyla gösteriliyor (bkz. plan, Faz 11).
@@ -4813,7 +4834,7 @@ function renderListView(body){
 		html+='<button type="button" class="cal-ev" data-evid="'+escapeHtml(e._id)+'" data-act="peek">'+
 			'<span class="cal-ev-dot" style="background:'+ty.renk+';"></span>'+
 			'<span class="cal-ev-time">'+escapeHtml((e.bitisTarihi && e.bitisTarihi!==e.tarih) ? fmtMultiDayRange(e.tarih,e.bitisTarihi) : (e.saat||"—"))+'</span>'+
-			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="yayinlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+
+			'<span class="cal-ev-main"><span class="cal-ev-name'+((e.durum==="tamamlandi"||e.durum==="iptal"||isPast)?" done":"")+'">'+escapeHtml(e.ad||"(adsız)")+'</span>'+badgeHtml(e)+
 			'<span class="cal-ev-meta"><span class="cal-tag" style="background:'+st.renk+';">'+escapeHtml(st.ad)+'</span>'+meta.join(" · ")+'</span></span>'+
 			(isAdminUser() ? '<span class="cal-ev-edit-ico" title="Düzenle" data-act="edit">✎</span>' : '')+
 			'</button>';
@@ -5472,7 +5493,6 @@ async function eventQuickStamp(){
 			showToast("Şu anki saat başlangıçtan önce, bitiş elle girilmeli.", "error"); return;
 		}
 		patch.bitisSaat=hm;
-		if((patch.durum||"planlandi")==="planlandi") patch.durum="cekildi";
 		label=(e.ad||"Etkinlik")+" etkinliği "+hm+" olarak bitirildi";
 		toast="Bitiş "+hm+" olarak işaretlendi.";
 	}
@@ -5535,6 +5555,9 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 	calPressStaff = e ? parseGorevliString(e.gorevli) : [];
 	document.getElementById("ev_gorevliSearch").value="";
 	renderPressStaffPicker();
+	calNewsWriters = e ? parseGorevliString(e.haberYazanlari) : [];
+	document.getElementById("ev_haberYazanlariSearch").value="";
+	renderNewsWriterPicker();
 	const gorevliToken = ++gorevliLoadToken;
 	loadPressOfficerPool().then(function(){
 		if(gorevliToken!==gorevliLoadToken) return; // bu arada baska bir etkinlik modali acildi, bu sonuc artik gecersiz
@@ -5543,8 +5566,10 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 			if(pressOfficerPool.some(function(p){ return p.name===selfName; })) calPressStaff=[selfName];
 		}
 		renderPressStaffPicker();
+		renderNewsWriterPicker();
 	});
 	document.getElementById("ev_arsiv").value = e ? (e.arsiv||"") : "";
+	document.getElementById("ev_haberMetni").value = e ? (e.haberMetni||"") : "";
 	document.getElementById("ev_haberKaynagi").value = e ? (e.haberKaynagi||"") : "";
 	document.getElementById("ev_not").value = e ? (e.not||"") : "";
 	calAttendees = (e && Array.isArray(e.katilimcilar)) ? e.katilimcilar.map(function(a){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"", rank:a.rank!==undefined?a.rank:"", kaynak:a.kaynak||"universite" }; }) : [];
@@ -5693,6 +5718,33 @@ document.addEventListener("change", function(e){
 	else { calPressStaff=calPressStaff.filter(function(n){ return n!==name; }); }
 });
 
+// "Haberi Yazan(lar)" seçici: gorevli ile AYNI havuzdan (basinGorevlileri), ayrı bir isim
+// listesi olarak tutulur. Etkinlik gerçekleştikten SONRA, haberi kimin/kimlerin yazdığı buraya
+// işlenir -- editörlerin "kaç etkinliğin haberini yazdığı" istatistiği (bkz. loadAdminStats ve
+// admin panelindeki Kişiler kartları) bu alandan türetilir.
+function renderNewsWriterPicker(){
+	const box=document.getElementById("ev_haberYazanlariBox"); if(!box) return;
+	const q=(document.getElementById("ev_haberYazanlariSearch").value||"").trim().toLocaleLowerCase("tr");
+	const filtered=pressOfficerPool.filter(function(p){ return p.name.toLocaleLowerCase("tr").includes(q); });
+	let html="";
+	calNewsWriters.forEach(function(name){
+		if(filtered.some(function(p){ return p.name===name; })) return;
+		html+='<label class="ev-att-item"><input type="checkbox" class="ev-haberyazani-cb" data-name="'+escapeHtml(name)+'" checked><span><b>'+escapeHtml(name)+'</b></span></label>';
+	});
+	html+=filtered.map(function(p){
+		return '<label class="ev-att-item"><input type="checkbox" class="ev-haberyazani-cb" data-name="'+escapeHtml(p.name)+'" '+(calNewsWriters.indexOf(p.name)!==-1?"checked":"")+'><span><b>'+escapeHtml(p.name)+'</b></span></label>';
+	}).join("");
+	if(!html) html='<p class="hint" style="margin:6px;">'+(pressOfficerPool.length?"Eşleşen kişi yok.":"Henüz admin tarafından işaretlenmiş basın görevlisi yok.")+'</p>';
+	box.innerHTML=html;
+}
+document.addEventListener("change", function(e){
+	const cb=e.target;
+	if(!cb.classList || !cb.classList.contains("ev-haberyazani-cb")) return;
+	const name=cb.dataset.name||"";
+	if(cb.checked){ if(calNewsWriters.indexOf(name)===-1) calNewsWriters.push(name); }
+	else { calNewsWriters=calNewsWriters.filter(function(n){ return n!==name; }); }
+});
+
 /* --- Etkinlik log detayları --- */
 // Etkinliğin KENDİSİ Firebase'de aynı anahtarın üzerine yazılır (geçmiş kopya tutulmaz);
 // her düzenleme için logs/etkinlik altına AYRI bir log satırı eklenir. Böylece kaydın son hâli tek,
@@ -5700,7 +5752,7 @@ document.addEventListener("change", function(e){
 const EVENT_LOG_LABELS = {
 	ad:"Etkinlik Adı", tur:"Tür", durum:"Durum", tarih:"Tarih", saat:"Başlangıç Saati",
 	bitisSaat:"Bitiş Saati", bitisTarihi:"Bitiş Tarihi (çok günlü)", yer:"Yer / Mekân", birim:"Düzenleyen Birim",
-	planlayan:"Planlayan / Sorumlu", gorevli:"Basın Görevlisi",
+	planlayan:"Planlayan / Sorumlu", gorevli:"Basın Görevlisi", haberYazanlari:"Haberi Yazan(lar)", haberMetni:"Haber Metni",
 	arsiv:"Arşiv Bağlantısı", not:"Not", katilimcilar:"Katılımcılar"
 };
 // " · " log satırlarının ayıracı olduğu için etkinlik adında geçerse zararsızlaştırılır.
@@ -5716,7 +5768,7 @@ function describeEventChanges(oldE, newE){
 	if((oldE.durum||"planlandi")!==(newE.durum||"planlandi")) changes.push(EVENT_LOG_LABELS.durum+": "+evStatus(oldE.durum).ad+" → "+evStatus(newE.durum).ad);
 	if((oldE.tarih||"")!==(newE.tarih||"")) changes.push(EVENT_LOG_LABELS.tarih+": "+(oldE.tarih?fmtTrDate(oldE.tarih):"(boş)")+" → "+(newE.tarih?fmtTrDate(newE.tarih):"(boş)"));
 	if((oldE.bitisTarihi||"")!==(newE.bitisTarihi||"")) changes.push(EVENT_LOG_LABELS.bitisTarihi+": "+(oldE.bitisTarihi?fmtTrDate(oldE.bitisTarihi):"(tek günlü)")+" → "+(newE.bitisTarihi?fmtTrDate(newE.bitisTarihi):"(tek günlü)"));
-	["ad","saat","bitisSaat","yer","birim","planlayan","gorevli","arsiv","not"].forEach(function(k){
+	["ad","saat","bitisSaat","yer","birim","planlayan","gorevli","haberYazanlari","haberMetni","arsiv","not"].forEach(function(k){
 		const o=(oldE[k]===undefined||oldE[k]===null)?"":String(oldE[k]).trim();
 		const n=(newE[k]===undefined||newE[k]===null)?"":String(newE[k]).trim();
 		if(o!==n) changes.push(EVENT_LOG_LABELS[k]+": "+logValueOrEmpty(o)+" → "+logValueOrEmpty(n));
@@ -5836,6 +5888,8 @@ async function saveEventImpl(){
 		tarih: tarih, saat: saat||"", bitisSaat: bitis||"",
 		yer: document.getElementById("ev_yer").value.trim(), birim: document.getElementById("ev_birim").value.trim(),
 		planlayan: document.getElementById("ev_planlayan").value.trim(), gorevli: calPressStaff.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
+		haberYazanlari: calNewsWriters.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
+		haberMetni: document.getElementById("ev_haberMetni").value.trim(),
 		katilimcilar: calAttendees.slice(), arsiv: safeLinkUrl(document.getElementById("ev_arsiv").value),
 		not: document.getElementById("ev_not").value.trim(),
 		rozetler: Array.from(document.querySelectorAll("#ev_badgeBox .ev-badge-cb:checked")).map(function(cb){ return cb.value; }),

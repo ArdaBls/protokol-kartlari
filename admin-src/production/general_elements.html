@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI Elements | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="ui" data-breadcrumb="Home > UI Elements">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Components</div>
+        <h1 class="page-title">UI Elements</h1>
+      </div>
+      <div class="page-actions">
+        <a href="#buttons" class="btn btn-outline btn-sm">Jump to ↓</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BUTTONS ── -->
+  <div class="row col-1" id="buttons">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Buttons</div><div class="card-subtitle">Variants, sizes, states, groups, dropdowns</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:18px">
+        <div>
+          <div class="divider-label">Variants</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-outline">Outline</button>
+            <button class="btn btn-success">Success</button>
+            <button class="btn btn-warning">Warning</button>
+            <button class="btn btn-danger">Danger</button>
+            <button class="btn btn-ghost">Ghost</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="divider-label">Sizes</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+            <button class="btn btn-primary btn-sm">Small</button>
+            <button class="btn btn-primary">Default</button>
+            <button class="btn btn-primary btn-lg">Large</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="divider-label">With icon · Icon only · Loading</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+            <button class="btn btn-primary"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M8 4v8"/></svg> Create</button>
+            <button class="btn btn-outline"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 11v3H2v-3"/><path d="M11 6L8 3 5 6"/><line x1="8" y1="3" x2="8" y2="11"/></svg> Upload</button>
+            <button class="btn btn-outline btn-icon" data-tooltip="Edit" aria-label="Edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3l9-9z"/></svg></button>
+            <button class="btn btn-outline btn-icon" data-tooltip="Refresh" aria-label="Refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2v4h-4M2 14v-4h4"/><path d="M14 6a6 6 0 00-10-2M2 10a6 6 0 0010 2"/></svg></button>
+            <button class="btn btn-outline btn-icon" data-tooltip="Delete" aria-label="Delete"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V2h4v2M5 4l1 9h4l1-9"/></svg></button>
+            <button class="btn btn-primary" id="loading-btn"><span class="btn-spinner" hidden></span><span>Save</span></button>
+            <button class="btn btn-outline" disabled>Disabled</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="divider-label">Button group · Dropdown</div>
+          <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+            <div class="btn-group" role="group" data-group="period" aria-label="Time period">
+              <button class="btn btn-outline active" aria-pressed="true">Day</button>
+              <button class="btn btn-outline" aria-pressed="false">Week</button>
+              <button class="btn btn-outline" aria-pressed="false">Month</button>
+              <button class="btn btn-outline" aria-pressed="false">Year</button>
+            </div>
+            <button class="btn btn-outline" id="dropdown-btn">Actions <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AVATARS · STATUS · CHIPS ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Avatars</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <div class="divider-label">Sizes</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="avatar avatar-xs">A</span>
+            <span class="avatar avatar-sm">SK</span>
+            <span class="avatar avatar-md">MR</span>
+            <span class="avatar avatar-lg">EW</span>
+            <span class="avatar avatar-xl" style="background:linear-gradient(135deg,var(--azure),#1d6fa5)">DR</span>
+            <span class="avatar avatar-xxl" style="background:linear-gradient(135deg,var(--purple),#8a2da0)">YT</span>
+          </div>
+        </div>
+        <div>
+          <div class="divider-label">With status</div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="avatar avatar-lg">SK<span class="avatar-status"></span></span>
+            <span class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--azure),#1d6fa5)">MR<span class="avatar-status away"></span></span>
+            <span class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--purple),#8a2da0)">EW<span class="avatar-status busy"></span></span>
+            <span class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--yellow),#c97f00)">DR<span class="avatar-status offline"></span></span>
+          </div>
+        </div>
+        <div>
+          <div class="divider-label">Stack</div>
+          <div class="avatar-stack">
+            <span class="avatar avatar-md" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">A</span>
+            <span class="avatar avatar-md" style="background:linear-gradient(135deg,var(--azure),#1d6fa5)">SK</span>
+            <span class="avatar avatar-md" style="background:linear-gradient(135deg,var(--purple),#8a2da0)">MR</span>
+            <span class="avatar avatar-md" style="background:linear-gradient(135deg,var(--yellow),#c97f00)">EW</span>
+            <span class="avatar avatar-md more">+5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Status & chips</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-wrap:wrap;gap:14px">
+          <span class="status status-green">Paid</span>
+          <span class="status status-blue">Processing</span>
+          <span class="status status-yellow">Pending</span>
+          <span class="status status-red">Failed</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="chip">Default</span>
+          <span class="chip chip-primary">Primary</span>
+          <span class="chip chip-blue">Info</span>
+          <span class="chip chip-green">Success</span>
+          <span class="chip chip-yellow">Warning</span>
+          <span class="chip chip-red">Error</span>
+          <span class="chip chip-purple">Premium</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="chip chip-primary active">React<button type="button" class="chip-close" aria-label="Remove">×</button></span>
+          <span class="chip chip-blue active">TypeScript<button type="button" class="chip-close" aria-label="Remove">×</button></span>
+          <span class="chip chip-purple active">Tailwind<button type="button" class="chip-close" aria-label="Remove">×</button></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALERTS ── -->
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Alerts</div></div>
+      <div class="card-body">
+        <div class="alert alert-info"><svg class="alert-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v.01M8 7v4"/></svg><div class="alert-body"><strong>Heads up.</strong> This is an informational alert with extra context.</div></div>
+        <div class="alert alert-success"><svg class="alert-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg><div class="alert-body"><strong>Saved.</strong> Your changes have been applied.</div></div>
+        <div class="alert alert-warning"><svg class="alert-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L1 14h14L8 2z"/><path d="M8 6v3M8 11v.01"/></svg><div class="alert-body"><strong>Careful.</strong> This action will affect 28 users.</div></div>
+        <div class="alert alert-error"><svg class="alert-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v5M8 11v.01"/></svg><div class="alert-body"><strong>Couldn't save.</strong> The server returned a 503 — please retry in a moment.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SPINNERS · SKELETONS ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Spinners & loaders</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:18px">
+        <div>
+          <div class="divider-label">Circular</div>
+          <div style="display:flex;align-items:center;gap:18px">
+            <span class="spinner spinner-sm"></span>
+            <span class="spinner"></span>
+            <span class="spinner spinner-lg"></span>
+            <span class="spinner spinner-azure"></span>
+            <span class="spinner spinner-yellow"></span>
+            <span class="spinner spinner-red"></span>
+          </div>
+        </div>
+        <div>
+          <div class="divider-label">Dots</div>
+          <span class="spinner-dots"><span></span><span></span><span></span></span>
+        </div>
+        <div>
+          <div class="divider-label">Indeterminate progress</div>
+          <div class="loading-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Skeleton loading</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <span class="skeleton skeleton-circle" style="width:40px;height:40px;flex-shrink:0"></span>
+          <div style="flex:1">
+            <span class="skeleton skeleton-text-lg" style="width:50%"></span>
+            <span class="skeleton skeleton-text" style="width:80%"></span>
+            <span class="skeleton skeleton-text" style="width:65%"></span>
+          </div>
+        </div>
+        <span class="skeleton skeleton-rect" style="width:100%;height:120px"></span>
+        <div>
+          <span class="skeleton skeleton-text-lg" style="width:35%"></span>
+          <span class="skeleton skeleton-text" style="width:90%"></span>
+          <span class="skeleton skeleton-text" style="width:75%"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Tabs</div><div class="card-subtitle">Pill, underlined, segmented</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:18px">
+        <div>
+          <div class="divider-label">Pill</div>
+          <div class="tabs-pill" role="tablist">
+            <button class="tab active" role="tab">Overview</button>
+            <button class="tab" role="tab">Activity</button>
+            <button class="tab" role="tab">Settings</button>
+            <button class="tab" role="tab">Billing</button>
+          </div>
+        </div>
+        <div>
+          <div class="divider-label">Underlined</div>
+          <div class="tabs-underline" role="tablist">
+            <button class="tab active" role="tab">Profile</button>
+            <button class="tab" role="tab">Notifications</button>
+            <button class="tab" role="tab">Integrations</button>
+            <button class="tab" role="tab">Team</button>
+            <button class="tab" role="tab">Danger zone</button>
+          </div>
+        </div>
+        <div>
+          <div class="divider-label">Segmented (chart-tab)</div>
+          <div class="chart-tabs">
+            <button class="chart-tab active">7 days</button>
+            <button class="chart-tab">30 days</button>
+            <button class="chart-tab">90 days</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAGINATION · BREADCRUMBS ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Pagination</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div class="pagination" id="demo-pagination">
+          <button class="page-btn" data-page="prev" disabled aria-label="Previous"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4l-4 4 4 4"/></svg></button>
+          <button class="page-btn active" data-page="1">1</button>
+          <button class="page-btn" data-page="2">2</button>
+          <button class="page-btn" data-page="3">3</button>
+          <span class="page-ellipsis">…</span>
+          <button class="page-btn" data-page="12">12</button>
+          <button class="page-btn" data-page="next" aria-label="Next"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4l4 4-4 4"/></svg></button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">Showing 1–10 of 124 results</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Breadcrumbs</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <nav class="breadcrumbs" aria-label="Path">
+          <a href="#">Home</a>
+          <span class="sep">/</span>
+          <a href="#">Projects</a>
+          <span class="sep">/</span>
+          <a href="#">Q2 Marketing</a>
+          <span class="sep">/</span>
+          <span class="current">Tasks</span>
+        </nav>
+        <nav class="breadcrumbs" aria-label="Path">
+          <a href="#">Workspace</a>
+          <span class="sep">›</span>
+          <a href="#">Settings</a>
+          <span class="sep">›</span>
+          <span class="current">Billing</span>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEPPER ── -->
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Stepper</div><div class="card-subtitle">Horizontal step indicator</div></div>
+      <div class="card-body" style="padding:24px 16px">
+        <div class="stepper">
+          <div class="step done"><div class="num"><span>1</span></div><div class="label">Account</div></div>
+          <div class="line done"></div>
+          <div class="step done"><div class="num"><span>2</span></div><div class="label">Workspace</div></div>
+          <div class="line done"></div>
+          <div class="step active"><div class="num"><span>3</span></div><div class="label">Team</div></div>
+          <div class="line"></div>
+          <div class="step"><div class="num"><span>4</span></div><div class="label">Integrations</div></div>
+          <div class="line"></div>
+          <div class="step"><div class="num"><span>5</span></div><div class="label">Done</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOOLTIPS · TRIGGERS ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Tooltips</div><div class="card-subtitle">Hover or focus to reveal</div></div>
+      <div class="card-body" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button class="btn btn-outline" data-tooltip="Refresh the data">Top</button>
+        <button class="btn btn-outline" data-tooltip="Open in a new tab" data-tooltip-pos="bottom">Bottom</button>
+        <button class="btn btn-outline btn-icon" data-tooltip="Settings" aria-label="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg></button>
+        <span class="status status-green" data-tooltip="Last checked 2 minutes ago" tabindex="0">Live</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Interactive triggers</div></div>
+      <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="open-modal-demo">Open modal</button>
+        <button class="btn btn-outline" id="show-toast-demo">Show toast</button>
+        <button class="btn btn-outline" id="show-toast-success">Success toast</button>
+        <button class="btn btn-outline" id="show-toast-error">Error toast</button>
+        <button class="btn btn-outline" id="open-dropdown-demo">Dropdown menu <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOGGLES · PROGRESS ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Toggles</div></div>
+      <div class="card-body" style="padding:6px 16px">
+        <div class="toggle-row"><div><div class="label">Enabled</div></div><div class="toggle on"></div></div>
+        <div class="toggle-row"><div><div class="label">Disabled</div></div><div class="toggle"></div></div>
+        <div class="toggle-row"><div><div class="label">With description</div><div class="desc">Smaller helper text below the label.</div></div><div class="toggle on"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Progress</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px"><span>Storage</span><span class="cell-strong">68%</span></div>
+          <div class="progress-thin"><div class="bar" style="width:68%;background:var(--primary)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px"><span>Bandwidth</span><span class="cell-strong">42%</span></div>
+          <div class="progress-thin"><div class="bar" style="width:42%;background:var(--azure)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px"><span>Quota</span><span class="cell-strong">91%</span></div>
+          <div class="progress-thin"><div class="bar" style="width:91%;background:var(--red)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIST GROUP · RATING · EMPTY ── -->
+  <div class="row col-3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">List group</div></div>
+      <div class="card-body" style="padding:12px">
+        <div class="list-group">
+          <button type="button" class="list-group-item active">Inbox <span class="meta">14</span></button>
+          <button type="button" class="list-group-item">Starred <span class="meta">2</span></button>
+          <button type="button" class="list-group-item">Snoozed <span class="meta">8</span></button>
+          <button type="button" class="list-group-item">Sent <span class="meta">—</span></button>
+          <button type="button" class="list-group-item">Trash <span class="meta">3</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Rating</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;padding:24px">
+        <div class="rating-stars" id="rating-demo" data-value="3" role="radiogroup" aria-label="Rate this">
+          <button type="button" data-i="1" aria-label="1 star"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg></button>
+          <button type="button" data-i="2" aria-label="2 stars"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg></button>
+          <button type="button" data-i="3" aria-label="3 stars"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg></button>
+          <button type="button" data-i="4" aria-label="4 stars"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg></button>
+          <button type="button" data-i="5" aria-label="5 stars"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg></button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)" id="rating-label">3 of 5 stars</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Empty state</div></div>
+      <div class="card-body" style="padding:0">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7a2 2 0 012-2h4l2 2h7a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+          </div>
+          <div class="empty-state-title">No items yet</div>
+          <div class="empty-state-desc">Create your first project to get started.</div>
+          <button class="btn btn-primary btn-sm">+ Create project</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CODE · KBD · BLOCKQUOTE ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Code & keyboard</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">
+          Run <code>npm install</code> to install dependencies, then <code>npm run dev</code> to start the local server.
+        </div>
+        <pre><code>function greet(name) {
+  return `Hello, ${name}!`;
+}
+
+greet('World');
+// → "Hello, World!"</code></pre>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--text-secondary)">
+          Quick actions: <kbd>⌘</kbd> + <kbd>K</kbd> to search, <kbd>?</kbd> for shortcuts, <kbd>Esc</kbd> to close.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Blockquote & dividers</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:18px">
+        <blockquote>
+          The best way to predict the future is to invent it. Real artists ship.
+          <footer>— <cite>Alan Kay</cite>, computer scientist</footer>
+        </blockquote>
+        <hr class="divider-plain">
+        <div class="divider-label">Or continue with</div>
+        <hr class="divider-dashed">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New section: Banners ── -->
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Banners</div><div class="card-subtitle">Colored callouts with optional actions</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+        <div class="banner">
+          <svg class="banner-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4"/></svg>
+          <div class="banner-body"><strong>New release available.</strong> v4.0.0-beta.2 ships fixes for inbox, settings persistence, and 16 chart variants.</div>
+          <div class="banner-actions">
+            <button class="btn btn-outline btn-sm">Dismiss</button>
+            <button class="btn btn-primary btn-sm">View notes</button>
+          </div>
+        </div>
+        <div class="banner banner-warning">
+          <svg class="banner-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 12h.01"/></svg>
+          <div class="banner-body"><strong>API quota at 87%.</strong> You'll hit the monthly limit by Friday at the current rate.</div>
+        </div>
+        <div class="banner banner-danger">
+          <svg class="banner-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 5l6 6M11 5l-6 6"/></svg>
+          <div class="banner-body"><strong>Payment failed.</strong> Your subscription renewal couldn't be processed. Update your payment method to avoid service interruption.</div>
+          <div class="banner-actions"><button class="btn btn-outline btn-sm">Update payment</button></div>
+        </div>
+        <div class="banner banner-info">
+          <svg class="banner-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v.01M8 7v4"/></svg>
+          <div class="banner-body"><strong>Maintenance window</strong> scheduled for Friday April 30, 02:00–04:00 UTC. Some features may be temporarily unavailable.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New section: Accordion + Drawer + Popover ── -->
+  <div class="row col-3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Accordion</div><div class="card-subtitle">Native &lt;details&gt; with token styling</div></div>
+      <div class="card-body">
+        <div class="accordion">
+          <details class="accordion-item" open>
+            <summary class="accordion-summary">
+              What's included
+              <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+            </summary>
+            <div class="accordion-content">55+ pages, 16 chart variants, fully interactive inbox, kanban, calendar, and settings — all token-driven.</div>
+          </details>
+          <details class="accordion-item">
+            <summary class="accordion-summary">
+              How do I customize the colors?
+              <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+            </summary>
+            <div class="accordion-content">Every color is a CSS custom property in <code>_tokens.scss</code>. Change <code>--primary</code> and the entire UI restyles.</div>
+          </details>
+          <details class="accordion-item">
+            <summary class="accordion-summary">
+              Is it really free?
+              <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+            </summary>
+            <div class="accordion-content">Yes. Use it for client work, side projects, your own SaaS.</div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Drawer</div><div class="card-subtitle">Slide-in side panel</div></div>
+      <div class="card-body">
+        <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.55;margin-bottom:14px">Off-canvas panel for filters, settings, or secondary navigation. Click outside or press Escape to close.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" id="open-drawer-right">Open right</button>
+          <button class="btn btn-outline btn-sm" id="open-drawer-left">Open left</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Popovers</div><div class="card-subtitle">Hover or focus for rich content</div></div>
+      <div class="card-body" style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">
+        <span class="popover-trigger" tabindex="0">
+          <button class="btn btn-outline btn-sm">Hover me</button>
+          <span class="popover-content">
+            <div class="popover-title">Did you know?</div>
+            <div class="popover-text">Popovers can hold rich content — links, multiple paragraphs, even small forms. They're keyboard-focusable too.</div>
+          </span>
+        </span>
+        <span class="popover-trigger" tabindex="0">
+          <span class="status status-yellow" style="cursor:help">Pending review</span>
+          <span class="popover-content">
+            <div class="popover-title">Awaiting approval</div>
+            <div class="popover-text">2 reviewers needed. Sarah K. has approved. Waiting on Michael R.</div>
+          </span>
+        </span>
+        <span class="popover-trigger" tabindex="0">
+          <button type="button" class="card-opt-btn" aria-label="Help">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6 6a2 2 0 014 0c0 1-2 1.5-2 3"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>
+          </button>
+          <span class="popover-content">
+            <div class="popover-title">Need help?</div>
+            <div class="popover-text">Press <kbd style="font-family:var(--font-mono);font-size:10.5px;background:var(--bg-surface-secondary);padding:1px 4px;border-radius:3px">⌘K</kbd> to open the command palette and search every page.</div>
+          </span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New section: Timeline ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Timeline</div><div class="card-subtitle">Event log with status colors</div></div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item is-primary">
+            <div class="ti-time">Just now</div>
+            <div class="ti-title">Deployment succeeded</div>
+            <div class="ti-desc">v4.0.0-beta.2 deployed to production in 28s.</div>
+          </div>
+          <div class="timeline-item is-green">
+            <div class="ti-time">14 minutes ago</div>
+            <div class="ti-title">Tests passed</div>
+            <div class="ti-desc">All 142 tests green across 12 suites.</div>
+          </div>
+          <div class="timeline-item is-blue">
+            <div class="ti-time">1 hour ago</div>
+            <div class="ti-title">Pull request #248 merged</div>
+            <div class="ti-desc">feat(inbox): full mail client with reader pane and compose.</div>
+          </div>
+          <div class="timeline-item is-yellow">
+            <div class="ti-time">3 hours ago</div>
+            <div class="ti-title">Review requested</div>
+            <div class="ti-desc">Sarah K. requested review on PR #248.</div>
+          </div>
+          <div class="timeline-item is-red">
+            <div class="ti-time">Yesterday</div>
+            <div class="ti-title">Build failed on staging</div>
+            <div class="ti-desc">Lint errors in shell.js. Auto-fix resolved them.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Activity timeline</div><div class="card-subtitle">User actions over time</div></div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item is-primary">
+            <div class="ti-time">2:14 PM · Today</div>
+            <div class="ti-title"><strong>Aigars</strong> created project "Q2 redesign"</div>
+          </div>
+          <div class="timeline-item is-blue">
+            <div class="ti-time">11:42 AM · Today</div>
+            <div class="ti-title"><strong>Sarah K.</strong> uploaded 3 design files</div>
+            <div class="ti-desc">hero-v3.fig, mobile-shell.fig, type-scale.fig</div>
+          </div>
+          <div class="timeline-item is-green">
+            <div class="ti-time">9:30 AM · Today</div>
+            <div class="ti-title"><strong>Michael R.</strong> closed 4 issues</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-time">Yesterday</div>
+            <div class="ti-title"><strong>Emily W.</strong> added 2 team members</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-time">2 days ago</div>
+            <div class="ti-title"><strong>Tom H.</strong> joined the workspace</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<!-- Drawer markup (right) -->
+<div class="drawer-backdrop" id="demo-drawer-backdrop"></div>
+<aside class="drawer" id="demo-drawer-right" aria-hidden="true">
+  <div class="drawer-header">
+    <span class="drawer-title">Filter results</span>
+    <button class="drawer-close" data-drawer-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-group">
+      <label class="form-label">Plan</label>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label class="form-check"><input type="checkbox" checked> Pro</label>
+        <label class="form-check"><input type="checkbox" checked> Business</label>
+        <label class="form-check"><input type="checkbox"> Starter</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="segmented">
+        <label><input type="radio" name="d-status" checked><span>Active</span></label>
+        <label><input type="radio" name="d-status"><span>Pending</span></label>
+        <label><input type="radio" name="d-status"><span>Suspended</span></label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">MRR range</label>
+      <div class="slider-row">
+        <input type="range" class="slider" min="0" max="1000" value="200" aria-label="Slider sample">
+        <span class="slider-value">$200</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags</label>
+      <div class="tag-input">
+        <span class="tag-pill">SaaS<button type="button" aria-label="Remove">×</button></span>
+        <span class="tag-pill">Q2<button type="button" aria-label="Remove">×</button></span>
+        <input type="text" placeholder="Add…" aria-label="Add chip">
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-outline" data-drawer-close>Cancel</button>
+    <button class="btn btn-primary" data-drawer-close>Apply filters</button>
+  </div>
+</aside>
+
+<aside class="drawer left" id="demo-drawer-left" aria-hidden="true">
+  <div class="drawer-header">
+    <span class="drawer-title">Notes</span>
+    <button class="drawer-close" data-drawer-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px">A drawer is great for secondary content that doesn't deserve a full modal — filters, notes, comments, settings.</p>
+    <textarea class="form-control" placeholder="Type a note…" aria-label="Note">v4 launch checklist:
+- [x] Inbox is fully interactive
+- [x] Settings persist
+- [x] 16 chart variants
+- [ ] Final QA pass</textarea>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-primary" data-drawer-close>Save</button>
+  </div>
+</aside>
+
+<script type="module">
+import { showToast } from '/src/v4/toast.js';
+import { showModal } from '/src/v4/modal.js';
+import { openMenu } from '/src/v4/menus.js';
+
+// Generic .tab handler — pill + underlined variants
+document.addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  tab.parentElement.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+  tab.classList.add('active');
+});
+
+// Pagination demo
+const pag = document.getElementById('demo-pagination');
+if (pag) {
+  pag.addEventListener('click', (e) => {
+    const btn = e.target.closest('.page-btn');
+    if (!btn || btn.disabled) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const allPages = pag.querySelectorAll('.page-btn[data-page]:not([data-page="prev"]):not([data-page="next"])');
+    let activeIdx = Array.from(allPages).findIndex((b) => b.classList.contains('active'));
+    if (btn.dataset.page === 'prev') activeIdx = Math.max(0, activeIdx - 1);
+    else if (btn.dataset.page === 'next') activeIdx = Math.min(allPages.length - 1, activeIdx + 1);
+    else activeIdx = Array.from(allPages).indexOf(btn);
+    allPages.forEach((b) => b.classList.remove('active'));
+    if (allPages[activeIdx]) allPages[activeIdx].classList.add('active');
+    // Update prev/next disabled
+    pag.querySelector('[data-page="prev"]').disabled = activeIdx === 0;
+    pag.querySelector('[data-page="next"]').disabled = activeIdx === allPages.length - 1;
+  });
+}
+
+// Rating stars
+const rating = document.getElementById('rating-demo');
+const ratingLabel = document.getElementById('rating-label');
+function renderRating(value) {
+  rating.dataset.value = value;
+  rating.querySelectorAll('button').forEach((b) => {
+    b.classList.toggle('on', parseInt(b.dataset.i, 10) <= value);
+  });
+  if (ratingLabel) ratingLabel.textContent = `${value} of 5 stars`;
+}
+renderRating(parseInt(rating.dataset.value, 10));
+rating.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  e.stopPropagation();
+  renderRating(parseInt(btn.dataset.i, 10));
+});
+
+// Loading button — toggle spinner for 1.6s
+document.getElementById('loading-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  if (btn.getAttribute('aria-busy') === 'true') return;
+  const spinner = btn.querySelector('.btn-spinner');
+  const label = btn.querySelector('span:not(.btn-spinner)');
+  btn.setAttribute('aria-busy', 'true');
+  spinner.hidden = false;
+  const original = label.textContent;
+  label.textContent = 'Saving…';
+  setTimeout(() => {
+    btn.setAttribute('aria-busy', 'false');
+    spinner.hidden = true;
+    label.textContent = original;
+    showToast('Saved ✓', { variant: 'success' });
+  }, 1600);
+});
+
+// Dropdown buttons (two — same target)
+['dropdown-btn', 'open-dropdown-demo'].forEach((id) => {
+  document.getElementById(id).addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    openMenu(e.currentTarget, [
+      { label: 'Edit',     action: () => showToast('Edit') },
+      { label: 'Duplicate', action: () => showToast('Duplicated') },
+      { label: 'Archive',  action: () => showToast('Archived') },
+      '-',
+      { label: 'Delete',   action: () => showToast('Deleted', { variant: 'error' }) }
+    ]);
+  });
+});
+
+// Toast & modal demos
+document.getElementById('show-toast-demo').addEventListener('click', (e) => {
+  e.stopPropagation();
+  showToast('Hello! This is a default toast.');
+});
+document.getElementById('show-toast-success').addEventListener('click', (e) => {
+  e.stopPropagation();
+  showToast('Saved successfully', { variant: 'success' });
+});
+document.getElementById('show-toast-error').addEventListener('click', (e) => {
+  e.stopPropagation();
+  showToast('Something went wrong', { variant: 'error' });
+});
+document.getElementById('open-modal-demo').addEventListener('click', (e) => {
+  e.stopPropagation();
+  showModal({
+    title: 'Confirm action',
+    body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">Modals support <strong>any HTML</strong>, focus trap, click-outside dismiss, Escape to close, and reduced-motion preferences. Try Tab and Shift+Tab to see focus stay inside.</p>',
+    actions: [
+      { label: 'Cancel', variant: 'outline' },
+      { label: 'Confirm', variant: 'primary', action: () => showToast('Confirmed', { variant: 'success' }) }
+    ]
+  });
+});
+
+// Drawer demo
+const backdrop = document.getElementById('demo-drawer-backdrop');
+const drawerRight = document.getElementById('demo-drawer-right');
+const drawerLeft  = document.getElementById('demo-drawer-left');
+const openDrawer = (drawer) => {
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  backdrop.classList.add('open');
+};
+const closeDrawer = () => {
+  [drawerRight, drawerLeft].forEach((d) => { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); });
+  backdrop.classList.remove('open');
+};
+document.getElementById('open-drawer-right').addEventListener('click', (e) => { e.stopPropagation(); openDrawer(drawerRight); });
+document.getElementById('open-drawer-left').addEventListener('click',  (e) => { e.stopPropagation(); openDrawer(drawerLeft);  });
+backdrop.addEventListener('click', closeDrawer);
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-drawer-close]')) closeDrawer();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && (drawerRight.classList.contains('open') || drawerLeft.classList.contains('open'))) closeDrawer();
+});
+
+// Tag input + segmented inside drawers (lightweight)
+document.querySelectorAll('.drawer .tag-input').forEach((wrap) => {
+  const input = wrap.querySelector('input');
+  wrap.addEventListener('click', (e) => {
+    if (e.target === wrap) input.focus();
+    const close = e.target.closest('.tag-pill button');
+    if (close) close.closest('.tag-pill').remove();
+  });
+});
+</script>
+
+</body>
+</html>

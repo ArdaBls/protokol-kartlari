@@ -1,0 +1,55 @@
+{
+  "name": "protokol-admin",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "OMÜ Protokol Kartları — admin paneli. Vite 8, vanilla JS.",
+  "scripts": {
+    "dev": "vite --clearScreen false",
+    "build": "NODE_ENV=production vite build",
+    "build:dev": "NODE_ENV=development vite build",
+    "preview": "vite preview",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "analyze": "npm run build && open dist/stats.html",
+    "new": "node scripts/new-page.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "deploy:preview": "bash scripts/deploy-preview.sh",
+    "prepublishOnly": "npm run build"
+  },
+  "private": true,
+  "author": "Arda Bilasa",
+  "license": "UNLICENSED",
+  "main": "src/main-v4.js",
+  "exports": {
+    ".": "./src/main-v4.js",
+    "./v4/*": "./src/v4/*.js",
+    "./scss/*": "./src/scss/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "production",
+    "vite.config.js"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "playwright": "^1.62.1",
+    "prettier": "^3.9.6",
+    "rollup-plugin-visualizer": "^7.0.1",
+    "sass": "^1.102.0",
+    "terser": "^5.49.2",
+    "vite": "^8.2.0"
+  },
+  "dependencies": {
+    "datatables.net": "^3.0.1",
+    "echarts": "^6.1.0",
+    "leaflet": "^1.9.4"
+  }
+}

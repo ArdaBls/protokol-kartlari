@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kişiler | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. Bu panel admin/
+     alt-yolunda aynı origin'de servis edildiği için, kullanıcı ana siteye zaten giriş yapmışsa
+     Firebase Auth oturumu buraya da otomatik taşınır. Kullanıcı yönetimi sayfasıyla aynı
+     "users" düğümünü okur -- burası salt-okunur, kart görünümlü halidir. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="users" data-breadcrumb="Anasayfa|index.html > Kişiler">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Yönetim</div>
+        <h1 class="page-title">Kişiler</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-3" id="contacts-grid">
+    <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+const ROLE_LABEL = { pending: 'Onay Bekliyor', editor: 'Editör', admin: 'Admin', owner: 'Kurucu' };
+const ROLE_COLOR = {
+  pending: 'linear-gradient(135deg,var(--yellow),#c97f00)',
+  editor:  'linear-gradient(135deg,var(--blue),#0550a0)',
+  admin:   'linear-gradient(135deg,var(--red),#a82b2b)',
+  owner:   'linear-gradient(135deg,var(--purple),#8a2da0)'
+};
+
+const grid = document.getElementById('contacts-grid');
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function setState(html) {
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
+}
+
+function fullNameOf(u) {
+  return ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || '(isim yok)';
+}
+
+// etkinlikler/{id}.gorevli ve .haberYazanlari, admin panelindeki "Basın Görevlisi Bazında
+// Takip" / "Haber Yazarı Bazında Takip" istatistikleriyle (bkz. app.js loadAdminStats) AYNI
+// biçimde virgülle ayrılmış isim listesidir -- burada da isim eşleşmesiyle sayılır.
+function parseNameList(s) {
+  return String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+}
+
+function countByName(events, field) {
+  const counts = {};
+  events.forEach((e) => { parseNameList(e && e[field]).forEach((name) => { counts[name] = (counts[name] || 0) + 1; }); });
+  return counts;
+}
+
+function render(users, events) {
+  const uids = Object.keys(users);
+  if (!uids.length) { setState('Henüz kayıtlı kullanıcı yok.'); return; }
+
+  const eventList = Object.values(events);
+  const gorevliCounts = countByName(eventList, 'gorevli');
+  const haberCounts = countByName(eventList, 'haberYazanlari');
+
+  uids.sort((a, b) => (users[b].createdAt || 0) - (users[a].createdAt || 0));
+
+  grid.innerHTML = uids.map((uid) => {
+    const u = users[uid];
+    const role = u.role || 'pending';
+    const name = fullNameOf(u);
+    const initial = name.charAt(0).toUpperCase() || '?';
+    const etkinlikSayisi = gorevliCounts[name] || 0;
+    const haberSayisi = haberCounts[name] || 0;
+    return `
+      <div class="contact-card">
+        <div class="av" style="background:${ROLE_COLOR[role] || ROLE_COLOR.pending}">${escapeHtml(initial)}</div>
+        <div class="name">${escapeHtml(name)}</div>
+        <div class="role">${ROLE_LABEL[role] || role}</div>
+        <div style="font-size:12px;color:var(--text-muted);word-break:break-word;margin-bottom:12px">${escapeHtml(u.email || '')}</div>
+        <div class="stats">
+          <div><strong>${etkinlikSayisi}</strong>Etkinlik</div>
+          <div><strong>${haberSayisi}</strong>Haber</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadUsersAndEvents() {
+  setState('Yükleniyor…');
+  Promise.all([
+    database.ref('users').once('value'),
+    database.ref('etkinlikler').once('value')
+  ]).then(([usersSnap, eventsSnap]) => {
+    render(usersSnap.val() || {}, eventsSnap.val() || {});
+  }).catch((err) => {
+    console.error('Veriler yüklenemedi:', err);
+    setState('Veriler yüklenemedi.');
+  });
+}
+
+auth.onAuthStateChanged((user) => {
+  if (!user) { setState('Bu sayfayı görüntülemek için giriş yapmış olmanız gerekir.'); return; }
+  database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
+    const role = snap.val();
+    if (role !== 'admin' && role !== 'owner') {
+      setState('Kişiler yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
+      return;
+    }
+    loadUsersAndEvents();
+  }).catch((err) => {
+    console.error('Yetki kontrol edilemedi:', err);
+    setState('Yetki kontrol edilemedi.');
+  });
+});
+</script>
+
+</body>
+</html>

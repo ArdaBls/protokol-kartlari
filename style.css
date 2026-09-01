@@ -1224,6 +1224,7 @@
 				.hp-avatar{ width:26px; height:26px; border-radius:50%; background:var(--brass-light); color:var(--navy); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
 				.header-profile-btn.editor .hp-avatar{ background:#6fbf8f; }
 				.header-profile-btn.pending .hp-avatar{ background:#c99a3f; }
+				.header-profile-btn.owner .hp-avatar{ background:#9b7fe0; }
 				.hp-caret{ font-size:10px; opacity:.75; transition:transform .15s; }
 				.header-profile-btn[aria-expanded="true"] .hp-caret{ transform:rotate(180deg); }
 				/* Menu HER ZAMAN acik/koyu header'dan BAGIMSIZ kart renginde (var(--card)) --
@@ -1243,6 +1244,7 @@
 				.header-menu-user .role-dot{ width:7px; height:7px; border-radius:50%; background:#c99a3f; flex-shrink:0; }
 				.header-menu-user .role-dot.editor{ background:#3f9d5f; }
 				.header-menu-user .role-dot.admin{ background:var(--brass); }
+				.header-menu-user .role-dot.owner{ background:#9b7fe0; }
 				.header-menu .header-menu-item{ background:none; color:var(--ink); border:none; padding:9px 10px; border-radius:7px; cursor:pointer; font-weight:600; font-size:13px; text-align:left; width:100%; }
 				.header-menu .header-menu-item:hover{ background:var(--surface-subtle); }
 				/* Mobilde admin paneline giris artik liquid-glass tepsisindeki admin-fab

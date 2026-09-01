@@ -1,0 +1,1 @@
+{"version":3,"mappings":";sDACwC,sBAAE,gBAAnC,0DAA2B,qCAAQ,qBAAsB","names":[],"ignoreList":[],"sources":["../../admin-src/production/file_manager.html?html-proxy&index=1.js"],"sourcesContent":["\nimport('/src/v4/file-manager.js').then(({ initFileManager }) => initFileManager());\n"],"file":"file_manager-b_e2sSto.js"}

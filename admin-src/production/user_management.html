@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kullanıcı yönetimi | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. Bu panel admin/
+     alt-yolunda aynı origin'de servis edildiği için, kullanıcı ana siteye zaten giriş yapmışsa
+     Firebase Auth oturumu buraya da otomatik taşınır (ayrı bir login akışına gerek yok). -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="user_management" data-breadcrumb="Anasayfa|index.html > Kullanıcı yönetimi">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Yönetim</div>
+        <h1 class="page-title">Kullanıcı yönetimi</h1>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" id="export-btn">Dışa aktar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-3" style="margin-bottom:16px">
+    <div class="card"><div class="stat"><div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></div><div class="stat-content"><div class="stat-label">Toplam kullanıcı</div><div class="stat-value-row"><span class="stat-value" id="stat-total">—</span></div><div class="stat-subtext" id="stat-total-sub">&nbsp;</div></div></div></div>
+    <div class="card"><div class="stat"><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1l3 6 6 .9-4.5 4.4 1 6.7L12 16l-5.5 3 1-6.7L3 7.9 9 7z"/></svg></div><div class="stat-content"><div class="stat-label">Yöneticiler</div><div class="stat-value-row"><span class="stat-value" id="stat-admins">—</span></div><div class="stat-subtext">Rolü Admin olanlar</div></div></div></div>
+    <div class="card"><div class="stat"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="stat-content"><div class="stat-label">Onay bekleyenler</div><div class="stat-value-row"><span class="stat-value" id="stat-pending">—</span></div><div class="stat-subtext">Kayıt oldu, henüz onaylanmadı</div></div></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" style="gap:12px;flex-wrap:wrap">
+      <div class="users-filters">
+        <div class="search-box" style="width:240px">
+          <svg class="s-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+          <input type="text" id="users-search" placeholder="İsim veya e-postaya göre ara…" aria-label="Kullanıcılarda ara">
+        </div>
+        <select class="form-control" id="filter-role" style="width:150px;height:32px" aria-label="Role göre filtrele">
+          <option value="">Tüm roller</option>
+          <option value="pending">Onay Bekliyor</option>
+          <option value="editor">Editör</option>
+          <option value="admin">Admin</option>
+          <option value="owner">Kurucu</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Kullanıcı</th>
+              <th style="width:170px">Rol</th>
+              <th style="width:150px">Basın görevlisi</th>
+            </tr>
+          </thead>
+          <tbody id="users-rows">
+            <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:24px">Yükleniyor…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+import { showToast } from '/src/v4/toast.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+const ROLE_LABEL = { pending: 'Onay Bekliyor', editor: 'Editör', admin: 'Admin', owner: 'Kurucu' };
+const ROLE_CLS   = { pending: 'yellow', editor: 'blue', admin: 'red', owner: 'purple' };
+// 'owner' bu ekrandan KİMSEYE atanamaz/değiştirilemez -- yalnızca pending/editor/admin arası
+// geçiş buradan yapılır. Kurucu rolü docs/firebase-database-rules.json'daki ayrı bootstrap/
+// devir kuralıyla yönetilir.
+const ROLES = ['pending', 'editor', 'admin'];
+
+const rowsEl = document.getElementById('users-rows');
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let currentUid = null;
+let users = {}; // uid -> { firstName, lastName, email, role, basinGorevlisi, createdAt }
+let filterText = '', filterRole = '';
+
+function setState(html) {
+  rowsEl.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:24px">${html}</td></tr>`;
+}
+
+function fullNameOf(u) {
+  return ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || '(isim yok)';
+}
+
+function updateStats() {
+  const list = Object.values(users);
+  document.getElementById('stat-total').textContent = list.length;
+  document.getElementById('stat-total-sub').textContent = '';
+  document.getElementById('stat-admins').textContent = list.filter((u) => u.role === 'admin' || u.role === 'owner').length;
+  document.getElementById('stat-pending').textContent = list.filter((u) => (u.role || 'pending') === 'pending').length;
+}
+
+function visibleEntries() {
+  const q = filterText.toLowerCase();
+  return Object.entries(users)
+    .filter(([, u]) => {
+      const name = fullNameOf(u).toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      const role = u.role || 'pending';
+      return (!q || name.includes(q) || email.includes(q)) && (!filterRole || role === filterRole);
+    })
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+}
+
+function render() {
+  const entries = visibleEntries();
+  if (!entries.length) { setState('Eşleşen kullanıcı yok.'); return; }
+
+  rowsEl.innerHTML = entries.map(([uid, u]) => {
+    const role = u.role || 'pending';
+    const isSelf = uid === currentUid;
+    const initial = fullNameOf(u).charAt(0).toUpperCase() || '?';
+
+    const roleCell = (isSelf || role === 'owner')
+      ? `<span class="role-chip role-${ROLE_CLS[role]}" title="${role === 'owner' ? 'Kurucu rolü bu ekrandan değiştirilemez.' : 'Kendi rolünüzü buradan değiştiremezsiniz.'}">${ROLE_LABEL[role]}${isSelf ? ' (Siz)' : ''}</span>`
+      : `<select class="form-control" style="height:30px;font-size:12.5px" data-role-select data-uid="${uid}">
+          ${ROLES.map((r) => `<option value="${r}"${r === role ? ' selected' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+        </select>`;
+
+    return `
+      <tr data-uid="${uid}">
+        <td>
+          <div class="cell-customer">
+            <div class="cell-avatar" style="background:var(--primary)">${escapeHtml(initial)}</div>
+            <div>
+              <div class="cell-strong">${escapeHtml(fullNameOf(u))}${isSelf ? ' <span style="color:var(--primary);font-weight:500">(Siz)</span>' : ''}</div>
+              <div style="font-size:11.5px;color:var(--text-muted)">${escapeHtml(u.email || '')}</div>
+            </div>
+          </div>
+        </td>
+        <td>${roleCell}</td>
+        <td>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" data-basin-toggle data-uid="${uid}" ${u.basinGorevlisi ? 'checked' : ''}>
+            İşaretle
+          </label>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function setUserRole(uid, newRole) {
+  if (uid === currentUid) { showToast('Kendi rolünüzü değiştiremezsiniz.', { variant: 'error' }); render(); return; }
+  if (!ROLES.includes(newRole)) { showToast('Geçersiz rol.', { variant: 'error' }); render(); return; }
+
+  const oldRole = (users[uid] && users[uid].role) || 'pending';
+  if (oldRole === 'owner') { showToast('Kurucu rolü bu ekrandan değiştirilemez.', { variant: 'error' }); render(); return; }
+  // Son yetkili korumasi: elimizdeki (client-side) listeden admin+owner sayisini say.
+  if ((oldRole === 'admin' || oldRole === 'owner') && newRole !== 'admin') {
+    const adminCount = Object.values(users).filter((u) => u.role === 'admin' || u.role === 'owner').length;
+    if (adminCount <= 1) {
+      showToast('Son yönetici kullanıcının rolü düşürülemez. Önce başka bir admin atayın.', { variant: 'error' });
+      render();
+      return;
+    }
+  }
+
+  try {
+    await database.ref('users/' + uid + '/role').set(newRole);
+    users[uid].role = newRole;
+    updateStats();
+    render();
+    showToast(`${fullNameOf(users[uid])}: rol ${ROLE_LABEL[oldRole]} → ${ROLE_LABEL[newRole]}`, { variant: 'success' });
+  } catch (err) {
+    console.error('Yetki güncellenemedi:', err);
+    showToast('Yetki güncellenemedi.', { variant: 'error' });
+    render();
+  }
+}
+
+async function toggleBasinGorevlisi(uid, checked) {
+  try {
+    const u = users[uid] || {};
+    const updates = {};
+    updates['users/' + uid + '/basinGorevlisi'] = checked;
+    updates['basinGorevlileri/' + uid] = checked ? fullNameOf(u) : null;
+    await database.ref('/').update(updates);
+    if (users[uid]) { users[uid].basinGorevlisi = checked; }
+    showToast(checked ? 'Basın görevlisi olarak işaretlendi.' : 'Basın görevlisi işareti kaldırıldı.', { variant: 'success' });
+  } catch (err) {
+    console.error('İşlem gerçekleştirilemedi:', err);
+    showToast('İşlem gerçekleştirilemedi.', { variant: 'error' });
+    render();
+  }
+}
+
+rowsEl.addEventListener('change', (e) => {
+  const roleSelect = e.target.closest('[data-role-select]');
+  const basinToggle = e.target.closest('[data-basin-toggle]');
+  if (roleSelect) { setUserRole(roleSelect.dataset.uid, roleSelect.value); }
+  else if (basinToggle) { toggleBasinGorevlisi(basinToggle.dataset.uid, basinToggle.checked); }
+});
+
+document.getElementById('users-search').addEventListener('input', (e) => { filterText = e.target.value; render(); });
+document.getElementById('filter-role').addEventListener('change', (e) => { filterRole = e.target.value; render(); });
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(users, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'kullanicilar.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  showToast('Kullanıcı listesi indirildi.', { variant: 'success' });
+});
+
+function loadUsers() {
+  setState('Yükleniyor…');
+  database.ref('users').once('value').then((snap) => {
+    users = snap.val() || {};
+    if (!Object.keys(users).length) { setState('Henüz kayıtlı kullanıcı yok.'); }
+    updateStats();
+    render();
+  }).catch((err) => {
+    console.error('Kullanıcılar yüklenemedi:', err);
+    setState('Kullanıcılar yüklenemedi.');
+  });
+}
+
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    currentUid = null;
+    setState('Bu sayfayı görüntülemek için bir yönetici hesabıyla giriş yapmış olmanız gerekir.');
+    document.getElementById('stat-total').textContent = '—';
+    document.getElementById('stat-admins').textContent = '—';
+    document.getElementById('stat-pending').textContent = '—';
+    return;
+  }
+  currentUid = user.uid;
+  database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
+    if (snap.val() !== 'admin' && snap.val() !== 'owner') {
+      setState('Kullanıcı yönetimi yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
+      return;
+    }
+    loadUsers();
+  }).catch((err) => {
+    console.error('Yetki kontrol edilemedi:', err);
+    setState('Yetki kontrol edilemedi.');
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typography | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="typography" data-breadcrumb="Home > Typography">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Foundations</div>
+        <h1 class="page-title">Typography</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Display + Type scale ── -->
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Display sizes</div></div>
+      <div class="card-body">
+        <div class="type-row"><div class="type-label">56px / 700 / -2px</div><div style="font-size:56px;font-weight:700;letter-spacing:-2px;line-height:1.05;color:var(--text)">Built to ship.</div></div>
+        <div class="type-row"><div class="type-label">42px / 700 / -1.4px</div><div style="font-size:42px;font-weight:700;letter-spacing:-1.4px;line-height:1.1;color:var(--text)">A free admin template, redesigned.</div></div>
+        <div class="type-row"><div class="type-label">32px / 700 / -1px</div><div style="font-size:32px;font-weight:700;letter-spacing:-1px;line-height:1.15;color:var(--text)">Real charts, real tables, real fast.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Heading scale</div></div>
+      <div class="card-body">
+        <div class="type-row"><div class="type-label">28px / 700 — H1</div><p style="font-size:28px;font-weight:700;letter-spacing:-0.5px;color:var(--text);line-height:1.2;margin:0">The quick brown fox jumps over the lazy dog</p></div>
+        <div class="type-row"><div class="type-label">22px / 600 — H2</div><h2 style="font-size:22px;font-weight:600;letter-spacing:-0.4px;color:var(--text);line-height:1.25;margin:0">The quick brown fox jumps over the lazy dog</h2></div>
+        <div class="type-row"><div class="type-label">18px / 600 — H3</div><h3 style="font-size:18px;font-weight:600;color:var(--text);line-height:1.3;margin:0">The quick brown fox jumps over the lazy dog</h3></div>
+        <div class="type-row"><div class="type-label">15px / 600 — H4</div><h4 style="font-size:15px;font-weight:600;color:var(--text);margin:0">The quick brown fox jumps over the lazy dog</h4></div>
+        <div class="type-row"><div class="type-label">14px / 400 — body</div><div style="font-size:14px;font-weight:400;color:var(--text)">Body copy at 14/1.43. The quick brown fox jumps over the lazy dog. Use this size for paragraph text and most UI labels.</div></div>
+        <div class="type-row"><div class="type-label">13px / 400 — secondary</div><div style="font-size:13px;font-weight:400;color:var(--text-secondary)">Secondary text at 13px in <code>--text-secondary</code> for descriptions, captions and tertiary copy.</div></div>
+        <div class="type-row"><div class="type-label">12px / 500 — helper</div><div style="font-size:12px;font-weight:500;color:var(--text-muted)">Helper text at 12px in <code>--text-muted</code>. Use sparingly for inline metadata.</div></div>
+        <div class="type-row"><div class="type-label">11px / 600 caps</div><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted)">Eyebrow / pretitle</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Inline + Block ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Inline text</div></div>
+      <div class="card-body" style="font-size:13px;line-height:1.65;color:var(--text-secondary)">
+        <p style="margin-bottom:10px">Bold uses <strong>medium 500</strong> by default. Italic <em>looks like this</em>. A <a href="#">hyperlink</a> uses the primary teal. Inline <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-surface-secondary);padding:1px 5px;border-radius:3px">code</code> sits at 12px. Use <kbd style="font-family:inherit;font-size:11px;background:var(--bg-surface-secondary);border:1px solid var(--border-color);padding:1px 5px;border-radius:3px">⌘K</kbd> to open the search.</p>
+        <p style="margin-bottom:10px">You can <mark style="background:var(--yellow-lt);color:var(--text);padding:0 2px;border-radius:2px">highlight</mark> or strike <s>old text</s>. Footnotes use <sup style="font-size:10px">superscript</sup> or <sub style="font-size:10px">subscript</sub>. Abbreviations like <abbr title="Cascading Style Sheets" style="border-bottom:1px dotted var(--text-muted);cursor:help">CSS</abbr> use a dotted underline.</p>
+        <p>Use <small style="font-size:11px;color:var(--text-muted)">small caps</small> for compact metadata.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Block elements</div></div>
+      <div class="card-body">
+        <blockquote style="border-left:3px solid var(--primary);padding:4px 14px;font-size:14px;color:var(--text);margin-bottom:14px;line-height:1.55">
+          “Design is not just what it looks like and feels like. Design is how it works.”
+          <footer style="font-size:12px;color:var(--text-muted);margin-top:6px">— Steve Jobs</footer>
+        </blockquote>
+        <ul style="font-size:13px;color:var(--text-secondary);padding-left:20px;line-height:1.6;margin-bottom:12px">
+          <li>Concise list items at 13px</li>
+          <li>Comfortable line-height of 1.6</li>
+          <li>Bullet color matches body text</li>
+        </ul>
+        <ol style="font-size:13px;color:var(--text-secondary);padding-left:20px;line-height:1.6;margin-bottom:12px">
+          <li>First step in the sequence</li>
+          <li>Second step continues from above</li>
+          <li>Third step closes the loop</li>
+        </ol>
+        <dl style="font-size:13px;display:grid;grid-template-columns:120px 1fr;gap:6px 14px;color:var(--text-secondary)">
+          <dt style="color:var(--text);font-weight:600">Plan</dt><dd style="margin:0">Business</dd>
+          <dt style="color:var(--text);font-weight:600">Seats</dt><dd style="margin:0">12 of 25 used</dd>
+          <dt style="color:var(--text);font-weight:600">Renewal</dt><dd style="margin:0">May 28, 2026</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lead paragraph + reading copy ── -->
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Reading copy</div></div>
+      <div class="card-body" style="max-width:680px">
+        <p style="font-size:16px;color:var(--text);line-height:1.65;margin-bottom:14px"><strong style="font-weight:500">Lead paragraph</strong> at 16/1.65 for product copy, blog intros, and onboarding screens. Keeps lines around 65–80 characters for comfortable reading.</p>
+        <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:12px">Body paragraphs continue at 14/1.7 with secondary color. Notice how the spacing between paragraphs gives the eye a place to rest. Long-form articles can run to ~75 characters per line and stay readable on most desktop breakpoints.</p>
+        <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:12px">Inline emphasis like <a href="#">links</a>, <strong style="color:var(--text)">bold accents</strong>, and <em>italics</em> all share the body line-height so vertical rhythm is preserved across the whole block.</p>
+        <hr style="border:0;border-top:1px solid var(--border-color-light);margin:18px 0">
+        <p style="font-size:12.5px;color:var(--text-muted);line-height:1.55"><strong style="color:var(--text);font-weight:600">Footnote.</strong> Smaller meta text (12.5/1.55) sits comfortably below dividers. Use this for source attributions, timestamps, and disclaimers.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Code blocks ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Code block</div></div>
+      <div class="card-body">
+        <pre style="background:var(--bg-surface-secondary);border:1px solid var(--border-color-light);border-radius:var(--radius);padding:14px 16px;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;color:var(--text);overflow-x:auto;margin:0">// Add a chart factory to charts.js
+function myChart(echarts, el, t) {
+  const chart = echarts.init(el);
+  chart.setOption({
+    series: [{ type: 'line', data: [12, 18, 24, 30] }]
+  });
+  return chart;
+}</pre>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Terminal</div></div>
+      <div class="card-body">
+        <pre style="background:#0f1623;color:#e6ebf2;border-radius:var(--radius);padding:14px 16px;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;overflow-x:auto;margin:0"><span style="color:#7e8896">$</span> npm run build
+<span style="color:#1ABB9C">✓</span> built in 4.9s
+<span style="color:#7e8896">$</span> npm run preview
+  <span style="color:#7e8896">➜  Local:</span> http://localhost:4173/
+<span style="color:#7e8896">$</span> █</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Numerals + alignment ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Numerals</div></div>
+      <div class="card-body">
+        <div class="type-row">
+          <div class="type-label">Default</div>
+          <div style="font-size:18px;color:var(--text);font-weight:500">$28,401.50 · 99.9%</div>
+        </div>
+        <div class="type-row">
+          <div class="type-label">Tabular</div>
+          <div style="font-size:18px;color:var(--text);font-weight:500;font-variant-numeric:tabular-nums">$28,401.50 · 99.9%</div>
+        </div>
+        <div class="type-row">
+          <div class="type-label">Display</div>
+          <div style="font-size:36px;color:var(--text);font-weight:700;letter-spacing:-1px;line-height:1">$28,401</div>
+        </div>
+        <div class="type-row" style="border-bottom:none">
+          <div class="type-label">Mono</div>
+          <div style="font-size:14px;color:var(--text);font-family:var(--font-mono)">acct_8f3k29df3lkj</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Truncation</div></div>
+      <div class="card-body">
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Single-line truncate</div>
+          <div style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px;border:1px dashed var(--border-color);padding:8px;border-radius:4px">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Multi-line clamp (3 lines)</div>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;border:1px dashed var(--border-color);padding:8px;border-radius:4px">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+</body>
+</html>

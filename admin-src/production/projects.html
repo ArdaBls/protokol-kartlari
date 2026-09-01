@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tüm haberler | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. Etkinliklerin
+     haberMetni alanı dolu olanları listeler (bkz. index.html'deki etkinlik formu, "Haber Metni"). -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="projects" data-breadcrumb="Anasayfa|index.html > Tüm haberler">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Haberler</div>
+        <h1 class="page-title">Tüm haberler</h1>
+      </div>
+      <div class="page-actions">
+        <div class="search-box" style="width:220px">
+          <svg class="s-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+          <input type="text" id="news-search" placeholder="Haber ara…" aria-label="Haber ara">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-3" id="projects-grid">
+    <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+
+const DURUM_LABEL = { planlandi: 'Planlandı', yaziliyor: 'Haber yazılıyor', incelemede: 'İncelemede', tamamlandi: 'Tamamlandı', iptal: 'İptal' };
+const DURUM_CLS   = { yaziliyor: 'status-yellow', incelemede: 'status-blue', tamamlandi: 'status-green', iptal: 'status-red' };
+// "Gerçekleşti" aşaması kaldırılıp durum tek iş akışında birleştirildi (bkz. app.js
+// EVENT_STATUS) -- eski kayıtlardaki cekildi/haber/yayinlandi değerleri en yakın yeni
+// karşılığına eşlenir, ham/çevrilmemiş metin görünmesin diye.
+const LEGACY_DURUM = { cekildi: 'planlandi', haber: 'yaziliyor', yayinlandi: 'tamamlandi' };
+const normalizeDurum = (d) => { const k = d || 'planlandi'; return LEGACY_DURUM[k] || k; };
+
+const grid = document.getElementById('projects-grid');
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const parseNameList = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+
+function fmtTarih(key) {
+  if (!key) return '';
+  const [y, m, d] = key.split('-');
+  return d && m && y ? `${d}.${m}.${y}` : key;
+}
+
+let NEWS = [];
+let filterText = '';
+
+function setState(html) {
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
+}
+
+function render() {
+  const q = filterText.toLowerCase();
+  const items = NEWS.filter(([, e]) => !q || (e.ad || '').toLowerCase().includes(q) || (e.haberMetni || '').toLowerCase().includes(q));
+  if (!items.length) { setState('Eşleşen haber yok.'); return; }
+
+  grid.innerHTML = items.map(([id, e]) => {
+    const durum = normalizeDurum(e.durum);
+    const writers = parseNameList(e.haberYazanlari).join(', ') || '—';
+    const excerpt = (e.haberMetni || '').slice(0, 140);
+    return `
+      <a class="card" href="project_detail.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(e.ad || '(adsız)')}</div>
+          <span class="status ${DURUM_CLS[durum] || ''}" style="flex-shrink:0">${DURUM_LABEL[durum] || durum}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${escapeHtml(fmtTarih(e.tarih))}${e.yer ? ' · ' + escapeHtml(e.yer) : ''}</div>
+        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px">${escapeHtml(excerpt)}${(e.haberMetni || '').length > 140 ? '…' : ''}</div>
+        <div style="font-size:11.5px;color:var(--text-muted)">Yazan: ${escapeHtml(writers)}</div>
+      </a>
+    `;
+  }).join('');
+}
+
+document.getElementById('news-search').addEventListener('input', (e) => { filterText = e.target.value; render(); });
+
+setState('Yükleniyor…');
+database.ref('etkinlikler').once('value').then((snap) => {
+  const events = snap.val() || {};
+  NEWS = Object.entries(events)
+    .filter(([, e]) => e && e.haberMetni)
+    .sort((a, b) => (b[1].tarih || '').localeCompare(a[1].tarih || ''));
+  if (!NEWS.length) { setState('Henüz haber metni girilmiş bir etkinlik yok.'); return; }
+  render();
+}).catch((err) => {
+  console.error('Haberler yüklenemedi:', err);
+  setState('Haberler yüklenemedi.');
+});
+</script>
+
+</body>
+</html>

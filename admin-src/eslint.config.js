@@ -1,0 +1,143 @@
+import js from '@eslint/js';
+import prettierConfig from 'eslint-config-prettier';
+
+export default [
+  js.configs.recommended,
+  prettierConfig,
+  {
+    files: ['**/*.js', '**/*.mjs', '**/*.jsx'],
+    languageOptions: {
+      // 2025 for import attributes (`with { type: 'json' }` in shell-render.js).
+      // Emitted code is still ES2022 — `build.target` in vite.config.js governs
+      // that, and the JSON import is inlined as a string literal at build time.
+      ecmaVersion: 2025,
+      sourceType: 'module',
+      globals: {
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        globalThis: 'readonly',
+        global: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        getComputedStyle: 'readonly',
+        CustomEvent: 'readonly',
+        IntersectionObserver: 'readonly',
+        NodeFilter: 'readonly',
+        ResizeObserver: 'readonly',
+        MutationObserver: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        FileReader: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        Image: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+        fetch: 'readonly',
+        performance: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        navigator: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        Element: 'readonly',
+        Event: 'readonly',
+        KeyboardEvent: 'readonly',
+        MouseEvent: 'readonly',
+        DOMParser: 'readonly',
+        // Library globals
+        $: 'readonly',
+        jQuery: 'readonly',
+        bootstrap: 'readonly',
+        Chart: 'readonly',
+        echarts: 'readonly',
+        dayjs: 'readonly',
+        Skycons: 'readonly',
+        DataTable: 'readonly',
+        L: 'readonly',
+        hljs: 'readonly',
+        Choices: 'readonly',
+        noUiSlider: 'readonly',
+        Uppy: 'readonly',
+        Cropper: 'readonly',
+        Inputmask: 'readonly',
+        moment: 'readonly',
+        flatpickr: 'readonly',
+        Pickr: 'readonly',
+        Flot: 'readonly',
+        FullCalendar: 'readonly',
+        TempusDominus: 'readonly',
+        process: 'readonly',
+        sample_data: 'readonly',
+        prettyPrint: 'readonly',
+        validator: 'readonly',
+        TabbedNotification: 'readonly',
+        CustomTabs: 'readonly',
+        TableManageButtons: 'readonly',
+        init_sidebar: 'readonly',
+        idname: 'writable',
+        ended: 'writable',
+        optionSet2: 'readonly'
+      }
+    },
+    rules: {
+      // Code Quality. Unused vars are a warning (not error) because this is
+      // a template: consumers routinely declare state they haven't wired up
+      // yet. Use a leading underscore to intentionally silence the warning.
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ],
+      'no-console': 'warn',
+      'no-debugger': 'error',
+      'no-alert': 'warn',
+
+      // Best Practices
+      'eqeqeq': ['error', 'always'],
+      'curly': ['error', 'all'],
+      // The defensive-init pattern in chart modules uses empty catches to
+      // skip a chart when its library isn't present — intentional, not a bug.
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-func': 'error',
+
+      // Security
+      'no-script-url': 'error',
+      'no-void': 'error',
+
+      // Style (basic)
+      'semi': ['error', 'always'],
+      'quotes': ['error', 'single', { avoidEscape: true }],
+      'indent': ['warn', 2, { SwitchCase: 1 }],
+      'comma-dangle': ['error', 'never'],
+      'no-trailing-spaces': 'error',
+      'eol-last': 'error'
+    }
+  },
+  {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'docs/_site/**',
+      'production/images/**',
+      '**/*.min.js',
+      'vite.config.js'
+    ]
+  }
+];

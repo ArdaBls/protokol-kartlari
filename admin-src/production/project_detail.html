@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haber detayı | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|projects.html > Haber detayı">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div id="detail-root">
+    <div class="page-header"><div class="page-header-row"><div><h1 class="page-title">Yükleniyor…</h1></div></div></div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+
+const DURUM_LABEL = { planlandi: 'Planlandı', yaziliyor: 'Haber yazılıyor', incelemede: 'İncelemede', tamamlandi: 'Tamamlandı', iptal: 'İptal' };
+const DURUM_CLS   = { yaziliyor: 'status-yellow', incelemede: 'status-blue', tamamlandi: 'status-green', iptal: 'status-red' };
+const LEGACY_DURUM = { cekildi: 'planlandi', haber: 'yaziliyor', yayinlandi: 'tamamlandi' };
+const normalizeDurum = (d) => { const k = d || 'planlandi'; return LEGACY_DURUM[k] || k; };
+
+const root = document.getElementById('detail-root');
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const parseNameList = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+
+function fmtTarih(key) {
+  if (!key) return '';
+  const [y, m, d] = key.split('-');
+  return d && m && y ? `${d}.${m}.${y}` : key;
+}
+
+function setMessage(title, body) {
+  root.innerHTML = `
+    <div class="page-header"><div class="page-header-row"><div>
+      <div class="page-pretitle">Haberler</div>
+      <h1 class="page-title">${escapeHtml(title)}</h1>
+    </div></div></div>
+    <div class="card"><div class="card-body" style="color:var(--text-muted)">${escapeHtml(body)}</div></div>
+  `;
+}
+
+function render(id, e) {
+  const durum = normalizeDurum(e.durum);
+  const yazanlar = parseNameList(e.haberYazanlari);
+  const gorevliler = parseNameList(e.gorevli);
+  document.title = (e.ad || 'Haber detayı') + ' | Protokol';
+
+  root.innerHTML = `
+    <div class="page-header">
+      <div class="page-header-row">
+        <div>
+          <div class="page-pretitle">Haberler · ${escapeHtml(fmtTarih(e.tarih))}</div>
+          <h1 class="page-title">${escapeHtml(e.ad || '(adsız)')}</h1>
+        </div>
+        <div class="page-actions">
+          <span class="status ${DURUM_CLS[durum] || ''}" style="font-size:12.5px">${DURUM_LABEL[durum] || durum}</span>
+          ${e.arsiv ? `<a class="btn btn-outline" href="${escapeHtml(e.arsiv)}" target="_blank" rel="noopener">Arşiv bağlantısı</a>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="row col-8-4">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Haber metni</div></div>
+          <div class="card-body" style="font-size:13px;color:var(--text-secondary);line-height:1.7;white-space:pre-wrap">${e.haberMetni ? escapeHtml(e.haberMetni) : '<span style="color:var(--text-muted)">Bu etkinlik için henüz haber metni girilmemiş.</span>'}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Etkinlik bilgileri</div></div>
+          <div class="card-body" style="font-size:13px;color:var(--text-secondary);line-height:2">
+            <div><span style="color:var(--text-muted)">Tarih</span> · <strong style="color:var(--text)">${escapeHtml(fmtTarih(e.tarih))}</strong></div>
+            ${e.yer ? `<div><span style="color:var(--text-muted)">Yer</span> · ${escapeHtml(e.yer)}</div>` : ''}
+            ${e.birim ? `<div><span style="color:var(--text-muted)">Düzenleyen birim</span> · ${escapeHtml(e.birim)}</div>` : ''}
+            ${e.planlayan ? `<div><span style="color:var(--text-muted)">Planlayan</span> · ${escapeHtml(e.planlayan)}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Haberi yazan(lar)</div></div>
+          <div class="card-body" style="font-size:13px;color:var(--text-secondary)">
+            ${yazanlar.length ? yazanlar.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Henüz işlenmemiş.</span>'}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Basın görevlisi</div></div>
+          <div class="card-body" style="font-size:13px;color:var(--text-secondary)">
+            ${gorevliler.length ? gorevliler.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Atanmamış.</span>'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+const id = new URLSearchParams(location.search).get('id');
+if (!id) {
+  setMessage('Haber detayı', 'Bir etkinlik seçilmedi. Tüm haberler sayfasından bir habere tıklayın.');
+} else {
+  database.ref('etkinlikler/' + id).once('value').then((snap) => {
+    const e = snap.val();
+    if (!e) { setMessage('Haber bulunamadı', 'Bu etkinlik silinmiş veya artık mevcut değil.'); return; }
+    render(id, e);
+  }).catch((err) => {
+    console.error('Haber yüklenemedi:', err);
+    setMessage('Haber detayı', 'Yüklenemedi.');
+  });
+}
+</script>
+
+</body>
+</html>

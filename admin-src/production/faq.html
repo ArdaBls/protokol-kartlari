@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yardım merkezi | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="faq" data-breadcrumb="Anasayfa|index.html > Yardım merkezi">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Destek</div>
+        <h1 class="page-title">Yardım merkezi</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="card faq-hero">
+    <div class="faq-hero-inner">
+      <h2>Nasıl yardımcı olabiliriz?</h2>
+      <p>Sık sorulan sorular arasında arama yapın veya kategorilere göz atın.</p>
+      <div class="faq-search">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+        <input type="text" id="faq-search" placeholder="Örn. 'şifre sıfırlama'…" aria-label="Sık sorulan sorularda ara">
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-8-4">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Sık sorulan sorular</div>
+      </div>
+      <div class="card-body" style="padding:0 16px 12px">
+        <div class="faq-categories" id="faq-cats">
+          <button class="chip active" data-cat="all">Tümü</button>
+          <button class="chip" data-cat="getting-started">Başlarken</button>
+          <button class="chip" data-cat="kartlar">Protokol kartları</button>
+          <button class="chip" data-cat="takvim">Takvim</button>
+          <button class="chip" data-cat="haber">Haber metni</button>
+          <button class="chip" data-cat="hesap">Hesap</button>
+        </div>
+
+        <div class="faq-list" id="faq-list"></div>
+        <div class="faq-empty" id="faq-empty" hidden>
+          <div class="title">Sonuç bulunamadı</div>
+          <div class="desc">Farklı bir anahtar kelime deneyin veya bir kategoriye göz atın.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Bize ulaşın</div></div>
+        <div class="card-body" style="padding:8px 16px">
+          <a href="mailto:bilasaarda@gmail.com" class="contact-channel">
+            <div class="ch-icon" style="background:var(--blue-lt);color:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg></div>
+            <div><div class="title">E-posta</div><div class="meta">bilasaarda@gmail.com</div></div>
+          </a>
+          <a href="tel:+905414363694" class="contact-channel">
+            <div class="ch-icon" style="background:var(--yellow-lt);color:var(--yellow)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+            <div><div class="title">Telefon</div><div class="meta">+90 (0541) 436 36 94</div></div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+const FAQ = [
+  { cat: 'getting-started', q: 'Panele nasıl giriş yaparım?',                     a: 'Sağ üstteki hesap simgesinden e-posta ve şifrenizle giriş yapabilirsiniz. Hesabınız yoksa kayıt olduktan sonra bir yöneticinin sizi onaylaması gerekir.' },
+  { cat: 'getting-started', q: 'Hesabım oluşturuldu ama hiçbir şeyi düzenleyemiyorum, neden?',  a: 'Yeni hesaplar <strong>Beklemede</strong> rolüyle başlar ve salt-okunur erişime sahiptir. Bir yönetici sizi <strong>Editör</strong> veya <strong>Yönetici</strong> rolüne yükseltene kadar veri düzenleyemezsiniz.' },
+  { cat: 'getting-started', q: 'Site telefonda da düzgün çalışıyor mu?',          a: 'Evet — arayüz mobil kullanım için tasarlandı ve saha ekibi tarafından yoğunlukla telefondan kullanılıyor.' },
+  { cat: 'kartlar',         q: '"İl Protokol Sırası" ile "Üniversite Protokol Sırası" arasındaki fark nedir?', a: 'İkisi ayrı listelerdir: biri il genelindeki protokol sırasını, diğeri üniversite içi protokol sırasını gösterir. Bir kişi her iki listede de görünebilir.' },
+  { cat: 'kartlar',         q: 'Protokol sırasını nasıl değiştiririm?',           a: 'Düzenleme yetkiniz varsa kartları sürükleyip bırakarak sırayı değiştirebilirsiniz. Değişiklik anında herkese yansır.' },
+  { cat: 'kartlar',         q: 'Yeni bir kişi/kart nasıl eklerim?',               a: 'İlgili listenin üstündeki <strong>Kişi ekle</strong> butonunu kullanın; ad, unvan ve fotoğraf bilgilerini girip kaydedin.' },
+  { cat: 'takvim',          q: 'Takvime nasıl etkinlik eklerim?',                 a: 'Takvim sayfasında bir güne tıklayıp etkinlik başlığı, saat ve açıklama girerek kaydedebilirsiniz. Ekip için ortak paylaşılan bir takvimdir.' },
+  { cat: 'takvim',          q: 'Takvimin gün/hafta/ay görünümünü nasıl değiştiririm?', a: 'Takvim üstündeki görünüm sekmelerinden <strong>Gün</strong>, <strong>Hafta</strong>, <strong>Ay</strong> veya <strong>Liste</strong> görünümüne geçebilirsiniz.' },
+  { cat: 'haber',           q: 'Haber metni nasıl üretilir?',                     a: 'Protokol listesinden kişi(ler) seçin veya bir takvim etkinliği seçin; sistem Türkçe -in hâli kurallarına uygun otomatik haber cümlesi/fotoğraf altyazısı üretir.' },
+  { cat: 'haber',           q: 'Üretilen haber metnini değiştirebilir miyim?',    a: 'Evet, üretilen metin bir taslaktır — kopyalayıp dilediğiniz gibi düzenleyebilirsiniz.' },
+  { cat: 'hesap',           q: 'Şifremi unuttum, ne yapmalıyım?',                 a: 'Giriş ekranındaki <strong>Şifremi unuttum</strong> bağlantısını kullanarak e-postanıza sıfırlama bağlantısı alabilirsiniz.' },
+  { cat: 'hesap',           q: '"Editör" ile "Yönetici" rolü arasındaki fark nedir?', a: 'Editörler protokol/kart ve takvim verilerini düzenleyebilir. Yöneticiler ayrıca kullanıcı rollerini değiştirebilir ve admin panelindeki günlükleri (logları) görebilir.' },
+  { cat: 'hesap',           q: 'Bir kullanıcının rolünü nasıl değiştiririm?',     a: 'Yönetici iseniz admin panelindeki <strong>Kullanıcı yönetimi</strong> sayfasından ilgili kullanıcının rolünü değiştirebilirsiniz.' }
+];
+
+let activeCat = 'all';
+let openIdx = -1;
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function render() {
+  const q = document.getElementById('faq-search').value.trim().toLowerCase();
+  const filtered = FAQ
+    .map((item, idx) => ({ ...item, idx }))
+    .filter((item) => activeCat === 'all' || item.cat === activeCat)
+    .filter((item) => !q || item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q));
+
+  const list = document.getElementById('faq-list');
+  const empty = document.getElementById('faq-empty');
+  if (!filtered.length) {
+    list.innerHTML = '';
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+    list.innerHTML = filtered.map((item) => `
+      <div class="faq-item${item.idx === openIdx ? ' open' : ''}" data-idx="${item.idx}">
+        <button type="button" class="faq-q" aria-expanded="${item.idx === openIdx}">
+          <span>${escapeHtml(item.q)}</span>
+          <svg class="faq-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+        </button>
+        <div class="faq-a">${item.a}</div>
+      </div>
+    `).join('');
+  }
+}
+
+document.getElementById('faq-cats').addEventListener('click', (e) => {
+  const btn = e.target.closest('.chip');
+  if (!btn) return;
+  e.stopPropagation();
+  document.querySelectorAll('#faq-cats .chip').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeCat = btn.dataset.cat;
+  openIdx = -1;
+  render();
+});
+
+document.getElementById('faq-list').addEventListener('click', (e) => {
+  const item = e.target.closest('.faq-item');
+  if (!item) return;
+  const idx = parseInt(item.dataset.idx, 10);
+  openIdx = openIdx === idx ? -1 : idx;
+  render();
+});
+
+let searchTimer;
+document.getElementById('faq-search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(render, 120);
+});
+
+render();
+</script>
+
+</body>
+</html>

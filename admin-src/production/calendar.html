@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="calendar" data-breadcrumb="Home > Calendar">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Schedule</div>
+        <h1 class="page-title">Calendar</h1>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline">Today</button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M8 4v8"/></svg>
+          New event
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="calendar-toolbar">
+      <div class="nav-btns">
+        <button class="card-opt-btn" aria-label="Previous month"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3L5 7l4 4"/></svg></button>
+        <button class="card-opt-btn" aria-label="Next month"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3l4 4-4 4"/></svg></button>
+      </div>
+      <div class="calendar-month">April 2026</div>
+      <div class="spacer"></div>
+      <div class="chart-tabs">
+        <button class="chart-tab">Month</button>
+        <button class="chart-tab active">Week</button>
+        <button class="chart-tab">Day</button>
+      </div>
+    </div>
+    <div class="calendar-grid">
+      <div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
+
+      <div class="calendar-day muted"><span class="day-num">30</span></div>
+      <div class="calendar-day muted"><span class="day-num">31</span></div>
+      <div class="calendar-day"><span class="day-num">1</span><span class="calendar-event">Standup 9am</span></div>
+      <div class="calendar-day"><span class="day-num">2</span></div>
+      <div class="calendar-day"><span class="day-num">3</span><span class="calendar-event blue">Design review</span></div>
+      <div class="calendar-day"><span class="day-num">4</span></div>
+      <div class="calendar-day muted"><span class="day-num">5</span></div>
+
+      <div class="calendar-day"><span class="day-num">6</span><span class="calendar-event">1:1 with Sara</span></div>
+      <div class="calendar-day"><span class="day-num">7</span><span class="calendar-event yellow">Q2 Planning</span><span class="calendar-event">Lunch demo</span></div>
+      <div class="calendar-day"><span class="day-num">8</span></div>
+      <div class="calendar-day"><span class="day-num">9</span><span class="calendar-event purple">All-hands</span></div>
+      <div class="calendar-day"><span class="day-num">10</span></div>
+      <div class="calendar-day"><span class="day-num">11</span><span class="calendar-event red">Launch deadline</span></div>
+      <div class="calendar-day muted"><span class="day-num">12</span></div>
+
+      <div class="calendar-day"><span class="day-num">13</span></div>
+      <div class="calendar-day"><span class="day-num">14</span><span class="calendar-event">Standup 9am</span></div>
+      <div class="calendar-day"><span class="day-num">15</span><span class="calendar-event blue">Customer call</span></div>
+      <div class="calendar-day"><span class="day-num">16</span></div>
+      <div class="calendar-day"><span class="day-num">17</span><span class="calendar-event">Design review</span></div>
+      <div class="calendar-day"><span class="day-num">18</span><span class="calendar-event yellow">Vendor demo</span></div>
+      <div class="calendar-day muted"><span class="day-num">19</span></div>
+
+      <div class="calendar-day"><span class="day-num">20</span></div>
+      <div class="calendar-day"><span class="day-num">21</span></div>
+      <div class="calendar-day"><span class="day-num">22</span><span class="calendar-event purple">Quarterly review</span></div>
+      <div class="calendar-day"><span class="day-num">23</span></div>
+      <div class="calendar-day"><span class="day-num">24</span><span class="calendar-event red">Code freeze</span></div>
+      <div class="calendar-day"><span class="day-num">25</span></div>
+      <div class="calendar-day muted"><span class="day-num">26</span></div>
+
+      <div class="calendar-day today"><span class="day-num">27</span><span class="calendar-event">Standup 9am</span><span class="calendar-event blue">Sprint planning</span></div>
+      <div class="calendar-day"><span class="day-num">28</span></div>
+      <div class="calendar-day"><span class="day-num">29</span><span class="calendar-event">1:1 with Aigars</span></div>
+      <div class="calendar-day"><span class="day-num">30</span><span class="calendar-event yellow">Release v4.0</span></div>
+      <div class="calendar-day muted"><span class="day-num">1</span></div>
+      <div class="calendar-day muted"><span class="day-num">2</span></div>
+      <div class="calendar-day muted"><span class="day-num">3</span></div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+</body>
+</html>

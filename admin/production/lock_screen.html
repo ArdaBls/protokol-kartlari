@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Locked | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/admin/site.webmanifest">
+<meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/admin/images/apple-touch-icon.svg">
+<meta name="description" content="OMÜ Protokol Kartları admin paneli.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Locked">
+<meta property="og:description" content="OMÜ Protokol Kartları admin paneli.">
+<meta property="og:image" content="/admin/images/android-chrome-512x512.svg">
+<meta property="og:site_name" content="Protokol">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
+  <script type="module" crossorigin src="/admin/js/rolldown-runtime-_5RX-BWT.js"></script>
+  <script type="module" crossorigin src="/admin/js/toast-CBtjS_PZ.js"></script>
+  <script type="module" crossorigin src="/admin/js/menus-BJGD7GPP.js"></script>
+  <script type="module" crossorigin src="/admin/js/modal-MTuCfURV.js"></script>
+  <script type="module" crossorigin src="/admin/js/main-v4-CKFQz50n.js"></script>
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-DgaN1GCJ.css">
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-card lock-screen">
+    <div class="lock-avatar" aria-hidden="true">
+      <div class="lock-avatar-circle" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">A</div>
+      <div class="lock-icon">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+      </div>
+    </div>
+
+    <div class="auth-title" style="text-align:center;margin-top:14px">Welcome back, Aigars</div>
+    <div class="auth-subtitle" style="text-align:center">Your session was locked for security. Enter your password to continue.</div>
+
+    <form onsubmit="event.preventDefault(); window.location.href='index.html';">
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-group">
+          <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+          <input type="password" id="password" class="form-control" placeholder="••••••••" required autofocus>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
+        Unlock
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Not Aigars? <a href="login.html">Sign in as someone else</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ayarlar | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="settings" data-breadcrumb="Anasayfa|index.html > Ayarlar">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Çalışma alanı</div>
+        <h1 class="page-title">Ayarlar</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+    <!-- ── SECTION NAV ── -->
+    <aside class="settings-nav">
+      <a class="settings-nav-link active" href="#account"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg> Hesap</a>
+      <div class="settings-nav-sep"></div>
+      <a class="settings-nav-link danger" href="#danger"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 12h.01"/></svg> Tehlikeli bölge</a>
+    </aside>
+
+    <!-- ── SECTIONS ── -->
+    <div class="settings-content">
+      <!-- ACCOUNT -->
+      <section class="settings-section" id="account">
+        <h2 class="settings-section-title">Hesap</h2>
+        <p class="settings-section-desc">Kişisel bilgilerinizi ve profil detaylarınızı güncelleyin.</p>
+        <form class="settings-form">
+          <div class="settings-row">
+            <label>Profil fotoğrafı</label>
+            <div class="settings-control profile-control">
+              <div class="profile-preview" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">A</div>
+              <div>
+                <button type="button" class="btn btn-outline btn-sm">Yeni yükle</button>
+                <button type="button" class="btn btn-outline btn-sm">Kaldır</button>
+                <div class="settings-hint">JPG, PNG veya GIF. Maks. 2 MB.</div>
+              </div>
+            </div>
+          </div>
+          <div class="settings-row">
+            <label for="full-name">Ad soyad</label>
+            <input class="form-control" id="full-name" type="text" value="Aigars Silkalns" required>
+          </div>
+          <div class="settings-row">
+            <label for="email">E-posta adresi</label>
+            <input class="form-control" id="email" type="email" value="demo@example.com" required>
+          </div>
+          <div class="settings-row">
+            <label for="role">Rol</label>
+            <input class="form-control" id="role" type="text" value="Yönetici" disabled>
+            <div class="settings-hint">Rolünüzü yalnızca bir yönetici Kullanıcı yönetimi sayfasından değiştirebilir.</div>
+          </div>
+          <div class="settings-row">
+            <label for="timezone">Saat dilimi</label>
+            <select class="form-control" id="timezone">
+              <option>(UTC+03:00) İstanbul</option>
+              <option>(UTC+00:00) Londra</option>
+              <option>(UTC-05:00) New York</option>
+              <option>(UTC-08:00) Los Angeles</option>
+            </select>
+          </div>
+          <div class="settings-actions">
+            <button type="reset" class="btn btn-outline">Vazgeç</button>
+            <button type="submit" class="btn btn-primary">Değişiklikleri kaydet</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- DANGER -->
+      <section class="settings-section" id="danger">
+        <h2 class="settings-section-title">Tehlikeli bölge</h2>
+        <p class="settings-section-desc">Geri alınamaz işlemler. Dikkatli olun.</p>
+        <div class="danger-row">
+          <div><div class="label">Tüm verileri dışa aktar</div><div class="desc">Bu çalışma alanındaki her şeyin JSON arşivini indir</div></div>
+          <button class="btn btn-outline" data-action="export">Dışa aktar</button>
+        </div>
+        <div class="danger-row danger-critical">
+          <div><div class="label">Hesabı sil</div><div class="desc">Bu hesabı ve ilişkili tüm verileri kalıcı olarak sil</div></div>
+          <button class="btn btn-outline" style="color:var(--red);border-color:var(--red)" data-action="delete">Sil</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+// Section nav: scroll to anchor + set active.
+const navLinks = document.querySelectorAll('.settings-nav-link');
+navLinks.forEach((a) => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      navLinks.forEach((l) => l.classList.remove('active'));
+      a.classList.add('active');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+// Auto-highlight nav link based on scroll position.
+const sections = document.querySelectorAll('.settings-section');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      navLinks.forEach((l) => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+sections.forEach((s) => observer.observe(s));
+</script>
+
+</body>
+</html>
