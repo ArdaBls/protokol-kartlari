@@ -67,7 +67,7 @@
 .cal-nowline, .cal-nowline-full { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--red); z-index: 6; pointer-events: none; }
 .cal-nowline-full { transition: top .4s linear; }
 .cal-nowline-full::before, .cal-nowline::before { content: ''; position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
-.cal-nowlabel { position: absolute; font-size: 10px; font-family: var(--font-mono); color: var(--red); font-weight: var(--font-weight-bold); transform: translateY(-50%); z-index: 6; }
+.cal-nowlabel { position: absolute; font-size: 10px; font-family: var(--font-mono); color: #fff; background: var(--red); border-radius: 4px; padding: 1px 4px; font-weight: var(--font-weight-bold); transform: translateY(-50%); z-index: 7; pointer-events: none; transition: top .4s linear; }
 
 .cal-block {
   position: absolute; border-radius: 8px; padding: 4px 7px 7px; overflow: hidden; cursor: pointer;
