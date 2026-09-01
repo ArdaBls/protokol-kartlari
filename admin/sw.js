@@ -5,7 +5,7 @@
 
 // Bump the suffix on every release to bust users' caches when CSS/JS hashes
 // change but the same URL is requested. Activate handler clears old caches.
-const CACHE = 'protokol-admin-r1';
+const CACHE = 'protokol-admin-r2';
 
 // Subpath-aware: scope is the directory the SW is registered against. Under
 // `/` it's `https://example.com/`; under `/admin/` it's that path. Resolving

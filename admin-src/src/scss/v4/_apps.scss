@@ -590,6 +590,18 @@
     padding-bottom: 8px;
   }
 }
+// Mobile/iOS (aynı eşik takvimdeki ile tutarlı, bkz. _real-calendar.scss):
+// 4 sütunu yan yana sıkıştırıp yatay kaydırmak yerine dikey istifle -- dar
+// ekranda yatay scroll hem keşfedilmesi zor hem de dikey sürükle-bırak jestiyle
+// çakışabiliyor. kanban.js sürükle-bırak hedefini data-drop niteliğiyle
+// (closest ile) buluyor, DOM sırasına/yerleşim yönüne bağlı değil -- bu yüzden
+// yön değişince davranış bozulmaz.
+@media (max-width: 700px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+}
 
 .kanban-column {
   background: var(--bg-surface-secondary);

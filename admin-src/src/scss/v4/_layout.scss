@@ -44,7 +44,12 @@
   inset-inline-start: 0; top: 0; bottom: 0;
   width: var(--sidebar-w);
   background: var(--sidebar-bg);
-  z-index: 100;
+  // Leaflet'in kendi iç panelleri (.leaflet-pane, özellikle marker/popup/
+  // tooltip panes + .leaflet-control-container) varsayılan olarak 400-1000
+  // z-index aralığında -- bkz. map.html. Sidebar (özellikle mobil çekmece
+  // modunda) bunların HER ZAMAN üzerinde kalmalı, aksi halde harita sayfasında
+  // menü haritanın altına giriyor.
+  z-index: 1200;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -357,7 +362,10 @@
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-  z-index: 95;
+  // Sidebar'ın (z-index:1200) hemen altında, Leaflet panelerinin (bkz. yukarısı)
+  // üzerinde kalmalı ki harita sayfasında çekmece açıkken arkaplan haritanın
+  // üzerine gerçekten binsin.
+  z-index: 1150;
   opacity: 1;
   transition: opacity 180ms ease;
 }
@@ -463,11 +471,28 @@
   padding-top: 56px;
   min-height: 100vh;
   transition: margin-left 220ms cubic-bezier(0.2, 0, 0, 1);
+  // Klasik "sticky footer" deseni: .main dikey flex konteyner, .page-wrapper
+  // esner (flex:1), .footer son çocuk olarak (bkz. vite.config.js'in
+  // </main>'den hemen önce enjekte ettiği yer) her zaman en altta kalır --
+  // içerik kısa olduğunda viewport'un dibine yapışır, uzun olduğunda normal
+  // akışta iter. TÜM admin sayfalarını etkiler (global .main/.footer kuralı).
+  display: flex;
+  flex-direction: column;
 }
-.page-wrapper { padding: 20px 24px 40px; }
+.page-wrapper {
+  padding: 20px 24px 40px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.footer { flex-shrink: 0; }
 
 // Page header
-.page-header { margin-bottom: 20px; }
+// flex-shrink:0 -- .page-wrapper artık dikey flex konteyner (sticky footer
+// deseni, bkz. yukarısı); başlık her zaman içeriğine göre sabit yükseklikte
+// kalmalı, kalan alanı takvim/harita gibi büyüyen kartlar paylaşsın.
+.page-header { margin-bottom: 20px; flex-shrink: 0; }
 .page-pretitle {
   font-size: 11px;
   font-weight: 600;

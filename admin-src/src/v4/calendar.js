@@ -131,7 +131,26 @@ let sortableInstances = [];
 
 function calDayCount() {
   if (calView === 'day') { return 1; }
-  return (window.matchMedia && window.matchMedia('(max-width:700px)').matches) ? 3 : 7;
+  // Ana sitedeki (app.js calDayCount) tek eşikli 7→3 davranışının kademeli
+  // hali: 700px'in altında hâlâ 3 gün (ana siteyle aynı alt sınır korunuyor),
+  // ama 700-1049px arası (sidebar açıkken tablet genişlikleri) 7 gün sıkışık
+  // kalmasın diye ara adım olarak 5 gün gösterilir.
+  if (!window.matchMedia) { return 7; }
+  if (window.matchMedia('(max-width:700px)').matches) { return 3; }
+  if (window.matchMedia('(max-width:1049px)').matches) { return 5; }
+  return 7;
+}
+
+// calView haftalık/günlük ızgara açıkken pencere yavaşça daraltılıp
+// genişletildiğinde calDayCount()'un ürettiği gün sayısı canlı güncellensin
+// diye -- initCalendar()'da bir kez bağlanır. Sayfa yenilenmeden tepki
+// vermesi istendi (bkz. görev tanımı madde 1); debounce'lu, sık resize
+// event'lerinde renderCalendar()'ı gereksiz yere onlarca kez tetiklemez.
+let calResizeDebounceTimer = null;
+function calOnWindowResize() {
+  if (calView !== 'week' && calView !== 'day') { return; }
+  clearTimeout(calResizeDebounceTimer);
+  calResizeDebounceTimer = setTimeout(() => { renderCalendar(); }, 150);
 }
 function calVisibleWeekDays() {
   const n = calDayCount();
@@ -225,7 +244,7 @@ async function deleteEvent(id) {
 }
 
 // Basit alan-bazlı değişiklik özeti — ana sitedeki describeEventChanges'in çekirdek alan alt kümesi.
-const FIELD_LABELS = { ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati', bitisSaat: 'Bitiş Saati', yer: 'Yer / Mekân', birim: 'Düzenleyen Birim', not: 'Not' };
+const FIELD_LABELS = { ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati', bitisSaat: 'Bitiş Saati', yer: 'Yer / Mekân', birim: 'Düzenleyen Birim', not: 'Not', locked: 'Kilit' };
 function describeChanges(oldE, newE) {
   oldE = oldE || {}; newE = newE || {};
   const changes = [];
@@ -236,6 +255,7 @@ function describeChanges(oldE, newE) {
     const n = (newE[k] === null || newE[k] === undefined) ? '' : String(newE[k]).trim();
     if (o !== n) { changes.push(FIELD_LABELS[k] + ': ' + (o || '(boş)') + ' → ' + (n || '(boş)')); }
   });
+  if (!!oldE.locked !== !!newE.locked) { changes.push(FIELD_LABELS.locked + ': ' + (newE.locked ? 'açıldı 🔒' : 'kaldırıldı')); }
   return changes;
 }
 function evLogName(s) { return String(s || 'Etkinlik').split(' · ').join(' - '); }
@@ -249,8 +269,14 @@ function calBlockClasses(ev, dayDate) {
   if (st === 'tamamlandi') { c += ' done'; }
   if (st === 'iptal') { c += ' cancelled'; }
   if (dayDate && dayDate < todayDate()) { c += ' past'; }
+  if (ev.locked) { c += ' locked'; }
   return c;
 }
+// Ana sitedeki lockIconHtml'in v1 (sadece-görsel) alt kümesi -- admin panelinde
+// kilit yalnızca düzenleme modalındaki toggle'dan açılıp kapatılır (bkz.
+// openEventModal), ikon üzerine dokunarak değil; bu yüzden burada onclick YOK,
+// sadece küçük bir 🔒 rozeti gösterilir.
+function lockBadgeHtml(ev) { return ev.locked ? '<span class="cal-lock-badge" title="Kilitli · sürüklenip boyutlandırılamaz">🔒</span>' : ''; }
 
 // ── Layout algorithms (ported verbatim from app.js) ──
 
@@ -365,11 +391,14 @@ function renderWeekView(body) {
     multiday += multiDayBars.map((b) => {
       const e = b.ev; const ty = evType(e.tur);
       const gc = 'grid-column:' + (b.startIdx + 2) + ' / ' + (b.endIdx + 3) + '; grid-row:' + (b.row + 1) + ';';
-      const cls = 'cal-multiday-bar' + (b.continuesLeft ? ' continues-left' : '') + (b.continuesRight ? ' continues-right' : '') + ((e.durum === 'tamamlandi') ? ' done' : '');
+      const cls = 'cal-multiday-bar' + (b.continuesLeft ? ' continues-left' : '') + (b.continuesRight ? ' continues-right' : '') + ((e.durum === 'tamamlandi') ? ' done' : '') + (e.locked ? ' locked' : '');
+      // Kilitli çok-günlü etkinlikte kenar-sürükle-boyutlandır kolları hiç
+      // render edilmez (calStartMultiDayGesture zaten .cal-multiday-handle
+      // arıyor, kol yoksa jest hiç başlamaz).
       return '<button type="button" class="' + cls + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="' + gc + ' background:' + ty.renk + '; border-color:' + ty.renk + '; color:#fff;">' +
-        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' +
-        '<span class="cal-multiday-handle cal-multiday-handle-l" data-act="multiday-resize-l" aria-hidden="true"></span>' +
-        '<span class="cal-multiday-handle cal-multiday-handle-r" data-act="multiday-resize-r" aria-hidden="true"></span></button>';
+        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockBadgeHtml(e) +
+        (e.locked ? '' : '<span class="cal-multiday-handle cal-multiday-handle-l" data-act="multiday-resize-l" aria-hidden="true"></span>' +
+        '<span class="cal-multiday-handle cal-multiday-handle-r" data-act="multiday-resize-r" aria-hidden="true"></span>') + '</button>';
     }).join('');
     multiday += '</div>';
   }
@@ -408,10 +437,11 @@ function renderWeekView(body) {
       const stBar = evStatus(e.durum).renk;
       inner += '<button type="button" class="' + calBlockClasses(e, d) + compact + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" ' +
         'style="' + calBlockStyle(e) + ' top:' + top + 'px; height:' + hgt + 'px; left:calc(' + left + '% + 2px); width:calc(' + w + '% - 4px);">' +
-        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' +
+        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' + lockBadgeHtml(e) +
         '<span class="cal-status-bar" style="background:' + stBar + ';"></span>' +
+        (e.locked ? '' :
         '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span>' +
-        '<span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span></button>';
+        '<span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span>') + '</button>';
     });
     if (isToday && nowTop !== null) { inner += '<div class="cal-nowline-full" style="top:' + nowTop + 'px;"></div>'; }
     cells += '<div class="cal-daycol' + (wd >= 5 ? ' is-weekend' : '') + (isToday ? ' is-today' : '') + '" data-date="' + k + '" style="height:' + H + 'px;">' + inner + '</div>';
@@ -471,8 +501,8 @@ function renderMonthView(body) {
     const evs = eventsOn(k);
     const shown = evs.slice(0, 3);
     let chips = shown.map((e) => {
-      return '<button type="button" class="cal-block compact' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="position:relative; ' + calBlockStyle(e) + '">' +
-        ((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? '<span class="bh">' + escapeHtml(fmtMultiDayRange(e.tarih, e.bitisTarihi)) + '</span>' : (e.saat ? '<span class="bh">' + escapeHtml(e.saat) + '</span>' : '')) + '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span></button>';
+      return '<button type="button" class="cal-block compact' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + (e.locked ? ' locked' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="position:relative; ' + calBlockStyle(e) + '">' +
+        ((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? '<span class="bh">' + escapeHtml(fmtMultiDayRange(e.tarih, e.bitisTarihi)) + '</span>' : (e.saat ? '<span class="bh">' + escapeHtml(e.saat) + '</span>' : '')) + '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockBadgeHtml(e) + '</button>';
     }).join('');
     if (evs.length > shown.length) { chips += '<button type="button" class="cal-more" data-date="' + k + '" data-act="more">+' + (evs.length - shown.length) + ' tane daha</button>'; }
     cells += '<div class="' + cls + '" data-date="' + k + '">' +
@@ -530,7 +560,7 @@ function renderListView(body) {
     html += '<button type="button" class="cal-ev" data-evid="' + escapeHtml(e._id) + '" data-act="edit">' +
       '<span class="cal-ev-dot" style="background:' + ty.renk + ';"></span>' +
       '<span class="cal-ev-time">' + escapeHtml((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? fmtMultiDayRange(e.tarih, e.bitisTarihi) : (e.saat || '—')) + '</span>' +
-      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' +
+      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockBadgeHtml(e) +
       '<span class="cal-ev-meta"><span class="cal-tag" style="background:' + st.renk + ';">' + escapeHtml(st.ad) + '</span>' + meta.join(' · ') + '</span></span></button>';
   });
   body.innerHTML = '<div class="cal-list-wrap">' + html + '</div>';
@@ -586,6 +616,7 @@ function calOnDragEnd(evt) {
 async function calMoveEvent(id, dateKey, timeInfo) {
   if (!id || !EVENTS[id] || !canWrite) { renderCalendar(); return; }
   const ev = EVENTS[id];
+  if (ev.locked) { showToast('Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.', { variant: 'error' }); renderCalendar(); return; }
   const patch = { tarih: dateKey };
   if (timeInfo && timeInfo.isDayCol && timeInfo.xy) {
     const grabOffset = timeInfo.grabOffsetY || 0;
@@ -607,6 +638,7 @@ async function calMoveEvent(id, dateKey, timeInfo) {
 async function calResizeEvent(id, patch) {
   if (!id || !EVENTS[id] || !canWrite) { renderCalendar(); return; }
   const ev = EVENTS[id];
+  if (ev.locked) { showToast('Bu etkinlik kilitli, süresi değiştirilemez. Önce kilidi açın.', { variant: 'error' }); renderCalendar(); return; }
   const moved = Object.assign({}, ev, patch);
   const changes = describeChanges(ev, moved);
   const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliğinin süresi ayarlandı' + (changes.length ? ' · ' + changes.join(' · ') : ''));
@@ -616,19 +648,30 @@ async function calResizeEvent(id, patch) {
 async function calMoveMultiDayEvent(id, newTarih, newBitisTarihi) {
   if (!id || !EVENTS[id] || !canWrite) { renderCalendar(); return; }
   const ev = EVENTS[id];
+  if (ev.locked) { showToast('Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.', { variant: 'error' }); renderCalendar(); return; }
   const patch = { tarih: newTarih, bitisTarihi: newBitisTarihi };
   const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(newTarih) + '–' + fmtTrDate(newBitisTarihi) + ')');
   renderCalendar();
   if (res) { showToast('Etkinlik taşındı.', { variant: 'success' }); }
 }
 
+// Kilitli bir etkinlik SortableJS'in kendi sürüklemesine hiç girmemeli --
+// filter true dönerse sürükleme daha başlamadan kesilir (bkz. ana sitedeki
+// calSortableFilter, app.js). preventOnFilter:false olduğu için etkinliği
+// açan tıklama/click jesti normal çalışmaya devam eder.
+function calSortableFilter(evt, item) {
+  if (evt && evt.target && evt.target.closest && evt.target.closest('.cal-resize-handle')) { return true; }
+  const id = item && item.dataset ? item.dataset.evid : null;
+  if (id && EVENTS[id] && EVENTS[id].locked) { return true; }
+  return false;
+}
 function calSortableOptions(groupName) {
   return {
     group: { name: groupName, pull: true, put: true },
     draggable: '.cal-block, .cal-allday-chip',
     animation: 150, ghostClass: 'dragging',
     delay: 150, delayOnTouchOnly: true,
-    filter: '.cal-resize-handle',
+    filter: calSortableFilter,
     preventOnFilter: false,
     onStart: calOnDragStart, onMove: calOnDragMove, onEnd: calOnDragEnd
   };
@@ -702,7 +745,7 @@ function calStartResizeGesture(e) {
   const block = handle.closest('.cal-block[data-evid]');
   const id = block && block.dataset ? block.dataset.evid : null;
   const ev = id ? EVENTS[id] : null;
-  if (!ev || !canWrite) { return; }
+  if (!ev || !canWrite || ev.locked) { return; }
   const daycol = block.closest('.cal-daycol');
   const origStartMin = hmToMin(ev.saat);
   if (!daycol || origStartMin === null) { return; }
@@ -763,7 +806,7 @@ function calStartMultiDayGesture(e) {
   const isHandleR = !!e.target.closest('.cal-multiday-handle-r');
   const id = bar.dataset.evid;
   const ev = id ? EVENTS[id] : null;
-  if (!ev || !ev.bitisTarihi || !canWrite) { return; }
+  if (!ev || !ev.bitisTarihi || !canWrite || ev.locked) { return; }
   const container = bar.closest('.cal-allday-multiday');
   if (!container) { return; }
   const days = calVisibleWeekDays();
@@ -835,6 +878,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
       '</div>' +
       '<div class="cal-ev-form-row"><label for="cef-birim">Düzenleyen Birim</label><select id="cef-birim" class="form-control"><option value="">—</option>' + facultyOptionsHtml(ev ? ev.birim : '') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
+      '<label class="cal-ev-form-check"><input type="checkbox" id="cef-locked"' + (ev && ev.locked ? ' checked' : '') + '> 🔒 Kilitli — sürüklenip taşınamasın / boyutlandırılamasın</label>' +
     '</form>';
 
   const actions = [];
@@ -859,7 +903,8 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
         durum: form.querySelector('#cef-durum').value,
         yer: form.querySelector('#cef-yer').value.trim(),
         birim: form.querySelector('#cef-birim').value,
-        not: form.querySelector('#cef-not').value.trim()
+        not: form.querySelector('#cef-not').value.trim(),
+        locked: form.querySelector('#cef-locked').checked
       };
       if (!patch.tarih) { showToast('Tarih zorunlu.', { variant: 'warning' }); return false; }
       const ref = EVENTS[id];
@@ -928,6 +973,7 @@ export function initCalendar() {
 
   bindToolbar();
   bindCalMainBody();
+  window.addEventListener('resize', calOnWindowResize, { passive: true });
   renderCalendar();
 
   auth.onAuthStateChanged((user) => {

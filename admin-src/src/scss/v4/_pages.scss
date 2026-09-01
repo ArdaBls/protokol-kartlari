@@ -739,3 +739,30 @@
   [data-chart] { break-inside: avoid; }
 }
 
+// ────────────────────────
+//  MAP PAGE (map.html)
+// ────────────────────────
+// .page-wrapper is a sticky-footer flex column (see _layout.scss); the map
+// row grows to fill whatever height is left above the footer instead of a
+// fixed 560px box, same flex-chain pattern used by .cal-card in
+// _real-calendar.scss. map.invalidateSize() (already wired in map.html) picks
+// up the resulting dynamic height on load/resize/sidebar-toggle.
+.map-row {
+  flex: 1 1 auto;
+  min-height: 420px;
+  align-items: stretch;
+}
+.map-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.map-card #map {
+  flex: 1 1 auto;
+  min-height: 320px;
+}
+.map-card .card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
