@@ -358,6 +358,15 @@
 						<div class="ev-attendee-box" id="ev_gorevliBox"></div>
 					</div>
 					<div class="field">
+						<label for="ev_haberYazanlariSearch">Haberi Yazan(lar) <span style="font-weight:400; color:var(--muted); font-size:12px;">(etkinlik gerçekleştikten sonra, haberi kim/kimler yazdıysa işaretlenir)</span></label>
+						<input type="text" class="ev-att-search" id="ev_haberYazanlariSearch" placeholder="İsim ara…" oninput="renderNewsWriterPicker()">
+						<div class="ev-attendee-box" id="ev_haberYazanlariBox"></div>
+					</div>
+					<div class="field">
+						<label for="ev_haberMetni">Haber Metni <span style="font-weight:400; color:var(--muted); font-size:12px;">(yayınlanan/yazılan son haber metni, arşiv amaçlı buraya girilir)</span></label>
+						<textarea id="ev_haberMetni" rows="6" style="resize:vertical;" placeholder="Haber Metni Üretici ile oluşturduğunuz veya elle yazdığınız son metni buraya yapıştırın…"></textarea>
+					</div>
+					<div class="field">
 						<label for="ev_attSearch">Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
 						<label class="au-basin-toggle" style="margin:2px 0 6px;"><input type="checkbox" id="ev_attIncludeIl" onchange="onAttIncludeIlToggle()"> İl Protokolünü de dahil et</label>
 						<input type="text" class="ev-att-search" id="ev_attSearch" placeholder="İsim veya unvan ara…" oninput="renderEventAttendeePicker()">

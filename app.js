@@ -5565,7 +5565,8 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 	document.getElementById("ev_gorevliSearch").value="";
 	renderPressStaffPicker();
 	calNewsWriters = e ? parseGorevliString(e.haberYazanlari) : [];
-	document.getElementById("ev_haberYazanlariSearch").value="";
+	const haberYazanlariSearchEl = document.getElementById("ev_haberYazanlariSearch");
+	if (haberYazanlariSearchEl) haberYazanlariSearchEl.value="";
 	renderNewsWriterPicker();
 	const gorevliToken = ++gorevliLoadToken;
 	loadPressOfficerPool().then(function(){
@@ -5578,7 +5579,8 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 		renderNewsWriterPicker();
 	});
 	document.getElementById("ev_arsiv").value = e ? (e.arsiv||"") : "";
-	document.getElementById("ev_haberMetni").value = e ? (e.haberMetni||"") : "";
+	const haberMetniEl = document.getElementById("ev_haberMetni");
+	if (haberMetniEl) haberMetniEl.value = e ? (e.haberMetni||"") : "";
 	document.getElementById("ev_haberKaynagi").value = e ? (e.haberKaynagi||"") : "";
 	document.getElementById("ev_not").value = e ? (e.not||"") : "";
 	calAttendees = (e && Array.isArray(e.katilimcilar)) ? e.katilimcilar.map(function(a){ return { prefix:a.prefix||"", name:a.name||"", title:a.title||"", rank:a.rank!==undefined?a.rank:"", kaynak:a.kaynak||"universite" }; }) : [];
@@ -5733,7 +5735,7 @@ document.addEventListener("change", function(e){
 // admin panelindeki Kişiler kartları) bu alandan türetilir.
 function renderNewsWriterPicker(){
 	const box=document.getElementById("ev_haberYazanlariBox"); if(!box) return;
-	const q=(document.getElementById("ev_haberYazanlariSearch").value||"").trim().toLocaleLowerCase("tr");
+	const q=(document.getElementById("ev_haberYazanlariSearch")?.value||"").trim().toLocaleLowerCase("tr");
 	const filtered=pressOfficerPool.filter(function(p){ return p.name.toLocaleLowerCase("tr").includes(q); });
 	let html="";
 	calNewsWriters.forEach(function(name){
@@ -5898,7 +5900,7 @@ async function saveEventImpl(){
 		yer: document.getElementById("ev_yer").value.trim(), birim: document.getElementById("ev_birim").value.trim(),
 		planlayan: document.getElementById("ev_planlayan").value.trim(), gorevli: calPressStaff.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
 		haberYazanlari: calNewsWriters.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
-		haberMetni: document.getElementById("ev_haberMetni").value.trim(),
+		haberMetni: (document.getElementById("ev_haberMetni")?.value||"").trim(),
 		katilimcilar: calAttendees.slice(), arsiv: safeLinkUrl(document.getElementById("ev_arsiv").value),
 		not: document.getElementById("ev_not").value.trim(),
 		rozetler: Array.from(document.querySelectorAll("#ev_badgeBox .ev-badge-cb:checked")).map(function(cb){ return cb.value; }),
