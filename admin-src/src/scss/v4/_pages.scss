@@ -749,7 +749,7 @@
 // up the resulting dynamic height on load/resize/sidebar-toggle.
 .map-row {
   flex: 1 1 auto;
-  min-height: 420px;
+  min-height: 260px;
   align-items: stretch;
 }
 .map-card {
@@ -759,10 +759,20 @@
 }
 .map-card #map {
   flex: 1 1 auto;
-  min-height: 320px;
+  min-height: 200px;
 }
 .map-card .card-body {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+// Kullanıcı isteği: harita sekmesi açıldığında sayfanın kendisi kaydırılmaya
+// gerek duymasın -- harita + birim listesi kartları mevcut viewport yüksekliğine
+// tam otursun (mobilde zaten sorun yoktu, bu sadece masaüstü/geniş ekran içindi).
+// SADECE harita sayfasına özel (data-page="map") -- diğer sayfalardaki normal
+// sayfa kaydırması etkilenmez.
+@media (min-width: 701px) {
+  body[data-page="map"] .main { height: 100vh; overflow: hidden; }
+  body[data-page="map"] .page-wrapper { overflow: hidden; }
 }
 
