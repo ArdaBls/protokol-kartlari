@@ -1,432 +1,946 @@
-// Dynamic calendar with full event CRUD via modals.
-// - Click a day → modal lists events for that day with edit/delete + Add new.
-// - Click an event → modal edits that event (title, color, date) or deletes.
-// - "New event" page-action → modal creates an event on the visible month.
-// - Prev/next/Today re-render the grid.
-// Events are kept in a Map keyed by ISO date string. Procedural events (auto
-// Monday-standup etc.) are read-only suggestions until the user materializes
-// them by adding/editing.
+// Gerçek takvim — ana sitedeki (app.js) Gün/Hafta/Ay/Yıl/Liste motorunun admin
+// paneline portu. Aynı Firebase `etkinlikler` düğümüne bağlıdır, aynı piksel
+// matematiğini (CAL_HOUR_H/CAL_GUTTER) ve aynı 3 sürükleme jestini (ızgara-
+// seç-oluştur, kenar-sürükle-boyutlandır, çok-günlü-bar-sürükle) kullanır; tekil
+// etkinlik taşıma SortableJS ile (ana sitedeki AYNI kütüphane). Sol filtre rayı
+// (cal-rail-left) YOK — bkz. plan. Düzenleme modalı v1'de sadece çekirdek
+// alanları kapsar (gorevli/haberYazanlari/haberMetni/katılımcılar bir sonraki
+// iterasyona bırakıldı) — kaydederken var olan kaydın diğer alanları KORUNUR
+// (okunup üstüne sadece formdaki alanlar yazılır, tam obje üzerine yazılmaz).
 
+import Sortable from 'sortablejs';
 import { showToast } from './toast.js';
-import { showModal, closeModal } from './modal.js';
+import { showModal } from './modal.js';
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-
-const COLOR_OPTIONS = [
-  { value: '',       label: 'Teal',   var: 'var(--primary)' },
-  { value: 'blue',   label: 'Blue',   var: 'var(--blue)' },
-  { value: 'yellow', label: 'Yellow', var: 'var(--yellow)' },
-  { value: 'red',    label: 'Red',    var: 'var(--red)' },
-  { value: 'purple', label: 'Purple', var: 'var(--purple)' }
-];
-
-const SEED = {
-  '2026-04-01': [{ title: 'Standup 9am' }],
-  '2026-04-03': [{ title: 'Design review', color: 'blue' }],
-  '2026-04-06': [{ title: '1:1 with Sara' }],
-  '2026-04-07': [{ title: 'Q2 Planning', color: 'yellow' }, { title: 'Lunch demo' }],
-  '2026-04-09': [{ title: 'All-hands', color: 'purple' }],
-  '2026-04-11': [{ title: 'Launch deadline', color: 'red' }],
-  '2026-04-14': [{ title: 'Standup 9am' }],
-  '2026-04-15': [{ title: 'Customer call', color: 'blue' }],
-  '2026-04-17': [{ title: 'Design review' }],
-  '2026-04-18': [{ title: 'Vendor demo', color: 'yellow' }],
-  '2026-04-22': [{ title: 'Quarterly review', color: 'purple' }],
-  '2026-04-24': [{ title: 'Code freeze', color: 'red' }],
-  '2026-04-27': [{ title: 'Standup 9am' }, { title: 'Sprint planning', color: 'blue' }],
-  '2026-04-29': [{ title: '1:1 with Aigars' }],
-  '2026-04-30': [{ title: 'Release v4.0', color: 'yellow' }]
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
 };
 
-const events = new Map();
-let nextId = 1;
+const CAL_HOUR_H = 48;
+const CAL_GUTTER = 54;
 
-function pad(n) { return String(n).padStart(2, '0'); }
-function isoKey(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
-function parseKey(key) {
-  const [y, m, d] = key.split('-').map(Number);
-  return { year: y, month: m - 1, day: d };
+const CAL_DOW = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const CAL_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+const EVENT_TYPES = [
+  { key: 'acilis',    ad: 'Açılış Töreni',            renk: '#c2410c' },
+  { key: 'konferans', ad: 'Konferans',                 renk: '#1d4ed8' },
+  { key: 'panel',     ad: 'Panel',                     renk: '#a21caf' },
+  { key: 'calistay',  ad: 'Çalıştay',                  renk: '#65a30d' },
+  { key: 'ziyaret',   ad: 'Protokol Ziyareti',         renk: '#a16207' },
+  { key: 'imza',      ad: 'Protokol İmza Töreni',      renk: '#7c3aed' },
+  { key: 'mezuniyet', ad: 'Mezuniyet Töreni',          renk: '#be123c' },
+  { key: 'odul',      ad: 'Ödül Töreni',               renk: '#b45309' },
+  { key: 'basin',     ad: 'Basın Toplantısı',          renk: '#0369a1' },
+  { key: 'sergi',     ad: 'Sergi / Kültür-Sanat',      renk: '#0f766e' },
+  { key: 'spor',      ad: 'Spor Etkinliği',            renk: '#15803d' },
+  { key: 'gorevdegisimi', ad: 'Görev Değişimi',        renk: '#4338ca' },
+  { key: 'akademikbasari', ad: 'Akademik Başarı',      renk: '#047857' },
+  { key: 'kariyer',        ad: 'Kariyer Etkinliği',    renk: '#0e7490' },
+  { key: 'topluluk',       ad: 'Öğrenci Toplulukları', renk: '#be185d' },
+  { key: 'saglik',         ad: 'Sağlık Etkinliği',     renk: '#b91c1c' },
+  { key: 'uluslararasi',   ad: 'Uluslararası Etkinlik', renk: '#334155' },
+  { key: 'yesiluniversite',ad: 'Yeşil Üniversite',     renk: '#166534' },
+  { key: 'toplanti',  ad: 'Toplantı',                  renk: '#475569' },
+  { key: 'bayram',    ad: 'Ulusal ve Resmî Bayramlar', renk: '#b91c1c' },
+  { key: 'diger',     ad: 'Diğer',                     renk: '#57534e' }
+];
+const EVENT_STATUS = [
+  { key: 'planlandi',  ad: 'Planlandı',       renk: '#6b7280' },
+  { key: 'yaziliyor',  ad: 'Haber yazılıyor', renk: '#b45309' },
+  { key: 'incelemede', ad: 'İncelemede',      renk: '#7c3aed' },
+  { key: 'tamamlandi', ad: 'Tamamlandı',      renk: '#15803d' },
+  { key: 'iptal',      ad: 'İptal',           renk: '#b03a3a' }
+];
+
+const FACULTY_GROUPS = [
+  { title: 'Rektörlük', items: ['Rektör', 'Rektör Yardımcısı'] },
+  { title: 'Fakülteler', items: [
+    'Ali Fuad Başgil Hukuk Fakültesi', 'Çarşamba İnsan ve Toplum Bilimleri Fakültesi', 'Diş Hekimliği Fakültesi',
+    'Eczacılık Fakültesi', 'Eğitim Fakültesi', 'Fen Fakültesi', 'Güzel Sanatlar Fakültesi',
+    'İktisadi ve İdari Bilimler Fakültesi', 'İlahiyat Fakültesi', 'İletişim Fakültesi',
+    'İnsan ve Toplum Bilimleri Fakültesi', 'Mimarlık Fakültesi', 'Mühendislik Fakültesi',
+    'Sağlık Bilimleri Fakültesi', 'Tıp Fakültesi', 'Turizm Fakültesi', 'Veteriner Fakültesi',
+    'Yaşar Doğu Spor Bilimleri Fakültesi', 'Ziraat Fakültesi'
+  ] },
+  { title: 'Yüksekokul ve Konservatuvar', items: ['Devlet Konservatuvarı', 'Yabancı Diller Yüksekokulu'] },
+  { title: 'Enstitüler', items: ['Lisansüstü Eğitim Enstitüsü', 'Kenevir Araştırmaları Enstitüsü', 'Yaban Hayatı Araştırmaları Enstitüsü'] },
+  { title: 'Meslek Yüksekokulları', items: [
+    'Alaçam Meslek Yüksekokulu', 'Bafra Meslek Yüksekokulu', 'Bafra Turizm Meslek Yüksekokulu',
+    'Bilişim Teknolojileri Meslek Yüksekokulu', 'Çarşamba Ticaret Borsası Meslek Yüksekokulu',
+    'Havelsan Siber Güvenlik Meslek Yüksekokulu', 'Havza Meslek Yüksekokulu', 'Ladik Meslek Yüksekokulu',
+    'Sağlık Hizmetleri Meslek Yüksekokulu', 'Samsun Meslek Yüksekokulu', 'Terme Meslek Yüksekokulu',
+    'Vezirköprü Meslek Yüksekokulu', 'Yeşilyurt Demir Çelik Meslek Yüksekokulu'
+  ] },
+  { title: 'Ofisler ve Merkezler', items: ['Teknoloji Transfer Ofisi'] },
+  { title: 'Koordinatörlükler', items: [
+    'Araştırma ve Geliştirme Koordinatörlüğü (AR-GE)', 'Eğitim Öğretim Koordinatörlüğü', 'Kalite Koordinatörlüğü',
+    'Meslek Yüksekokulları Koordinatörlüğü', 'Mezunlar Koordinatörlüğü',
+    'Öğretim Üyesi Yetiştirme Programı Koordinatörlüğü', 'Temel Bilimler Dersleri Koordinatörlüğü',
+    'Uluslararası İlişkiler Koordinatörlüğü', 'Uygulama ve Araştırma Merkezleri Koordinatörlüğü',
+    'Yayın Koordinatörlüğü', 'Toplumsal Katkı Koordinatörlüğü'
+  ] }
+];
+
+function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function evType(k) { return EVENT_TYPES.find((t) => t.key === k) || EVENT_TYPES[EVENT_TYPES.length - 1]; }
+function evStatus(k) { return EVENT_STATUS.find((s) => s.key === k) || EVENT_STATUS[0]; }
+
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function dKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function parseKey(s) {
+  const a = String(s || '').split('-');
+  if (a.length !== 3) { return null; }
+  const y = Number(a[0]), m = Number(a[1]), day = Number(a[2]);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) { return null; }
+  const d = new Date(y, m - 1, day);
+  if (isNaN(d.getTime())) { return null; }
+  if (d.getFullYear() !== y || d.getMonth() !== m - 1 || d.getDate() !== day) { return null; }
+  return d;
+}
+function addDays(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+function startOfWeek(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay() + 6) % 7; return addDays(x, -wd); }
+function isSameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function todayDate() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function hmToMin(s) { const a = String(s || '').split(':'); if (a.length < 2) { return null; } const h = Number(a[0]), m = Number(a[1]); if (isNaN(h) || isNaN(m)) { return null; } if (h < 0 || h > 23 || m < 0 || m > 59) { return null; } return h * 60 + m; }
+function minToHm(m) { return pad2(Math.floor(m / 60) % 24) + ':' + pad2(m % 60); }
+function fmtTrDate(s) { const d = parseKey(s); if (!d) { return s || ''; } return d.getDate() + ' ' + CAL_MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+function fmtMultiDayRange(tarih, bitisTarihi) {
+  const s = parseKey(tarih), e = parseKey(bitisTarihi);
+  if (!s || !e) { return ''; }
+  const sm = CAL_MONTHS[s.getMonth()].slice(0, 3), em = CAL_MONTHS[e.getMonth()].slice(0, 3);
+  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) { return s.getDate() + '–' + e.getDate() + ' ' + sm; }
+  return s.getDate() + ' ' + sm + '–' + e.getDate() + ' ' + em;
 }
 
-function seedOnce() {
-  if (events.size) {return;}
-  Object.entries(SEED).forEach(([key, list]) => {
-    events.set(key, list.map((e) => ({ id: nextId++, title: e.title, color: e.color || '' })));
-  });
-}
+// ── State ──
 
-function proceduralFor(year, month, day) {
-  const dow = new Date(year, month, day).getDay();
+let database = null;
+let auth = null;
+let currentUserName = '';
+let currentUserEmail = '';
+let canWrite = false;
+
+let EVENTS = {}; // id -> event
+let calView = 'week';
+let calAnchor = new Date();
+let sortableInstances = [];
+
+function calDayCount() {
+  if (calView === 'day') { return 1; }
+  return (window.matchMedia && window.matchMedia('(max-width:700px)').matches) ? 3 : 7;
+}
+function calVisibleWeekDays() {
+  const n = calDayCount();
+  const start = (n === 7 && calView !== 'day') ? startOfWeek(calAnchor) : new Date(calAnchor.getFullYear(), calAnchor.getMonth(), calAnchor.getDate());
+  const days = [];
+  for (let i = 0; i < n; i++) { days.push(addDays(start, i)); }
+  return days;
+}
+function eventList() {
   const out = [];
-  if (dow === 1) {out.push({ title: 'Standup 9am', color: '', procedural: true });}
-  if (dow === 5 && day <= 7) {out.push({ title: 'Design review', color: 'blue', procedural: true });}
+  for (const id in EVENTS) {
+    const e = EVENTS[id];
+    if (!e || typeof e !== 'object' || !e.tarih) { continue; }
+    out.push(Object.assign({}, e, { _id: id }));
+  }
+  out.sort((a, b) => {
+    if (a.tarih !== b.tarih) { return a.tarih < b.tarih ? -1 : 1; }
+    const sa = hmToMin(a.saat), sb = hmToMin(b.saat);
+    if (sa === null && sb !== null) { return -1; }
+    if (sb === null && sa !== null) { return 1; }
+    if (sa !== null && sb !== null && sa !== sb) { return sa - sb; }
+    return String(a.ad || '').localeCompare(String(b.ad || ''), 'tr');
+  });
   return out;
 }
+function visibleEvents() { return eventList().filter((e) => e.durum !== 'iptal' || calView === 'list'); }
+function eventsOn(dateKey) { return visibleEvents().filter((e) => e.tarih === dateKey); }
 
-function eventsForDay(year, month, day) {
-  const key = isoKey(year, month, day);
-  const stored = events.get(key);
-  if (stored && stored.length) {return stored;}
-  // No stored events — suggest procedural ones (still rendered but read-only).
-  return proceduralFor(year, month, day);
+// ── Firebase read/write ──
+
+function attachEventsListener() {
+  database.ref('etkinlikler').on('value', (snap) => {
+    const v = snap.val();
+    EVENTS = (v && typeof v === 'object') ? v : {};
+    renderCalendar();
+  }, (err) => {
+    console.error('Etkinlikler okunamadı:', err);
+    EVENTS = {};
+    renderCalendar();
+  });
 }
 
-function colorOf(value) {
-  return COLOR_OPTIONS.find((c) => c.value === value)?.var ?? 'var(--primary)';
+async function persistEvent(id, patch, logLabel) {
+  if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return null; }
+  const isNew = !id;
+  const finalId = id || database.ref('etkinlikler').push().key;
+  const current = isNew ? {} : (EVENTS[id] || {});
+  const merged = Object.assign({}, current, patch);
+  const updates = {};
+  const toWrite = Object.assign({}, merged);
+  if (isNew) { toWrite.olusturmaTs = firebase.database.ServerValue.TIMESTAMP; toWrite.olusturan = currentUserName || currentUserEmail; }
+  toWrite.guncellemeTs = firebase.database.ServerValue.TIMESTAMP;
+  updates['etkinlikler/' + finalId] = toWrite;
+  const logKey = database.ref('logs/etkinlik').push().key;
+  updates['logs/etkinlik/' + logKey] = {
+    by: currentUserName || currentUserEmail, email: currentUserEmail,
+    action: logLabel || 'Etkinlik güncellendi', target: merged.ad || '',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+  try {
+    await database.ref('/').update(updates);
+    EVENTS[finalId] = merged;
+    return { ok: true, id: finalId };
+  } catch (err) {
+    console.error('Etkinlik kaydedilemedi:', err);
+    showToast('Etkinlik kaydedilemedi. Yetkinizi kontrol edin.', { variant: 'error' });
+    return null;
+  }
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
+async function deleteEvent(id) {
+  if (!canWrite) { showToast('Bu işlem için yetkiniz yok.', { variant: 'error' }); return; }
+  const e = EVENTS[id]; if (!e) { return; }
+  const updates = {};
+  updates['etkinlikler/' + id] = null;
+  const logKey = database.ref('logs/etkinlik').push().key;
+  updates['logs/etkinlik/' + logKey] = {
+    by: currentUserName || currentUserEmail, email: currentUserEmail,
+    action: (e.ad || 'Etkinlik') + ' etkinliği takvimden silindi', target: e.ad || '',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+  try {
+    await database.ref('/').update(updates);
+    delete EVENTS[id];
+    showToast('Etkinlik silindi.', { variant: 'success' });
+    renderCalendar();
+  } catch (err) {
+    console.error('Etkinlik silinemedi:', err);
+    showToast('Etkinlik silinemedi.', { variant: 'error' });
+  }
 }
 
-// ────────────────────────
-//  Grid render
-// ────────────────────────
+// Basit alan-bazlı değişiklik özeti — ana sitedeki describeEventChanges'in çekirdek alan alt kümesi.
+const FIELD_LABELS = { ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati', bitisSaat: 'Bitiş Saati', yer: 'Yer / Mekân', birim: 'Düzenleyen Birim', not: 'Not' };
+function describeChanges(oldE, newE) {
+  oldE = oldE || {}; newE = newE || {};
+  const changes = [];
+  if ((oldE.tur || 'diger') !== (newE.tur || 'diger')) { changes.push(FIELD_LABELS.tur + ': ' + evType(oldE.tur).ad + ' → ' + evType(newE.tur).ad); }
+  if ((oldE.durum || 'planlandi') !== (newE.durum || 'planlandi')) { changes.push(FIELD_LABELS.durum + ': ' + evStatus(oldE.durum).ad + ' → ' + evStatus(newE.durum).ad); }
+  ['ad', 'tarih', 'saat', 'bitisSaat', 'yer', 'birim', 'not'].forEach((k) => {
+    const o = (oldE[k] === null || oldE[k] === undefined) ? '' : String(oldE[k]).trim();
+    const n = (newE[k] === null || newE[k] === undefined) ? '' : String(newE[k]).trim();
+    if (o !== n) { changes.push(FIELD_LABELS[k] + ': ' + (o || '(boş)') + ' → ' + (n || '(boş)')); }
+  });
+  return changes;
+}
+function evLogName(s) { return String(s || 'Etkinlik').split(' · ').join(' - '); }
 
-function render(state) {
-  const { gridEl, monthEl, year, month } = state;
-  monthEl.textContent = `${MONTHS[month]} ${year}`;
+// ── Block styling helpers ──
 
-  const today = new Date();
-  const todayKey = isoKey(today.getFullYear(), today.getMonth(), today.getDate());
+function calBlockStyle(ev) { const ty = evType(ev.tur); return 'background:' + ty.renk + '; color:#fff;'; }
+function calBlockClasses(ev, dayDate) {
+  let c = 'cal-block';
+  const st = ev.durum || 'planlandi';
+  if (st === 'tamamlandi') { c += ' done'; }
+  if (st === 'iptal') { c += ' cancelled'; }
+  if (dayDate && dayDate < todayDate()) { c += ' past'; }
+  return c;
+}
 
-  const first = new Date(year, month, 1);
-  const dowMonFirst = (first.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrev = new Date(year, month, 0).getDate();
+// ── Layout algorithms (ported verbatim from app.js) ──
 
-  const html = [];
-  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach((d) => {
-    html.push(`<div class="dow">${d}</div>`);
+function layoutDay(evs) {
+  const items = evs.map((e) => {
+    let s = hmToMin(e.saat); let en = hmToMin(e.bitisSaat);
+    if (s === null) { return null; }
+    if (en === null) { en = s + 60; } else if (en <= s) { en = 24 * 60; }
+    return { ev: e, s, e: Math.min(en, 24 * 60) };
+  }).filter(Boolean);
+  items.sort((a, b) => a.s - b.s || b.e - a.e);
+  const colEnds = [];
+  items.forEach((it) => {
+    let c = 0; while (c < colEnds.length && colEnds[c] > it.s) { c++; }
+    colEnds[c] = it.e; it.col = c;
+  });
+  let clusterStart = 0, clusterMaxEnd = -Infinity, clusterMaxCol = 0;
+  function closeCluster(from, to) { const width = clusterMaxCol + 1; for (let i = from; i < to; i++) { items[i].total = width; } }
+  items.forEach((it, i) => {
+    if (i > 0 && it.s >= clusterMaxEnd) { closeCluster(clusterStart, i); clusterStart = i; clusterMaxCol = 0; }
+    clusterMaxEnd = Math.max(clusterMaxEnd, it.e); clusterMaxCol = Math.max(clusterMaxCol, it.col);
+  });
+  closeCluster(clusterStart, items.length);
+  return items;
+}
+function layoutMultiDayRow(bars) {
+  bars.sort((a, b) => a.startIdx - b.startIdx || b.endIdx - a.endIdx);
+  const rowEnds = [];
+  bars.forEach((b) => {
+    let r = 0; while (r < rowEnds.length && rowEnds[r] >= b.startIdx) { r++; }
+    rowEnds[r] = b.endIdx; b.row = r;
+  });
+  return Math.max(1, rowEnds.length);
+}
+
+// ── Render dispatcher ──
+
+function renderCalendar() {
+  sortableInstances.forEach((inst) => inst.destroy()); sortableInstances = [];
+  renderTopbar();
+  const body = document.getElementById('calMainBody'); if (!body) { return; }
+  if (calView === 'week' || calView === 'day') { renderWeekView(body); }
+  else if (calView === 'month') { renderMonthView(body); }
+  else if (calView === 'year') { renderYearView(body); }
+  else { renderListView(body); }
+}
+
+function renderTopbar() {
+  document.querySelectorAll('#calViewTabs .cal-viewbtn').forEach((b) => b.classList.toggle('active', b.dataset.view === calView));
+  const lab = document.getElementById('calMonthLabel'); if (!lab) { return; }
+  if (calView === 'day') {
+    const d = calAnchor;
+    lab.textContent = d.getDate() + ' ' + CAL_MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ' · ' + CAL_DOW[(d.getDay() + 6) % 7];
+  } else if (calView === 'week') {
+    const dn = calDayCount();
+    const s = (dn === 7) ? startOfWeek(calAnchor) : new Date(calAnchor.getFullYear(), calAnchor.getMonth(), calAnchor.getDate());
+    const e = addDays(s, dn - 1);
+    if (s.getMonth() === e.getMonth()) { lab.textContent = CAL_MONTHS[s.getMonth()] + ' ' + s.getFullYear(); }
+    else if (s.getFullYear() === e.getFullYear()) { lab.textContent = CAL_MONTHS[s.getMonth()].slice(0, 3) + '–' + CAL_MONTHS[e.getMonth()].slice(0, 3) + ' ' + s.getFullYear(); }
+    else { lab.textContent = CAL_MONTHS[s.getMonth()].slice(0, 3) + ' ' + s.getFullYear() + ' – ' + CAL_MONTHS[e.getMonth()].slice(0, 3) + ' ' + e.getFullYear(); }
+  } else if (calView === 'month') {
+    lab.textContent = CAL_MONTHS[calAnchor.getMonth()] + ' ' + calAnchor.getFullYear();
+  } else if (calView === 'year') {
+    lab.textContent = String(calAnchor.getFullYear());
+  } else {
+    lab.textContent = 'Yaklaşan Etkinlikler';
+  }
+}
+
+function calSetView(v) { calView = v; renderCalendar(); }
+function calShift(dir) {
+  if (calView === 'day') { calAnchor = addDays(calAnchor, dir); }
+  else if (calView === 'week') { calAnchor = addDays(calAnchor, dir * calDayCount()); }
+  else if (calView === 'month') { calAnchor = new Date(calAnchor.getFullYear(), calAnchor.getMonth() + dir, 1); }
+  else if (calView === 'year') { calAnchor = new Date(calAnchor.getFullYear() + dir, calAnchor.getMonth(), calAnchor.getDate()); }
+  else { calAnchor = addDays(calAnchor, dir * 30); }
+  renderCalendar();
+}
+function calToday() { calAnchor = todayDate(); renderCalendar(); }
+function calGoToDay(dateKey) { const d = parseKey(dateKey); if (!d) { return; } calAnchor = d; calSetView('day'); }
+function calGoToMonth(y, m) { calAnchor = new Date(y, m, 1); calSetView('month'); }
+
+// ── Week/Day view ──
+
+let calWeekScrollKey = null;
+let calWeekScrollTopPreserved = null;
+
+function renderWeekView(body) {
+  const n = calDayCount();
+  const today = todayDate();
+  const cols = 'grid-template-columns:' + CAL_GUTTER + 'px repeat(' + n + ',minmax(0,1fr));';
+  const days = calVisibleWeekDays();
+
+  let head = '<div class="cal-tg-head" style="' + cols + '"><div class="cal-gutter-cell"></div>';
+  days.forEach((d) => {
+    const wd = (d.getDay() + 6) % 7;
+    const cls = 'cal-dhead' + (isSameDay(d, today) ? ' is-today' : '') + (wd >= 5 ? ' is-weekend' : '');
+    head += '<div class="' + cls + '"><span class="dw">' + CAL_DOW[wd] + '</span><span class="dn">' + d.getDate() + '</span></div>';
+  });
+  head += '</div>';
+
+  const viewFrom = dKey(days[0]), viewTo = dKey(days[days.length - 1]);
+  const multiDayBars = visibleEvents().filter((e) => e.bitisTarihi && e.bitisTarihi !== e.tarih && e.tarih <= viewTo && e.bitisTarihi >= viewFrom).map((e) => {
+    const s = parseKey(e.tarih), en = parseKey(e.bitisTarihi);
+    const rawStart = Math.round((s - days[0]) / 86400000), rawEnd = Math.round((en - days[0]) / 86400000);
+    return { ev: e, startIdx: Math.max(0, rawStart), endIdx: Math.min(days.length - 1, rawEnd), continuesLeft: e.tarih < viewFrom, continuesRight: e.bitisTarihi > viewTo };
+  });
+  const multiDayRowCount = layoutMultiDayRow(multiDayBars);
+  let multiday = '';
+  if (multiDayBars.length) {
+    multiday = '<div class="cal-allday-multiday" style="' + cols + ' grid-template-rows:repeat(' + multiDayRowCount + ',24px);">';
+    multiday += multiDayBars.map((b) => {
+      const e = b.ev; const ty = evType(e.tur);
+      const gc = 'grid-column:' + (b.startIdx + 2) + ' / ' + (b.endIdx + 3) + '; grid-row:' + (b.row + 1) + ';';
+      const cls = 'cal-multiday-bar' + (b.continuesLeft ? ' continues-left' : '') + (b.continuesRight ? ' continues-right' : '') + ((e.durum === 'tamamlandi') ? ' done' : '');
+      return '<button type="button" class="' + cls + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="' + gc + ' background:' + ty.renk + '; border-color:' + ty.renk + '; color:#fff;">' +
+        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' +
+        '<span class="cal-multiday-handle cal-multiday-handle-l" data-act="multiday-resize-l" aria-hidden="true"></span>' +
+        '<span class="cal-multiday-handle cal-multiday-handle-r" data-act="multiday-resize-r" aria-hidden="true"></span></button>';
+    }).join('');
+    multiday += '</div>';
+  }
+
+  let allday = '<div class="cal-allday" style="' + cols + '"><div class="cal-allday-label">tüm gün</div>';
+  days.forEach((d) => {
+    const k = dKey(d);
+    const evs = eventsOn(k).filter((e) => hmToMin(e.saat) === null && !(e.bitisTarihi && e.bitisTarihi !== e.tarih));
+    allday += '<div class="cal-allday-col" data-date="' + k + '">' + evs.map((e) => {
+      const ty = evType(e.tur);
+      return '<button type="button" class="cal-allday-chip' + ((e.durum === 'tamamlandi') ? ' done' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="background:' + ty.renk + '; border-left-color:' + ty.renk + '; color:#fff;"><span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span></button>';
+    }).join('') + '</div>';
+  });
+  allday += '</div>';
+
+  const H = 24 * CAL_HOUR_H;
+  let nowLabel = ''; let nowTop = null;
+  if (days.some((d) => isSameDay(d, today))) {
+    const nw = new Date(); const nmins = nw.getHours() * 60 + nw.getMinutes(); nowTop = (nmins / 60) * CAL_HOUR_H;
+    nowLabel = '<div class="cal-nowlabel" style="top:' + nowTop + 'px; right:4px;">' + pad2(nw.getHours()) + ':' + pad2(nw.getMinutes()) + '</div>';
+  }
+  let gutter = '<div class="cal-gutter" style="height:' + H + 'px;">';
+  for (let h = 1; h < 24; h++) { gutter += '<div class="cal-hourlab" style="top:' + (h * CAL_HOUR_H) + 'px;">' + pad2(h) + ':00</div>'; }
+  gutter += nowLabel + '</div>';
+
+  let cells = '';
+  days.forEach((d) => {
+    const k = dKey(d); const wd = (d.getDay() + 6) % 7;
+    const isToday = isSameDay(d, today);
+    let inner = '';
+    for (let h = 1; h < 24; h++) { inner += '<div class="cal-hrline" style="top:' + (h * CAL_HOUR_H) + 'px;"></div>'; }
+    layoutDay(eventsOn(k)).forEach((it) => {
+      const e = it.ev; const top = (it.s / 60) * CAL_HOUR_H; const hgt = Math.max(18, ((it.e - it.s) / 60) * CAL_HOUR_H - 2);
+      const w = 100 / it.total; const left = w * it.col;
+      const compact = hgt < 34 ? ' compact' : '';
+      const stBar = evStatus(e.durum).renk;
+      inner += '<button type="button" class="' + calBlockClasses(e, d) + compact + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" ' +
+        'style="' + calBlockStyle(e) + ' top:' + top + 'px; height:' + hgt + 'px; left:calc(' + left + '% + 2px); width:calc(' + w + '% - 4px);">' +
+        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' +
+        '<span class="cal-status-bar" style="background:' + stBar + ';"></span>' +
+        '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span>' +
+        '<span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span></button>';
+    });
+    if (isToday && nowTop !== null) { inner += '<div class="cal-nowline-full" style="top:' + nowTop + 'px;"></div>'; }
+    cells += '<div class="cal-daycol' + (wd >= 5 ? ' is-weekend' : '') + (isToday ? ' is-today' : '') + '" data-date="' + k + '" style="height:' + H + 'px;">' + inner + '</div>';
   });
 
-  for (let i = dowMonFirst; i > 0; i--) {
-    html.push(`<div class="calendar-day muted"><span class="day-num">${daysInPrev - i + 1}</span></div>`);
+  const prevSc = document.getElementById('calTgScroll');
+  calWeekScrollTopPreserved = prevSc ? prevSc.scrollTop : null;
+
+  body.innerHTML = '<div class="cal-tg">' + head + multiday + allday +
+    '<div class="cal-tg-scroll" id="calTgScroll"><div class="cal-tg-body" style="' + cols + '">' + gutter + cells + '</div></div></div>';
+
+  if (canWrite) {
+    body.querySelectorAll('.cal-allday-col, .cal-daycol').forEach((col) => {
+      sortableInstances.push(new Sortable(col, calSortableOptions('calWeek')));
+    });
   }
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = isoKey(year, month, d);
-    const isToday = key === todayKey;
-    const dayEvents = eventsForDay(year, month, d);
-    const evMarkup = dayEvents.map((e, idx) => `
-      <span class="calendar-event${e.color ? ' ' + e.color : ''}" data-event-idx="${idx}" data-day="${d}">${escapeHtml(e.title)}</span>
-    `).join('');
-    html.push(`<div class="calendar-day${isToday ? ' today' : ''}" data-day="${d}"><span class="day-num">${d}</span>${evMarkup}</div>`);
+  const scrollKey = calView + '|' + dKey(days[0]);
+  const isFreshView = scrollKey !== calWeekScrollKey;
+  calWeekScrollKey = scrollKey;
+  const sc = document.getElementById('calTgScroll');
+  if (sc) {
+    if (!isFreshView && calWeekScrollTopPreserved !== null) {
+      sc.scrollTop = calWeekScrollTopPreserved;
+    } else {
+      const hasToday = days.some((d) => isSameDay(d, today));
+      const target = hasToday ? Math.max(0, (new Date().getHours() - 2) * CAL_HOUR_H) : 7 * CAL_HOUR_H;
+      sc.scrollTop = Math.max(0, target - 12);
+    }
   }
+}
 
-  const trailing = 42 - dowMonFirst - daysInMonth;
-  for (let d = 1; d <= trailing; d++) {
-    html.push(`<div class="calendar-day muted"><span class="day-num">${d}</span></div>`);
+function calGridClick(e, dateKey, col) {
+  if (calGridSelectSuppressClick) { calGridSelectSuppressClick = false; return; }
+  if (!canWrite) { return; }
+  if (e.target.closest('.cal-block')) { return; }
+  const rect = col.getBoundingClientRect();
+  const y = e.clientY - rect.top;
+  let mins = Math.round((y / CAL_HOUR_H) * 60 / 30) * 30;
+  mins = Math.max(0, Math.min(23 * 60 + 30, mins));
+  openEventModal(null, dateKey, minToHm(mins));
+}
+
+// ── Month view ──
+
+function renderMonthView(body) {
+  const first = new Date(calAnchor.getFullYear(), calAnchor.getMonth(), 1);
+  const start = startOfWeek(first); const today = todayDate();
+  let dow = '<div class="cal-m-dow">' + CAL_DOW.map((d) => '<span>' + d + '</span>').join('') + '</div>';
+  let cells = '';
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(start, i); const k = dKey(d); const wd = (d.getDay() + 6) % 7;
+    let cls = 'cal-mday';
+    if (d.getMonth() !== calAnchor.getMonth()) { cls += ' other'; }
+    if (wd >= 5) { cls += ' weekend'; }
+    if (isSameDay(d, today)) { cls += ' today'; }
+    const evs = eventsOn(k);
+    const shown = evs.slice(0, 3);
+    let chips = shown.map((e) => {
+      return '<button type="button" class="cal-block compact' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="position:relative; ' + calBlockStyle(e) + '">' +
+        ((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? '<span class="bh">' + escapeHtml(fmtMultiDayRange(e.tarih, e.bitisTarihi)) + '</span>' : (e.saat ? '<span class="bh">' + escapeHtml(e.saat) + '</span>' : '')) + '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span></button>';
+    }).join('');
+    if (evs.length > shown.length) { chips += '<button type="button" class="cal-more" data-date="' + k + '" data-act="more">+' + (evs.length - shown.length) + ' tane daha</button>'; }
+    cells += '<div class="' + cls + '" data-date="' + k + '">' +
+      '<div class="cal-mdayhead"><span class="cal-mdaynum">' + d.getDate() + '</span>' +
+      (canWrite ? '<button type="button" class="cal-mdayadd" data-date="' + k + '" data-act="add" title="Bu güne etkinlik ekle">+</button>' : '') + '</div>' +
+      '<div class="cal-mday-chips" data-date="' + k + '">' + chips + '</div></div>';
   }
-
-  gridEl.innerHTML = html.join('');
+  body.innerHTML = '<div class="cal-m">' + dow + '<div class="cal-m-grid">' + cells + '</div></div>';
+  if (canWrite) {
+    body.querySelectorAll('.cal-mday-chips').forEach((wrap) => {
+      sortableInstances.push(new Sortable(wrap, calSortableOptions('calMonth')));
+    });
+  }
 }
 
-// ────────────────────────
-//  Modal flows
-// ────────────────────────
+// ── Year view ──
 
-function colorRadios(name, selected) {
-  return `
-    <div class="color-swatches" role="radiogroup" aria-label="Event color">
-      ${COLOR_OPTIONS.map((c, i) => `
-        <input type="radio" id="${name}-${i}" name="${name}" value="${c.value}" ${c.value === (selected || '') ? 'checked' : ''}>
-        <label for="${name}-${i}" style="background:${c.var}" title="${c.label}" aria-label="${c.label}"></label>
-      `).join('')}
-    </div>
-  `;
+function renderYearView(body) {
+  const year = calAnchor.getFullYear();
+  const today = todayDate();
+  let html = '<div class="cal-year-grid">';
+  for (let m = 0; m < 12; m++) {
+    const start = startOfWeek(new Date(year, m, 1));
+    let cells = '';
+    for (let i = 0; i < 42; i++) {
+      const d = addDays(start, i);
+      if (d.getMonth() !== m) { cells += '<span class="cal-year-day empty">' + d.getDate() + '</span>'; continue; }
+      const k = dKey(d);
+      const evs = eventsOn(k);
+      const dot = evs.length ? '<span class="cal-year-dot" style="background:' + evType(evs[0].tur).renk + ';"></span>' : '';
+      cells += '<button type="button" class="cal-year-day' + (isSameDay(d, today) ? ' today' : '') + '" data-date="' + k + '" data-act="goto-day" title="' + escapeHtml(fmtTrDate(k) + (evs.length ? (' · ' + evs.length + ' etkinlik') : '')) + '">' + d.getDate() + dot + '</button>';
+    }
+    html += '<div class="cal-year-month"><button type="button" class="cal-year-month-title" data-year="' + year + '" data-month="' + m + '" data-act="goto-month">' + CAL_MONTHS[m] + '</button>' +
+      '<div class="cal-mini-grid">' + CAL_DOW.map((d) => '<span class="cal-mini-dow">' + d.charAt(0) + '</span>').join('') + cells + '</div></div>';
+  }
+  html += '</div>';
+  body.innerHTML = html;
 }
 
-function eventFormHtml({ title = '', color = '', dateValue }) {
-  return `
-    <form class="modal-form" novalidate>
-      <div class="modal-form-row">
-        <label for="ev-title">Title</label>
-        <input type="text" id="ev-title" name="title" value="${escapeHtml(title)}" placeholder="Event title" autocomplete="off" required>
-      </div>
-      <div class="modal-form-row">
-        <label for="ev-date">Date</label>
-        <input type="date" id="ev-date" name="date" value="${dateValue}" required>
-      </div>
-      <div class="modal-form-row">
-        <label>Color</label>
-        ${colorRadios('color', color)}
-      </div>
-    </form>
-  `;
+// ── List view ──
+
+function renderListView(body) {
+  const today = todayDate();
+  const evs = visibleEvents().filter((e) => e.durum !== 'iptal');
+  if (!evs.length) { body.innerHTML = '<div class="cal-list-wrap"><div class="cal-empty">Etkinlik yok.</div></div>'; return; }
+  let html = '<div class="cal-list">'; let lastDay = null;
+  evs.forEach((e) => {
+    if (e.tarih !== lastDay) {
+      lastDay = e.tarih; const d = parseKey(e.tarih); const isT = isSameDay(d, today);
+      html += '<div class="cal-list-daysep' + (isT ? ' is-today' : '') + '">' + fmtTrDate(e.tarih) + '<span class="dow">' + CAL_DOW[(d.getDay() + 6) % 7] + (isT ? ' · BUGÜN' : '') + '</span></div>';
+    }
+    const ty = evType(e.tur), st = evStatus(e.durum);
+    const evD = parseKey(e.tarih), isPast = evD && evD < today;
+    const meta = []; if (e.yer) { meta.push(escapeHtml(e.yer)); } if (e.birim) { meta.push(escapeHtml(e.birim)); }
+    html += '<button type="button" class="cal-ev" data-evid="' + escapeHtml(e._id) + '" data-act="edit">' +
+      '<span class="cal-ev-dot" style="background:' + ty.renk + ';"></span>' +
+      '<span class="cal-ev-time">' + escapeHtml((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? fmtMultiDayRange(e.tarih, e.bitisTarihi) : (e.saat || '—')) + '</span>' +
+      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' +
+      '<span class="cal-ev-meta"><span class="cal-tag" style="background:' + st.renk + ';">' + escapeHtml(st.ad) + '</span>' + meta.join(' · ') + '</span></span></button>';
+  });
+  body.innerHTML = '<div class="cal-list-wrap">' + html + '</div>';
 }
 
-function getFormValues(bodyEl) {
-  const form = bodyEl.querySelector('form');
-  if (!form) {return null;}
-  const fd = new FormData(form);
+// ── SortableJS move (day/week grid + month cells) ──
+
+function pointerXY(nativeEvt) {
+  if (!nativeEvt) { return null; }
+  if (nativeEvt.touches && nativeEvt.touches.length) { return { x: nativeEvt.touches[0].clientX, y: nativeEvt.touches[0].clientY }; }
+  if (nativeEvt.changedTouches && nativeEvt.changedTouches.length) { return { x: nativeEvt.changedTouches[0].clientX, y: nativeEvt.changedTouches[0].clientY }; }
+  if (typeof nativeEvt.clientY === 'number') { return { x: nativeEvt.clientX, y: nativeEvt.clientY }; }
+  return null;
+}
+let calDragLastXY = null;
+let calDragGrabOffsetY = 0;
+let calDragMoveGhost = null;
+
+function calOnDragStart(evt) {
+  calDragGrabOffsetY = 0;
+  const xy = pointerXY(evt.originalEvent);
+  if (xy && evt.item) { const r = evt.item.getBoundingClientRect(); calDragGrabOffsetY = xy.y - r.top; }
+  const id = evt.item && evt.item.dataset ? evt.item.dataset.evid : null;
+  const ev = id ? EVENTS[id] : null;
+  if (ev && evt.from && evt.from.classList && evt.from.classList.contains('cal-daycol')) {
+    const ghost = document.createElement('div');
+    ghost.className = 'cal-block cal-resize-ghost' + (evt.item.classList.contains('compact') ? ' compact' : '');
+    ghost.setAttribute('style', evt.item.getAttribute('style'));
+    ghost.innerHTML = '<span class="bt">' + escapeHtml(ev.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(ev.saat || '') + (ev.bitisSaat ? '–' + escapeHtml(ev.bitisSaat) : '') + '</span>';
+    evt.from.appendChild(ghost);
+    calDragMoveGhost = ghost;
+  }
+  if (evt.item) { evt.item.style.opacity = '0.55'; }
+}
+function calOnDragMove(evt) {
+  const xy = pointerXY(evt.originalEvent); if (xy) { calDragLastXY = xy; }
+  return true;
+}
+function calOnDragEnd(evt) {
+  calDragLastXY = null;
+  if (calDragMoveGhost) { calDragMoveGhost.remove(); calDragMoveGhost = null; }
+  if (evt.item) { evt.item.style.opacity = ''; }
+  const id = evt.item && evt.item.dataset.evid;
+  const to = evt.to; if (!id || !to) { return; }
+  const dateKey = to.dataset.date; if (!dateKey) { return; }
+  const isDayCol = to.classList.contains('cal-daycol');
+  const isAllDayCol = to.classList.contains('cal-allday-col');
+  const xy = pointerXY(evt.originalEvent) || calDragLastXY;
+  const timeInfo = { isDayCol, isAllDayCol, xy, rectTop: isDayCol ? to.getBoundingClientRect().top : 0, grabOffsetY: calDragGrabOffsetY };
+  calDragGrabOffsetY = 0;
+  calMoveEvent(id, dateKey, timeInfo);
+}
+async function calMoveEvent(id, dateKey, timeInfo) {
+  if (!id || !EVENTS[id] || !canWrite) { renderCalendar(); return; }
+  const ev = EVENTS[id];
+  const patch = { tarih: dateKey };
+  if (timeInfo && timeInfo.isDayCol && timeInfo.xy) {
+    const grabOffset = timeInfo.grabOffsetY || 0;
+    const mins0 = Math.round(((timeInfo.xy.y - timeInfo.rectTop - grabOffset) / CAL_HOUR_H) * 60 / 30) * 30;
+    const mins = Math.max(0, Math.min(23 * 60 + 30, mins0));
+    const dur = (hmToMin(ev.saat) !== null && hmToMin(ev.bitisSaat) !== null && hmToMin(ev.bitisSaat) > hmToMin(ev.saat)) ? hmToMin(ev.bitisSaat) - hmToMin(ev.saat) : 60;
+    patch.saat = minToHm(mins);
+    patch.bitisSaat = minToHm(Math.min(24 * 60 - 1, mins + dur));
+  } else if (timeInfo && timeInfo.isAllDayCol) {
+    patch.saat = ''; patch.bitisSaat = '';
+  }
+  if (ev.tarih === patch.tarih && patch.saat === undefined) { renderCalendar(); return; }
+  const moved = Object.assign({}, ev, patch);
+  const changes = describeChanges(ev, moved);
+  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(dateKey) + ')' + (changes.length ? ' · ' + changes.join(' · ') : ''));
+  renderCalendar();
+  if (res) { showToast('Etkinlik taşındı.', { variant: 'success' }); }
+}
+async function calResizeEvent(id, patch) {
+  if (!id || !EVENTS[id] || !canWrite) { renderCalendar(); return; }
+  const ev = EVENTS[id];
+  const moved = Object.assign({}, ev, patch);
+  const changes = describeChanges(ev, moved);
+  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliğinin süresi ayarlandı' + (changes.length ? ' · ' + changes.join(' · ') : ''));
+  renderCalendar();
+  if (res) { showToast('Etkinlik güncellendi.', { variant: 'success' }); }
+}
+async function calMoveMultiDayEvent(id, newTarih, newBitisTarihi) {
+  if (!id || !EVENTS[id] || !canWrite) { renderCalendar(); return; }
+  const ev = EVENTS[id];
+  const patch = { tarih: newTarih, bitisTarihi: newBitisTarihi };
+  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(newTarih) + '–' + fmtTrDate(newBitisTarihi) + ')');
+  renderCalendar();
+  if (res) { showToast('Etkinlik taşındı.', { variant: 'success' }); }
+}
+
+function calSortableOptions(groupName) {
   return {
-    title: (fd.get('title') || '').toString().trim(),
-    color: (fd.get('color') || '').toString(),
-    date:  (fd.get('date')  || '').toString()
+    group: { name: groupName, pull: true, put: true },
+    draggable: '.cal-block, .cal-allday-chip',
+    animation: 150, ghostClass: 'dragging',
+    delay: 150, delayOnTouchOnly: true,
+    filter: '.cal-resize-handle',
+    preventOnFilter: false,
+    onStart: calOnDragStart, onMove: calOnDragMove, onEnd: calOnDragEnd
   };
 }
 
-function openEventEditor(state, key, idx) {
-  const list = events.get(key) || [];
-  const ev = list[idx];
-  if (!ev) {return;}
-  const { year, month, day } = parseKey(key);
-  const dateValue = isoKey(year, month, day);
+// ── Pointer gestures: grid-select-create / edge-resize / multi-day drag ──
 
-  showModal({
-    title: 'Edit event',
-    body: eventFormHtml({ title: ev.title, color: ev.color, dateValue }),
-    actions: [
-      {
-        label: 'Delete',
-        variant: 'outline',
-        action: ({ close }) => {
-          const arr = events.get(key) || [];
-          arr.splice(idx, 1);
-          if (!arr.length) {events.delete(key);}
-          else {events.set(key, arr);}
-          render(state);
-          showToast(`Deleted: ${ev.title}`);
-          close();
-          return false;
-        },
-        closeOnAction: false
-      },
-      { label: 'Cancel', variant: 'outline' },
-      {
-        label: 'Save',
-        variant: 'primary',
-        action: ({ body }) => {
-          const v = getFormValues(body);
-          if (!v || !v.title) { showToast('Title is required', { variant: 'warning' }); return false; }
-          // Remove from old key
-          const oldArr = events.get(key) || [];
-          oldArr.splice(idx, 1);
-          if (!oldArr.length) {events.delete(key);} else {events.set(key, oldArr);}
-          // Insert into new key
-          const newArr = events.get(v.date) || [];
-          newArr.push({ id: ev.id, title: v.title, color: v.color });
-          events.set(v.date, newArr);
-          // If date moved outside the visible month, jump there.
-          const np = parseKey(v.date);
-          if (np.year !== state.year || np.month !== state.month) {
-            state.year = np.year; state.month = np.month;
-          }
-          render(state);
-          showToast(`Saved: ${v.title}`, { variant: 'success' });
-          return true;
-        }
-      }
-    ]
-  });
+let calGridSelectSuppressClick = false;
+
+function calStartGridSelectGesture(e) {
+  if (e.target.closest('.cal-resize-handle')) { return; }
+  if (e.target.closest('.cal-block')) { return; }
+  const daycol = e.target.closest('.cal-daycol');
+  if (!daycol) { return; }
+  if (!canWrite) { return; }
+  const dateKey = daycol.dataset.date;
+  if (!dateKey) { return; }
+  const pointerId = e.pointerId;
+  daycol.setPointerCapture(pointerId);
+  const prevTouchAction = daycol.style.touchAction;
+  daycol.style.touchAction = 'none';
+  const rect = daycol.getBoundingClientRect();
+  function minsFromY(y) { let m = Math.round(((y - rect.top) / CAL_HOUR_H) * 60 / 15) * 15; return Math.max(0, Math.min(24 * 60, m)); }
+  const anchorMin = minsFromY(e.clientY);
+  let startMin = anchorMin, endMin = anchorMin;
+  let moved = false;
+
+  const ghost = document.createElement('div');
+  ghost.className = 'cal-create-select';
+  daycol.appendChild(ghost);
+  function applyLive() {
+    ghost.style.top = ((startMin / 60) * CAL_HOUR_H) + 'px';
+    ghost.style.height = Math.max(18, ((endMin - startMin) / 60) * CAL_HOUR_H) + 'px';
+    ghost.textContent = minToHm(startMin) + '–' + minToHm(endMin);
+  }
+  applyLive();
+
+  function cleanup() {
+    try { daycol.releasePointerCapture(pointerId); } catch (err) { /* noop */ }
+    daycol.style.touchAction = prevTouchAction;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  }
+  function onMove(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    if (Math.abs(e2.clientY - e.clientY) > 3) { moved = true; }
+    const curMin = minsFromY(e2.clientY);
+    if (curMin < anchorMin) { startMin = curMin; endMin = Math.max(anchorMin, curMin + 15); }
+    else { startMin = anchorMin; endMin = Math.max(anchorMin + 15, curMin); }
+    applyLive();
+  }
+  function onUp(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    cleanup();
+    ghost.remove();
+    if (!moved) { return; }
+    calGridSelectSuppressClick = true;
+    openEventModal(null, dateKey, minToHm(startMin), minToHm(endMin));
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 }
 
-function openCreateForm(state, presetDate) {
-  const dateValue = presetDate || (() => {
-    // Default: today if today is in the visible month, else the 1st of the visible month.
-    const t = new Date();
-    if (t.getFullYear() === state.year && t.getMonth() === state.month) {
-      return isoKey(t.getFullYear(), t.getMonth(), t.getDate());
-    }
-    return isoKey(state.year, state.month, 1);
-  })();
+function calStartResizeGesture(e) {
+  const handle = e.target.closest('.cal-resize-handle');
+  if (!handle) { return; }
+  e.stopPropagation();
+  const isTop = handle.classList.contains('cal-resize-handle-top');
+  const block = handle.closest('.cal-block[data-evid]');
+  const id = block && block.dataset ? block.dataset.evid : null;
+  const ev = id ? EVENTS[id] : null;
+  if (!ev || !canWrite) { return; }
+  const daycol = block.closest('.cal-daycol');
+  const origStartMin = hmToMin(ev.saat);
+  if (!daycol || origStartMin === null) { return; }
+  let origEndMin = hmToMin(ev.bitisSaat);
+  if (origEndMin === null || origEndMin <= origStartMin) { origEndMin = Math.min(24 * 60, origStartMin + 60); }
+  const pointerId = e.pointerId;
+  handle.setPointerCapture(pointerId);
+  document.body.style.cursor = 'ns-resize';
+  let moved = false;
+  let startMin = origStartMin, endMin = origEndMin;
 
-  showModal({
-    title: 'New event',
-    body: eventFormHtml({ dateValue }),
-    actions: [
-      { label: 'Cancel', variant: 'outline' },
-      {
-        label: 'Create',
-        variant: 'primary',
-        action: ({ body }) => {
-          const v = getFormValues(body);
-          if (!v || !v.title) { showToast('Title is required', { variant: 'warning' }); return false; }
-          const arr = events.get(v.date) || [];
-          arr.push({ id: nextId++, title: v.title, color: v.color });
-          events.set(v.date, arr);
-          const np = parseKey(v.date);
-          if (np.year !== state.year || np.month !== state.month) {
-            state.year = np.year; state.month = np.month;
-          }
-          render(state);
-          showToast(`Created: ${v.title}`, { variant: 'success' });
-          return true;
-        }
-      }
-    ]
-  });
+  const ghost = document.createElement('div');
+  ghost.className = 'cal-block cal-resize-ghost' + (block.classList.contains('compact') ? ' compact' : '');
+  ghost.setAttribute('style', block.getAttribute('style'));
+  ghost.innerHTML = '<span class="bt">' + escapeHtml(ev.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(ev.saat || '') + '–' + escapeHtml(minToHm(Math.min(24 * 60 - 1, origEndMin))) + '</span>';
+  daycol.appendChild(ghost);
+  block.style.opacity = '0.55';
+
+  function applyLive() {
+    block.style.top = ((startMin / 60) * CAL_HOUR_H) + 'px';
+    block.style.height = Math.max(18, ((endMin - startMin) / 60) * CAL_HOUR_H - 2) + 'px';
+    const bh = block.querySelector('.bh');
+    if (bh) { bh.textContent = minToHm(startMin) + '–' + minToHm(Math.min(24 * 60 - 1, endMin)); }
+  }
+  function onMove(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    if (Math.abs(e2.clientY - e.clientY) > 3) { moved = true; }
+    const rect = daycol.getBoundingClientRect();
+    const rawMin = ((e2.clientY - rect.top) / CAL_HOUR_H) * 60;
+    let snapped = Math.round(rawMin / 5) * 5;
+    if (isTop) { snapped = Math.max(0, Math.min(origEndMin - 5, snapped)); startMin = snapped; }
+    else { snapped = Math.max(origStartMin + 5, Math.min(24 * 60, snapped)); endMin = snapped; }
+    applyLive();
+  }
+  function onUp(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    try { handle.releasePointerCapture(pointerId); } catch (err) { /* noop */ }
+    document.body.style.cursor = '';
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    ghost.remove();
+    block.style.opacity = '';
+    if (!moved) { return; }
+    const patch = isTop ? { saat: minToHm(startMin) } : { bitisSaat: minToHm(Math.min(24 * 60 - 1, endMin)) };
+    calResizeEvent(id, patch);
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 }
 
-function openDayModal(state, year, month, day) {
-  const key = isoKey(year, month, day);
-  const dateLabel = `${MONTHS[month]} ${day}, ${year}`;
+function calStartMultiDayGesture(e) {
+  const bar = e.target.closest('.cal-multiday-bar');
+  if (!bar) { return; }
+  e.stopPropagation();
+  const isHandleL = !!e.target.closest('.cal-multiday-handle-l');
+  const isHandleR = !!e.target.closest('.cal-multiday-handle-r');
+  const id = bar.dataset.evid;
+  const ev = id ? EVENTS[id] : null;
+  if (!ev || !ev.bitisTarihi || !canWrite) { return; }
+  const container = bar.closest('.cal-allday-multiday');
+  if (!container) { return; }
+  const days = calVisibleWeekDays();
+  const rect = container.getBoundingClientRect();
+  const dayW = (rect.width - CAL_GUTTER) / days.length;
+  if (!(dayW > 0)) { return; }
+  const pointerId = e.pointerId;
+  bar.setPointerCapture(pointerId);
+  let moved = false;
+  const origStart = parseKey(ev.tarih), origEnd = parseKey(ev.bitisTarihi);
+  const origStartIdx = Math.round((origStart - days[0]) / 86400000);
+  const origEndIdx = Math.round((origEnd - days[0]) / 86400000);
+  let curStartIdx = origStartIdx, curEndIdx = origEndIdx;
+  function applyLive() {
+    const s = Math.max(0, Math.min(days.length - 1, curStartIdx));
+    const en = Math.max(0, Math.min(days.length - 1, curEndIdx));
+    bar.style.gridColumn = (s + 2) + ' / ' + (en + 3);
+  }
+  function onMove(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    const dx = e2.clientX - e.clientX;
+    if (Math.abs(dx) > 4) { moved = true; }
+    const dayDelta = Math.round(dx / dayW);
+    if (isHandleL) { curStartIdx = Math.min(origStartIdx + dayDelta, origEndIdx - 1); curEndIdx = origEndIdx; }
+    else if (isHandleR) { curStartIdx = origStartIdx; curEndIdx = Math.max(origEndIdx + dayDelta, origStartIdx + 1); }
+    else { curStartIdx = origStartIdx + dayDelta; curEndIdx = origEndIdx + dayDelta; }
+    applyLive();
+  }
+  function onUp(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    try { bar.releasePointerCapture(pointerId); } catch (err) { /* noop */ }
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    bar.style.gridColumn = '';
+    if (!moved) { return; }
+    if (isHandleL) { calResizeEvent(id, { tarih: dKey(addDays(origStart, curStartIdx - origStartIdx)) }); }
+    else if (isHandleR) { calResizeEvent(id, { bitisTarihi: dKey(addDays(origEnd, curEndIdx - origEndIdx)) }); }
+    else { const dayDelta = curStartIdx - origStartIdx; calMoveMultiDayEvent(id, dKey(addDays(origStart, dayDelta)), dKey(addDays(origEnd, dayDelta))); }
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
 
-  const renderListHtml = () => {
-    const list = events.get(key) || [];
-    const procList = list.length ? [] : proceduralFor(year, month, day);
-    if (!list.length && !procList.length) {
-      return `<div class="modal-events-empty">No events yet for ${dateLabel}.</div>`;
-    }
-    if (list.length) {
-      return `
-        <div class="modal-events-list">
-          ${list.map((e, idx) => `
-            <div class="modal-event-row">
-              <span class="swatch" style="background:${colorOf(e.color)}"></span>
-              <span class="title">${escapeHtml(e.title)}</span>
-              <span class="row-actions">
-                <button type="button" class="row-btn" data-edit="${idx}" aria-label="Edit ${escapeHtml(e.title)}">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3l9-9z"/></svg>
-                </button>
-                <button type="button" class="row-btn" data-delete="${idx}" aria-label="Delete ${escapeHtml(e.title)}">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V2h4v2M5 4l1 9h4l1-9"/></svg>
-                </button>
-              </span>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-    // Procedural-only suggestion (read-only)
-    return `
-      <div class="modal-events-list">
-        ${procList.map((e) => `
-          <div class="modal-event-row" style="opacity:.75">
-            <span class="swatch" style="background:${colorOf(e.color)}"></span>
-            <span class="title">${escapeHtml(e.title)} <small style="color:var(--text-muted);font-weight:normal">· suggested</small></span>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  };
+// ── Edit modal (v1: core fields only) ──
 
-  const { dialog, body } = showModal({
-    title: dateLabel,
-    body: renderListHtml(),
-    actions: [
-      { label: 'Close', variant: 'outline' },
-      {
-        label: 'Add event',
-        variant: 'primary',
-        action: () => {
-          openCreateForm(state, key);
-          return true; // close this modal first; create modal opens on top
-        }
-      }
-    ]
+function facultyOptionsHtml(selected) {
+  return FACULTY_GROUPS.map((g) => '<optgroup label="' + escapeHtml(g.title) + '">' +
+    g.items.map((name) => '<option value="' + escapeHtml(name) + '"' + (name === selected ? ' selected' : '') + '>' + escapeHtml(name) + '</option>').join('') +
+    '</optgroup>').join('');
+}
+
+function openEventModal(id, presetDate, presetTime, presetEndTime) {
+  const ev = id ? EVENTS[id] : null;
+  const tarih = ev ? (ev.tarih || '') : (presetDate || dKey(calAnchor));
+  const saat = ev ? (ev.saat || '') : (presetTime || '');
+  const bitisSaat = ev ? (ev.bitisSaat || '') : (presetEndTime || '');
+  const bodyHtml =
+    '<form class="cal-ev-form" id="calEvForm">' +
+      '<div class="cal-ev-form-row"><label for="cef-ad">Etkinlik Adı</label><input type="text" id="cef-ad" class="form-control" value="' + escapeHtml(ev ? ev.ad : '') + '" required></div>' +
+      '<div class="cal-ev-form-grid">' +
+        '<div class="cal-ev-form-row"><label for="cef-tarih">Tarih</label><input type="date" id="cef-tarih" class="form-control" value="' + escapeHtml(tarih) + '" required></div>' +
+        '<div class="cal-ev-form-row"><label for="cef-yer">Yer / Mekân</label><input type="text" id="cef-yer" class="form-control" value="' + escapeHtml(ev ? ev.yer : '') + '"></div>' +
+        '<div class="cal-ev-form-row"><label for="cef-saat">Başlangıç Saati</label><input type="time" id="cef-saat" class="form-control" value="' + escapeHtml(saat) + '"></div>' +
+        '<div class="cal-ev-form-row"><label for="cef-bitis">Bitiş Saati</label><input type="time" id="cef-bitis" class="form-control" value="' + escapeHtml(bitisSaat) + '"></div>' +
+        '<div class="cal-ev-form-row"><label for="cef-tur">Tür</label><select id="cef-tur" class="form-control">' + EVENT_TYPES.map((t) => '<option value="' + t.key + '"' + (ev && ev.tur === t.key ? ' selected' : '') + '>' + escapeHtml(t.ad) + '</option>').join('') + '</select></div>' +
+        '<div class="cal-ev-form-row"><label for="cef-durum">Durum</label><select id="cef-durum" class="form-control">' + EVENT_STATUS.map((s) => '<option value="' + s.key + '"' + (ev && ev.durum === s.key ? ' selected' : '') + '>' + escapeHtml(s.ad) + '</option>').join('') + '</select></div>' +
+      '</div>' +
+      '<div class="cal-ev-form-row"><label for="cef-birim">Düzenleyen Birim</label><select id="cef-birim" class="form-control"><option value="">—</option>' + facultyOptionsHtml(ev ? ev.birim : '') + '</select></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
+    '</form>';
+
+  const actions = [];
+  if (id) {
+    actions.push({ label: 'Sil', variant: 'danger', closeOnAction: false, action: ({ close }) => {
+      if (!window.confirm('Bu etkinliği silmek istediğinize emin misiniz?')) { return false; }
+      deleteEvent(id); close(); return false;
+    } });
+  }
+  actions.push({ label: 'Vazgeç', variant: 'outline' });
+  if (canWrite) {
+    actions.push({ label: id ? 'Kaydet' : 'Oluştur', variant: 'primary', action: ({ body }) => {
+      const form = body.querySelector('#calEvForm');
+      const ad = form.querySelector('#cef-ad').value.trim();
+      if (!ad) { showToast('Etkinlik adı zorunlu.', { variant: 'warning' }); return false; }
+      const patch = {
+        ad,
+        tarih: form.querySelector('#cef-tarih').value,
+        saat: form.querySelector('#cef-saat').value,
+        bitisSaat: form.querySelector('#cef-bitis').value,
+        tur: form.querySelector('#cef-tur').value,
+        durum: form.querySelector('#cef-durum').value,
+        yer: form.querySelector('#cef-yer').value.trim(),
+        birim: form.querySelector('#cef-birim').value,
+        not: form.querySelector('#cef-not').value.trim()
+      };
+      if (!patch.tarih) { showToast('Tarih zorunlu.', { variant: 'warning' }); return false; }
+      const ref = EVENTS[id];
+      const logLabel = id
+        ? evLogName(ad) + ' etkinliği düzenlendi' + (ref ? (() => { const c = describeChanges(ref, Object.assign({}, ref, patch)); return c.length ? ' · ' + c.join(' · ') : ''; })() : '')
+        : evLogName(ad) + ' etkinliği oluşturuldu';
+      persistEvent(id, patch, logLabel).then((res) => {
+        if (res) { showToast(id ? 'Etkinlik kaydedildi.' : 'Etkinlik oluşturuldu.', { variant: 'success' }); renderCalendar(); }
+      });
+      return true;
+    } });
+  }
+
+  showModal({ title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'md' });
+}
+
+// ── Wiring ──
+
+function bindCalMainBody() {
+  const body = document.getElementById('calMainBody');
+  if (!body) { return; }
+
+  body.addEventListener('pointerdown', (e) => {
+    calStartResizeGesture(e);
+    calStartGridSelectGesture(e);
+    calStartMultiDayGesture(e);
   });
 
-  // Delegate edit/delete inside the modal body.
   body.addEventListener('click', (e) => {
-    const editBtn = e.target.closest('[data-edit]');
-    const delBtn = e.target.closest('[data-delete]');
-    if (editBtn) {
-      const idx = parseInt(editBtn.dataset.edit, 10);
-      closeModal();
-      // After close transition, open the editor for that event.
-      setTimeout(() => openEventEditor(state, key, idx), 200);
-    } else if (delBtn) {
-      const idx = parseInt(delBtn.dataset.delete, 10);
-      const list = events.get(key) || [];
-      const ev = list[idx];
-      list.splice(idx, 1);
-      if (!list.length) {events.delete(key);} else {events.set(key, list);}
-      render(state);
-      // Re-render the modal body in place
-      body.innerHTML = renderListHtml();
-      if (ev) {showToast(`Deleted: ${ev.title}`);}
+    const evidEl = e.target.closest('[data-evid]');
+    if (evidEl) {
+      const act = evidEl.dataset.act;
+      if (act === 'edit') { openEventModal(evidEl.dataset.evid); return; }
     }
+    const moreBtn = e.target.closest('[data-act="more"]');
+    if (moreBtn) { calGoToDay(moreBtn.dataset.date); return; }
+    const addBtn = e.target.closest('[data-act="add"]');
+    if (addBtn) { openEventModal(null, addBtn.dataset.date); return; }
+    const gotoDay = e.target.closest('[data-act="goto-day"]');
+    if (gotoDay) { calGoToDay(gotoDay.dataset.date); return; }
+    const gotoMonth = e.target.closest('[data-act="goto-month"]');
+    if (gotoMonth) { calGoToMonth(Number(gotoMonth.dataset.year), Number(gotoMonth.dataset.month)); return; }
+    const daycol = e.target.closest('.cal-daycol');
+    if (daycol) { calGridClick(e, daycol.dataset.date, daycol); }
   });
-
-  return { dialog, body };
 }
 
-// ────────────────────────
-//  Public init
-// ────────────────────────
+function bindToolbar() {
+  document.getElementById('calPrevBtn')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); calShift(-1); });
+  document.getElementById('calNextBtn')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); calShift(1); });
+  document.getElementById('calTodayBtn')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); calToday(); });
+  document.getElementById('calNewEventBtn')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openEventModal(null); });
+  document.querySelectorAll('#calViewTabs .cal-viewbtn').forEach((btn) => {
+    btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); calSetView(btn.dataset.view); });
+  });
+}
 
 export function initCalendar() {
-  const gridEl = document.querySelector('.calendar-grid');
-  const monthEl = document.querySelector('.calendar-month');
-  if (!gridEl || !monthEl) {return;}
+  const body = document.getElementById('calMainBody');
+  if (!body) { return; }
 
-  seedOnce();
+  if (!window.firebase) { console.error('Firebase SDK yüklenemedi.'); return; }
+  if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+  database = firebase.database();
+  auth = firebase.auth();
 
-  const initial = monthEl.textContent.trim().split(/\s+/);
-  const initialMonth = MONTHS.indexOf(initial[0]);
-  const initialYear = parseInt(initial[1], 10);
+  bindToolbar();
+  bindCalMainBody();
+  renderCalendar();
 
-  const state = {
-    gridEl,
-    monthEl,
-    year: Number.isFinite(initialYear) ? initialYear : new Date().getFullYear(),
-    month: initialMonth >= 0 ? initialMonth : new Date().getMonth()
-  };
-
-  render(state);
-
-  // Prev / next month — calendar-toolbar nav buttons
-  const navBtns = document.querySelectorAll('.calendar-toolbar .nav-btns .card-opt-btn');
-  if (navBtns[0]) {navBtns[0].addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    state.month -= 1;
-    if (state.month < 0) { state.month = 11; state.year -= 1; }
-    render(state);
-  });}
-  if (navBtns[1]) {navBtns[1].addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    state.month += 1;
-    if (state.month > 11) { state.month = 0; state.year += 1; }
-    render(state);
-  });}
-
-  // Page-action buttons
-  document.querySelectorAll('.page-actions .btn').forEach((b) => {
-    const label = b.textContent.trim().toLowerCase();
-    if (label === 'today') {
-      b.addEventListener('click', (e) => {
-        e.stopPropagation(); e.preventDefault();
-        const now = new Date();
-        state.year = now.getFullYear();
-        state.month = now.getMonth();
-        render(state);
-      });
-    } else if (label.includes('new event')) {
-      b.addEventListener('click', (e) => {
-        e.stopPropagation(); e.preventDefault();
-        openCreateForm(state);
-      });
-    }
+  auth.onAuthStateChanged((user) => {
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; renderCalendar(); return; }
+    currentUserEmail = user.email || '';
+    database.ref('users/' + user.uid).once('value').then((snap) => {
+      const u = snap.val() || {};
+      const role = u.role;
+      canWrite = role === 'editor' || role === 'admin' || role === 'owner';
+      currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+      renderCalendar();
+    }).catch(() => { canWrite = false; renderCalendar(); });
   });
 
-  // Click in the grid → event editor or day modal
-  gridEl.addEventListener('click', (e) => {
-    const eventEl = e.target.closest('[data-event-idx]');
-    if (eventEl) {
-      e.stopPropagation();
-      const day = parseInt(eventEl.dataset.day, 10);
-      const idx = parseInt(eventEl.dataset.eventIdx, 10);
-      const key = isoKey(state.year, state.month, day);
-      const stored = events.get(key);
-      if (stored && stored[idx]) {
-        openEventEditor(state, key, idx);
-      } else {
-        // Procedural — open day modal so user can promote the suggestion.
-        openDayModal(state, state.year, state.month, day);
-      }
-      return;
-    }
-    const dayEl = e.target.closest('[data-day]');
-    if (dayEl && !dayEl.classList.contains('muted')) {
-      const day = parseInt(dayEl.dataset.day, 10);
-      openDayModal(state, state.year, state.month, day);
-    }
-  });
+  attachEventsListener();
 }

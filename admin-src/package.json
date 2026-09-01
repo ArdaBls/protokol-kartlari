@@ -50,6 +50,7 @@
   "dependencies": {
     "datatables.net": "^3.0.1",
     "echarts": "^6.1.0",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "sortablejs": "^1.15.2"
   }
 }

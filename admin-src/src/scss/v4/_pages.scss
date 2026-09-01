@@ -79,83 +79,8 @@
 }
 .calendar-toolbar .nav-btns { display: flex; gap: var(--space-1); }
 .calendar-toolbar .spacer { flex: 1; }
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  background: var(--border-color-light);
-  border-bottom: 1px solid var(--border-color-light);
-}
-.calendar-grid .dow {
-  background: var(--bg-surface-secondary);
-  padding: 8px;
-  font-size: 10.5px;
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  text-align: center;
-}
-.calendar-day {
-  background: var(--bg-surface);
-  min-height: 90px;
-  padding: 6px 8px;
-  font-size: 12px;
-  position: relative;
-  cursor: pointer;
-  transition: background 100ms;
-}
-.calendar-day:hover { background: var(--bg-surface-secondary); }
-.calendar-day.muted { color: var(--text-disabled); background: var(--bg-surface-secondary); }
-.calendar-day.today .day-num {
-  background: var(--primary);
-  color: white;
-  border-radius: 50%;
-  width: 22px; height: 22px;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-weight: var(--font-weight-bold);
-}
-.calendar-day .day-num {
-  font-weight: var(--font-weight-medium);
-  font-size: 12px;
-}
-.calendar-event {
-  display: block;
-  margin-top: 4px;
-  padding: 2px 6px;
-  font-size: 10.5px;
-  line-height: 1.4;
-  border-radius: 3px;
-  background: var(--primary-lt);
-  color: var(--primary);
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: filter 120ms;
-}
-.calendar-event:hover { filter: brightness(0.95); }
-.calendar-day { cursor: pointer; }
-.calendar-event.blue   { background: var(--blue-lt);   color: var(--blue); }
-.calendar-event.yellow { background: var(--yellow-lt); color: #b45309; }
-.calendar-event.red    { background: var(--red-lt);    color: var(--red); }
-.calendar-event.purple { background: var(--purple-lt); color: var(--purple); }
-
-@media (max-width: 700px) {
-  .calendar-grid {
-    grid-template-columns: repeat(7, minmax(72px, 1fr));
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-  }
-  .calendar-grid > * { scroll-snap-align: start; }
-  .calendar-day { min-height: 70px; padding: 4px 6px; }
-  .calendar-event {
-    font-size: 10px;
-    padding: 1px 4px;
-  }
-}
+// Gün/hafta/ay ızgarasının kendisi artık _real-calendar.scss'te (gerçek Firebase
+// verisine bağlı .cal-* motoru) — bkz. admin-src/src/v4/calendar.js.
 
 // ────────────────────────
 //  INBOX

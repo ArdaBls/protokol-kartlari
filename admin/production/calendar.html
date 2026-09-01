@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendar | Protokol</title>
+<title>Takvim | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. calendar.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/admin/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -15,21 +19,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/admin/images/apple-touch-icon.svg">
-<meta name="description" content="Calendar — Calendar. OMÜ Protokol Kartları admin paneli.">
+<meta name="description" content="Takvim — Takvim. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Calendar">
-<meta property="og:description" content="Calendar — Calendar. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:title" content="Takvim">
+<meta property="og:description" content="Takvim — Takvim. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/admin/images/android-chrome-512x512.svg">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/admin/js/rolldown-runtime-_5RX-BWT.js"></script>
-  <script type="module" crossorigin src="/admin/js/toast-CBtjS_PZ.js"></script>
-  <script type="module" crossorigin src="/admin/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/admin/js/main-v4-4VJLCbnx.js"></script>
-  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-MQSmH7v_.css">
+  <script type="module" crossorigin src="/admin/js/calendar-DIIUTPCl.js"></script>
+  <link rel="modulepreload" crossorigin href="/admin/js/rolldown-runtime-_5RX-BWT.js">
+  <link rel="modulepreload" crossorigin href="/admin/js/toast-CBtjS_PZ.js">
+  <link rel="modulepreload" crossorigin href="/admin/js/modal-C4oI3O5p.js">
+  <link rel="modulepreload" crossorigin href="/admin/js/main-v4-BbPm-hdt.js">
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-CwDhq9Sd.css">
 </head>
-<body data-shell="admin" data-page="calendar" data-breadcrumb="Home > Calendar">
+<body data-shell="admin" data-page="calendar" data-breadcrumb="Anasayfa|index.html > Takvim">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -170,7 +175,7 @@
         <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Calendar</span></nav>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Takvim</span></nav>
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
@@ -195,14 +200,13 @@
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Schedule</div>
-        <h1 class="page-title">Calendar</h1>
+        <div class="page-pretitle">Etkinlikler</div>
+        <h1 class="page-title">Takvim</h1>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline">Today</button>
-        <button class="btn btn-primary">
+        <button type="button" class="btn btn-primary" id="calNewEventBtn">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M8 4v8"/></svg>
-          New event
+          Etkinlik
         </button>
       </div>
     </div>
@@ -211,60 +215,21 @@
   <div class="card">
     <div class="calendar-toolbar">
       <div class="nav-btns">
-        <button class="card-opt-btn" aria-label="Previous month"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3L5 7l4 4"/></svg></button>
-        <button class="card-opt-btn" aria-label="Next month"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3l4 4-4 4"/></svg></button>
+        <button type="button" class="card-opt-btn" id="calPrevBtn" aria-label="Önceki"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3L5 7l4 4"/></svg></button>
+        <button type="button" class="card-opt-btn" id="calNextBtn" aria-label="Sonraki"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3l4 4-4 4"/></svg></button>
       </div>
-      <div class="calendar-month">April 2026</div>
+      <button type="button" class="btn btn-outline" id="calTodayBtn" style="padding:4px 12px;font-size:12px;">Bugün</button>
+      <div class="calendar-month" id="calMonthLabel"></div>
       <div class="spacer"></div>
-      <div class="chart-tabs">
-        <button class="chart-tab">Month</button>
-        <button class="chart-tab active">Week</button>
-        <button class="chart-tab">Day</button>
+      <div class="chart-tabs" id="calViewTabs">
+        <button type="button" class="chart-tab cal-viewbtn" data-view="day">Gün</button>
+        <button type="button" class="chart-tab cal-viewbtn active" data-view="week">Hafta</button>
+        <button type="button" class="chart-tab cal-viewbtn" data-view="month">Ay</button>
+        <button type="button" class="chart-tab cal-viewbtn" data-view="year">Yıl</button>
+        <button type="button" class="chart-tab cal-viewbtn" data-view="list">Liste</button>
       </div>
     </div>
-    <div class="calendar-grid">
-      <div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
-
-      <div class="calendar-day muted"><span class="day-num">30</span></div>
-      <div class="calendar-day muted"><span class="day-num">31</span></div>
-      <div class="calendar-day"><span class="day-num">1</span><span class="calendar-event">Standup 9am</span></div>
-      <div class="calendar-day"><span class="day-num">2</span></div>
-      <div class="calendar-day"><span class="day-num">3</span><span class="calendar-event blue">Design review</span></div>
-      <div class="calendar-day"><span class="day-num">4</span></div>
-      <div class="calendar-day muted"><span class="day-num">5</span></div>
-
-      <div class="calendar-day"><span class="day-num">6</span><span class="calendar-event">1:1 with Sara</span></div>
-      <div class="calendar-day"><span class="day-num">7</span><span class="calendar-event yellow">Q2 Planning</span><span class="calendar-event">Lunch demo</span></div>
-      <div class="calendar-day"><span class="day-num">8</span></div>
-      <div class="calendar-day"><span class="day-num">9</span><span class="calendar-event purple">All-hands</span></div>
-      <div class="calendar-day"><span class="day-num">10</span></div>
-      <div class="calendar-day"><span class="day-num">11</span><span class="calendar-event red">Launch deadline</span></div>
-      <div class="calendar-day muted"><span class="day-num">12</span></div>
-
-      <div class="calendar-day"><span class="day-num">13</span></div>
-      <div class="calendar-day"><span class="day-num">14</span><span class="calendar-event">Standup 9am</span></div>
-      <div class="calendar-day"><span class="day-num">15</span><span class="calendar-event blue">Customer call</span></div>
-      <div class="calendar-day"><span class="day-num">16</span></div>
-      <div class="calendar-day"><span class="day-num">17</span><span class="calendar-event">Design review</span></div>
-      <div class="calendar-day"><span class="day-num">18</span><span class="calendar-event yellow">Vendor demo</span></div>
-      <div class="calendar-day muted"><span class="day-num">19</span></div>
-
-      <div class="calendar-day"><span class="day-num">20</span></div>
-      <div class="calendar-day"><span class="day-num">21</span></div>
-      <div class="calendar-day"><span class="day-num">22</span><span class="calendar-event purple">Quarterly review</span></div>
-      <div class="calendar-day"><span class="day-num">23</span></div>
-      <div class="calendar-day"><span class="day-num">24</span><span class="calendar-event red">Code freeze</span></div>
-      <div class="calendar-day"><span class="day-num">25</span></div>
-      <div class="calendar-day muted"><span class="day-num">26</span></div>
-
-      <div class="calendar-day today"><span class="day-num">27</span><span class="calendar-event">Standup 9am</span><span class="calendar-event blue">Sprint planning</span></div>
-      <div class="calendar-day"><span class="day-num">28</span></div>
-      <div class="calendar-day"><span class="day-num">29</span><span class="calendar-event">1:1 with Aigars</span></div>
-      <div class="calendar-day"><span class="day-num">30</span><span class="calendar-event yellow">Release v4.0</span></div>
-      <div class="calendar-day muted"><span class="day-num">1</span></div>
-      <div class="calendar-day muted"><span class="day-num">2</span></div>
-      <div class="calendar-day muted"><span class="day-num">3</span></div>
-    </div>
+    <div id="calMainBody"></div>
   </div>
 
 </div>
@@ -275,6 +240,7 @@
     </footer>
   
 </main>
+
 
 </body>
 </html>
