@@ -583,7 +583,11 @@
   }
   .sidebar.open { transform: translateX(0); }
   .main { margin-inline-start: 0; }
-  .topbar { inset-inline-start: 0; padding: 0 12px; }
+  // padding-inline (not the `padding` shorthand) so we don't reset the
+  // base rule's padding-top: env(safe-area-inset-top) — that reset was
+  // shifting the topbar buttons up into the Dynamic Island/status-bar
+  // area on iPhone 16 Pro, making them untappable.
+  .topbar { inset-inline-start: 0; padding-inline: 12px; }
   // The 240px search box, breadcrumb, and notification/message buttons can't
   // coexist with a 32px avatar inside a 375px viewport without forcing the
   // layout viewport to scale. Drop the wide pieces; cmd-K still works for
