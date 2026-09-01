@@ -722,50 +722,94 @@ function calStartGridSelectGesture(e) {
   const dateKey = daycol.dataset.date;
   if (!dateKey) { return; }
   const pointerId = e.pointerId;
-  daycol.setPointerCapture(pointerId);
-  const prevTouchAction = daycol.style.touchAction;
-  daycol.style.touchAction = 'none';
-  const rect = daycol.getBoundingClientRect();
-  function minsFromY(y) { let m = Math.round(((y - rect.top) / CAL_HOUR_H) * 60 / 15) * 15; return Math.max(0, Math.min(24 * 60, m)); }
-  const anchorMin = minsFromY(e.clientY);
-  let startMin = anchorMin, endMin = anchorMin;
-  let moved = false;
 
-  const ghost = document.createElement('div');
-  ghost.className = 'cal-create-select';
-  daycol.appendChild(ghost);
-  function applyLive() {
-    ghost.style.top = ((startMin / 60) * CAL_HOUR_H) + 'px';
-    ghost.style.height = Math.max(18, ((endMin - startMin) / 60) * CAL_HOUR_H) + 'px';
-    ghost.textContent = minToHm(startMin) + '–' + minToHm(endMin);
-  }
-  applyLive();
+  // Dokunmatikte: pointerdown anında setPointerCapture()/touch-action:none uygulamak
+  // (mouse'ta olduğu gibi) tarayıcının O ANKİ dokunuşun kaydırma mı yoksa jest mi
+  // olduğuna dair kararını GEÇ etkiliyor — sonuç: telefonda takvimi kaydırmaya
+  // çalışmak bile "saat seçildi" sayılıp düzenleme ekranını açıyordu. Dokunmatikte
+  // önce kısa bir bekleme (basılı tutma) süresi konur: bu süre içinde parmak
+  // anlamlı miktarda hareket ederse bu bir kaydırmadır, jest hiç başlamaz ve
+  // tarayıcının doğal kaydırması olduğu gibi çalışır; parmak sabit kalırsa gerçek
+  // saat-seçme jesti (fare ile birebir aynı mantıkla) başlar.
+  const isTouch = e.pointerType === 'touch';
+  const startX = e.clientX, startY = e.clientY;
 
-  function cleanup() {
-    try { daycol.releasePointerCapture(pointerId); } catch (err) { /* noop */ }
-    daycol.style.touchAction = prevTouchAction;
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    window.removeEventListener('pointercancel', onUp);
-  }
-  function onMove(e2) {
-    if (e2.pointerId !== pointerId) { return; }
-    if (Math.abs(e2.clientY - e.clientY) > 3) { moved = true; }
-    const curMin = minsFromY(e2.clientY);
-    if (curMin < anchorMin) { startMin = curMin; endMin = Math.max(anchorMin, curMin + 15); }
-    else { startMin = anchorMin; endMin = Math.max(anchorMin + 15, curMin); }
+  function beginRealGesture(anchorClientY) {
+    daycol.setPointerCapture(pointerId);
+    const prevTouchAction = daycol.style.touchAction;
+    daycol.style.touchAction = 'none';
+    const rect = daycol.getBoundingClientRect();
+    function minsFromY(y) { let m = Math.round(((y - rect.top) / CAL_HOUR_H) * 60 / 15) * 15; return Math.max(0, Math.min(24 * 60, m)); }
+    const anchorMin = minsFromY(anchorClientY);
+    let startMin = anchorMin, endMin = anchorMin;
+    let moved = false;
+
+    const ghost = document.createElement('div');
+    ghost.className = 'cal-create-select';
+    daycol.appendChild(ghost);
+    function applyLive() {
+      ghost.style.top = ((startMin / 60) * CAL_HOUR_H) + 'px';
+      ghost.style.height = Math.max(18, ((endMin - startMin) / 60) * CAL_HOUR_H) + 'px';
+      ghost.textContent = minToHm(startMin) + '–' + minToHm(endMin);
+    }
     applyLive();
+
+    function cleanup() {
+      try { daycol.releasePointerCapture(pointerId); } catch (err) { /* noop */ }
+      daycol.style.touchAction = prevTouchAction;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    }
+    function onMove(e2) {
+      if (e2.pointerId !== pointerId) { return; }
+      if (Math.abs(e2.clientY - anchorClientY) > 3) { moved = true; }
+      const curMin = minsFromY(e2.clientY);
+      if (curMin < anchorMin) { startMin = curMin; endMin = Math.max(anchorMin, curMin + 15); }
+      else { startMin = anchorMin; endMin = Math.max(anchorMin + 15, curMin); }
+      applyLive();
+    }
+    function onUp(e2) {
+      if (e2.pointerId !== pointerId) { return; }
+      cleanup();
+      if (!moved) { ghost.remove(); return; }
+      calGridSelectSuppressClick = true;
+      calShowPendingCreateBar(ghost, dateKey, startMin, endMin);
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   }
-  function onUp(e2) {
-    if (e2.pointerId !== pointerId) { return; }
-    cleanup();
-    if (!moved) { ghost.remove(); return; }
-    calGridSelectSuppressClick = true;
-    calShowPendingCreateBar(ghost, dateKey, startMin, endMin);
+
+  if (!isTouch) { beginRealGesture(e.clientY); return; }
+
+  const HOLD_MS = 260, MOVE_TOLERANCE = 10;
+  let settled = false;
+  const holdTimer = setTimeout(() => {
+    settled = true;
+    cleanupProbe();
+    beginRealGesture(startY);
+  }, HOLD_MS);
+  function cleanupProbe() {
+    window.removeEventListener('pointermove', onProbeMove);
+    window.removeEventListener('pointerup', onProbeEnd);
+    window.removeEventListener('pointercancel', onProbeEnd);
   }
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-  window.addEventListener('pointercancel', onUp);
+  function onProbeMove(e2) {
+    if (e2.pointerId !== pointerId || settled) { return; }
+    if (Math.hypot(e2.clientX - startX, e2.clientY - startY) > MOVE_TOLERANCE) {
+      clearTimeout(holdTimer);
+      cleanupProbe(); // hareket kaydırma niyetini gösteriyor -- jest hiç başlamadı, dokunuş doğal kaydırmaya bırakılır
+    }
+  }
+  function onProbeEnd(e2) {
+    if (e2.pointerId !== pointerId || settled) { return; }
+    clearTimeout(holdTimer);
+    cleanupProbe(); // parmak bekleme süresi dolmadan kalktı -- kısa dokunuş, calGridClick'in normal tek-tik akışına bırakılır
+  }
+  window.addEventListener('pointermove', onProbeMove);
+  window.addEventListener('pointerup', onProbeEnd);
+  window.addEventListener('pointercancel', onProbeEnd);
 }
 
 function calStartResizeGesture(e) {

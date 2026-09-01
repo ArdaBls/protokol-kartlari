@@ -121,6 +121,15 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+// iOS'ta yukarı/aşağı esnek kaydırma (rubber-band) sayfa sınırlarının dışına taşıp durum
+// çubuğu/çentik arkasında sayfa içeriğinin "görünmesine" (aslında html/body arkaplanının
+// o alana kadar uzanmamasına) yol açıyordu. overscroll-behavior tüm sayfa esnemesini
+// kapatır, html'e de aynı body arkaplanı verilerek olası taşma tamamen aynı renkte kalır.
+html {
+  background: var(--body-bg);
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--font);
   font-size: var(--font-size);
@@ -128,6 +137,7 @@ body {
   line-height: var(--line-height);
   color: var(--text);
   background: var(--body-bg);
+  overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
