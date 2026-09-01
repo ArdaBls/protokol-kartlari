@@ -150,36 +150,57 @@ document.getElementById('unit-list').addEventListener('click', (e) => {
   marker.openPopup();
 });
 
+// Bilinen Leaflet sorunu: #map kutusu Leaflet ilk kez ölçtüğünde henüz gerçek
+// boyutuna oturmamışsa (flex/grid yerleşimi henüz çözülmemiş, sidebar geç
+// yerleşiyor, font yükleniyor vb.) harita devasa bir transform/scale ile
+// "kaçık" görünür (translate3d(...) scale(8192/16384) gibi) -- SADECE
+// invalidateSize() ile SONRADAN düzeltmeye çalışmak yetmiyor, çünkü Leaflet
+// zoom/pan durumunu o hatalı ilk ölçüme göre zaten kilitliyor. Bunun yerine
+// #map GERÇEKTEN ölçülebilir bir boyuta (clientHeight>0) oturana kadar
+// haritayı hiç oluşturmuyoruz -- birkaç kare beklemek genelde yeterli.
+function waitForRealSize(el, cb, tries) {
+  tries = tries || 0;
+  if (el.clientHeight > 40 || tries > 40) { cb(); return; }
+  requestAnimationFrame(() => waitForRealSize(el, cb, tries + 1));
+}
+
 import('leaflet').then(({ default: LeafletLib }) => {
   window.L = LeafletLib;
-  map = L.map('map').setView([41.3641, 36.1946], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 18
-  }).addTo(map);
+  const mapEl = document.getElementById('map');
+  waitForRealSize(mapEl, () => {
+    // Kampüs ölçeğinde, zaten yakınlaştırılmış bir görünümle başlar (önceden
+    // şehir/il ölçeğindeki zoom 12'den başlıyordu).
+    map = L.map('map').setView([41.3641, 36.1946], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(map);
 
-  // Bilinen Leaflet sorunu: #map kutusu ilk çizimde henüz gerçek boyutuna
-  // oturmamışsa (shell/sidebar geç yerleşiyor, font yükleniyor vb.) harita
-  // devasa bir transform/scale ile "kaçık" görünür (translate3d(...) scale(8192)
-  // gibi). invalidateSize() gerçek boyutu ölçüp haritayı yeniden hizalar --
-  // hem ilk çizimden hemen sonra hem de pencere/kenar çubuğu boyutu her
-  // değiştiğinde çağrılır.
-  const fixSize = () => map.invalidateSize();
-  requestAnimationFrame(fixSize);
-  setTimeout(fixSize, 250);
-  window.addEventListener('resize', fixSize);
-  document.querySelector('.sidebar-toggle')?.addEventListener('click', () => setTimeout(fixSize, 300));
+    const fixSize = () => map.invalidateSize();
+    requestAnimationFrame(fixSize);
+    setTimeout(fixSize, 250);
+    window.addEventListener('resize', fixSize);
+    document.querySelector('.sidebar-toggle')?.addEventListener('click', () => setTimeout(fixSize, 300));
+    // Flex/grid yerleşimi rAF'lardan SONRA da (ör. fontlar/veriler yüklenince
+    // kart yüksekliği değişince) kayabilir -- ResizeObserver her gerçek boyut
+    // değişiminde invalidateSize()'ı tetikleyerek bunu kalıcı olarak yakalar.
+    new ResizeObserver(fixSize).observe(mapEl);
 
+    loadEvents();
+  });
+});
+
+function loadEvents() {
   database.ref('etkinlikler').once('value').then((snap) => {
     allEvents = Object.values(snap.val() || {});
     populateYearSelect();
     render();
-    fixSize();
+    map.invalidateSize();
   }).catch((err) => {
     console.error('Etkinlikler yüklenemedi:', err);
     document.getElementById('unit-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:24px">Etkinlikler yüklenemedi.</div>';
   });
-});
+}
 </script>
 
 </body>
