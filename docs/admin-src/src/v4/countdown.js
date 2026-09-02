@@ -3,7 +3,8 @@
 // gösteren canlı bir saat, altındaki dolan bar da hedef güne yaklaştıkça
 // (başlangıç → hedef arasındaki geçen oran kadar) yavaş yavaş dolsun.
 // Hedef tarih Firebase'te (ayarlar/sayac) tutulur ki HERKES aynı sayacı
-// görsün -- kalem ikonuyla editor/admin/owner rolündeki biri değiştirebilir.
+// görsün -- kalem ikonuyla editor/admin/owner rolündeki biri değiştirebilir,
+// çöp kutusu ikonuyla hedef tarihi tamamen silip sayacı sıfırlayabilir.
 
 import { showModal, closeModal } from './modal.js';
 import { showToast } from './toast.js';
@@ -40,19 +41,8 @@ function tick(valueEl, subEl, barEl) {
     return;
   }
 
-  const d = new Date(target.hedefTarih);
-  const tarihStr = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-
-  // Duraklatıldıysa şimdiki zamana göre YENİDEN HESAPLAMA yapılmıyor -- pause
-  // anında dondurulan kalan süre (duraklananKalanMs) olduğu gibi gösteriliyor.
-  if (target.duraklatildi) {
-    valueEl.textContent = fmtRemain(target.duraklananKalanMs || 0) + ' (duraklatıldı)';
-    if (typeof target.duraklananPct === 'number') {barEl.style.width = target.duraklananPct.toFixed(2) + '%';}
-    subEl.textContent = 'Hedef: ' + tarihStr + (target.olusturan ? ' · ' + target.olusturan : '') + ' · duraklatıldı';
-    return;
-  }
-
   const now = Date.now();
+  const d = new Date(target.hedefTarih);
   const hedef = d.getTime();
   const baslangic = target.baslangicTarih ? new Date(target.baslangicTarih).getTime() : now;
   const diff = hedef - now;
@@ -67,6 +57,7 @@ function tick(valueEl, subEl, barEl) {
     barEl.style.width = pct.toFixed(2) + '%';
   }
 
+  const tarihStr = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   subEl.textContent = 'Hedef: ' + tarihStr + (target.olusturan ? ' · ' + target.olusturan : '');
 }
 
@@ -108,10 +99,7 @@ function openEditModal() {
           database.ref('ayarlar/sayac').set({
             hedefTarih,
             baslangicTarih,
-            olusturan: currentUserName || currentUserEmail,
-            duraklatildi: false,
-            duraklananKalanMs: null,
-            duraklananPct: null
+            olusturan: currentUserName || currentUserEmail
           })
             .then(() => logAction('Sayaç hedef tarihi ayarlandı: ' + hedefTarih, hedefTarih))
             .catch((err) => {
@@ -129,40 +117,26 @@ function openEditModal() {
   });
 }
 
-function togglePause() {
+function resetCountdown() {
   if (!canWrite) { showToast('Bu işlem için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
-  if (!target || !target.hedefTarih) { showToast('Önce bir hedef tarih belirleyin.', { variant: 'error' }); return; }
-
-  if (target.duraklatildi) {
-    // Devam ettir: kalan süreyi ŞİMDİDEN itibaren yeniden say -- hedefTarih'i
-    // (şimdi + donmuş kalan süre) olarak ileri kaydırıyoruz, böylece
-    // duraklatılan süre sayaçtan düşülmüş oluyor (komple sıfırlanmıyor).
-    const remain = target.duraklananKalanMs || 0;
-    const yeniHedef = new Date(Date.now() + remain).toISOString();
-    database.ref('ayarlar/sayac').update({
-      hedefTarih: yeniHedef,
-      duraklatildi: false,
-      duraklananKalanMs: null,
-      duraklananPct: null
-    })
-      .then(() => logAction('Sayaç devam ettirildi'))
-      .catch((err) => { console.error('Sayaç güncellenemedi:', err); showToast('Sayaç güncellenemedi.', { variant: 'error' }); });
-    return;
-  }
-
-  const now = Date.now();
-  const hedef = new Date(target.hedefTarih).getTime();
-  const baslangic = target.baslangicTarih ? new Date(target.baslangicTarih).getTime() : now;
-  const remain = Math.max(0, hedef - now);
-  const total = hedef - baslangic;
-  const pct = total > 0 ? Math.min(100, Math.max(0, ((now - baslangic) / total) * 100)) : 0;
-  database.ref('ayarlar/sayac').update({
-    duraklatildi: true,
-    duraklananKalanMs: remain,
-    duraklananPct: pct
-  })
-    .then(() => logAction('Sayaç duraklatıldı'))
-    .catch((err) => { console.error('Sayaç güncellenemedi:', err); showToast('Sayaç güncellenemedi.', { variant: 'error' }); });
+  if (!target || !target.hedefTarih) { showToast('Zaten belirlenmiş bir hedef tarih yok.', { variant: 'error' }); return; }
+  showModal({
+    title: 'Sayacı sıfırla?',
+    size: 'sm',
+    body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">Hedef tarih silinecek, sayaç "Hedef tarih belirlenmedi" durumuna dönecek.</p>',
+    actions: [
+      { label: 'Vazgeç', variant: 'ghost' },
+      {
+        label: 'Sıfırla',
+        variant: 'danger',
+        action: () => {
+          database.ref('ayarlar/sayac').remove()
+            .then(() => logAction('Sayaç sıfırlandı'))
+            .catch((err) => { console.error('Sayaç sıfırlanamadı:', err); showToast('Sayaç sıfırlanamadı.', { variant: 'error' }); });
+        }
+      }
+    ]
+  });
 }
 
 export function initCountdown() {
@@ -171,10 +145,7 @@ export function initCountdown() {
   const subEl = document.querySelector('[data-countdown-sub]');
   const barEl = document.querySelector('[data-countdown-bar]');
   const editBtn = document.querySelector('[data-countdown-edit]');
-  const pauseBtn = document.querySelector('[data-countdown-pause]');
-
-  const PAUSE_ICON = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="3" height="10" rx="0.5"/><rect x="8" y="2" width="3" height="10" rx="0.5"/></svg>';
-  const PLAY_ICON = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 2.5v9l8-4.5-8-4.5z"/></svg>';
+  const resetBtn = document.querySelector('[data-countdown-reset]');
 
   if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
   database = firebase.database();
@@ -193,18 +164,12 @@ export function initCountdown() {
   database.ref('ayarlar/sayac').on('value', (snap) => {
     target = snap.val();
     tick(valueEl, subEl, barEl);
-    if (pauseBtn) {
-      const paused = !!(target && target.duraklatildi);
-      pauseBtn.innerHTML = paused ? PLAY_ICON : PAUSE_ICON;
-      pauseBtn.setAttribute('aria-label', paused ? 'Sayacı devam ettir' : 'Sayacı duraklat');
-    }
   }, (err) => {
     console.error('Sayaç yüklenemedi:', err);
   });
 
   setInterval(() => tick(valueEl, subEl, barEl), 1000);
 
-  pauseBtn?.addEventListener('click', togglePause);
-
   editBtn?.addEventListener('click', openEditModal);
+  resetBtn?.addEventListener('click', resetCountdown);
 }
