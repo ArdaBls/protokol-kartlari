@@ -89,7 +89,7 @@ function render(users, events) {
   const gorevliCounts = countByName(eventList, 'gorevli');
   const haberCounts = countByName(eventList, 'haberYazanlari');
 
-  uids.sort((a, b) => (users[b].createdAt || 0) - (users[a].createdAt || 0));
+  uids.sort((a, b) => fullNameOf(users[a]).localeCompare(fullNameOf(users[b]), 'tr'));
 
   grid.innerHTML = uids.map((uid) => {
     const u = users[uid];
