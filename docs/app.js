@@ -1655,22 +1655,6 @@
 					// saveData() ile ayni gerekce: kayit + log TEK atomik update() ile yazilir.
 					const updates = {};
 					updates[dbPath(LIST_PATHS[currentListKey] + "/" + id)] = people[id];
-					// Faz 16 (yüz tanıma): "yuzVerileri" -- ana kayıtla AYNI atomik update()'te
-					// yazılan, fotoğrafsız bir ayna. Tarama ekranı FaceMatcher'ı KURARKEN Base64
-					// fotoğrafları asla indirmesin diye var -- sadece aktif ve descriptor'ı olan
-					// kişiler burada tutulur, diğer her durumda (pasif/silindi/descriptor yok)
-					// ayna kaydı silinir.
-					const pRec = people[id];
-					const mirrorPath = dbPath("yuzVerileri/" + currentListKey + "/" + id);
-					if (pRec.status === "aktif" && Array.isArray(pRec.faceDescriptor) && pRec.faceDescriptor.length === 128) {
-						updates[mirrorPath] = {
-							ad: pRec.name || "", unvan: pRec.title || "",
-							rank: (pRec.rank === "" || pRec.rank === undefined || pRec.rank === null) ? null : Number(pRec.rank),
-							faceDescriptor: pRec.faceDescriptor
-						};
-					} else {
-						updates[mirrorPath] = null;
-					}
 					let logKey = null;
 					if (currentUser) {
 						logKey = database.ref(dbPath("logs/" + currentListKey)).push().key;
@@ -2842,7 +2826,7 @@
 				// Üniversite Protokol Sırası'nda "Kurum" her zaman OMÜ'dür; yeni kayıt açılışında hazır gelsin (istenirse değiştirilebilir).
 				// Düzenleme sırasında openEditModal() bu alanı hemen ardından kişinin gerçek/eski değeriyle eziyor, yani mevcut kayıtlar hiç bozulmuyor.
 				document.getElementById("f_unit").value = currentListKey === "universite" ? "Ondokuz Mayıs Üniversitesi" : "";
-				document.getElementById("f_start").value = ""; document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("photoPreview").dataset.faceDescriptor = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
+				document.getElementById("f_start").value = ""; document.getElementById("photoPreview").style.display = "none"; document.getElementById("photoPreview").dataset.value = ""; document.getElementById("f_photo_url").value = ""; document.getElementById("endDateField").style.display = "none";
 				document.getElementById("statusReasonBlock").style.display = "none"; document.getElementById("sr_applyRow").style.display = "none"; document.getElementById("successorTriggerWrap").style.display = "none"; lastStatusTransitionNote = "";
 				document.getElementById("f_note").style.height = "54px";
 				['f_name', 'f_title', 'f_unit', 'f_rank'].forEach(toggleFieldClear);
@@ -2986,8 +2970,6 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			document.getElementById("endDateField").style.display = p.status === "pasif" ? "block" : "none";
 			refreshStatusReasonBlock(); // f_status.value az once p.status'a ayarlandi; zaten-pasif bir kayit acilinca da sorgu gorunsun diye burada da cagrilir
 			if(p.photo){ document.getElementById("photoPreview").src = p.photo; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = p.photo; if(p.photo.startsWith("http")) document.getElementById("f_photo_url").value = p.photo; }
-			// Faz 16: fotoğraf değiştirilmeden kaydedilirse descriptor kaybolmasın diye geri yüklenir.
-			document.getElementById("photoPreview").dataset.faceDescriptor = Array.isArray(p.faceDescriptor) ? JSON.stringify(p.faceDescriptor) : "";
 			document.getElementById("verifyField").style.display = "block"; document.getElementById("f_dogrulamaKaynak").value = p.dogrulamaKaynak || "omu_web"; updateVerifyInfo(p);
 			tempGorevGecmisi = Array.isArray(p.gorevGecmisi) ? p.gorevGecmisi.map(function(g){ return { unvan: g.unvan || "", baslangic: g.baslangic || "", bitis: g.bitis || "" }; }) : [];
 			document.getElementById("historyToggleBtn").style.display = "block";
@@ -3389,68 +3371,13 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 				refreshStatusReasonBlock();
 			});
 
-			// ---- Yüz Tanıma (Faz 16, face-api.js) --------------------------------------------
-			// Kişi kartına fotoğraf eklenince/güncellenince buradan 128 boyutlu bir yüz vektörü
-			// (descriptor) çıkarılır. Script + modeller (~6-15MB) TEMBEL yüklenir -- sadece bir
-			// fotoğraf seçildiğinde, sitenin normal ziyaretçilerine (kişi eklemeyenlere) hiç
-			// indirtilmez. Aynı script/model promise'i tüm form oturumunda tekrar kullanılır.
-			const FACE_API_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js";
-			const FACE_API_MODELS_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
-			let faceApiLoadPromise = null;
-			function loadFaceApi() {
-				if (faceApiLoadPromise) return faceApiLoadPromise;
-				faceApiLoadPromise = new Promise(function(resolve, reject) {
-					if (window.faceapi) { resolve(window.faceapi); return; }
-					const script = document.createElement("script");
-					script.src = FACE_API_SCRIPT_URL;
-					script.onload = function() { resolve(window.faceapi); };
-					script.onerror = function() { reject(new Error("face-api.js yüklenemedi (ağ hatası).")); };
-					document.head.appendChild(script);
-				}).then(async function(faceapi) {
-					await Promise.all([
-						faceapi.nets.ssdMobilenetv1.loadFromUri(FACE_API_MODELS_URL),
-						faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODELS_URL),
-						faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODELS_URL)
-					]);
-					return faceapi;
-				}).catch(function(err) {
-					faceApiLoadPromise = null; // başarısız kurulum tekrar denenebilsin diye önbelleklenmez
-					throw err;
-				});
-				return faceApiLoadPromise;
-			}
-			// Zaten yüklü/decode edilmiş bir <img> elementi üzerinde çalışır (previewPhoto'nun
-			// sıkıştırma için oluşturduğu img'in ta kendisi) -- ayrıca bir fetch/decode YOK.
-			// Yüz bulunamazsa (veya model/ağ hatası olursa) null döner, ASLA fırlatmaz.
-			async function detectFaceDescriptorFromImage(imgEl) {
-				try {
-					const faceapi = await loadFaceApi();
-					const result = await faceapi.detectSingleFace(imgEl, new faceapi.SsdMobilenetv1Options())
-						.withFaceLandmarks().withFaceDescriptor();
-					return result ? Array.from(result.descriptor) : null;
-				} catch (err) {
-					console.error("Yüz tespiti başarısız:", err);
-					return null;
-				}
-			}
-
 			function previewPhoto(e){
 			const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
 			reader.onload = function(ev){
-				const img = new Image(); img.onload = async function(){
+				const img = new Image(); img.onload = function(){
 				const MAX = 480; let w = img.width, h = img.height; if(w >= h && w > MAX){ h = Math.round(h * (MAX / w)); w = MAX; } else if(h > w && h > MAX){ w = Math.round(w * (MAX / h)); h = MAX; }
 				const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; canvas.getContext("2d").drawImage(img, 0, 0, w, h); const compressed = canvas.toDataURL("image/jpeg", 0.75);
 				document.getElementById("photoPreview").src = compressed; document.getElementById("photoPreview").style.display = "block"; document.getElementById("photoPreview").dataset.value = compressed; document.getElementById("f_photo_url").value = "";
-				// Yüz Tanıma (Faz 16): sıkıştırılmış fotoğraf üzerinde 128 boyutlu yüz vektörü
-				// çıkarılır, dataset'e (Firebase'e değil -- kaydet'e basılınca yazılır) konur.
-				document.getElementById("photoPreview").dataset.faceDescriptor = "";
-				const descriptor = await detectFaceDescriptorFromImage(img);
-				if (descriptor) {
-					document.getElementById("photoPreview").dataset.faceDescriptor = JSON.stringify(descriptor);
-					showToast("Yüz algılandı, tarama ekranında tanınabilecek.", "success");
-				} else {
-					showToast("Bu fotoğrafta yüz algılanamadı -- kişi kaydedilecek ama yüz tarama ekranında tanınmayacak.", "warn");
-				}
 				}; img.src = ev.target.result;
 			}; reader.readAsDataURL(file);
 			}
@@ -3581,17 +3508,10 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 			const rankRaw = document.getElementById("f_rank").value.trim();
 			if (rankRaw !== "" && !/^\d+$/.test(rankRaw)) { showToast("Protokol sırası sadece rakam olmalı.", "error"); return; }
 
-			// Faz 16 (yüz tanıma): previewPhoto() fotoğraf seçilince dataset.faceDescriptor'ı
-			// doldurur; openEditModal() de mevcut kaydın descriptor'ını (fotoğraf değişmediyse
-			// kaybolmasın diye) aynı dataset alanına geri yazar -- burada sadece okunur.
-			const fdRaw = document.getElementById("photoPreview").dataset.faceDescriptor;
-			let faceDescriptor = null;
-			if (fdRaw) { try { faceDescriptor = JSON.parse(fdRaw); } catch (e) { faceDescriptor = null; } }
 			const record = {
 				prefix: document.getElementById("f_prefix").value, name: name, title: title, unit: document.getElementById("f_unit").value.trim(), status: status,
 				rank: rankRaw === "" ? "" : Number(rankRaw),
-				photo: safePhotoUrl(document.getElementById("photoPreview").dataset.value), start: document.getElementById("f_start").value, end: document.getElementById("f_end").value, note: document.getElementById("f_note").value.trim(),
-				faceDescriptor: faceDescriptor
+				photo: safePhotoUrl(document.getElementById("photoPreview").dataset.value), start: document.getElementById("f_start").value, end: document.getElementById("f_end").value, note: document.getElementById("f_note").value.trim()
 			};
 			if (currentListKey === "universite") {
 				record.faculties = Array.from(document.querySelectorAll("#facultyMultiSelect .fm-cb:checked")).map(function(cb) { return cb.value; });

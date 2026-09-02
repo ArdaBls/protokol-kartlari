@@ -17,7 +17,6 @@ export const NAV = [
       // (index.html, ana ekran) en üstte.
       { key: 'dashboard',   href: 'index.html',  text: 'Operasyonlar', icon: 'dashboard' },
       { key: 'dashboard-2', href: 'analitik.html', text: 'Analitik', icon: 'charts' },
-      { key: 'dashboard-4', href: 'sistem-durumu.html', text: 'Yüz Tanıma', icon: 'layout' },
       // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası, protokol.html
       // (ana sayfadaki gerçek, halka açık protokol kartları sayfası -- KENDİSİ HİÇ
       // DEĞİŞMEDİ) buradan erişilebilir olmalı. Kök-domain'e göre MUTLAK yol (/protokol.html)
