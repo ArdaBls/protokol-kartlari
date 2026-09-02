@@ -102,6 +102,11 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.card-opt-btn');
   if (!btn) {return;}
+  // Tasks kartındaki "+" (yeni görev) butonu da görsel tutarlılık için
+  // .card-opt-btn stilini kullanıyor, ama kendi tıklama işleyicisi var
+  // (bkz. tasks-widget.js) -- bu genel dropdown menüsüne düşmemeli, aksi
+  // halde İngilizce "Refresh/Edit/Duplicate" menüsü açılırdı.
+  if (btn.hasAttribute('data-task-add')) {return;}
   // Skip if the click was already handled (e.g. calendar prev/next).
   if (e.defaultPrevented) {return;}
   e.preventDefault();
