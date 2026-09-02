@@ -136,6 +136,17 @@ function withAlpha(color, hexAlpha) {
   return color;
 }
 
+// Bir etkinlikte "aktif" sayılan kişiler: basın görevlisi (gorevli) VEYA haber
+// yazan (haberYazanlari) -- kullanıcı isteği: "haber yazan yada basın görevlisi
+// olarak" ikisi de sayılsın. Aynı kişi ikisinde birden geçiyorsa TEK sayılır.
+function namesForEvent(e) {
+  if (!e) {return [];}
+  const set = new Set();
+  String(e.gorevli || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => set.add(n));
+  String(e.haberYazanlari || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => set.add(n));
+  return Array.from(set);
+}
+
 function editorEventActivity(echarts, el, t) {
   const chart = echarts.init(el);
   const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
@@ -160,106 +171,114 @@ function editorEventActivity(echarts, el, t) {
 
   renderEmpty('Yükleniyor…');
 
-  (async () => {
-    try {
-      if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return; }
-      if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
-      const [usersSnap, eventsSnap] = await Promise.all([
-        firebase.database().ref('users').once('value'),
-        firebase.database().ref('etkinlikler').once('value')
-      ]);
-      const users = usersSnap.val() || {};
-      const events = eventsSnap.val() || {};
+  // Kullanıcı isteği: takvimde bir etkinlik değiştiğinde bu grafik de eş
+  // zamanlı güncellensin -- tek seferlik once('value') yerine, hem users hem
+  // etkinlikler üzerinde canlı on('value') dinleyicisi kuruluyor. İkisi de en
+  // az bir kez veri getirene kadar çizim yapılmıyor (aksi halde ilk gelen tek
+  // başına eksik veriyle çizer).
+  let latestUsers = null;
+  let latestEvents = null;
 
-      const names = [];
-      Object.keys(users).forEach((uid) => {
-        const u = users[uid];
-        if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
-        const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
-        if (full && names.indexOf(full) === -1) {names.push(full);}
+  function draw() {
+    if (latestUsers === null || latestEvents === null) {return;}
+    const users = latestUsers;
+    const events = latestEvents;
+
+    const names = [];
+    Object.keys(users).forEach((uid) => {
+      const u = users[uid];
+      if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
+      const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+      if (full && names.indexOf(full) === -1) {names.push(full);}
+    });
+
+    if (!names.length) { renderEmpty('Editor/admin/owner rolünde kullanıcı yok.'); return; }
+
+    const currentYear = String(new Date().getFullYear());
+    const counts = {};
+    names.forEach((n) => { counts[n] = new Array(12).fill(0); });
+
+    Object.keys(events).forEach((id) => {
+      const e = events[id];
+      if (!e || !e.tarih) {return;}
+      const tarih = String(e.tarih);
+      if (tarih.slice(0, 4) !== currentYear) {return;}
+      const monthIdx = parseInt(tarih.slice(5, 7), 10) - 1;
+      if (monthIdx < 0 || monthIdx > 11) {return;}
+      namesForEvent(e).forEach((n) => {
+        if (counts[n]) {counts[n][monthIdx]++;}
       });
+    });
 
-      if (!names.length) { renderEmpty('Editor/admin/owner rolünde kullanıcı yok.'); return; }
-
-      const currentYear = String(new Date().getFullYear());
-      const counts = {};
-      names.forEach((n) => { counts[n] = new Array(12).fill(0); });
-
-      Object.keys(events).forEach((id) => {
-        const e = events[id];
-        if (!e || !e.gorevli || !e.tarih) {return;}
-        const tarih = String(e.tarih);
-        if (tarih.slice(0, 4) !== currentYear) {return;}
-        const monthIdx = parseInt(tarih.slice(5, 7), 10) - 1;
-        if (monthIdx < 0 || monthIdx > 11) {return;}
-        String(e.gorevli).split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => {
-          if (counts[n]) {counts[n][monthIdx]++;}
-        });
-      });
-
-      const series = names.map((name, i) => {
-        const color = colorForIndex(i, basePalette);
-        return {
-          name,
-          type: 'line',
-          stack: 'total',
-          smooth: true,
-          showSymbol: false,
-          lineStyle: { color, width: 1.5 },
-          itemStyle: { color },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: withAlpha(color, '55') },
-              { offset: 1, color: withAlpha(color, '08') }
-            ])
-          },
-          data: counts[name]
-        };
-      });
-
-      chart.setOption({
-        ...baseOption(t),
-        tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
-        legend: {
-          data: names,
-          bottom: 0,
-          itemGap: 16,
-          textStyle: { color: t.textMuted, fontSize: 11 },
-          icon: 'circle',
-          itemWidth: 8,
-          itemHeight: 8
+    const series = names.map((name, i) => {
+      const color = colorForIndex(i, basePalette);
+      return {
+        name,
+        type: 'line',
+        stack: 'total',
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { color, width: 1.5 },
+        itemStyle: { color },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: withAlpha(color, '55') },
+            { offset: 1, color: withAlpha(color, '08') }
+          ])
         },
-        // Kullanıcı isteği: grafik çok üste yaslıydı, soldaki sayılar görünmüyordu --
-        // top artırıldı (grafik kendi div'i içinde aşağı indi), containLabel:true ile
-        // sol eksen etiketleri (kaç haneli olursa olsun) ASLA kırpılmıyor, sabit bir
-        // piksel tahmini yerine ECharts kendi gerekli genişliği hesaplıyor.
-        grid: { ...baseOption(t).grid, top: 28, left: 8, right: 16, bottom: 40, containLabel: true },
-        xAxis: {
-          type: 'category',
-          data: TR_MONTHS,
-          boundaryGap: false,
-          axisLine: { lineStyle: { color: t.borderLight } },
-          axisTick: { show: false },
-          axisLabel: { color: t.textMuted, fontSize: 10 }
-        },
-        yAxis: {
-          type: 'value',
-          minInterval: 1,
-          splitLine: { lineStyle: { color: t.borderLight, type: [4, 3] } },
-          axisLabel: { color: t.textMuted, fontSize: 10, formatter: '{value}' },
-          axisLine: { show: false },
-          axisTick: { show: false }
-        },
-        series
-      }, true); // notMerge:true -- renderEmpty()'in "Yükleniyor…" graphic'ini temizler
-    } catch (err) {
-      console.error('editorEventActivity grafiği yüklenemedi:', err);
-      // "users" düğümü sadece admin/owner'a açık (bkz. Firebase kuralı) -- editor
-      // rolündeki biri bu grafiği açarsa PERMISSION_DENIED alır, bu BEKLENEN bir
-      // durum, hata değil -- kullanıcıya net bir mesajla anlatılır.
-      renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
-    }
-  })();
+        data: counts[name]
+      };
+    });
+
+    chart.setOption({
+      ...baseOption(t),
+      tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
+      legend: {
+        data: names,
+        bottom: 0,
+        itemGap: 16,
+        textStyle: { color: t.textMuted, fontSize: 11 },
+        icon: 'circle',
+        itemWidth: 8,
+        itemHeight: 8
+      },
+      // Kullanıcı isteği: grafik çok üste yaslıydı, soldaki sayılar görünmüyordu --
+      // top artırıldı (grafik kendi div'i içinde aşağı indi), containLabel:true ile
+      // sol eksen etiketleri (kaç haneli olursa olsun) ASLA kırpılmıyor, sabit bir
+      // piksel tahmini yerine ECharts kendi gerekli genişliği hesaplıyor.
+      grid: { ...baseOption(t).grid, top: 28, left: 8, right: 16, bottom: 40, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: TR_MONTHS,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: t.borderLight } },
+        axisTick: { show: false },
+        axisLabel: { color: t.textMuted, fontSize: 10 }
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        splitLine: { lineStyle: { color: t.borderLight, type: [4, 3] } },
+        axisLabel: { color: t.textMuted, fontSize: 10, formatter: '{value}' },
+        axisLine: { show: false },
+        axisTick: { show: false }
+      },
+      series
+    }, true); // notMerge:true -- renderEmpty()'in "Yükleniyor…" graphic'ini temizler
+  }
+
+  if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
+  if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
+  firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
+    // "users" düğümü sadece admin/owner'a açık (bkz. Firebase kuralı) -- editor
+    // rolündeki biri bu grafiği açarsa PERMISSION_DENIED alır, bu BEKLENEN bir
+    // durum, hata değil -- kullanıcıya net bir mesajla anlatılır.
+    renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+  });
+  firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
+    console.error('editorEventActivity grafiği yüklenemedi:', err);
+    renderEmpty('Etkinlikler yüklenemedi.');
+  });
 
   return chart;
 }
@@ -284,27 +303,23 @@ function initPhotoCounter() {
   const el = document.querySelector('[data-photo-counter]');
   if (!el) {return;}
 
-  (async () => {
-    try {
-      if (!window.firebase) {return;}
-      if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
-      const eventsSnap = await firebase.database().ref('etkinlikler').once('value');
-      const events = eventsSnap.val() || {};
+  if (!window.firebase) {return;}
+  if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
 
-      let total = 0;
-      Object.keys(events).forEach((id) => {
-        const e = events[id];
-        if (!e || !e.gorevli) {return;}
-        String(e.gorevli).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
-          if (PHOTO_RATE_TABLE[name] !== undefined) {total += PHOTO_RATE_TABLE[name];}
-        });
+  // Kullanıcı isteği: takvimdeki etkinlikler değiştikçe bu sayaç da eş zamanlı
+  // güncellensin -- canlı on('value') dinleyicisi (once('value') değil).
+  firebase.database().ref('etkinlikler').on('value', (snap) => {
+    const events = snap.val() || {};
+    let total = 0;
+    Object.keys(events).forEach((id) => {
+      namesForEvent(events[id]).forEach((name) => {
+        if (PHOTO_RATE_TABLE[name] !== undefined) {total += PHOTO_RATE_TABLE[name];}
       });
-
-      el.textContent = total > 0 ? total.toLocaleString('tr-TR') + '+' : '—';
-    } catch (err) {
-      console.error('Fotoğraf sayacı yüklenemedi:', err);
-    }
-  })();
+    });
+    el.textContent = total > 0 ? total.toLocaleString('tr-TR') + '+' : '—';
+  }, (err) => {
+    console.error('Fotoğraf sayacı yüklenemedi:', err);
+  });
 }
 
 function revenueLine(echarts, el, t) {
@@ -478,85 +493,88 @@ function editorActivityShare(echarts, el, t) {
 
   renderEmpty('Yükleniyor…');
 
-  (async () => {
-    try {
-      if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return; }
-      if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
-      const [usersSnap, eventsSnap] = await Promise.all([
-        firebase.database().ref('users').once('value'),
-        firebase.database().ref('etkinlikler').once('value')
-      ]);
-      const users = usersSnap.val() || {};
-      const events = eventsSnap.val() || {};
+  // Kullanıcı isteği: takvimdeki değişikliklerle eş zamanlı güncellensin --
+  // canlı on('value') dinleyicisi (bkz. editorEventActivity'deki aynı desen).
+  let latestUsers = null;
+  let latestEvents = null;
 
-      const names = [];
-      Object.keys(users).forEach((uid) => {
-        const u = users[uid];
-        if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
-        const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
-        if (full && names.indexOf(full) === -1) {names.push(full);}
+  function draw() {
+    if (latestUsers === null || latestEvents === null) {return;}
+    const users = latestUsers;
+    const events = latestEvents;
+
+    const names = [];
+    Object.keys(users).forEach((uid) => {
+      const u = users[uid];
+      if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
+      const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+      if (full && names.indexOf(full) === -1) {names.push(full);}
+    });
+
+    const counts = {};
+    names.forEach((n) => { counts[n] = 0; });
+
+    Object.keys(events).forEach((id) => {
+      namesForEvent(events[id]).forEach((n) => {
+        if (counts[n] !== undefined) {counts[n]++;}
       });
+    });
 
-      const counts = {};
-      names.forEach((n) => { counts[n] = 0; });
+    const ranked = names
+      .map((name) => [name, counts[name]])
+      .filter(([, c]) => c > 0)
+      .sort((a, b) => b[1] - a[1]);
 
-      Object.keys(events).forEach((id) => {
-        const e = events[id];
-        if (!e || !e.gorevli) {return;}
-        String(e.gorevli).split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => {
-          if (counts[n] !== undefined) {counts[n]++;}
-        });
-      });
+    if (!ranked.length) { renderEmpty('Henüz görevli atanmış etkinlik yok.'); return; }
 
-      const ranked = names
-        .map((name) => [name, counts[name]])
-        .filter(([, c]) => c > 0)
-        .sort((a, b) => b[1] - a[1]);
+    const TOP_N = 5;
+    const top = ranked.slice(0, TOP_N);
+    const restSum = ranked.slice(TOP_N).reduce((s, [, c]) => s + c, 0);
+    const segments = top.map(([name, c], i) => [name, c, colorForIndex(i, basePalette)]);
+    if (restSum > 0) {segments.push(['Diğer', restSum, t.red]);}
 
-      if (!ranked.length) { renderEmpty('Henüz görevli atanmış etkinlik yok.'); return; }
+    const grandTotal = segments.reduce((s, [, c]) => s + c, 0);
 
-      const TOP_N = 5;
-      const top = ranked.slice(0, TOP_N);
-      const restSum = ranked.slice(TOP_N).reduce((s, [, c]) => s + c, 0);
-      const segments = top.map(([name, c], i) => [name, c, colorForIndex(i, basePalette)]);
-      if (restSum > 0) {segments.push(['Diğer', restSum, t.red]);}
+    chart.setOption({
+      textStyle: { fontFamily, color: t.textMuted },
+      tooltip: { ...baseOption(t).tooltip, trigger: 'item', formatter: '{b}: {d}%' },
+      legend: { show: false },
+      series: [{
+        type: 'pie',
+        radius: ['62%', '88%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: false,
+        label: { show: false },
+        labelLine: { show: false },
+        data: segments.map(([name, value, color]) => ({
+          name, value, itemStyle: { color, borderColor: t.bgSurface, borderWidth: 2 }
+        }))
+      }]
+    }, true);
 
-      const grandTotal = segments.reduce((s, [, c]) => s + c, 0);
-
-      chart.setOption({
-        textStyle: { fontFamily, color: t.textMuted },
-        tooltip: { ...baseOption(t).tooltip, trigger: 'item', formatter: '{b}: {d}%' },
-        legend: { show: false },
-        series: [{
-          type: 'pie',
-          radius: ['62%', '88%'],
-          center: ['50%', '50%'],
-          avoidLabelOverlap: false,
-          label: { show: false },
-          labelLine: { show: false },
-          data: segments.map(([name, value, color]) => ({
-            name, value, itemStyle: { color, borderColor: t.bgSurface, borderWidth: 2 }
-          }))
-        }]
-      }, true);
-
-      if (numEl) {
-        // Kullanıcı isteği: ortadaki büyük sayı toplam ADET değil, en yüksek
-        // paya sahip kişinin yüzdesi olsun (bkz. altındaki "yüzde" etiketi).
-        const topPct = Math.round((segments[0][1] / grandTotal) * 100);
-        numEl.textContent = topPct + '%';
-      }
-      if (legendEl) {
-        legendEl.innerHTML = segments.map(([name, value, color]) => {
-          const pct = Math.round((value / grandTotal) * 100);
-          return '<div class="donut-legend-item"><span class="dot" style="background:' + color + '"></span> ' + name + ' <span class="pct">' + pct + '%</span></div>';
-        }).join('');
-      }
-    } catch (err) {
-      console.error('editorActivityShare grafiği yüklenemedi:', err);
-      renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+    if (numEl) {
+      // Kullanıcı isteği: ortadaki büyük sayı toplam ADET değil, en yüksek
+      // paya sahip kişinin yüzdesi olsun (bkz. altındaki "yüzde" etiketi).
+      const topPct = Math.round((segments[0][1] / grandTotal) * 100);
+      numEl.textContent = topPct + '%';
     }
-  })();
+    if (legendEl) {
+      legendEl.innerHTML = segments.map(([name, value, color]) => {
+        const pct = Math.round((value / grandTotal) * 100);
+        return '<div class="donut-legend-item"><span class="dot" style="background:' + color + '"></span> ' + name + ' <span class="pct">' + pct + '%</span></div>';
+      }).join('');
+    }
+  }
+
+  if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
+  if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
+  firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
+    renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+  });
+  firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
+    console.error('editorActivityShare grafiği yüklenemedi:', err);
+    renderEmpty('Etkinlikler yüklenemedi.');
+  });
 
   return chart;
 }
