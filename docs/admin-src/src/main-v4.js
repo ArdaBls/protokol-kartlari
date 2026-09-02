@@ -39,6 +39,9 @@ if (document.querySelector('[data-date-range], [data-rich-text], [data-multi-sel
 if (document.querySelector('[data-task-list]')) {
   import('./v4/tasks-widget.js').then((m) => m.initTasksWidget());
 }
+if (document.querySelector('[data-countdown-value]')) {
+  import('./v4/countdown.js').then((m) => m.initCountdown());
+}
 
 // ────────────────────────
 //  Delegated interactions

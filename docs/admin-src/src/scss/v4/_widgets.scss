@@ -275,6 +275,25 @@
 }
 .todo-delete svg { width: 11px; height: 11px; }
 .todo-delete:hover { background: rgba(220, 53, 69, 0.12); color: var(--red); }
+
+// Sayaç kartındaki kalem (hedef tarih düzenle) düğmesi -- bilerek
+// .card-opt-btn'i YENİDEN KULLANMIYOR: main-v4.js'teki genel kart-menüsü
+// tıklama işleyicisi o sınıfı yakalıyor (bkz. Tasks + butonundaki aynı
+// çakışmanın düzeltmesi), ayrı bir sınıfla bu risk baştan bertaraf ediliyor.
+.countdown-edit-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  vertical-align: middle;
+  margin-inline-start: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.countdown-edit-btn svg { width: 11px; height: 11px; }
+.countdown-edit-btn:hover { background: var(--primary-lt); color: var(--primary); }
 .todo-prio {
   width: 6px; height: 6px;
   border-radius: 50%;

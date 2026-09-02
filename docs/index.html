@@ -30,8 +30,8 @@
   <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
   <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
   <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BhDNTQnO.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-Bv7fUfw4.css">
+  <script type="module" crossorigin src="/js/main-v4-CpEoz1ui.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-B8Hk5E0h.css">
 </head>
 <body data-shell="admin" data-page="dashboard" data-breadcrumb="Home > Dashboard">
 
@@ -245,20 +245,19 @@
     </div>
     <div class="card">
       <div class="stat">
-        <div class="stat-icon blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div class="stat-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         </div>
         <div class="stat-content">
-          <div class="stat-label">Avg Session</div>
+          <div class="stat-label">Sayaç <button type="button" class="countdown-edit-btn" data-countdown-edit aria-label="Hedef tarihi ayarla"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2l2.5 2.5-7 7-3 .5.5-3 7-7z"/></svg></button></div>
           <div class="stat-value-row">
-            <span class="stat-value">123.5<span style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:1px">min</span></span>
-            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>8%</span>
+            <span class="stat-value" data-countdown-value style="font-size:20px">—</span>
           </div>
-          <div class="stat-subtext">+14min from last week</div>
+          <div class="stat-subtext" data-countdown-sub>Hedef tarih belirlenmedi</div>
         </div>
-        <div class="stat-spark">
-          <div class="bar" style="height:50%;background:var(--blue)"></div><div class="bar" style="height:40%;background:var(--blue)"></div><div class="bar" style="height:65%;background:var(--blue)"></div><div class="bar" style="height:55%;background:var(--blue)"></div><div class="bar" style="height:70%;background:var(--blue)"></div><div class="bar" style="height:60%;background:var(--blue)"></div><div class="bar" style="height:80%;background:var(--blue)"></div><div class="bar" style="height:75%;background:var(--blue)"></div><div class="bar" style="height:85%;background:var(--blue)"></div><div class="bar" style="height:90%;background:var(--blue)"></div>
-        </div>
+      </div>
+      <div style="padding:0 16px 12px">
+        <div class="progress-thin"><div class="bar" data-countdown-bar style="width:0%;background:var(--purple)"></div></div>
       </div>
     </div>
     <div class="card">
@@ -315,21 +314,20 @@
       </div>
     </div>
     <div class="card">
-      <div class="stat">
-        <div class="stat-icon purple">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Page Views</div>
-          <div class="stat-value-row">
-            <span class="stat-value">47,325</span>
-            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>22%</span>
-          </div>
-          <div class="stat-subtext">6,854 unique visitors</div>
-        </div>
+      <div class="card-header">
+        <div class="card-title">Kişilere Göre Etkinlik Payı</div>
       </div>
-      <div style="padding:0 16px 12px">
-        <div class="progress-thin"><div class="bar" style="width:68%;background:var(--purple)"></div></div>
+      <div class="card-body">
+        <div class="donut-block">
+          <div class="donut-svg">
+            <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
+            <div class="donut-center-label">
+              <div class="num">—</div>
+              <div class="sub">yüzde</div>
+            </div>
+          </div>
+          <div class="donut-legend"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -360,99 +358,6 @@
         </div>
       </div>
       <div class="card-body" data-task-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
-    </div>
-  </div>
-
-  <!-- ── TABLE + SIDEBAR WIDGETS ── -->
-  <div class="row col-8-4">
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Recent Orders</div>
-          <div class="card-subtitle">Latest 5 transactions</div>
-        </div>
-        <button class="btn btn-outline btn-sm">View All →</button>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Product</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="cell-mono">#7841</td>
-                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--primary)">JD</div><span class="cell-strong">John Doe</span></div></td>
-                <td>AdminLTE Pro</td>
-                <td class="cell-strong">$245</td>
-                <td><span class="status status-green">Paid</span></td>
-                <td>Feb 14</td>
-              </tr>
-              <tr>
-                <td class="cell-mono">#7840</td>
-                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--azure)">AS</div><span class="cell-strong">Anna Smith</span></div></td>
-                <td>Dashboard Theme</td>
-                <td class="cell-strong">$89</td>
-                <td><span class="status status-blue">Processing</span></td>
-                <td>Feb 13</td>
-              </tr>
-              <tr>
-                <td class="cell-mono">#7839</td>
-                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--purple)">RJ</div><span class="cell-strong">Robert Jones</span></div></td>
-                <td>Dashboard Pack</td>
-                <td class="cell-strong">$490</td>
-                <td><span class="status status-green">Paid</span></td>
-                <td>Feb 13</td>
-              </tr>
-              <tr>
-                <td class="cell-mono">#7838</td>
-                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--yellow)">EW</div><span class="cell-strong">Emily Wang</span></div></td>
-                <td>ArchitectUI</td>
-                <td class="cell-strong">$125</td>
-                <td><span class="status status-yellow">Pending</span></td>
-                <td>Feb 12</td>
-              </tr>
-              <tr>
-                <td class="cell-mono">#7837</td>
-                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--red)">MK</div><span class="cell-strong">Mark Kim</span></div></td>
-                <td>Bootstrap Bundle</td>
-                <td class="cell-strong">$67</td>
-                <td><span class="status status-red">Cancelled</span></td>
-                <td>Feb 11</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Kişilere göre etkinlik dağılımı -->
-    <div style="display:flex;flex-direction:column;gap:16px">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Kişilere Göre Etkinlik Payı</div>
-          <div class="card-subtitle">Basın görevlisi olarak atandıkları toplam etkinlik</div>
-        </div>
-        <div class="card-body">
-          <div class="donut-block">
-            <div class="donut-svg">
-              <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
-              <div class="donut-center-label">
-                <div class="num">—</div>
-                <div class="sub">yüzde</div>
-              </div>
-            </div>
-            <div class="donut-legend"></div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
