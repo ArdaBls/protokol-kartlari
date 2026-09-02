@@ -8,6 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Kullanıcı isteği: protokol.html'in TÜM içeriği (kartlar, arama, aksiyon
+     butonları, takvim, tüm modaller -- eski admin paneli dahil) bu sayfanın
+     içinde BİREBİR çalışsın -- style.css ve app.js aynen dahil edildi. -->
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Anasayfa|index.html > Analitik">
@@ -16,8 +23,1003 @@
 <div class="page-wrapper">
 
 
+		<!-- Faz 8: SVG ikon sprite -- admin panelinde emoji yerine gercek stroke ikonlari
+		     kullanmak icin (referans: duguntakvimi-main/yonetim.html). Kullanim:
+		     <svg class="ikon"><use href="#i-panel"/></svg>. i-test bu proje icin ozel eklendi
+		     (referans projede yok), digerleri referanstan aynen alindi. -->
+		<svg style="display:none" aria-hidden="true">
+			<symbol id="i-panel" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></symbol>
+			<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 16 11"/></symbol>
+			<symbol id="i-takvim" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+			<symbol id="i-grafik" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 5-6"/></symbol>
+			<symbol id="i-akis" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+			<symbol id="i-uyari" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+			<symbol id="i-geri" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+			<symbol id="i-bilgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></symbol>
+			<symbol id="i-test" viewBox="0 0 24 24"><path d="M9 2v6.5L4 18a2 2 0 0 0 1.8 3h12.4a2 2 0 0 0 1.8-3l-5-9.5V2"/><path d="M9 2h6M8.5 12h7"/></symbol>
+			<symbol id="i-arama" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+			<symbol id="i-radyo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-8.49a6 6 0 0 0 0 8.49M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></symbol>
+			<symbol id="i-gazete" viewBox="0 0 24 24"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M18 10h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4"/><path d="M4 8V4a2 2 0 0 1 2-2h10"/><rect width="8" height="8" x="4" y="8" rx="1"/></symbol>
+			<symbol id="i-kurum" viewBox="0 0 24 24"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></symbol>
+			<symbol id="i-supurge" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+			<symbol id="i-kitap" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+			<symbol id="i-disk" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3.4"/></symbol>
+			<symbol id="i-ok" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+			<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+			<symbol id="i-kilit" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+		</svg>
+
+		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.</div>
+
+								<div class="loading-overlay" id="loadingOverlay">
+			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
+			<p class="loading-label" id="loadingLabel">Yükleniyor…</p>
+		</div>
+
+		<header>
+			<div style="max-width:1040px;margin:0 auto;">
+				<div class="header-top-row">
+					<div class="header-left">
+						<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
+						<h1>Protokol Kartları</h1>
+					</div>
+					<div class="header-top-right">
+						<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
+						<div class="notif-bell-wrap" id="notifBellWrap" style="display:none;">
+							<button type="button" class="theme-toggle" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Bildirimler" title="Bildirimler">🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span></button>
+							<div class="notif-dropdown" id="notifDropdown"></div>
+						</div>
+						<div class="header-auth" id="headerAuth"></div>
+					</div>
+				</div>
+			</div>
+		</header>
+
+		<div class="list-switch-wrap">
+			<div class="list-switch" id="listSwitch">
+				<button data-list="il">İl Protokol Sırası</button>
+				<button data-list="universite" class="active">Üniversite Protokol Sırası</button>
+			</div>
+		</div>
+
+		<!-- KONTROL ÇUBUĞU (Arama Artık Seçim Modlarında Aktif) -->
+		<div class="controls">
+			<div class="controlbar">
+				<div class="search-wrap input-wrap">
+					<input id="search" name="protokolSearch" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
+					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()" aria-label="Aramayı temizle">✕</button>
+				</div>
+
+				<div class="toggle-group" id="statusToggle">
+					<button data-mode="aktif" class="active">Aktif</button>
+					<button data-mode="pasif">Arşiv</button>
+					<button data-mode="silindi" class="edit-only">Silinenler</button>
+				</div>
+				
+				<div class="mobile-layout-toggle" id="mobileLayoutToggle">
+					<button data-col="2">2'li</button>
+					<button data-col="3">3'lü</button>
+					<button data-col="4" class="active">4'lü</button>
+				</div>
+				
+				<div class="count" id="countLabel">Veriler İndiriliyor...</div>
+			</div>
+		</div>
+
+		<!-- AKSİYON BUTONLARI -->
+		<div class="actions-row" id="actionsRow">
+			<div class="actions-left" id="actionsLeftWrap">
+				<button class="btn btn-primary edit-only" id="addBtn" onclick="openAddModal()">+ Yeni Kişi Ekle</button>
+				<button class="btn btn-ghost edit-only" id="reorderBtn" onclick="toggleReorderMode()">Sıralamayı Düzenle</button>
+				
+				<button class="btn btn-ghost" id="newsModeBtn" onclick="toggleNewsMode()">Haber Çıktısı Al</button>
+				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Taslağı Oluştur (0)</button>
+				<button class="btn btn-ghost" id="cancelNewsBtn" style="display:none;" onclick="toggleNewsMode()">İptal</button>
+
+				<button class="btn btn-ghost edit-only" id="bulkVerifyBtn" onclick="bulkVerifyList(true)" title="Ekranda görünen aktif kayıtların tümünü şimdi doğrulanmış olarak işaretler">Hepsini Doğrula</button>
+				<button class="btn btn-ghost edit-only" id="bulkUnverifyBtn" onclick="bulkVerifyList(false)" title="Ekranda görünen aktif kayıtların tümünü doğrulanmadı olarak işaretler">Hepsini Doğrulanmadı İşaretle</button>
+				<button class="btn btn-ghost admin-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
+				<button class="btn btn-ghost admin-only" id="importBtn" onclick="document.getElementById('importFile').click()">JSON Yükle</button>
+				<input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">
+			</div>
+			
+			<div class="actions-right">
+				<button class="btn btn-danger-outline edit-only" id="bulkDeleteModeBtn" onclick="toggleBulkDeleteMode()">Toplu Çöpe At</button>
+				<button class="btn btn-danger" id="executeBulkDeleteBtn" style="display:none;" onclick="openBulkConfirmModal()">Seçilenleri Çöpe At (0)</button>
+				<button class="btn btn-ghost" id="cancelBulkDeleteBtn" style="display:none;" onclick="toggleBulkDeleteMode()">İptal</button>
+				
+				<button class="btn btn-danger edit-only" id="emptyTrashBtn" style="display:none;" onclick="openEmptyTrashModal()">Çöp Kutusunu Boşalt</button>
+			</div>
+		</div>
+
+		<div class="main-layout" id="mainLayout">
+			<aside class="faculty-sidebar fs-scope" id="facultySidebar"></aside>
+			<div class="main-content">
+				<div class="grid grid-cols-4" id="grid" style="--mobile-cols: 4;"></div>
+				<div class="empty" id="emptyState" style="display:none;">
+					<div class="empty-icon" aria-hidden="true">🗂️</div>
+					<div class="empty-title">Kayıt Yok.</div>
+					<div class="empty-sub">Arama veya filtre ölçütünüzü değiştirmeyi deneyin.</div>
+				</div>
+			</div>
+			<!-- Sağ ray: takvim kapalı hâlde burada durur, tıklanınca tam ekran açılır -->
+			<aside class="calendar-rail" id="calendarRail">
+				<button type="button" class="cal-rail-btn" onclick="openCalendar()">
+					<span class="cal-rail-icon">🗓️</span>
+					<span class="cal-rail-label">Etkinlik Takvimi</span>
+					<span class="cal-rail-count" id="calRailCount">yükleniyor…</span>
+				</button>
+				<div class="cal-rail-next" id="calRailNext"></div>
+			</aside>
+		</div>
+
+		<!-- ================= TELİF VE YASAL BİLDİRİM ================= -->
+		<footer>
+			<p class="foot-copy">&copy; <span id="footYear">2026</span> <strong>Arda Bilasa</strong>. Tüm hakları saklıdır.</p>
+			<p class="foot-links">
+				<button type="button" class="foot-link" onclick="openLegalModal('terms')">Kullanım Şartları</button>
+				<span class="foot-sep">·</span>
+				<button type="button" class="foot-link" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
+				<span class="foot-sep">·</span>
+				<button type="button" class="foot-link" onclick="replayOnboarding()">Kullanım Rehberi</button>
+			</p>
+			<p class="foot-note">Bu uygulamanın kaynak kodu, arayüz tasarımı ve içeriği telif hakkıyla korunmaktadır; hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz veya dağıtılamaz.</p>
+			<p class="foot-version">Sürüm <span id="footVersion"></span></p>
+		</footer>
+
+		<!-- Faz 6: mobil "liquid glass" alt navigasyon -- iki eski FAB (calendar-fab/faculty-fab)
+		     aynı ID/onclick/JS mantığıyla korunuyor, sadece ortak bulanık-cam bir çubuğun içine
+		     alındı. Kullanıcı isteğiyle etiket metinleri kaldırıldı: sadece ikon, daire biçimli
+		     düğmeler. Metin gittiği için erişilebilirlik aria-label/title ile sağlanıyor.
+		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
+		<div class="mobile-glass-nav" id="mobileGlassNav">
+			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi"><svg class="ikon"><use href="#i-takvim"/></svg></button>
+			<button type="button" class="admin-fab" id="adminFab" onclick="openAdminPanel()" aria-label="Admin Paneli" title="Admin Paneli"><svg class="ikon"><use href="#i-panel"/></svg></button>
+			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()" aria-label="Fakülte Filtrele" title="Fakülte Filtrele"><svg class="ikon"><use href="#i-arama"/></svg><span class="fab-count" id="facultyFabCount" style="display:none;"></span></button>
+		</div>
+		<div class="faculty-sheet-backdrop" id="facultySheetBackdrop" onclick="closeFacultySheet()"></div>
+		<div class="faculty-sheet" id="facultySheet">
+			<div class="fsheet-handle-wrap" id="fsheetHandleWrap"><div class="fsheet-handle"></div></div>
+			<div class="fsheet-header">
+				<span>Fakülte / Birim Filtrele</span>
+				<button type="button" class="fsheet-close" onclick="closeFacultySheet()" aria-label="Kapat">✕</button>
+			</div>
+			<div class="fsheet-body fs-scope" id="facultySheetBody"></div>
+			<div class="fsheet-footer">
+				<button type="button" class="fsheet-apply-btn" onclick="closeFacultySheet()">Uygula ve Kapat</button>
+			</div>
+		</div>
+
+		<!-- ================= ETKİNLİK TAKVİMİ (tam ekran) ================= -->
+		<div class="cal-launch-backdrop" id="calLaunchBackdrop"></div>
+		<div class="cal-overlay" id="calendarOverlay">
+			<div class="cal-shell">
+				<aside class="cal-rail-left">
+					<div>
+						<div class="cal-mini-head">
+							<button type="button" class="cal-iconbtn" onclick="calMiniShiftYear(-1)" title="Önceki yıl">«</button>
+							<button type="button" class="cal-iconbtn" onclick="calMiniShift(-1)" title="Önceki ay">‹</button>
+							<span class="cal-mini-title" id="calMiniTitle">—</span>
+							<button type="button" class="cal-iconbtn" onclick="calMiniShift(1)" title="Sonraki ay">›</button>
+							<button type="button" class="cal-iconbtn" onclick="calMiniShiftYear(1)" title="Sonraki yıl">»</button>
+						</div>
+						<div class="cal-mini-grid" id="calMiniGrid"></div>
+					</div>
+					<div class="cal-legend">
+						<h4>Etkinlik Türleri</h4>
+						<div id="calTypeLegend"></div>
+					</div>
+					<div class="cal-legend">
+						<h4>Durum</h4>
+						<div id="calStatusLegend"></div>
+					</div>
+				</aside>
+				<div class="cal-main">
+					<div class="cal-topbar">
+						<span class="cal-month-label" id="calMonthLabel">—</span>
+						<button type="button" class="cal-iconbtn" onclick="calShift(-1)" title="Önceki">‹</button>
+						<button type="button" class="cal-iconbtn" onclick="calShift(1)" title="Sonraki">›</button>
+						<button type="button" class="cal-textbtn" onclick="calToday()">Bugün</button>
+						<input type="date" class="cal-jump" id="calJumpDate" onchange="calJumpTo(this.value)" title="İstediğin tarihe git" aria-label="Tarihe git">
+						<span class="cal-spacer"></span>
+						<button type="button" class="cal-textbtn admin-only" onclick="exportEventsJSON()" title="Etkinlik takvimi JSON yedeği indir">JSON İndir</button>
+						<button type="button" class="cal-textbtn admin-only" onclick="document.getElementById('eventsRestoreFile').click()" title="JSON yedekten geri yükle">JSON Yükle</button>
+						<input type="file" id="eventsRestoreFile" accept="application/json" style="display:none;" onchange="importEventsJSON(event)">
+						<div class="cal-viewtabs" id="calViewTabs">
+							<button type="button" class="cal-viewbtn" data-view="day" onclick="calSetView('day')">Gün</button>
+							<button type="button" class="cal-viewbtn active" data-view="week" onclick="calSetView('week')">Hafta</button>
+							<button type="button" class="cal-viewbtn" data-view="month" onclick="calSetView('month')">Ay</button>
+							<button type="button" class="cal-viewbtn" data-view="year" onclick="calSetView('year')">Yıl</button>
+							<button type="button" class="cal-viewbtn" data-view="list" onclick="calSetView('list')">Liste</button>
+						</div>
+						<button type="button" class="cal-textbtn edit-only" onclick="startQuickDraftEvent()" title="Şu andan başlayan 1 saatlik taslak etkinlik oluşturur, doldurman için hatırlatma gönderir">📍 Bir Etkinliğe Gidiyorum</button>
+						<button type="button" class="cal-addbtn" onclick="openEventModal(null)"><span class="ab-full">+ Etkinlik</span><span class="ab-short">+</span></button>
+						<button type="button" class="cal-iconbtn cal-close" onclick="closeCalendar()" title="Kapat" aria-label="Kapat">✕</button>
+					</div>
+					<div class="cal-main-body" id="calMainBody"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Etkinlik detay paneli (sağdan açılır) -->
+		<div class="cal-peek-backdrop" id="calPeekBackdrop" onclick="closeEventPeek()"></div>
+		<div class="cal-peek" id="calPeek">
+			<div class="cal-peek-head">
+				<h3 id="calPeekTitle">Etkinlik</h3>
+				<button type="button" class="cal-iconbtn" onclick="closeEventPeek()" aria-label="Kapat">✕</button>
+			</div>
+			<div class="cal-peek-body" id="calPeekBody"></div>
+			<div class="cal-peek-foot">
+				<button class="btn btn-primary cal-quick-btn" id="calPeekQuickBtn" onclick="eventQuickStamp()">Şimdi Bitir</button>
+				<div class="peek-row">
+					<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Taslağı Oluştur</button>
+					<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
+				</div>
+				<div class="peek-row">
+					<button class="btn btn-danger-outline edit-only" onclick="deleteEvent()">Sil</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Etkinlik Silme Onay Modali (peek panel + duzenleme formu ortak kullanir) -->
+		<div class="modal-bg" id="eventDeleteConfirmModalBg" style="z-index:97;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Etkinliği Sil</h2>
+				<p class="hint" id="eventDeleteConfirmText" style="margin-bottom:20px;">Bu etkinlik takvimden silinecek. Emin misiniz?</p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeEventDeleteConfirm()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeEventDelete()">Evet, Sil</button>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Etkinlik ekle / düzenle -->
+		<div class="modal-bg" id="eventModalBg" style="z-index:95;">
+			<div class="modal" style="max-width:520px;">
+				<button class="close-x" onclick="closeEventModal()" aria-label="Kapat">✕</button>
+				<h2 id="eventModalTitle">Yeni Etkinlik</h2>
+				<p class="hint">Takvime eklenen etkinlikler ekipteki herkesin ekranında anında görünür.</p>
+				<form id="eventForm" onsubmit="return false;">
+					<div class="field">
+						<label for="ev_ad">Etkinlik Adı</label>
+						<input type="text" id="ev_ad" placeholder="Örn: Tıp Fakültesi Beyaz Önlük Töreni">
+					</div>
+					<div class="field-row">
+						<div class="field"><label for="ev_tur">Tür</label><select id="ev_tur"></select></div>
+						<div class="field"><label for="ev_durum">Durum</label><select id="ev_durum"></select></div>
+					</div>
+					<div class="field">
+						<label>Rozetler <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir)</span></label>
+						<div id="ev_badgeBox" style="display:flex; flex-wrap:wrap; gap:6px 14px;"></div>
+					</div>
+					<label class="ev-multiday-toggle"><input type="checkbox" id="ev_cokGunlu" onchange="toggleMultiDayFields(this.checked)"> Çok günlü etkinlik (birden fazla gün sürer)</label>
+					<div class="field-row ev-datetime-row">
+						<div class="field ev-date"><label for="ev_tarih">Tarih</label><input type="date" id="ev_tarih"></div>
+						<div class="field ev-time"><label for="ev_saat">Başlangıç</label>
+							<div class="ev-time-wrap"><input type="time" id="ev_saat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_saat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
+						</div>
+						<div class="field ev-time"><label for="ev_bitisSaat">Bitiş</label>
+							<div class="ev-time-wrap"><input type="time" id="ev_bitisSaat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_bitisSaat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
+						</div>
+						<div class="field ev-date" id="ev_bitisTarihiWrap" style="display:none;"><label for="ev_bitisTarihi">Bitiş Tarihi</label><input type="date" id="ev_bitisTarihi"></div>
+					</div>
+					<div class="field"><label for="ev_yer">Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
+					<div class="field"><label for="ev_birim">Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
+					<div class="field"><label for="ev_planlayan">Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
+					<div class="field">
+						<label for="ev_gorevliSearch">Basın Görevlisi <span style="font-weight:400; color:var(--muted); font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>
+						<input type="text" class="ev-att-search" id="ev_gorevliSearch" placeholder="İsim ara…" oninput="renderPressStaffPicker()">
+						<div class="ev-attendee-box" id="ev_gorevliBox"></div>
+					</div>
+					<div class="field">
+						<label for="ev_haberYazanlariSearch">Haberi Yazan(lar) <span style="font-weight:400; color:var(--muted); font-size:12px;">(etkinlik gerçekleştikten sonra, haberi kim/kimler yazdıysa işaretlenir)</span></label>
+						<input type="text" class="ev-att-search" id="ev_haberYazanlariSearch" placeholder="İsim ara…" oninput="renderNewsWriterPicker()">
+						<div class="ev-attendee-box" id="ev_haberYazanlariBox"></div>
+					</div>
+					<div class="field">
+						<label for="ev_haberMetni">Haber Metni <span style="font-weight:400; color:var(--muted); font-size:12px;">(yayınlanan/yazılan son haber metni, arşiv amaçlı buraya girilir)</span></label>
+						<textarea id="ev_haberMetni" rows="6" style="resize:vertical;" placeholder="Haber Metni Üretici ile oluşturduğunuz veya elle yazdığınız son metni buraya yapıştırın…"></textarea>
+					</div>
+					<div class="field">
+						<label for="ev_attSearch">Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
+						<label class="au-basin-toggle" style="margin:2px 0 6px;"><input type="checkbox" id="ev_attIncludeIl" onchange="onAttIncludeIlToggle()"> İl Protokolünü de dahil et</label>
+						<input type="text" class="ev-att-search" id="ev_attSearch" placeholder="İsim veya unvan ara…" oninput="renderEventAttendeePicker()">
+						<div class="ev-attendee-box" id="ev_attendeeBox"></div>
+					</div>
+					<div class="field"><label for="ev_arsiv">Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="ev_arsiv" placeholder="https://drive.google.com/..."></div>
+					<div class="field"><label for="ev_haberKaynagi">Haber Kaynağı <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="ev_haberKaynagi"><option value="">(Belirtilmedi)</option><option value="İHA">İHA</option><option value="AA">AA</option><option value="DHA">DHA</option><option value="ANKA">ANKA</option></select></div>
+					<div class="field"><label for="ev_not">Not</label><textarea id="ev_not" rows="2" style="resize:vertical;"></textarea></div>
+					<div class="modal-actions">
+						<button class="btn btn-danger-outline" type="button" id="ev_deleteBtn" style="display:none;" onclick="deleteEvent()">Sil</button>
+						<button class="btn btn-ghost" type="button" onclick="closeEventModal()">Vazgeç</button>
+						<button class="btn btn-primary" type="button" onclick="saveEvent()">Kaydet</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Ekle/Düzenle Modalı -->
+		<div class="modal-bg" id="modalBg">
+		<div class="modal-center-wrap" id="modalCenterWrap">
+		<div class="history-panel" id="historyPanel">
+		<div class="history-panel-inner">
+			<button class="close-x" onclick="closeHistoryPanel()" aria-label="Kapat">✕</button>
+			<h3>Görev Geçmişi</h3>
+			<div class="field">
+				<label for="hg_unvan">Görev Adı</label>
+				<input type="text" id="hg_unvan" autocomplete="off" placeholder="Örn. Dekanlık, Vekâleten Dekanlık">
+			</div>
+			<div class="field-row date-pair-row">
+				<div class="field"><label for="hg_baslangic">Başlangıç</label><input type="date" id="hg_baslangic"></div>
+				<div class="field"><label for="hg_bitis">Bitiş</label><input type="date" id="hg_bitis"></div>
+			</div>
+			<button class="btn btn-ghost" type="button" style="width:100%; margin-bottom:14px;" onclick="addHistoryEntry()">Ekle</button>
+			<div id="historyEntryList"></div>
+			<h3>Katıldığı Etkinlikler</h3>
+			<div id="historyEventList"></div>
+		</div>
+		</div>
+		<button class="history-toggle" id="historyToggleBtn" type="button" style="display:none;" onclick="openHistoryPanel()" title="Görev ve Etkinlik Geçmişi">‹</button>
+		<div class="modal">
+				<button class="close-x" onclick="closeModal()" aria-label="Kapat">✕</button>
+				<h2 id="modalTitle">Yeni Kişi Ekle</h2>
+				<p class="hint" id="modalHint">Bilgileri doldur, fotoğraf otomatik kareye sığdırılır.</p>
+				<form id="personForm" onsubmit="return false;" onkeydown="handleFormKeydown(event)">
+					<div class="field-row">
+						<div class="field f-prefix">
+							<label for="f_prefix">Unvan Ön Eki</label>
+							<select id="f_prefix">
+								<option value="">(Yok)</option>
+								<option value="Prof. Dr.">Prof. Dr.</option>
+								<option value="Doç. Dr.">Doç. Dr.</option>
+								<option value="Dr. Öğr. Üyesi">Dr. Öğr. Üyesi</option>
+								<option value="Dr.">Dr.</option>
+								<option value="Av.">Av.</option>
+								<option value="Öğr. Gör.">Öğr. Gör.</option>
+								<option value="Arş. Gör.">Arş. Gör.</option>
+								<option value="Uzm.">Uzm.</option>
+							</select>
+						</div>
+						<div class="field" style="flex: 1;">
+							<label for="f_name">İsim Soyisim</label>
+							<div class="input-wrap">
+								<input type="text" id="f_name" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_name')">
+								<button type="button" class="clear-btn" id="clear_f_name" onclick="clearFieldInput('f_name')" aria-label="Temizle">✕</button>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<label for="f_title">Mesleki / Görev Unvanı (Örn: Rektör)</label>
+						<div class="input-wrap">
+							<input type="text" id="f_title" list="f_title_list" required autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_title')"><datalist id="f_title_list"></datalist>
+							<button type="button" class="clear-btn" id="clear_f_title" onclick="clearFieldInput('f_title')" aria-label="Temizle">✕</button>
+						</div>
+					</div>
+					<div class="field">
+						<label for="f_unit">Birim / Kurum</label>
+						<div class="input-wrap">
+							<input type="text" id="f_unit" list="f_unit_list" autocomplete="off" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_unit')"><datalist id="f_unit_list"></datalist>
+							<button type="button" class="clear-btn" id="clear_f_unit" onclick="clearFieldInput('f_unit')" aria-label="Temizle">✕</button>
+						</div>
+					</div>
+					<div class="field" id="facultyField" style="display:none;">
+						<label for="facultyMultiSearch">Bağlı Olduğu Birim(ler) / Ek Görev(ler) <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir — örn. hem Rektör Yardımcısı hem ek olarak bir koordinatörlük seçebilirsin)</span></label>
+						<input type="text" id="facultyMultiSearch" class="fm-search" autocomplete="off" placeholder="Birim ara…">
+						<div class="fm-pills" id="facultyMultiPills"></div>
+						<div class="faculty-multiselect" id="facultyMultiSelect"></div>
+					</div>
+					<div class="field" id="coordExtraRoleField" style="display:none;">
+						<label for="f_coordExtraRole" id="coordExtraRoleLabel">Ek Görev Açıklaması</label>
+						<input type="text" id="f_coordExtraRole" autocomplete="off" placeholder="Örn. Koordinatör, Koordinatör Yardımcısı, Üye">
+					</div>
+					<div class="field-row">
+						<div class="field">
+							<label for="f_status">Durum</label>
+							<select id="f_status">
+								<option value="aktif">Aktif</option>
+								<option value="pasif">Pasif (arşiv)</option>
+							</select>
+						</div>
+						<div class="field">
+							<label for="f_rank">Protokol Sırası (Ana Kat)</label>
+							<div class="input-wrap">
+								<input type="text" inputmode="numeric" id="f_rank" placeholder="?" onclick="this.select()" onfocus="this.select()" oninput="toggleFieldClear('f_rank')">
+								<button type="button" class="clear-btn" id="clear_f_rank" onclick="clearFieldInput('f_rank')" aria-label="Temizle">✕</button>
+							</div>
+						</div>
+					</div>
+					<div class="field" id="statusReasonBlock" style="display:none;">
+						<label for="sr_reason">Pasife Alma Sebebi</label>
+						<select id="sr_reason" onchange="onStatusReasonChange()">
+							<option value="">Seçiniz…</option>
+							<option value="yeni_gorev">Yeni bir göreve atandı</option>
+							<option value="gorev_bitti">Görevi sona erdi, başka bir göreve geri çekildi</option>
+							<option value="yerine_atama">Yerine yeni biri atanacak</option>
+							<option value="istifa">İstifa etti</option>
+							<option value="emekli">Emekli oldu</option>
+							<option value="gorevden_alindi">Görevden alındı</option>
+							<option value="vefat">Vefat etti</option>
+							<option value="diger">Diğer</option>
+						</select>
+						<div id="sr_applyRow" style="display:none; margin-top:10px;">
+							<label for="sr_newTitle">Yeni Unvan</label>
+							<div class="input-wrap">
+								<input type="text" id="sr_newTitle" autocomplete="off" placeholder="Örn. Öğretim Üyesi">
+							</div>
+							<label for="sr_transitionDate" style="margin-top:8px;">Geçiş Tarihi</label>
+							<input type="date" id="sr_transitionDate">
+							<button class="btn btn-ghost" type="button" style="width:100%; margin-top:10px;" onclick="applyStatusReason()">Uygula</button>
+						</div>
+						<!-- Halef tetikleyicisi ESKIDEN formun EN ALTINDA, Kaydet/Sil butonlarindan
+						     SONRA duruyordu -- "Uygula" (yukarida) ile ayni sebebin iki bagimsiz
+						     parcasi olmasina ragmen birbirinden kopuk gorunuyordu (kullanici: sistemi
+						     "daha kullanilabilir kompakt hale getirelim"). Artik Pasife Alma Sebebi
+						     bloguyla AYNI kart icinde, hemen altinda -- tek tutarli adim gibi okunur. -->
+						<div id="successorTriggerWrap" style="display:none; margin-top:10px;">
+							<button class="btn btn-ghost" type="button" style="width:100%;" onclick="openSuccessorPanel()">Yerine Yeni Kişi Ata</button>
+						</div>
+					</div>
+					<div class="field-row date-pair-row">
+						<div class="field">
+							<label for="f_start">Başlangıç Tarihi</label>
+							<input type="date" id="f_start">
+						</div>
+						<div class="field" id="endDateField" style="display:none;">
+							<label for="f_end">Bitiş Tarihi</label>
+							<input type="date" id="f_end">
+						</div>
+					</div>
+					<div class="field">
+						<label for="f_photo_url">Fotoğraf Bağlantısı (URL)</label>
+						<div class="input-wrap">
+							<input type="text" id="f_photo_url" placeholder="https://... (önerilen)" oninput="updatePhotoPreviewFromUrl()">
+						</div>
+						<label for="f_photo" style="margin-top:8px; display:flex; align-items:center; gap:6px;">Veya Cihazdan Yükle (Sıkıştırılır) <button type="button" class="help-tooltip-btn" onclick="togglePhotoHelp()" aria-label="Fotoğraf yükleme yardımı" title="Yardım">?</button></label>
+						<div class="photo-help-box" id="photoHelpBox" style="display:none;">
+							Fotoğraf otomatik olarak kareye kırpılıp sıkıştırılır. En iyi sonuç için: yüzün net göründüğü, dik çekilmiş, en az 400x400px bir fotoğraf seç. URL ile eklemek (Google Drive/site linki) yüklemekten daha hızlıdır ve veritabanını şişirmez — mümkünse önce onu dene.
+						</div>
+						<div class="photo-input-row">
+							<img id="photoPreview" class="photo-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Önizleme" style="display:none;">
+							<input type="file" id="f_photo" accept="image/*" onchange="previewPhoto(event)">
+						</div>
+					</div>
+					<div class="field">
+						<label for="f_note">Not (opsiyonel)</label>
+						<textarea id="f_note" rows="2" style="resize:vertical; width:416px; height:54px; max-width:100%;"></textarea>
+					</div>
+					<div class="field" id="verifyField" style="display:none;">
+						<label for="f_dogrulamaKaynak">Veri Doğrulama Kaynağı</label>
+						<div class="input-wrap" style="display:flex; gap:8px; align-items:center;">
+							<select id="f_dogrulamaKaynak" style="flex:1; min-width:0;">
+								<option value="omu_web">OMÜ Web Sitesi</option>
+								<option value="kullanici_girisi">Kullanıcı Girişi</option>
+								<option value="resmi_yazi">Resmî Yazı</option>
+								<option value="manuel">Manuel Doğrulama</option>
+							</select>
+							<button type="button" class="btn btn-ghost" style="flex-shrink:0; padding:9px 12px;" onclick="verifyPerson(editIndex)">Şimdi Doğrula</button>
+						</div>
+						<p class="hint" id="verifyInfo" style="margin-top:8px;">—</p>
+					</div>
+					<p class="hint" id="saveLockHint" style="display:none; color:var(--danger-text);">Kaydet kilitli — önce "Yerine Yeni Kişi Ata" panelini doldurup oradan kaydedin.</p>
+					<div class="modal-actions">
+						<button class="btn btn-ghost" type="button" onclick="closeModal()">Vazgeç</button>
+						<button class="btn btn-primary" type="button" id="saveFormBtn" onclick="saveForm()">Kaydet</button>
+					</div>
+
+					<div id="editDeleteActions" style="display:none; gap:10px; margin-top:10px;">
+						<button class="btn btn-danger-outline" type="button" style="flex:1; padding:8px;" onclick="openConfirmModal()">Çöpe At</button>
+						<button class="btn btn-danger" type="button" style="flex:1; padding:8px;" onclick="openSinglePermDelete(editIndex)">Kalıcı Sil</button>
+					</div>
+					</form>
+			</div>
+			<div class="rank-reference" id="rankReference">
+				<div class="rr-title">Protokol Sırası (Referans)</div>
+				<div class="rr-list" id="rankReferenceList"></div>
+			</div>
+			<div class="successor-panel" id="successorPanel">
+			<div class="successor-panel-inner">
+				<button class="close-x" onclick="closeSuccessorPanel()" aria-label="Kapat">✕</button>
+				<h3>Yerine Atanan Kişi</h3>
+				<p class="hint">Atanan kişinin bilgilerini doldurun.</p>
+				<div class="field">
+					<label for="sf_prefix">Unvan Ön Eki</label>
+					<select id="sf_prefix">
+						<option value="">(Yok)</option>
+						<option value="Prof. Dr.">Prof. Dr.</option>
+						<option value="Doç. Dr.">Doç. Dr.</option>
+						<option value="Dr. Öğr. Üyesi">Dr. Öğr. Üyesi</option>
+						<option value="Dr.">Dr.</option>
+						<option value="Av.">Av.</option>
+						<option value="Öğr. Gör.">Öğr. Gör.</option>
+						<option value="Arş. Gör.">Arş. Gör.</option>
+						<option value="Uzm.">Uzm.</option>
+					</select>
+				</div>
+				<div class="field">
+					<label for="sf_name">İsim Soyisim</label>
+					<input type="text" id="sf_name" required autocomplete="off">
+				</div>
+				<div class="field">
+					<label for="sf_title">Mesleki / Görev Unvanı</label>
+					<input type="text" id="sf_title" autocomplete="off">
+				</div>
+				<div class="field">
+					<label for="sf_unit">Birim / Kurum</label>
+					<input type="text" id="sf_unit" autocomplete="off">
+				</div>
+				<div class="field">
+					<label for="sf_rank">Protokol Sırası (Ana Kat)</label>
+					<input type="text" inputmode="numeric" id="sf_rank" placeholder="?">
+				</div>
+				<div class="field">
+					<label for="sf_start">Başlangıç Tarihi</label>
+					<input type="date" id="sf_start">
+				</div>
+				<div class="field">
+					<label for="sf_photo_url">Fotoğraf Bağlantısı (URL)</label>
+					<div class="input-wrap">
+						<input type="text" id="sf_photo_url" placeholder="https://... (önerilen)" oninput="updateSuccessorPhotoPreviewFromUrl()">
+					</div>
+					<label for="sf_photo" style="margin-top:8px;">Veya Cihazdan Yükle (Sıkıştırılır)</label>
+					<div class="photo-input-row">
+						<img id="sf_photoPreview" class="photo-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="Önizleme" style="display:none;">
+						<input type="file" id="sf_photo" accept="image/*" onchange="previewSuccessorPhoto(event)">
+					</div>
+				</div>
+				<div class="field">
+					<label for="sf_note">Not (opsiyonel)</label>
+					<textarea id="sf_note" rows="2" style="resize:vertical;"></textarea>
+				</div>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" type="button" onclick="closeSuccessorPanel()">Vazgeç</button>
+					<button class="btn btn-primary" type="button" onclick="saveSuccessor()">Kaydet</button>
+				</div>
+			</div>
+			</div>
+		</div>
+		</div>
+
+		<!-- Çöpe At Onay -->
+		<div class="modal-bg" id="confirmModalBg" style="z-index:60;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Çöpe At</h2>
+				<p class="hint" style="margin-bottom:20px;">Bu kişiyi silinenler klasörüne (Çöp) taşımak istediğinize emin misiniz?</p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeConfirmModal()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeDelete()">Evet, Çöpe At</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Toplu Çöpe At Onay -->
+		<div class="modal-bg" id="bulkConfirmModalBg" style="z-index:60;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Toplu Çöpe Atma</h2>
+				<p class="hint" id="bulkConfirmText" style="margin-bottom:20px;">Seçilen kişileri çöp kutusuna taşımak istediğinize emin misiniz?</p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeBulkConfirmModal()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeBulkDelete()">Evet, Çöpe At</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Çöp Kutusunu Boşalt Onay Modalı -->
+		<div class="modal-bg" id="emptyTrashModalBg" style="z-index:60;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Çöpü Tamamen Boşalt</h2>
+				<p class="hint" style="margin-bottom:20px;">Çöp kutusundaki <b>tüm kişileri</b> veritabanından kalıcı olarak silmek istediğinize emin misiniz? <br><br><i>Bu işlem geri alınamaz!</i></p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeEmptyTrashModal()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeEmptyTrash()">Evet, Tümünü Sil</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Tekil Kalıcı Silme Onay Modalı -->
+		<div class="modal-bg" id="singlePermDeleteModalBg" style="z-index:70;">
+			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
+				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Kalıcı Olarak Sil</h2>
+				<p class="hint" style="margin-bottom:20px;">Bu kişiyi <b>tamamen</b> silmek istediğinize emin misiniz? <br><br><i>Veritabanından (JSON) kalıcı olarak silinecek.</i></p>
+				<div class="modal-actions" style="margin-top:0;">
+					<button class="btn btn-ghost" onclick="closeSinglePermDelete()">Vazgeç</button>
+					<button class="btn btn-danger" onclick="executeSinglePermDelete()">Kalıcı Sil</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Haber Çıktısı Modalı -->
+		<div class="modal-bg" id="newsModalBg" style="z-index:60;">
+			<div class="modal" style="max-width:600px;">
+				<button class="close-x" onclick="closeNewsModal()" aria-label="Kapat">✕</button>
+				<h2 style="color:var(--news);">Haber Metni Çıktısı</h2>
+
+				<!-- Iki mod: mevcut sablon akisi (varsayilan) / yapay zekaya hazir komut olusturma. Uygulama hicbir AI servisine baglanmaz. -->
+				<div style="display:flex; gap:8px; margin-bottom:14px;">
+					<button type="button" id="newsModeTemplateBtn" onclick="setNewsOutputMode('template')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--news); color:#fff; font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; cursor:pointer;">Şablonla Oluştur</button>
+					<button type="button" id="newsModePromptBtn" onclick="setNewsOutputMode('prompt')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--card); color:var(--news); font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; cursor:pointer;">Yapay Zekaya Hazırla</button>
+				</div>
+
+				<div id="newsTemplateModePanel">
+					<p class="hint">Seçtiğiniz kişilerin protokol sırası ve unvanlarına göre otomatik oluşturulan metin:</p>
+
+					<label for="newsTemplateSelect" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
+					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;"></select>
+
+					<div id="newsPlaceholderFields"></div>
+
+					<label for="newsLocationInput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
+					<input type="text" id="newsLocationInput" value="Törene" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">
+
+					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:6px;">Katılımcı Grubu</label>
+					<div id="newsCategoryGroup" style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:14px;">
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="öğrenci" onchange="generateNewsText()"> Öğrenci</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="akademisyen" onchange="generateNewsText()"> Akademisyen</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="idari personel" onchange="generateNewsText()"> İdari Personel</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="vatandaş" onchange="generateNewsText()"> Vatandaş</label>
+						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="davetli" onchange="generateNewsText()"> Davetli</label>
+					</div>
+
+					<textarea id="newsOutputText" rows="6" style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); font-family:'Roboto', sans-serif; font-size:14px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical;"></textarea>
+					<div class="modal-actions" style="margin-top:0;">
+						<button class="btn btn-news" onclick="copyNewsText()" style="width:100%;">Panoya Kopyala</button>
+					</div>
+				</div>
+
+				<div id="newsPromptPanel" style="display:none;">
+					<p class="hint">Yapay zekaya yapıştıracağınız, kurallar ve bağlam içeren hazır bir komut oluşturulur. Uygulama bu metni hiçbir yapay zeka servisine göndermez.</p>
+
+					<label for="newsPromptCategorySelect" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
+					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;">
+						<option value="mezuniyet">Mezuniyet Töreni</option>
+						<option value="genel" selected>Q1 / Genel Etkinlik (Taslak Var)</option>
+						<option value="diger">Diğer</option>
+					</select>
+
+					<label for="newsRawInput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Ham Notlarınız</label>
+					<textarea id="newsRawInput" rows="6" placeholder="Konuşma metni, katılımcı listesi, etkinlik açıklaması vb. buraya yapıştırın..." style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box; resize:vertical;"></textarea>
+
+					<div class="modal-actions" style="margin-top:0; margin-bottom:12px;">
+						<button class="btn btn-news" onclick="buildNewsPrompt()" style="width:100%;">Komut Oluştur</button>
+					</div>
+
+					<label for="newsPromptOutput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Oluşturulan Komut</label>
+					<textarea id="newsPromptOutput" rows="8" readonly style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto', sans-serif; font-size:13px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical; background:var(--surface-input);"></textarea>
+					<div class="modal-actions" style="margin-top:0;">
+						<button class="btn btn-news" onclick="copyNewsPrompt()" style="width:100%;">Panoya Kopyala</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="authform-bg" id="authFormBg">
+			<div class="af-wrap">
+				<button class="af-close" onclick="closeAuthForm()" aria-label="Kapat">✕</button>
+
+				<form class="af-form" id="loginForm" style="display:none;" onsubmit="event.preventDefault(); handleLogin();">
+					<p class="af-title">Giriş Yap</p>
+					<p class="af-message">Hesabınızla giriş yapın.</p>
+					<label>
+						<input class="af-input" type="email" id="li_email" name="email" autocomplete="username" placeholder="" required>
+						<span>E-posta</span>
+					</label>
+					<label>
+						<input class="af-input" type="password" id="li_password" name="password" autocomplete="current-password" placeholder="" required>
+						<span>Şifre</span>
+					</label>
+					<p class="af-error" id="loginError"></p>
+					<button class="af-submit" type="submit" id="loginSubmitBtn">Giriş Yap</button>
+					<p class="af-signin">Hesabınız yok mu? <a onclick="switchAuthForm('signup')">Kayıt Ol</a></p>
+				</form>
+
+				<form class="af-form" id="signupForm" style="display:none;" onsubmit="event.preventDefault(); handleSignup();">
+					<p class="af-title">Kayıt Ol</p>
+					<p class="af-message">Kayıt olun, admin onayından sonra düzenleme yetkisi kazanın.</p>
+					<div class="af-flex">
+						<label>
+							<input class="af-input" type="text" id="su_firstname" name="given-name" autocomplete="given-name" placeholder="" required>
+							<span>Ad</span>
+						</label>
+						<label>
+							<input class="af-input" type="text" id="su_lastname" name="family-name" autocomplete="family-name" placeholder="" required>
+							<span>Soyad</span>
+						</label>
+					</div>
+					<label>
+						<input class="af-input" type="email" id="su_email" name="email" autocomplete="email" placeholder="" required>
+						<span>E-posta</span>
+					</label>
+					<label>
+						<input class="af-input" type="password" id="su_password" name="new-password" autocomplete="new-password" placeholder="" required>
+						<span>Şifre</span>
+					</label>
+					<label>
+						<input class="af-input" type="password" id="su_password2" name="new-password-confirm" autocomplete="new-password" placeholder="" required>
+						<span>Şifre Tekrar</span>
+					</label>
+					<p class="af-error" id="signupError"></p>
+					<button class="af-submit" type="submit" id="signupSubmitBtn">Kayıt Ol</button>
+					<p class="af-signin">Zaten hesabınız var mı? <a onclick="switchAuthForm('login')">Giriş Yap</a></p>
+				</form>
+			</div>
+		</div>
+
+<div class="modal-bg" id="adminPanelBg">
+			<!-- Faz 7: admin paneli artık ortada küçük bir dialog DEĞİL, tam sayfa bir dashboard
+			     (referans: "admin dashboarda nasıl gözükebilir.jpeg" -- sol dikey nav + sağda
+			     geniş içerik alanı). #adminPanelBg/.open ve switchAdminTab() JS mantığı aynen
+			     korundu, sadece iskelet .modal'dan .admin-dashboard'a değişti. -->
+			<div class="admin-dashboard">
+				<!-- Faz 11 (kullanıcı isteği, 1 Eylül 2026): mobilde hamburger düğmesiyle açılan
+				     çekmece artık gerçek bir slide-over OVERLAY (position:fixed + translateX,
+				     bkz. style.css) -- önceki PUSH modeli dar telefon ekranlarında .admin-main'i
+				     görünür şekilde sıkıştırıyordu. Artık .admin-main genişliğine hiç dokunulmuyor,
+				     sidebar içeriğin üzerine kayıyor + hafif bir karartma (scrim, pointer-events:
+				     none) geliyor. aria-expanded/aria-controls ve Escape/dışarı-tıklama ile kapanma
+				     korundu (app.js: toggleAdminDrawer/openAdminDrawer/closeAdminDrawer). Masaüstünde
+				     (>780px) etkisiz, davranış YOK. -->
+				<button type="button" class="admin-drawer-toggle" id="adminDrawerToggle" aria-expanded="false" aria-controls="adminSidebarDrawer" aria-label="Menüyü aç" onclick="toggleAdminDrawer()">
+					<svg class="ikon"><use href="#i-menu"/></svg>
+				</button>
+				<nav class="admin-sidebar admin-glass" id="adminSidebarDrawer">
+					<div class="admin-sidebar-brand">
+						<span class="admin-sidebar-logo">🗂️</span>
+						<div><b>Admin Paneli</b><span class="admin-sidebar-sub">Protokol Kartları</span></div>
+					</div>
+					<!-- Faz 9: sidebar 4 akordeon gruba bölündü (referans: AdminLTE _app-sidebar.scss/
+					     treeview.ts -- sadece davranış deseni alındı, Bootstrap/TS kodu yok). Her grup
+					     .admin-nav-header'a tıklanınca açılır, diğer gruplar otomatik kapanır
+					     (toggleAdminNavGroup(), app.js). switchAdminTab() aktif sekmenin grubunu da
+					     otomatik açar. -->
+					<div class="admin-nav-group open" id="admGroupGenel">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Genel')" aria-expanded="true">
+							<span>Genel Bakış</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabDashboardBtn" onclick="switchAdminTab('dashboard')"><svg class="ikon"><use href="#i-panel"/></svg>Kontrol Paneli</button>
+							<button class="admin-nav-item" id="adminTabCalendarBtn" onclick="switchAdminTab('calendar')"><svg class="ikon"><use href="#i-takvim"/></svg>Takvim</button>
+							<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>Faaliyet &amp; İstatistik</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupSaha">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Saha')" aria-expanded="false">
+							<span>Saha &amp; Haber</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabFieldOpsBtn" onclick="switchAdminTab('field-ops')"><svg class="ikon"><use href="#i-radyo"/></svg>Saha Masası</button>
+							<button class="admin-nav-item" id="adminTabEditorialBtn" onclick="switchAdminTab('editorial')"><svg class="ikon"><use href="#i-gazete"/></svg>Haber &amp; Ajans</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupProtokol">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Protokol')" aria-expanded="false">
+							<span>Protokol &amp; Veri</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabHierarchyBtn" onclick="switchAdminTab('hierarchy')"><svg class="ikon"><use href="#i-kurum"/></svg>Hiyerarşi &amp; Kadro</button>
+							<button class="admin-nav-item" id="adminTabIntegrityBtn" onclick="switchAdminTab('integrity')"><svg class="ikon"><use href="#i-supurge"/></svg>Kart Sağlığı</button>
+							<button class="admin-nav-item" id="adminTabDictionaryBtn" onclick="switchAdminTab('dictionary')"><svg class="ikon"><use href="#i-kitap"/></svg>Veri Sözlüğü</button>
+						</div>
+					</div>
+					<div class="admin-nav-group" id="admGroupSistem">
+						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Sistem')" aria-expanded="false">
+							<span>Sistem &amp; Güvenlik</span>
+							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
+						</button>
+						<div class="admin-nav-treeview">
+							<button class="admin-nav-item" id="adminTabUsersBtn" onclick="switchAdminTab('users')"><svg class="ikon"><use href="#i-users"/></svg>Kullanıcılar &amp; PIN</button>
+							<button class="admin-nav-item" id="adminTabLogsBtn" onclick="switchAdminTab('logs')"><svg class="ikon"><use href="#i-akis"/></svg>Denetim Günlüğü</button>
+							<button class="admin-nav-item" id="adminTabTestBtn" onclick="switchAdminTab('test')"><svg class="ikon"><use href="#i-test"/></svg>Test &amp; Sistem</button>
+							<button class="admin-nav-item" id="adminTabBackupBtn" onclick="switchAdminTab('backup')"><svg class="ikon"><use href="#i-disk"/></svg>Yedekleme &amp; Çöp</button>
+						</div>
+					</div>
+					<button type="button" class="admin-back-btn" onclick="closeAdminPanel()"><svg class="ikon"><use href="#i-geri"/></svg>Kartlara Dön</button>
+				</nav>
+				<div class="admin-main">
+					<!-- Faz 7 v2 (kullanıcı isteği): sekmeler arasında HER ZAMAN görünen, canlı verilerle
+					     dolan bir özet şeridi -- "her şeyi görebileyim" isteğine cevap: hangi sekmede
+					     olursan ol, sistemin nabzını (bekleyen kullanıcı, toplam kayıt, bu ayki etkinlik,
+					     test modu durumu) tek bakışta görürsün. loadAdminOverview() ile doldurulur.
+					     Faz 8: şerit artık tek cam panel değil, her KPI kendi kartı (bkz. style.css
+					     .admin-kpi) -- referans: duguntakvimi-main/yonetim.html .kpi deseni. -->
+					<div class="admin-overview-strip" id="adminOverviewStrip">
+						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-users"/></svg></div><span class="ak-num" id="akPendingUsers">—</span><span class="ak-label">Onay Bekleyen Kullanıcı</span></div>
+						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-panel"/></svg></div><span class="ak-num" id="akTotalPeople">—</span><span class="ak-label">Toplam Protokol Kaydı</span></div>
+						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-uyari"/></svg></div><span class="ak-num" id="akNeverVerified">—</span><span class="ak-label">Hiç Doğrulanmamış</span></div>
+						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-takvim"/></svg></div><span class="ak-num" id="akMonthEvents">—</span><span class="ak-label">Bu Ay Etkinlik</span></div>
+						<div class="admin-kpi" id="akTestModeKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-test"/></svg></div><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
+						<div class="admin-kpi" id="akSaltOkunurKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-kilit"/></svg></div><span class="ak-num" id="akSaltOkunur">—</span><span class="ak-label">Salt-Okunur Kilit</span></div>
+					</div>
+					<div class="test-mode-row admin-glass">
+						<div class="tmr-info">
+							<span class="tmr-icon">🧪</span>
+							<div class="tmr-text">
+								<b class="test-mode-title">Paylaşımlı Test Ortamı</b>
+								<span class="tmr-hint">Açıkken herkes sahte veri görür<button type="button" class="tmr-more" title="Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!">ⓘ</button></span>
+							</div>
+						</div>
+						<label class="ios-switch">
+							<input type="checkbox" id="testModeSwitch" onchange="setTestMode(this.checked)">
+							<span class="ios-switch-slider"></span>
+						</label>
+					</div>
+					<div class="admin-content-card admin-glass">
+						<h2 class="admin-main-title" id="adminMainTitle">Kontrol Paneli</h2>
+						<!-- Faz 9-10: dashboard/field-ops/editorial/hierarchy/integrity/dictionary artık
+						     gerçek veri gösteriyor (load{X}(), app.js) -- her biri kendi *Body div'ini
+						     dolduruyor. backup (yedek indirme + salt-okunur kilit) statik markup,
+						     ayrı bir load fonksiyonu gerektirmiyor. -->
+						<div id="adminDashboardView">
+							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
+							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminCalendarView" style="display:none;">
+							<p class="hint">Bu ayın etkinlikleri tek bakışta -- bir güne veya "Tam Takvimi Aç"a tıklayınca asıl takvime (ekle/düzenle/sil) geçersin.</p>
+							<div class="admcal-card">
+								<div class="admcal-head">
+									<div class="admcal-title" id="admCalLabel">—</div>
+									<div class="admcal-nav">
+										<button type="button" onclick="admCalShift(-1)" aria-label="Önceki ay"><svg class="ikon"><use href="#i-ok"/></svg></button>
+										<button type="button" class="admcal-today" onclick="admCalToday()">Bugün</button>
+										<button type="button" onclick="admCalShift(1)" aria-label="Sonraki ay" style="transform:scaleX(-1)"><svg class="ikon"><use href="#i-ok"/></svg></button>
+									</div>
+								</div>
+								<div class="admcal-dow" id="admCalDow"></div>
+								<div class="admcal-grid" id="admCalGrid"></div>
+								<button type="button" class="btn btn-primary admcal-open-btn" onclick="openCalendarAt(dKey(admCalAnchor))">
+									<svg class="ikon"><use href="#i-takvim"/></svg>Tam Takvimi Aç
+								</button>
+							</div>
+						</div>
+						<div id="adminFieldOpsView" style="display:none;">
+							<p class="hint">Bekleyen saha taslakları ve basın görevlisi iş yükü.</p>
+							<div id="adminFieldOpsBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminEditorialView" style="display:none;">
+							<p class="hint">Haber yazılmayı bekleyen etkinlikler ve ajans dağılımı.</p>
+							<div id="adminEditorialBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminHierarchyView" style="display:none;">
+							<p class="hint">Üniversite protokol sırasında boş kadro/vekâlet/rank taraması (salt-okunur).</p>
+							<div id="adminHierarchyBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminIntegrityView" style="display:none;">
+							<p class="hint">Eksik fotoğraf, mükerrer isim ve doğrulama tazeliği (İl + Üniversite).</p>
+							<div id="adminIntegrityBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminDictionaryView" style="display:none;">
+							<p class="hint">Kişi formundaki birim/unvan öneri (otomatik tamamlama) havuzunu yönetir -- burada silinen bir kayıt SADECE öneri listesinden kalkar, mevcut kişi kayıtlarına dokunmaz.</p>
+							<div id="adminDictionaryBody"><p class="admin-user-empty">Yükleniyor…</p></div>
+						</div>
+						<div id="adminBackupView" style="display:none;">
+							<p class="hint">Birleşik yedek indirme ve acil durum salt-okunur kilidi.</p>
+							<div class="test-mode-row admin-glass">
+								<div class="tmr-info">
+									<span class="tmr-icon">🔒</span>
+									<div class="tmr-text">
+										<b class="test-mode-title">Salt-Okunur Kilit</b>
+										<span class="tmr-hint">Açıkken hiç kimse veri düzenleyemez<button type="button" class="tmr-more" title="Açtığında HİÇ KİMSE (editörler dahil, siz dahil) kart veya etkinlik ekleyip düzenleyemez -- sadece görüntüleme yapılabilir. Bir sorun fark ettiğinizde ya da hatalı bir toplu işlem yapmadan önce veriyi dondurmak için kullanılır. Paylaşımlı: açıkken siteyi ziyaret eden HERKESİ etkiler, unutmayın!">ⓘ</button></span>
+									</div>
+								</div>
+								<label class="ios-switch">
+									<input type="checkbox" id="saltOkunurSwitch" onchange="setSaltOkunur(this.checked)">
+									<span class="ios-switch-slider"></span>
+								</label>
+							</div>
+							<div class="admin-content-card admin-glass">
+								<h2 class="admin-main-title" style="font-size:16px;">Birleşik Yedek</h2>
+								<p class="hint">İl + Üniversite + Etkinlik verilerini TEK bir JSON dosyasında indirir (arşiv/felaket kurtarma amaçlı). Bu sadece bir indirmedir -- geri yükleme için hâlâ ayrı "JSON Yükle" akışları (Kullanıcılar sekmesindeki değil, kart listesi ve takvim üstündeki mevcut butonlar) kullanılır.</p>
+								<button type="button" class="btn btn-primary" onclick="exportFullBackup()">Tam Yedek İndir</button>
+							</div>
+						</div>
+						<div id="adminUsersView" style="display:none;">
+							<p class="hint">Kayıt olan kullanıcıların yetkisini buradan yönetebilirsin. Yeni kayıtlar "Onay Bekliyor" durumunda başlar ve sadece görüntüleme yapabilir. "Basın Görevlisi" kutusunu işaretleyerek bir kullanıcıyı (kendiniz dahil) etkinlik formundaki basın görevlisi seçicisine ekleyebilirsiniz.</p>
+							<div id="adminUserList" style="max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+						</div>
+						<div id="adminLogsView" style="display:none;">
+							<p class="hint">Tüm listelerdeki (İl + Üniversite + Etkinlik Takvimi) son 50 değişiklik.</p>
+							<div class="admin-logs-grid">
+								<div class="admin-logs-col">
+									<div class="admin-logs-col-head"><span class="admin-logs-col-title">Tüm Kayıtlar</span></div>
+									<div id="adminLogList" class="admin-logs-scroll"></div>
+								</div>
+								<div class="admin-logs-col admin-logs-col-test">
+									<div class="admin-logs-col-head">
+										<span class="admin-logs-col-title">Test Günlüğü (son 50)</span>
+										<button type="button" class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="loadTestModeLog()">Yenile</button>
+									</div>
+									<div id="adminTestModeLogList" class="admin-logs-scroll"></div>
+								</div>
+							</div>
+						</div>
+						<div id="adminTestView" style="display:none;">
+							<p class="hint">Takvim/haber kodundaki Playwright regresyon testlerini GitHub Actions üzerinden çalıştırır. "Testi Çalıştır" GitHub'ın kendi sayfasını yeni sekmede açar — orada bir kere "Run workflow" demen yeterli. Sonuç birkaç dakika içinde burada görünür, "Son Sonucu Yenile" ile tekrar kontrol edebilirsin.</p>
+							<div style="display:flex; gap:8px; margin-bottom:14px;">
+								<button type="button" class="btn btn-primary" style="flex:1;" onclick="openRegressionTestRunner()">Testi Çalıştır (GitHub)</button>
+								<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
+							</div>
+							<div id="adminTestResult" class="hint">Yükleniyor…</div>
+						</div>
+						<div id="adminStatsView" style="display:none;">
+							<p class="hint">Etkinlik takviminden türetilen faaliyet özeti. BAPKOB/Kalite raporlarına hızlı veri sağlar.</p>
+							<div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
+								<label for="statsRangeSelect" class="hint" style="margin:0;">Aralık:</label>
+								<select id="statsRangeSelect" onchange="loadAdminStats()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); color:var(--ink);">
+									<option value="month">Bu Ay</option>
+									<option value="year">Bu Yıl</option>
+									<option value="all">Tüm Zamanlar</option>
+								</select>
+							</div>
+							<div id="adminStatsResult" class="hint">Yükleniyor…</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kullanım Rehberi (Onboarding) -->
+		<div class="modal-bg" id="onboardingModalBg" style="z-index:115;">
+			<div class="modal" style="max-width:440px; text-align:center;">
+				<button class="close-x" onclick="skipOnboarding()" aria-label="Kapat">✕</button>
+				<div id="onboardingStepIcon" style="font-size:38px; margin-bottom:8px;">🗂️</div>
+				<h2 id="onboardingStepTitle">—</h2>
+				<p class="hint" id="onboardingStepText">—</p>
+				<div class="onboarding-dots" id="onboardingDots"></div>
+				<div class="modal-actions" style="justify-content:space-between;">
+					<button class="btn btn-ghost" type="button" onclick="skipOnboarding()">Atla</button>
+					<div style="display:flex; gap:8px;">
+						<button class="btn btn-ghost" type="button" id="onboardingPrevBtn" onclick="onboardingStep(-1)" style="display:none;">Geri</button>
+						<button class="btn btn-primary" type="button" id="onboardingNextBtn" onclick="onboardingStep(1)">İleri</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- PIN ile Hızlı Hesap Değiştir -->
+		<div class="modal-bg" id="pinSwitchModalBg" style="z-index:118;">
+			<div class="modal" style="max-width:480px;">
+				<button class="close-x" onclick="closePinSwitchModal()" aria-label="Kapat">✕</button>
+				<h2>🔑 PIN ile Hızlı Hesap Değiştir</h2>
+				<p class="hint">Aynı cihazı paylaşan ekip arkadaşların çıkış yapmadan PIN ile hesap değiştirebilir. Şifreniz Firebase'e gönderilmez, yalnızca bu tarayıcıda PIN ile şifreli saklanır.</p>
+				<h3 style="font-size:14px; margin:14px 0 8px;">Bu Cihazdaki Hesaplar</h3>
+				<div id="pinAccountsList"></div>
+				<div id="pinLinkSection" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
+					<h3 style="font-size:14px; margin:0 0 8px;">Bu Hesabı Bu Cihaza Bağla</h3>
+					<div class="field-row">
+						<div class="field"><label for="pinNew1">Yeni PIN (4-6 hane)</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew1"></div>
+						<div class="field"><label for="pinNew2">PIN Tekrar</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew2"></div>
+					</div>
+					<div class="field"><label for="pinLinkPassword">Mevcut Şifreniz (bir kereliğine doğrulama için)</label><input type="password" id="pinLinkPassword"></div>
+					<button class="btn btn-primary" type="button" style="width:100%;" onclick="linkPinToCurrentAccount()">PIN Tanımla / Güncelle</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kullanım Şartları / Gizlilik Politikası -->
+		<div class="modal-bg" id="legalModalBg" style="z-index:120;">
+			<div class="modal" style="max-width:600px;">
+				<button class="close-x" onclick="closeLegalModal()" aria-label="Kapat">✕</button>
+				<h2 id="legalModalTitle">Kullanım Şartları</h2>
+				<div class="legal-tabs">
+					<button type="button" class="btn btn-primary" id="legalTabTerms" onclick="openLegalModal('terms')">Kullanım Şartları</button>
+					<button type="button" class="btn btn-ghost" id="legalTabPrivacy" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
+				</div>
+				<div class="legal-body" id="legalBody"></div>
+				<div class="modal-actions">
+					<button class="btn btn-primary" type="button" onclick="closeLegalModal()">Kapat</button>
+				</div>
+			</div>
+		</div>
+
+		<div id="toastContainer"></div>
+
+
 </div>
 </main>
+
+<script src="app.js"></script>
 
 </body>
 </html>
