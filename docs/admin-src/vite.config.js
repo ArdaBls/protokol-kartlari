@@ -164,7 +164,7 @@ function shellInjectionPlugin() {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="${base}images/apple-touch-icon.svg">`;
+<link rel="apple-touch-icon" href="${base}icon-192.png">`;
         out = out.replace(/<\/head>/i, `${metaPwa}\n</head>`);
 
         // SEO + Open Graph meta. Skip if the page already declares a

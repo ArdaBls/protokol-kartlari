@@ -2,7 +2,7 @@
   "name": "OMÜ Protokol Kartları",
   "short_name": "Protokol",
   "description": "OMÜ etkinlikleri için hızlı protokol tanıma referansı",
-  "start_url": "./index.html",
+  "start_url": "./protokol.html",
   "display": "standalone",
   "background_color": "#16233d",
   "theme_color": "#16233d",
