@@ -322,6 +322,35 @@ function initPhotoCounter() {
   });
 }
 
+// ────────────────────────
+//  Kayıtlı kullanıcı sayacı — Operasyonlar sayfası (eski sahte "Total Users")
+// ────────────────────────
+function initUserCounter() {
+  const el = document.querySelector('[data-user-counter]');
+  if (!el) {return;}
+  const subEl = document.querySelector('[data-user-counter-sub]');
+
+  if (!window.firebase) {return;}
+  if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
+
+  firebase.database().ref('users').on('value', (snap) => {
+    const users = snap.val() || {};
+    const entries = Object.values(users).filter(Boolean);
+    const total = entries.length;
+    const pending = entries.filter((u) => u.role === 'pending').length;
+    el.textContent = total.toLocaleString('tr-TR');
+    if (subEl) {
+      subEl.textContent = pending > 0
+        ? (total - pending) + ' onaylı · ' + pending + ' onay bekliyor'
+        : total + ' onaylı kullanıcı';
+    }
+  }, () => {
+    // "users" düğümü sadece admin/owner'a açık (bkz. Firebase kuralı).
+    el.textContent = '—';
+    if (subEl) {subEl.textContent = 'Bu veriyi yalnızca yönetici/kurucu görebilir.';}
+  });
+}
+
 function revenueLine(echarts, el, t) {
   const months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
   const rev = [12400, 14200, 15600, 17800, 19200, 21500, 23100, 24800, 26200, 27900, 29400, 30100];
@@ -1256,7 +1285,7 @@ const charts = {
  * the import never fires on pages without a matching element.
  * @returns {Promise<void>}
  */
-export { initPhotoCounter };
+export { initPhotoCounter, initUserCounter };
 
 export async function initCharts() {
   const elements = document.querySelectorAll('[data-chart]');
