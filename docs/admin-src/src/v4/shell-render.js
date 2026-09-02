@@ -156,10 +156,10 @@ export function renderSidebar(activeKey) {
       <nav class="sidebar-nav">${groups}</nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
-          <div class="avatar">A</div>
+          <div class="avatar">Z</div>
           <div class="sidebar-user-info">
-            <div class="name">Aigars Silkalns</div>
-            <div class="role">Admin</div>
+            <div class="name">Ziyaretçi</div>
+            <div class="role">—</div>
           </div>
           <button class="more-btn" aria-label="More options">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/></svg>
@@ -233,7 +233,7 @@ export function renderTopbar(breadcrumb) {
         <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
         </a>
-        <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">A</button>
+        <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">Z</button>
       </div>
     </header>
   `;
