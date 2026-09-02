@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. diğer admin sayfaları. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/admin/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -23,11 +27,12 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/admin/js/rolldown-runtime-_5RX-BWT.js"></script>
-  <script type="module" crossorigin src="/admin/js/toast-CBtjS_PZ.js"></script>
-  <script type="module" crossorigin src="/admin/js/modal-C4oI3O5p.js"></script>
-  <script type="module" crossorigin src="/admin/js/main-v4-Cq4Hluny.js"></script>
-  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-CmCwBJzJ.css">
+  <script type="module" crossorigin src="/admin/js/profil-DfMGyNO7.js"></script>
+  <link rel="modulepreload" crossorigin href="/admin/js/rolldown-runtime-_5RX-BWT.js">
+  <link rel="modulepreload" crossorigin href="/admin/js/toast-CBtjS_PZ.js">
+  <link rel="modulepreload" crossorigin href="/admin/js/modal-C4oI3O5p.js">
+  <link rel="modulepreload" crossorigin href="/admin/js/main-v4-JKsrmb_g.js">
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-uJRqValV.css">
 </head>
 <body data-shell="admin" data-page="profile" data-breadcrumb="Anasayfa|index.html > Profiliniz">
 
@@ -152,7 +157,7 @@
   </nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
-          <div class="avatar">A<span class="online"></span></div>
+          <div class="avatar">A</div>
           <div class="sidebar-user-info">
             <div class="name">Aigars Silkalns</div>
             <div class="role">Admin</div>
@@ -199,8 +204,8 @@
         <h1 class="page-title">Profiliniz</h1>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline">Vazgeç</button>
-        <button class="btn btn-primary">Değişiklikleri kaydet</button>
+        <button class="btn btn-outline" id="profile-cancel-1">Vazgeç</button>
+        <button class="btn btn-primary" id="profile-save-1">Değişiklikleri kaydet</button>
       </div>
     </div>
   </div>
@@ -209,11 +214,12 @@
     <!-- Profile summary -->
     <div class="card">
       <div class="card-body" style="text-align:center;padding:24px 16px">
-        <div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dk));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:600">A</div>
-        <div style="font-size:16px;font-weight:600;color:var(--text)">Aigars Silkalns</div>
-        <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">Yönetici · Samsun</div>
+        <div id="profile-avatar-big" style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dk));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:600;background-size:cover;background-position:center">—</div>
+        <div id="profile-name" style="font-size:16px;font-weight:600;color:var(--text)">Yükleniyor…</div>
+        <div id="profile-role" style="font-size:12.5px;color:var(--text-muted);margin-top:2px">&nbsp;</div>
         <div style="margin-top:14px;display:flex;gap:6px;justify-content:center">
-          <button class="btn btn-outline btn-sm">Avatarı değiştir</button>
+          <button type="button" class="btn btn-outline btn-sm" id="avatar-change-btn">Avatarı değiştir</button>
+          <input type="file" id="avatar-file-input" accept="image/*" hidden>
         </div>
       </div>
     </div>
@@ -240,18 +246,19 @@
 
         <div class="form-group">
           <label class="form-label" for="email2">E-posta <span class="required">*</span></label>
-          <input type="email" id="email2" class="form-control" value="demo@example.com">
+          <input type="email" id="email2" class="form-control" value="" disabled>
+          <div class="form-help">E-posta adresinizi değiştirmek için yöneticinizle iletişime geçin.</div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="role">Rol</label>
-          <input type="text" id="role" class="form-control" value="Yönetici" disabled>
+          <input type="text" id="role" class="form-control" value="—" disabled>
           <div class="form-help">Rolünüzü yalnızca bir yönetici Kullanıcı yönetimi sayfasından değiştirebilir.</div>
         </div>
 
         <div class="form-actions right">
-          <button class="btn btn-outline">Vazgeç</button>
-          <button class="btn btn-primary">Değişiklikleri kaydet</button>
+          <button type="button" class="btn btn-outline" id="profile-cancel-2">Vazgeç</button>
+          <button type="button" class="btn btn-primary" id="profile-save-2">Değişiklikleri kaydet</button>
         </div>
       </div>
     </div>
@@ -264,20 +271,20 @@
       <div class="card-body" style="padding:0">
         <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border-color-light)">
           <div style="padding:16px;border-right:1px solid var(--border-color-light);text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">142</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Kart düzenleme</div>
+            <div id="stat-etkinlik" style="font-size:22px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Oluşturulan Etkinlik</div>
           </div>
           <div style="padding:16px;text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">28</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Ekip</div>
+            <div id="stat-gorevli" style="font-size:22px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Basın Görevlisi</div>
           </div>
           <div style="padding:16px;border-top:1px solid var(--border-color-light);border-right:1px solid var(--border-color-light);text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">1.2k</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Haber metni</div>
+            <div id="stat-haber" style="font-size:22px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Haber Yazdığı</div>
           </div>
           <div style="padding:16px;border-top:1px solid var(--border-color-light);text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">4.9</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Puan</div>
+            <div id="stat-uyelik" style="font-size:16px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Üyelik</div>
           </div>
         </div>
       </div>
@@ -383,6 +390,7 @@
     </footer>
   
 </main>
+
 
 </body>
 </html>

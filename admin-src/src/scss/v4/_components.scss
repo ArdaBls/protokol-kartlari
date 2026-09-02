@@ -286,7 +286,17 @@ table.table tbody tr:hover { background: var(--bg-surface-secondary); }
 // ────────────────────────
 .menu-popover {
   position: fixed;
-  z-index: 1100;
+  // KÖK NEDEN (regresyon): d59cb5b'de .sidebar z-index:100 -> 1200'e,
+  // .sidebar-backdrop 95 -> 1150'ye çıkarıldı (Leaflet harita panelerinin
+  // üzerinde kalması için). openMenu() popover'ı document.body'ye sidebar'ın
+  // KARDEŞİ olarak ekliyor -- eski z-index:1100 artık sidebar'ın (1200)
+  // ALTINDA kalıyordu, bu yüzden sidebar içindeki "3 nokta" (.sidebar-user
+  // .more-btn) menüsü DOM'da açılıyor (aria-expanded doğru) ama görsel
+  // olarak sidebar panelinin arkasına gizleniyor, tıklanamaz hale geliyordu.
+  // Topbar'daki avatar menüsü etkilenmiyordu çünkü .topbar z-index:90.
+  // Popover her koşulda (sidebar dahil) en üstte kalsın diye sidebar'ın
+  // üzerine çıkarıldı.
+  z-index: 1300;
   min-width: 160px;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);

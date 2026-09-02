@@ -1,13 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Sign in | Protokol</title>
+<title>Giriş yap | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body>
@@ -19,20 +22,22 @@
       <div class="brand-name">Protokol</div>
     </div>
 
-    <div class="auth-title">Welcome back</div>
-    <div class="auth-subtitle">Sign in to continue to your dashboard.</div>
+    <div class="auth-title">Tekrar hoş geldiniz</div>
+    <div class="auth-subtitle">Panonuza devam etmek için giriş yapın.</div>
 
-    <form onsubmit="event.preventDefault(); window.location.href='index.html';">
+    <div id="login-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
+
+    <form id="login-form">
       <div class="form-group">
-        <label class="form-label" for="email">Email</label>
+        <label class="form-label" for="email">E-posta</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 5l6 4 6-4"/></svg>
-          <input type="email" id="email" class="form-control" placeholder="you@company.com" required>
+          <input type="email" id="email" class="form-control" placeholder="siz@omu.edu.tr" required>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="password">Password</label>
+        <label class="form-label" for="password">Şifre</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
           <input type="password" id="password" class="form-control" placeholder="••••••••" required>
@@ -41,34 +46,100 @@
 
       <div class="auth-actions">
         <label class="form-check">
-          <input type="checkbox" checked> Remember me
+          <input type="checkbox" checked> Beni hatırla
         </label>
-        <a href="sifremi-unuttum.html">Forgot password?</a>
+        <a href="sifremi-unuttum.html">Şifremi unuttum</a>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
-        Sign in
+      <button type="submit" id="login-submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
+        Giriş yap
       </button>
     </form>
 
-    <div class="auth-divider">or continue with</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn btn-outline" style="justify-content:center">
-        <svg viewBox="0 0 16 16" fill="currentColor" style="color:#4285F4"><path d="M14.5 8.16c0-.5-.05-1-.13-1.5H8v2.83h3.65a3.13 3.13 0 01-1.36 2.05v1.7h2.2c1.28-1.18 2.01-2.92 2.01-5.08z"/><path d="M8 15c1.83 0 3.36-.6 4.49-1.65l-2.2-1.7c-.6.4-1.38.65-2.29.65-1.76 0-3.25-1.19-3.78-2.78H1.95v1.74A6.74 6.74 0 008 15z" fill="#34A853"/><path d="M4.22 9.52a4.07 4.07 0 010-2.59V5.19H1.95a6.74 6.74 0 000 5.62l2.27-1.29z" fill="#FBBC04"/><path d="M8 4.46c.99 0 1.88.34 2.59 1l1.94-1.94A6.74 6.74 0 008 1.5a6.74 6.74 0 00-6.05 3.69L4.22 6.93C4.75 5.34 6.24 4.46 8 4.46z" fill="#EA4335"/></svg>
-        Google
-      </button>
-      <button class="btn btn-outline" style="justify-content:center">
-        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 00-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.16-.89-1.16-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.23 1.87.87 2.33.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.96 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.13 0 0 .67-.21 2.2.82a7.66 7.66 0 014 0c1.53-1.03 2.2-.82 2.2-.82.44 1.11.16 1.93.08 2.13.51.56.83 1.28.83 2.15 0 3.07-1.87 3.76-3.65 3.95.29.25.54.74.54 1.5v2.22c0 .21.14.46.55.38A8 8 0 008 0z"/></svg>
-        GitHub
-      </button>
-    </div>
-
     <div class="auth-footer">
-      Don't have an account? <a href="kayit-ol.html">Create one</a>
+      Hesabın yok mu? <a href="kayit-ol.html">Oluştur</a>
     </div>
   </div>
 </div>
+
+<script type="module">
+// Görev 4: giris.html gerçek Firebase Auth ile çalışır.
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const auth = firebase.auth();
+
+// Firebase hata kodlarını genel, kullanıcı-dostu Türkçe metinlere çevir --
+// ham Firebase hata metnini kullanıcıya asla gösterme.
+const ERROR_MESSAGES = {
+  'auth/wrong-password': 'E-posta veya şifre hatalı.',
+  'auth/user-not-found': 'E-posta veya şifre hatalı.',
+  'auth/invalid-credential': 'E-posta veya şifre hatalı.',
+  'auth/invalid-email': 'Geçerli bir e-posta adresi girin.',
+  'auth/too-many-requests': 'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.',
+  'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.'
+};
+function messageFor(err) {
+  return ERROR_MESSAGES[err && err.code] || 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+}
+
+const form = document.getElementById('login-form');
+const submitBtn = document.getElementById('login-submit');
+const errorEl = document.getElementById('login-error');
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = '';
+}
+function hideError() {
+  errorEl.style.display = 'none';
+}
+
+// Ana site (index.html/takvim.html vb.) artık kendi giriş modalını değil bu sayfayı
+// kullanıyor -- "Giriş Yap"a basınca ?returnTo=<geldiği sayfa> ile buraya geliyor,
+// başarılı girişten sonra oraya geri dönmesi gerekiyor (admin panelinden girildiyse
+// returnTo YOK, varsayılan index.html'e düşer). Açık yönlendirme (open redirect)
+// riskine karşı sadece AYNI origin'e dönülür -- dışarıdan gelen bir returnTo
+// değeriyle kullanıcı başka bir siteye yönlendirilemez.
+function safeReturnTo() {
+  const raw = new URLSearchParams(location.search).get('returnTo');
+  if (!raw) { return 'index.html'; }
+  try {
+    const url = new URL(raw, location.origin);
+    return url.origin === location.origin ? url.href : 'index.html';
+  } catch (_e) { return 'index.html'; }
+}
+const returnTo = safeReturnTo();
+
+// Zaten giriş yapılmışsa tekrar formu göstermeden hedefe yönlendir.
+auth.onAuthStateChanged((user) => {
+  if (user) { window.location.href = returnTo; }
+});
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  hideError();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  submitBtn.disabled = true;
+  const originalLabel = submitBtn.textContent;
+  submitBtn.textContent = 'Giriş yapılıyor…';
+
+  auth.signInWithEmailAndPassword(email, password).then(() => {
+    window.location.href = returnTo;
+  }).catch((err) => {
+    console.error('Giriş başarısız:', err);
+    showError(messageFor(err));
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+  });
+});
+</script>
 
 </body>
 </html>

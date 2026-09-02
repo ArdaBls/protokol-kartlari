@@ -152,7 +152,7 @@ export function renderSidebar(activeKey) {
       <nav class="sidebar-nav">${groups}</nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
-          <div class="avatar">A<span class="online"></span></div>
+          <div class="avatar">A</div>
           <div class="sidebar-user-info">
             <div class="name">Aigars Silkalns</div>
             <div class="role">Admin</div>

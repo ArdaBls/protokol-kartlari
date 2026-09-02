@@ -1,13 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Locked | Protokol</title>
+<title>Kilit ekranı | Protokol</title>
 <link rel="icon" href="../images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body>
@@ -15,34 +18,127 @@
 <div class="auth-page">
   <div class="auth-card lock-screen">
     <div class="lock-avatar" aria-hidden="true">
-      <div class="lock-avatar-circle" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">A</div>
+      <div class="lock-avatar-circle" id="lock-avatar-circle" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));background-size:cover;background-position:center">—</div>
       <div class="lock-icon">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
       </div>
     </div>
 
-    <div class="auth-title" style="text-align:center;margin-top:14px">Welcome back, Aigars</div>
-    <div class="auth-subtitle" style="text-align:center">Your session was locked for security. Enter your password to continue.</div>
+    <div class="auth-title" style="text-align:center;margin-top:14px" id="lock-welcome">Tekrar hoş geldiniz</div>
+    <div class="auth-subtitle" style="text-align:center">Oturumunuz güvenlik için kilitlendi. Devam etmek için şifrenizi girin.</div>
 
-    <form onsubmit="event.preventDefault(); window.location.href='index.html';">
+    <div id="lock-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
+
+    <form id="lock-form">
       <div class="form-group">
-        <label class="form-label" for="password">Password</label>
+        <label class="form-label" for="password">Şifre</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
           <input type="password" id="password" class="form-control" placeholder="••••••••" required autofocus>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
-        Unlock
+      <button type="submit" id="lock-submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
+        Kilidi Aç
       </button>
     </form>
 
     <div class="auth-footer">
-      Not Aigars? <a href="giris.html">Sign in as someone else</a>
+      <span id="lock-not-user">Bu kullanıcı</span> değil misiniz? <a href="giris.html">Başka biri olarak giriş yapın</a>
     </div>
   </div>
 </div>
+
+<script type="module">
+// Görev 5: kilit-ekrani.html gerçek Firebase şifre kontrolü yapar.
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+const ERROR_MESSAGES = {
+  'auth/wrong-password': 'Şifre hatalı.',
+  'auth/invalid-credential': 'Şifre hatalı.',
+  'auth/too-many-requests': 'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.',
+  'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.'
+};
+function messageFor(err) {
+  return ERROR_MESSAGES[err && err.code] || 'Kilit açılamadı. Lütfen tekrar deneyin.';
+}
+
+let currentUser = null;
+const welcomeEl = document.getElementById('lock-welcome');
+const notUserEl = document.getElementById('lock-not-user');
+const avatarEl = document.getElementById('lock-avatar-circle');
+const errorEl = document.getElementById('lock-error');
+const form = document.getElementById('lock-form');
+const submitBtn = document.getElementById('lock-submit');
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = '';
+}
+function hideError() {
+  errorEl.style.display = 'none';
+}
+
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    // Kilitlenecek bir oturum yok -- giriş sayfasına yönlendir.
+    window.location.href = 'giris.html';
+    return;
+  }
+  currentUser = user;
+  database.ref('users/' + user.uid).once('value').then((snap) => {
+    const u = snap.val() || {};
+    const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';
+    welcomeEl.textContent = `Tekrar hoş geldiniz, ${name}`;
+    notUserEl.textContent = name;
+    if (u.avatarUrl) {
+      avatarEl.style.backgroundImage = `url("${String(u.avatarUrl).replace(/["'()]/g, '')}")`;
+      avatarEl.textContent = '';
+    } else {
+      avatarEl.style.backgroundImage = '';
+      avatarEl.textContent = name.charAt(0).toUpperCase() || '?';
+    }
+  }).catch((err) => {
+    console.error('Kullanıcı bilgisi okunamadı:', err);
+    welcomeEl.textContent = 'Tekrar hoş geldiniz';
+    avatarEl.textContent = '?';
+  });
+});
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  hideError();
+  if (!currentUser || !currentUser.email) {
+    showError('Oturum bilgisi bulunamadı, lütfen tekrar giriş yapın.');
+    return;
+  }
+  const password = document.getElementById('password').value;
+
+  submitBtn.disabled = true;
+  const originalLabel = submitBtn.textContent;
+  submitBtn.textContent = 'Kontrol ediliyor…';
+
+  // Mevcut oturumun e-postasıyla yeniden giriş denemek -- doğru şifreyse başarılı
+  // olur ve kullanıcıyı yeniden kimliklendirir. Ayrı bir reauthenticate API'sine
+  // gerek yok, bu proje için yeterli.
+  auth.signInWithEmailAndPassword(currentUser.email, password).then(() => {
+    window.location.href = 'index.html';
+  }).catch((err) => {
+    console.error('Kilit açma başarısız:', err);
+    showError(messageFor(err));
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+  });
+});
+</script>
 
 </body>
 </html>

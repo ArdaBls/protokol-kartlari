@@ -290,13 +290,6 @@
   flex-shrink: 0;
   position: relative;
 }
-.sidebar-user .avatar .online {
-  position: absolute; bottom: -1px; inset-inline-end: -1px;
-  width: 8px; height: 8px;
-  background: var(--green);
-  border: 2px solid var(--sidebar-bg);
-  border-radius: 50%;
-}
 .sidebar-user-info { flex: 1; min-width: 0; }
 .sidebar-user-info .name {
   color: #fff;

@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/admin/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -23,12 +26,12 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/admin/js/ayarlar-PmKWuGI5.js"></script>
+  <script type="module" crossorigin src="/admin/js/ayarlar-B77I3QOb.js"></script>
   <link rel="modulepreload" crossorigin href="/admin/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/admin/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/admin/js/modal-C4oI3O5p.js">
-  <link rel="modulepreload" crossorigin href="/admin/js/main-v4-Cq4Hluny.js">
-  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-CmCwBJzJ.css">
+  <link rel="modulepreload" crossorigin href="/admin/js/main-v4-JKsrmb_g.js">
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-uJRqValV.css">
 </head>
 <body data-shell="admin" data-page="settings" data-breadcrumb="Anasayfa|index.html > Ayarlar">
 
@@ -153,7 +156,7 @@
   </nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
-          <div class="avatar">A<span class="online"></span></div>
+          <div class="avatar">A</div>
           <div class="sidebar-user-info">
             <div class="name">Aigars Silkalns</div>
             <div class="role">Admin</div>
@@ -220,25 +223,27 @@
           <div class="settings-row">
             <label>Profil fotoğrafı</label>
             <div class="settings-control profile-control">
-              <div class="profile-preview" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">A</div>
+              <div class="profile-preview" id="settings-avatar-preview" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));background-size:cover;background-position:center">—</div>
               <div>
-                <button type="button" class="btn btn-outline btn-sm">Yeni yükle</button>
-                <button type="button" class="btn btn-outline btn-sm">Kaldır</button>
+                <button type="button" class="btn btn-outline btn-sm" id="avatar-upload-btn">Yeni yükle</button>
+                <button type="button" class="btn btn-outline btn-sm" id="avatar-remove-btn">Kaldır</button>
+                <input type="file" id="avatar-file-input" accept="image/*" hidden>
                 <div class="settings-hint">JPG, PNG veya GIF. Maks. 2 MB.</div>
               </div>
             </div>
           </div>
           <div class="settings-row">
             <label for="full-name">Ad soyad</label>
-            <input class="form-control" id="full-name" type="text" value="Aigars Silkalns" required>
+            <input class="form-control" id="full-name" type="text" value="" required>
           </div>
           <div class="settings-row">
             <label for="email">E-posta adresi</label>
-            <input class="form-control" id="email" type="email" value="demo@example.com" required>
+            <input class="form-control" id="email" type="email" value="" disabled>
+            <div class="settings-hint">E-posta adresinizi değiştirmek için yöneticinizle iletişime geçin.</div>
           </div>
           <div class="settings-row">
             <label for="role">Rol</label>
-            <input class="form-control" id="role" type="text" value="Yönetici" disabled>
+            <input class="form-control" id="role" type="text" value="—" disabled>
             <div class="settings-hint">Rolünüzü yalnızca bir yönetici Kullanıcı yönetimi sayfasından değiştirebilir.</div>
           </div>
           <div class="settings-row">

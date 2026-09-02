@@ -154,7 +154,12 @@
 				const adminFab = document.getElementById("adminFab");
 				if (adminFab) adminFab.classList.toggle("active-list", !!(currentUser && (currentUser.role === "admin" || currentUser.role === "owner")));
 				if (!currentUser) {
-					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="openAuthForm(\'login\')">Giriş Yap</button>';
+					// Kullanıcı isteği: ana site artık kendi giriş modalını (authFormBg/openAuthForm)
+					// KULLANMIYOR -- tek giriş noktası yeni admin panelindeki giris.html. returnTo
+					// ile geldiği sayfaya (index/takvim/protokol/admin fark etmez) geri dönüyor.
+					// PIN ile hızlı hesap değiştirme AYRI bir özellik (zaten doğrudan Firebase'e
+					// giriş yapıyor, modal kullanmıyor), dokunulmadı.
+					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="location.href=\'admin/production/giris.html?returnTo=\'+encodeURIComponent(location.href)">Giriş Yap</button>';
 					return;
 				}
 				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin", owner: "Kurucu" }[currentUser.role] || "Onay Bekliyor";

@@ -237,47 +237,34 @@ function bindThemeToggle() {
 //  TOPBAR DROPDOWNS
 // ────────────────────────
 
-function openShortcutsModal() {
-  const row = (k, label) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color-light);font-size:13px"><span style="color:var(--text)">${label}</span><span>${k.split('+').map((key) => `<kbd style="font-family:var(--font);font-size:11px;background:var(--bg-surface-secondary);border:1px solid var(--border-color);border-radius:3px;padding:2px 6px;margin-left:3px">${key}</kbd>`).join('')}</span></div>`;
-  showModal({
-    title: 'Keyboard shortcuts',
-    size: 'md',
-    body: `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px">
-        <div>
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:4px 0 6px">Global</div>
-          ${row('⌘+K', 'Open command palette')}
-          ${row('⌘+/', 'This help')}
-          ${row('Esc', 'Close modal / palette')}
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:14px 0 6px">Navigation</div>
-          ${row('G then D', 'Go to dashboard')}
-          ${row('G then K', 'Go to kanban')}
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin:4px 0 6px">Editor</div>
-          ${row('⌘+B', 'Bold')}
-          ${row('⌘+I', 'Italic')}
-          ${row('⌘+K', 'Insert link')}
-        </div>
-      </div>
-    `,
-    actions: [{ label: 'Close', variant: 'primary' }]
-  });
-}
-
 function openSignOutModal() {
   showModal({
-    title: 'Sign out?',
+    title: 'Çıkış yapılsın mı?',
     size: 'sm',
-    body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">You\'ll need to sign back in to access your dashboard. Any unsaved changes will be lost.</p>',
+    body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">Tekrar giriş yapmanız gerekecek. Kaydedilmemiş değişiklikler kaybolur.</p>',
     actions: [
-      { label: 'Cancel', variant: 'ghost' },
+      { label: 'Vazgeç', variant: 'ghost' },
       {
-        label: 'Sign out',
+        label: 'Çıkış yap',
         variant: 'primary',
         action: () => {
-          showToast('Signed out', { variant: 'success' });
-          setTimeout(() => { window.location.href = 'giris.html'; }, 600);
+          // GERÇEK Firebase oturumunu kapat. window.firebase yoksa (henüz yüklenmediyse)
+          // ya da signOut() reddedilirse bile kullanıcıyı giriş sayfasına yönlendir --
+          // sayfa hiçbir koşulda kırılmasın.
+          const goToLogin = () => { window.location.href = 'giris.html'; };
+          try {
+            if (window.firebase && firebase.auth) {
+              firebase.auth().signOut().catch(() => {}).finally(() => {
+                showToast('Çıkış yapıldı', { variant: 'success' });
+                setTimeout(goToLogin, 500);
+              });
+            } else {
+              showToast('Çıkış yapıldı', { variant: 'success' });
+              setTimeout(goToLogin, 500);
+            }
+          } catch (_e) {
+            goToLogin();
+          }
         }
       }
     ]
@@ -285,13 +272,12 @@ function openSignOutModal() {
 }
 
 const USER_MENU = [
-  { label: 'Profile',            action: () => { window.location.href = 'profil.html'; } },
-  { label: 'Account settings',   action: () => { window.location.href = 'ayarlar.html'; } },
-  { label: 'Keyboard shortcuts', action: openShortcutsModal },
+  { label: 'Profil',            action: () => { window.location.href = 'profil.html'; } },
+  { label: 'Hesap ayarları',    action: () => { window.location.href = 'ayarlar.html'; } },
   '-',
-  { label: 'Help & support',     action: () => { window.location.href = 'yardim-merkezi.html'; } },
-  { label: 'Lock screen',        action: () => { window.location.href = 'kilit-ekrani.html'; } },
-  { label: 'Sign out',           action: openSignOutModal }
+  { label: 'Yardım ve destek',  action: () => { window.location.href = 'yardim-merkezi.html'; } },
+  { label: 'Ekranı kilitle',    action: () => { window.location.href = 'kilit-ekrani.html'; } },
+  { label: 'Çıkış yap',         action: openSignOutModal }
 ];
 
 function bindTopbarPanels() {
@@ -310,6 +296,138 @@ function bindTopbarPanels() {
       openMenu(sidebarMore, USER_MENU);
     });
   }
+}
+
+// ────────────────────────
+//  GERÇEK KULLANICI SENKRONİZASYONU
+// ────────────────────────
+// Sidebar/topbar'daki demo "Aigars Silkalns" gibi build-zamanı yer tutucuları
+// çalışma zamanında GERÇEK giriş yapmış kullanıcıyla değiştirir. profil.html
+// ve ayarlar.html AYNI users/{uid} okumasını kendi başlarına tekrar yapar --
+// bilerek: her sayfa zaten kendi Firebase mantığını taşıyor (proje deseni),
+// burada ortak bir modül/store'a bağımlı kılmak gereksiz kaplama olurdu.
+
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+
+const ROLE_LABEL = { pending: 'Onay Bekliyor', editor: 'Editör', admin: 'Admin', owner: 'Kurucu' };
+
+const FIREBASE_SCRIPTS = [
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js'
+];
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('script yüklenemedi: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// Firebase compat SDK'sının hazır olmasını bekler. Çoğu sayfa zaten kendi
+// <head>'ine 3 firebase-*-compat script'ini ekliyor -- burada ÇİFT YÜKLEMEYİ
+// önlemek için önce window.firebase'e, sonra DOM'da zaten var olan bir
+// firebase-app-compat <script> etiketine bakılır (varsa onun yüklenmesini
+// bekleriz, yeniden eklemeyiz). Hiçbiri yoksa (shell'i bypass eden çıplak
+// sayfalar için) 3 script'i sırayla kendimiz enjekte ederiz.
+let firebaseReadyPromise = null;
+function ensureFirebase() {
+  if (firebaseReadyPromise) {return firebaseReadyPromise;}
+  firebaseReadyPromise = new Promise((resolve) => {
+    if (window.firebase) { resolve(); return; }
+    const existing = document.querySelector('script[src*="firebase-app-compat"]');
+    if (existing) {
+      // Sayfa kendi script'ini zaten eklemiş -- yüklenmesini bekle (yarışı
+      // kaçırmamak için hem 'load' event'ini dinle hem de kısa aralıklarla
+      // window.firebase'i yokla, script yükleme sırası main-v4.js'ten önce
+      // bitmiş olabilir).
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(); } };
+      existing.addEventListener('load', done, { once: true });
+      const poll = setInterval(() => {
+        if (window.firebase) { clearInterval(poll); done(); }
+      }, 30);
+      setTimeout(() => { clearInterval(poll); done(); }, 4000); // savunmacı üst sınır
+      return;
+    }
+    loadScript(FIREBASE_SCRIPTS[0])
+      .then(() => loadScript(FIREBASE_SCRIPTS[1]))
+      .then(() => loadScript(FIREBASE_SCRIPTS[2]))
+      .then(() => resolve())
+      .catch(() => resolve()); // yüklenemezse bile devam et -- syncShellUser Ziyaretçi'ye düşer
+  });
+  return firebaseReadyPromise;
+}
+
+// data: URI base64 fotoğraflar hariç, background-image içine gömülecek URL'de
+// tırnak/parantez kaçışı için basit bir koruma.
+function safeUrlForCss(url) {
+  return String(url).replace(/["'()]/g, '');
+}
+
+function applyAvatar(el, name, avatarUrl) {
+  if (!el) {return;}
+  if (avatarUrl) {
+    el.textContent = '';
+    el.style.backgroundImage = `url("${safeUrlForCss(avatarUrl)}")`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+  } else {
+    el.style.backgroundImage = '';
+    el.style.backgroundSize = '';
+    el.style.backgroundPosition = '';
+    el.textContent = (name || '?').charAt(0).toUpperCase() || '?';
+  }
+}
+
+function applyGuestShellUser() {
+  const nameEl = document.querySelector('.sidebar-user-info .name');
+  const roleEl = document.querySelector('.sidebar-user-info .role');
+  if (nameEl) {nameEl.textContent = 'Ziyaretçi';}
+  if (roleEl) {roleEl.textContent = '—';}
+  applyAvatar(document.querySelector('.sidebar-user .avatar'), 'Ziyaretçi', null);
+  applyAvatar(document.querySelector('.tb-avatar'), 'Ziyaretçi', null);
+}
+
+/**
+ * Sidebar/topbar'daki kullanıcı bilgisini gerçek Firebase Auth oturumuyla
+ * senkron tutar. `data-shell="admin"` sayfalarında mountShell() tarafından
+ * çağrılır. Giriş yoksa güvenli bir "Ziyaretçi" varsayılanı gösterir, hatada
+ * sayfayı KIRMAZ.
+ */
+export function syncShellUser() {
+  ensureFirebase().then(() => {
+    if (!window.firebase || !firebase.auth) { applyGuestShellUser(); return; }
+    try {
+      if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
+    } catch (_e) { /* zaten başlatılmış olabilir */ }
+
+    firebase.auth().onAuthStateChanged((user) => {
+      if (!user) { applyGuestShellUser(); return; }
+      firebase.database().ref('users/' + user.uid).once('value').then((snap) => {
+        const u = snap.val() || {};
+        const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';
+        const role = u.role || 'pending';
+        const nameEl = document.querySelector('.sidebar-user-info .name');
+        const roleEl = document.querySelector('.sidebar-user-info .role');
+        if (nameEl) {nameEl.textContent = name;}
+        if (roleEl) {roleEl.textContent = ROLE_LABEL[role] || role;}
+        applyAvatar(document.querySelector('.sidebar-user .avatar'), name, u.avatarUrl);
+        applyAvatar(document.querySelector('.tb-avatar'), name, u.avatarUrl);
+      }).catch((err) => {
+        console.error('Shell: kullanıcı verisi okunamadı:', err);
+        applyGuestShellUser();
+      });
+    });
+  }).catch(() => applyGuestShellUser());
 }
 
 /**
@@ -333,4 +451,5 @@ export function mountShell() {
   bindSidebarToggle();
   bindThemeToggle();
   bindTopbarPanels();
+  syncShellUser();
 }

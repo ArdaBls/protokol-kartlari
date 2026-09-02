@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. diğer admin sayfaları. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="profile" data-breadcrumb="Anasayfa|index.html > Profiliniz">
@@ -22,8 +26,8 @@
         <h1 class="page-title">Profiliniz</h1>
       </div>
       <div class="page-actions">
-        <button class="btn btn-outline">Vazgeç</button>
-        <button class="btn btn-primary">Değişiklikleri kaydet</button>
+        <button class="btn btn-outline" id="profile-cancel-1">Vazgeç</button>
+        <button class="btn btn-primary" id="profile-save-1">Değişiklikleri kaydet</button>
       </div>
     </div>
   </div>
@@ -32,11 +36,12 @@
     <!-- Profile summary -->
     <div class="card">
       <div class="card-body" style="text-align:center;padding:24px 16px">
-        <div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dk));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:600">A</div>
-        <div style="font-size:16px;font-weight:600;color:var(--text)">Aigars Silkalns</div>
-        <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">Yönetici · Samsun</div>
+        <div id="profile-avatar-big" style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dk));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:600;background-size:cover;background-position:center">—</div>
+        <div id="profile-name" style="font-size:16px;font-weight:600;color:var(--text)">Yükleniyor…</div>
+        <div id="profile-role" style="font-size:12.5px;color:var(--text-muted);margin-top:2px">&nbsp;</div>
         <div style="margin-top:14px;display:flex;gap:6px;justify-content:center">
-          <button class="btn btn-outline btn-sm">Avatarı değiştir</button>
+          <button type="button" class="btn btn-outline btn-sm" id="avatar-change-btn">Avatarı değiştir</button>
+          <input type="file" id="avatar-file-input" accept="image/*" hidden>
         </div>
       </div>
     </div>
@@ -63,18 +68,19 @@
 
         <div class="form-group">
           <label class="form-label" for="email2">E-posta <span class="required">*</span></label>
-          <input type="email" id="email2" class="form-control" value="demo@example.com">
+          <input type="email" id="email2" class="form-control" value="" disabled>
+          <div class="form-help">E-posta adresinizi değiştirmek için yöneticinizle iletişime geçin.</div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="role">Rol</label>
-          <input type="text" id="role" class="form-control" value="Yönetici" disabled>
+          <input type="text" id="role" class="form-control" value="—" disabled>
           <div class="form-help">Rolünüzü yalnızca bir yönetici Kullanıcı yönetimi sayfasından değiştirebilir.</div>
         </div>
 
         <div class="form-actions right">
-          <button class="btn btn-outline">Vazgeç</button>
-          <button class="btn btn-primary">Değişiklikleri kaydet</button>
+          <button type="button" class="btn btn-outline" id="profile-cancel-2">Vazgeç</button>
+          <button type="button" class="btn btn-primary" id="profile-save-2">Değişiklikleri kaydet</button>
         </div>
       </div>
     </div>
@@ -87,20 +93,20 @@
       <div class="card-body" style="padding:0">
         <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border-color-light)">
           <div style="padding:16px;border-right:1px solid var(--border-color-light);text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">142</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Kart düzenleme</div>
+            <div id="stat-etkinlik" style="font-size:22px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Oluşturulan Etkinlik</div>
           </div>
           <div style="padding:16px;text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">28</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Ekip</div>
+            <div id="stat-gorevli" style="font-size:22px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Basın Görevlisi</div>
           </div>
           <div style="padding:16px;border-top:1px solid var(--border-color-light);border-right:1px solid var(--border-color-light);text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">1.2k</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Haber metni</div>
+            <div id="stat-haber" style="font-size:22px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Haber Yazdığı</div>
           </div>
           <div style="padding:16px;border-top:1px solid var(--border-color-light);text-align:center">
-            <div style="font-size:22px;font-weight:600;color:var(--text)">4.9</div>
-            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Puan</div>
+            <div id="stat-uyelik" style="font-size:16px;font-weight:600;color:var(--text)">—</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">Üyelik</div>
           </div>
         </div>
       </div>
@@ -200,6 +206,188 @@
 
 </div>
 </main>
+
+<script type="module">
+// Görev 2: profil.html gerçek Firebase kullanıcı verisiyle çalışır ve
+// düzenlenebilir. "Başarılar" ve "Son etkinlikler" kartlarına kasıtlı olarak
+// dokunulmadı -- kullanıcı isteği, ayrıca ele alınacak.
+import { showToast } from '/src/v4/toast.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+const ROLE_LABEL = { pending: 'Onay Bekliyor', editor: 'Editör', admin: 'Admin', owner: 'Kurucu' };
+
+// kisiler.html/kullanici-yonetimi.html'deki AYNI virgülle-ayrılmış isim listesi deseni.
+function parseNameList(s) {
+  return String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+}
+
+let currentUid = null;
+let currentEmail = '';
+let currentData = {};
+
+const els = {
+  avatarBig:  document.getElementById('profile-avatar-big'),
+  name:       document.getElementById('profile-name'),
+  role:       document.getElementById('profile-role'),
+  firstName:  document.getElementById('firstName'),
+  lastName:   document.getElementById('lastName'),
+  email2:     document.getElementById('email2'),
+  roleInput:  document.getElementById('role'),
+  statEtkinlik: document.getElementById('stat-etkinlik'),
+  statGorevli:  document.getElementById('stat-gorevli'),
+  statHaber:    document.getElementById('stat-haber'),
+  statUyelik:   document.getElementById('stat-uyelik')
+};
+
+function tamAdOf(u) {
+  return ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+}
+
+function applyAvatarBig(name, avatarUrl) {
+  if (avatarUrl) {
+    els.avatarBig.style.backgroundImage = `url("${String(avatarUrl).replace(/["'()]/g, '')}")`;
+    els.avatarBig.textContent = '';
+  } else {
+    els.avatarBig.style.backgroundImage = '';
+    els.avatarBig.textContent = (name || '?').charAt(0).toUpperCase() || '?';
+  }
+}
+
+// Son yüklenen değerlere göre formu doldurur -- hem ilk yüklemede hem
+// "Vazgeç" tıklanınca kullanılır.
+function fillForm() {
+  const u = currentData;
+  const name = tamAdOf(u) || 'Kullanıcı';
+  els.name.textContent = name;
+  els.role.textContent = ROLE_LABEL[u.role] || u.role || '—';
+  els.firstName.value = u.firstName || '';
+  els.lastName.value = u.lastName || '';
+  els.email2.value = currentEmail || u.email || '';
+  els.roleInput.value = ROLE_LABEL[u.role] || u.role || '—';
+  applyAvatarBig(name, u.avatarUrl);
+}
+
+function fmtDate(ts) {
+  if (!ts) {return '—';}
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) {return '—';}
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+function loadStats(tamAd) {
+  if (!tamAd) { els.statEtkinlik.textContent = '0'; els.statGorevli.textContent = '0'; els.statHaber.textContent = '0'; return; }
+  database.ref('etkinlikler').once('value').then((snap) => {
+    const events = Object.values(snap.val() || {});
+    els.statEtkinlik.textContent = events.filter((e) => e && e.olusturan === tamAd).length;
+    els.statGorevli.textContent = events.filter((e) => parseNameList(e && e.gorevli).includes(tamAd)).length;
+    els.statHaber.textContent = events.filter((e) => parseNameList(e && e.haberYazanlari).includes(tamAd)).length;
+  }).catch((err) => {
+    console.error('Hesap istatistikleri yüklenemedi:', err);
+    els.statEtkinlik.textContent = '—'; els.statGorevli.textContent = '—'; els.statHaber.textContent = '—';
+  });
+}
+
+function loadUser(uid) {
+  return database.ref('users/' + uid).once('value').then((snap) => {
+    currentData = snap.val() || {};
+    fillForm();
+    els.statUyelik.textContent = fmtDate(currentData.createdAt);
+    loadStats(tamAdOf(currentData));
+  }).catch((err) => {
+    console.error('Profil yüklenemedi:', err);
+    showToast('Profil yüklenemedi.', { variant: 'error' });
+  });
+}
+
+auth.onAuthStateChanged((user) => {
+  if (!user) { window.location.href = 'giris.html'; return; }
+  currentUid = user.uid;
+  currentEmail = user.email || '';
+  loadUser(currentUid);
+});
+
+// ── Kaydet / Vazgeç (üstteki ve formdaki iki buton çifti aynı davranışı paylaşır) ──
+function saveProfile() {
+  if (!currentUid) {return;}
+  const firstName = els.firstName.value.trim();
+  const lastName = els.lastName.value.trim();
+  // SADECE firstName/lastName -- email/role'e dokunmuyoruz (bkz. güvenlik kuralı notu).
+  database.ref('users/' + currentUid).update({ firstName, lastName }).then(() => {
+    currentData.firstName = firstName;
+    currentData.lastName = lastName;
+    fillForm();
+    loadStats(tamAdOf(currentData));
+    showToast('Değişiklikler kaydedildi.', { variant: 'success' });
+  }).catch((err) => {
+    console.error('Değişiklikler kaydedilemedi:', err);
+    showToast('Değişiklikler kaydedilemedi.', { variant: 'error' });
+  });
+}
+document.getElementById('profile-save-1').addEventListener('click', saveProfile);
+document.getElementById('profile-save-2').addEventListener('click', saveProfile);
+document.getElementById('profile-cancel-1').addEventListener('click', fillForm);
+document.getElementById('profile-cancel-2').addEventListener('click', fillForm);
+
+// ── Avatar yükleme: seçilen görseli 160x160 kareye kırp, JPEG base64'e çevir, kaydet ──
+// NEDEN base64/DB: projede Firebase Storage kurulu değil (kural dosyası da yok);
+// yeni bir altyapı eklemek bu görevin kapsamı dışında. Küçük kare bir JPEG DB'de
+// saklanabilir boyutta (birkaç KB - birkaç on KB) kalır.
+function resizeToSquareDataUrl(file, size) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (err) { reject(err); }
+      };
+      img.onerror = () => reject(new Error('Görsel okunamadı.'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const fileInput = document.getElementById('avatar-file-input');
+document.getElementById('avatar-change-btn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files && fileInput.files[0];
+  fileInput.value = '';
+  if (!file) {return;}
+  if (!file.type.startsWith('image/')) { showToast('Lütfen bir görsel dosyası seçin.', { variant: 'error' }); return; }
+  if (file.size > 2 * 1024 * 1024) { showToast('Görsel 2 MB\'tan küçük olmalı.', { variant: 'error' }); return; }
+  if (!currentUid) { showToast('Önce giriş yapmalısınız.', { variant: 'error' }); return; }
+
+  resizeToSquareDataUrl(file, 160).then((dataUrl) => (
+    database.ref('users/' + currentUid).update({ avatarUrl: dataUrl }).then(() => {
+      currentData.avatarUrl = dataUrl;
+      applyAvatarBig(els.name.textContent, dataUrl);
+      showToast('Avatar güncellendi.', { variant: 'success' });
+    })
+  )).catch((err) => {
+    console.error('Avatar yüklenemedi:', err);
+    showToast('Avatar yüklenemedi.', { variant: 'error' });
+  });
+});
+</script>
 
 </body>
 </html>

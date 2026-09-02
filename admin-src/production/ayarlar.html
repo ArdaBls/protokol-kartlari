@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="settings" data-breadcrumb="Anasayfa|index.html > Ayarlar">
@@ -42,25 +45,27 @@
           <div class="settings-row">
             <label>Profil fotoğrafı</label>
             <div class="settings-control profile-control">
-              <div class="profile-preview" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">A</div>
+              <div class="profile-preview" id="settings-avatar-preview" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk));background-size:cover;background-position:center">—</div>
               <div>
-                <button type="button" class="btn btn-outline btn-sm">Yeni yükle</button>
-                <button type="button" class="btn btn-outline btn-sm">Kaldır</button>
+                <button type="button" class="btn btn-outline btn-sm" id="avatar-upload-btn">Yeni yükle</button>
+                <button type="button" class="btn btn-outline btn-sm" id="avatar-remove-btn">Kaldır</button>
+                <input type="file" id="avatar-file-input" accept="image/*" hidden>
                 <div class="settings-hint">JPG, PNG veya GIF. Maks. 2 MB.</div>
               </div>
             </div>
           </div>
           <div class="settings-row">
             <label for="full-name">Ad soyad</label>
-            <input class="form-control" id="full-name" type="text" value="Aigars Silkalns" required>
+            <input class="form-control" id="full-name" type="text" value="" required>
           </div>
           <div class="settings-row">
             <label for="email">E-posta adresi</label>
-            <input class="form-control" id="email" type="email" value="demo@example.com" required>
+            <input class="form-control" id="email" type="email" value="" disabled>
+            <div class="settings-hint">E-posta adresinizi değiştirmek için yöneticinizle iletişime geçin.</div>
           </div>
           <div class="settings-row">
             <label for="role">Rol</label>
-            <input class="form-control" id="role" type="text" value="Yönetici" disabled>
+            <input class="form-control" id="role" type="text" value="—" disabled>
             <div class="settings-hint">Rolünüzü yalnızca bir yönetici Kullanıcı yönetimi sayfasından değiştirebilir.</div>
           </div>
           <div class="settings-row">
@@ -99,6 +104,184 @@
 </main>
 
 <script type="module">
+// Görev 3: ayarlar.html gerçek kullanıcı verisiyle çalışır + tüm veriyi dışa aktarır.
+import { showToast } from '/src/v4/toast.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+const ROLE_LABEL = { pending: 'Onay Bekliyor', editor: 'Editör', admin: 'Admin', owner: 'Kurucu' };
+
+let currentUid = null;
+let currentEmail = '';
+let currentData = {};
+
+const fullNameInput = document.getElementById('full-name');
+const emailInput = document.getElementById('email');
+const roleInput = document.getElementById('role');
+const avatarPreview = document.getElementById('settings-avatar-preview');
+
+function applyAvatarPreview(name, avatarUrl) {
+  if (avatarUrl) {
+    avatarPreview.style.backgroundImage = `url("${String(avatarUrl).replace(/["'()]/g, '')}")`;
+    avatarPreview.textContent = '';
+  } else {
+    avatarPreview.style.backgroundImage = '';
+    avatarPreview.textContent = (name || '?').charAt(0).toUpperCase() || '?';
+  }
+}
+
+function fillSettingsForm() {
+  const u = currentData;
+  const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+  fullNameInput.value = name;
+  emailInput.value = currentEmail || u.email || '';
+  roleInput.value = ROLE_LABEL[u.role] || u.role || '—';
+  applyAvatarPreview(name, u.avatarUrl);
+}
+
+auth.onAuthStateChanged((user) => {
+  if (!user) { window.location.href = 'giris.html'; return; }
+  currentUid = user.uid;
+  currentEmail = user.email || '';
+  database.ref('users/' + currentUid).once('value').then((snap) => {
+    currentData = snap.val() || {};
+    fillSettingsForm();
+  }).catch((err) => {
+    console.error('Ayarlar yüklenemedi:', err);
+    showToast('Ayarlar yüklenemedi.', { variant: 'error' });
+  });
+});
+
+// ── Ad soyad ayrıştırma: kullanici-yonetimi.html'deki fullNameOf()'un tersi ──
+// İlk kelime firstName, kalan kelimeler lastName.
+function splitFullName(full) {
+  const parts = String(full || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) {return { firstName: '', lastName: '' };}
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
+
+document.querySelector('.settings-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!currentUid) {return;}
+  const { firstName, lastName } = splitFullName(fullNameInput.value);
+  database.ref('users/' + currentUid).update({ firstName, lastName }).then(() => {
+    currentData.firstName = firstName;
+    currentData.lastName = lastName;
+    fillSettingsForm();
+    showToast('Değişiklikler kaydedildi.', { variant: 'success' });
+  }).catch((err) => {
+    console.error('Değişiklikler kaydedilemedi:', err);
+    showToast('Değişiklikler kaydedilemedi.', { variant: 'error' });
+  });
+});
+
+// ── Avatar: aynı 160x160 kırp + JPEG base64 akışı (bkz. profil.html, kod tekrarı
+// ayrı sayfalar olduğu için kasıtlı) ──
+function resizeToSquareDataUrl(file, size) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (err) { reject(err); }
+      };
+      img.onerror = () => reject(new Error('Görsel okunamadı.'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const avatarFileInput = document.getElementById('avatar-file-input');
+document.getElementById('avatar-upload-btn').addEventListener('click', () => avatarFileInput.click());
+avatarFileInput.addEventListener('change', () => {
+  const file = avatarFileInput.files && avatarFileInput.files[0];
+  avatarFileInput.value = '';
+  if (!file) {return;}
+  if (!file.type.startsWith('image/')) { showToast('Lütfen bir görsel dosyası seçin.', { variant: 'error' }); return; }
+  if (file.size > 2 * 1024 * 1024) { showToast('Görsel 2 MB\'tan küçük olmalı.', { variant: 'error' }); return; }
+  if (!currentUid) { showToast('Önce giriş yapmalısınız.', { variant: 'error' }); return; }
+
+  resizeToSquareDataUrl(file, 160).then((dataUrl) => (
+    database.ref('users/' + currentUid).update({ avatarUrl: dataUrl }).then(() => {
+      currentData.avatarUrl = dataUrl;
+      applyAvatarPreview(fullNameInput.value, dataUrl);
+      showToast('Avatar güncellendi.', { variant: 'success' });
+    })
+  )).catch((err) => {
+    console.error('Avatar yüklenemedi:', err);
+    showToast('Avatar yüklenemedi.', { variant: 'error' });
+  });
+});
+
+document.getElementById('avatar-remove-btn').addEventListener('click', () => {
+  if (!currentUid) {return;}
+  database.ref('users/' + currentUid).update({ avatarUrl: null }).then(() => {
+    currentData.avatarUrl = null;
+    applyAvatarPreview(fullNameInput.value, null);
+    showToast('Avatar kaldırıldı.', { variant: 'success' });
+  }).catch((err) => {
+    console.error('Avatar kaldırılamadı:', err);
+    showToast('Avatar kaldırılamadı.', { variant: 'error' });
+  });
+});
+
+// ── Tüm verileri dışa aktar: 3 kök düğümü tek JSON'da indir ──
+const exportBtn = document.querySelector('[data-action="export"]');
+exportBtn.addEventListener('click', () => {
+  const originalLabel = exportBtn.textContent;
+  exportBtn.disabled = true;
+  exportBtn.textContent = 'İndiriliyor…';
+
+  Promise.all([
+    database.ref('ilProtokolVerileri').once('value'),
+    database.ref('universiteProtokolVerileri').once('value'),
+    database.ref('etkinlikler').once('value')
+  ]).then(([ilSnap, uniSnap, etkinlikSnap]) => {
+    const payload = {
+      ilProtokolVerileri: ilSnap.val(),
+      universiteProtokolVerileri: uniSnap.val(),
+      etkinlikler: etkinlikSnap.val(),
+      disaAktarilmaTarihi: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    a.href = url;
+    a.download = `protokol-veri-yedegi-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    showToast('Veriler indirildi.', { variant: 'success' });
+  }).catch((err) => {
+    console.error('Dışa aktarma başarısız:', err);
+    showToast('Dışa aktarma başarısız oldu.', { variant: 'error' });
+  }).finally(() => {
+    exportBtn.disabled = false;
+    exportBtn.textContent = originalLabel;
+  });
+});
+
 // Section nav: scroll to anchor + set active.
 const navLinks = document.querySelectorAll('.settings-nav-link');
 navLinks.forEach((a) => {
