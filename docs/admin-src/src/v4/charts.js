@@ -93,6 +93,159 @@ function dashboardNetwork(echarts, el, t) {
   return chart;
 }
 
+// ────────────────────────
+//  Editör/Admin/Owner etkinlik aktivitesi — Operasyonlar sayfası
+// ────────────────────────
+// Kullanıcı isteği: eski "Network Activities" (sahte demo verisi) grafiğinin
+// yerine, Analitik sayfasındaki "Plan growth" yığılmış alan grafiğinin AYNI
+// görsel dilini kullanan, GERÇEK bir grafik -- editor/admin/owner rolündeki
+// her kullanıcının, o ay "Basın Görevlisi" olarak işaretlendiği (bkz.
+// app.js'teki gorevli alanı -- kullanıcı isteği: "zaten basın görevlisi
+// olarak işaretlendiyse etkinliğe gitmiştir") etkinlik sayısını gösterir.
+// Aylar Ocak'tan Aralık'a SABİT (kayan 12 ay penceresi DEĞİL), sadece İÇİNDE
+// BULUNULAN yılın etkinlikleri sayılır. Kişi sayısı arttıkça renk sayısı da
+// otomatik artar (bkz. colorForIndex).
+const EDITOR_ACTIVITY_FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+const TR_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+// İlk N renk mevcut tasarım tokenlarından (tutarlı görünüm) -- kişi sayısı
+// bunu aşarsa altın açı (golden angle) HSL döngüsüyle sonsuz, birbirinden
+// hep AYIRT EDİLEBİLİR yeni renkler üretilir.
+function colorForIndex(i, basePalette) {
+  if (i < basePalette.length) {return basePalette[i];}
+  const hue = (i * 137.508) % 360; // altın açı -- ardışık renkler asla birbirine yakın düşmez
+  return 'hsl(' + Math.round(hue) + ', 62%, 52%)';
+}
+
+function editorEventActivity(echarts, el, t) {
+  const chart = echarts.init(el);
+  const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
+
+  function renderEmpty(message) {
+    // 'title' bileşeni initCharts()'ta kayıtlı değil (bu proje sadece ihtiyaç duyulan
+    // ECharts bileşenlerini içe aktarıyor) -- her zaman kullanılabilen 'graphic' ile
+    // aynı görsel sonuç, ekstra bileşen kaydına gerek kalmadan.
+    // notMerge:true (ikinci argüman) ŞART -- aksi halde ECharts önceki setOption()'ı
+    // (ör. bu "Yükleniyor…" metni) yeni gerçek grafikle BİRLEŞTİRİR, metin kalıcı
+    // olarak grafiğin üzerinde asılı kalırdı.
+    chart.setOption({
+      ...baseOption(t),
+      graphic: [{
+        type: 'text',
+        left: 'center', top: 'middle',
+        style: { text: message, fill: t.textMuted, fontSize: 12, fontFamily }
+      }],
+      xAxis: { show: false }, yAxis: { show: false }, series: []
+    }, true);
+  }
+
+  renderEmpty('Yükleniyor…');
+
+  (async () => {
+    try {
+      if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return; }
+      if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
+      const [usersSnap, eventsSnap] = await Promise.all([
+        firebase.database().ref('users').once('value'),
+        firebase.database().ref('etkinlikler').once('value')
+      ]);
+      const users = usersSnap.val() || {};
+      const events = eventsSnap.val() || {};
+
+      const names = [];
+      Object.keys(users).forEach((uid) => {
+        const u = users[uid];
+        if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
+        const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+        if (full && names.indexOf(full) === -1) {names.push(full);}
+      });
+
+      if (!names.length) { renderEmpty('Editor/admin/owner rolünde kullanıcı yok.'); return; }
+
+      const currentYear = String(new Date().getFullYear());
+      const counts = {};
+      names.forEach((n) => { counts[n] = new Array(12).fill(0); });
+
+      Object.keys(events).forEach((id) => {
+        const e = events[id];
+        if (!e || !e.gorevli || !e.tarih) {return;}
+        const tarih = String(e.tarih);
+        if (tarih.slice(0, 4) !== currentYear) {return;}
+        const monthIdx = parseInt(tarih.slice(5, 7), 10) - 1;
+        if (monthIdx < 0 || monthIdx > 11) {return;}
+        String(e.gorevli).split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => {
+          if (counts[n]) {counts[n][monthIdx]++;}
+        });
+      });
+
+      const series = names.map((name, i) => {
+        const color = colorForIndex(i, basePalette);
+        return {
+          name,
+          type: 'line',
+          stack: 'total',
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color, width: 1.5 },
+          itemStyle: { color },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: color + '55' },
+              { offset: 1, color: color + '08' }
+            ])
+          },
+          data: counts[name]
+        };
+      });
+
+      chart.setOption({
+        ...baseOption(t),
+        tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
+        legend: {
+          data: names,
+          bottom: 0,
+          itemGap: 16,
+          textStyle: { color: t.textMuted, fontSize: 11 },
+          icon: 'circle',
+          itemWidth: 8,
+          itemHeight: 8
+        },
+        grid: { ...baseOption(t).grid, bottom: 36 },
+        xAxis: {
+          type: 'category',
+          data: TR_MONTHS,
+          boundaryGap: false,
+          axisLine: { lineStyle: { color: t.borderLight } },
+          axisTick: { show: false },
+          axisLabel: { color: t.textMuted, fontSize: 10 }
+        },
+        yAxis: {
+          type: 'value',
+          minInterval: 1,
+          splitLine: { lineStyle: { color: t.borderLight, type: [4, 3] } },
+          axisLabel: { color: t.textMuted, fontSize: 10, formatter: '{value}' },
+          axisLine: { show: false },
+          axisTick: { show: false }
+        },
+        series
+      }, true); // notMerge:true -- renderEmpty()'in "Yükleniyor…" graphic'ini temizler
+    } catch (err) {
+      console.error('editorEventActivity grafiği yüklenemedi:', err);
+      // "users" düğümü sadece admin/owner'a açık (bkz. Firebase kuralı) -- editor
+      // rolündeki biri bu grafiği açarsa PERMISSION_DENIED alır, bu BEKLENEN bir
+      // durum, hata değil -- kullanıcıya net bir mesajla anlatılır.
+      renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+    }
+  })();
+
+  return chart;
+}
+
 function revenueLine(echarts, el, t) {
   const months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
   const rev = [12400, 14200, 15600, 17800, 19200, 21500, 23100, 24800, 26200, 27900, 29400, 30100];
@@ -871,6 +1024,7 @@ function gantt(echarts, el, t) {
 
 const charts = {
   'dashboard-network': dashboardNetwork,
+  'editor-event-activity': editorEventActivity,
   'revenue-line':      revenueLine,
   'sales-bar':         salesBar,
   'traffic-donut':     trafficDonut,
@@ -925,7 +1079,7 @@ export async function initCharts() {
     },
     {
       GridComponent, TooltipComponent, LegendComponent,
-      VisualMapComponent, PolarComponent, CalendarComponent
+      VisualMapComponent, PolarComponent, CalendarComponent, GraphicComponent
     },
     { CanvasRenderer }
   ] = await Promise.all([
@@ -940,7 +1094,7 @@ export async function initCharts() {
     HeatmapChart, FunnelChart, CandlestickChart,
     TreemapChart, SankeyChart, CustomChart,
     GridComponent, TooltipComponent, LegendComponent,
-    VisualMapComponent, PolarComponent, CalendarComponent,
+    VisualMapComponent, PolarComponent, CalendarComponent, GraphicComponent,
     CanvasRenderer
   ]);
 
