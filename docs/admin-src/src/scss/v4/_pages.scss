@@ -784,3 +784,23 @@
   body[data-page="map"] .page-wrapper { overflow: hidden; }
 }
 
+// ────────────────────────
+//  ANALİTİK SAYFASI — protokol.html'in style.css'i bu sayfada da yükleniyor
+// ────────────────────────
+// style.css'in KAPSAMSIZ "header" etiket seçicisi (kendi <header>'ı için
+// çapraz çizgili bir desen + arkaplan tanımlıyor) admin panelinin kendi
+// <header class="topbar"> öğesine de bulaşıyordu ("çizgili" görünüm, kullanıcı
+// bildirimi). .topbar (.topbar sınıf seçicisi) zaten daha yüksek özgüllükte
+// olduğu için background/padding-inline gibi ORTAK tanımlı özellikler
+// zaten .topbar'dan kazanıyor -- SADECE .topbar'ın hiç tanımlamadığı iki şey
+// sızıyordu: çizgili desen (header::after, karşılığı hiç yok) ve
+// padding-bottom (style.css'in padding kısayolu 24px veriyor, .topbar bunu
+// hiç ezmiyordu). Sadece bu ikisi zorla geri alınıyor -- .topbar'ın mobil
+// padding-inline:12px gibi kendi kurallarına DOKUNULMUYOR.
+body[data-page="dashboard-2"] header.topbar {
+  padding-bottom: 0 !important;
+}
+body[data-page="dashboard-2"] header.topbar::after {
+  content: none !important;
+}
+
