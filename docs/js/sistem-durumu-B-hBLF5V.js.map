@@ -1,0 +1,1 @@
+{"version":3,"mappings":";sDACqC,mBAAE,gBAAhC,oDAAwB,iCAAQ,mBAAqB","names":[],"ignoreList":[],"sources":["../../admin-src/production/sistem-durumu.html?html-proxy&index=1.js"],"sourcesContent":["\nimport('/src/v4/face-scan.js').then(({ initFaceScan }) => { initFaceScan(); });\n"],"file":"sistem-durumu-B-hBLF5V.js"}

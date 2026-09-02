@@ -28,12 +28,16 @@ const FACE_API_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-
 // yanlışlıkla kayıtlı birinin ismiyle etiketleniyordu -- kayıtlı kişi sayısı arttıkça (~170)
 // rastgele bir yüzün BİRİNE tesadüfen yakın çıkma ihtimali artar, üstüne kalabalık fotoğrafta
 // küçük/uzak yüzlerin vektörü zaten daha az güvenilir. Yanlış isim koymak, tanımamaktan
-// (Bilinmiyor demekten) çok daha kötü bir hata -- eşik sıkılaştırıldı (bkz. MIN_FACE_PX de).
+// (Bilinmiyor demekten) çok daha kötü bir hata -- eşik sıkılaştırıldı (bkz. FRONT_ROW_RATIO de).
 const MATCH_TOLERANCE = 0.5;
-// Bu genişlikten (piksel, EKRANDA gösterilen boyutta) küçük yüzler HİÇ eşleştirilmez --
-// kalabalık fotoğraftaki uzak/küçük yüzlerin 128 boyutlu vektörü güvenilmez olur, bunlar
-// hep "Bilinmiyor" kalır (kutuları yine çizilir, sadece isim denenmez).
-const MIN_FACE_PX = 70;
+// Kullanıcı isteği: sabit piksel eşiği kaldırıldı -- ekranda gösterilen (CSS ile küçülmüş)
+// boyuta göre ölçülüyordu, bu yüzden fotoğraf ORİJİNALDE net olsa bile (özellikle geniş
+// ekranda dar bir kartta gösterilince) net yüzler bile "küçük" sayılıyordu. Bunun yerine:
+// "protokol her zaman ÖN SIRADADIR" mantığıyla, fotoğraftaki EN BÜYÜK (en yakın/net) yüze
+// göre GÖRECELİ bir eşik kullanılıyor -- o fotoğraftaki en büyük yüzün en az %FRONT_ROW_RATIO
+// kadarı büyüklüğündeki yüzler "ön sıra" sayılıp eşleştirilir, arkadaki kalabalık hiç
+// denenmez (kutu/etiket bile çizilmez -- taramanın odağı sadece ön sıra).
+const FRONT_ROW_RATIO = 0.55;
 
 const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
 
@@ -335,27 +339,32 @@ export function initFaceScan() {
       faceapiRef.matchDimensions(canvas, displaySize);
       const resized = faceapiRef.resizeResults(detections, displaySize);
 
+      // "Protokol her zaman ön sıradadır" -- ÖN SIRA, fotoğrafın ORİJİNAL (ekranda gösterilen
+      // küçültülmüş boyut DEĞİL) çözünürlüğündeki en büyük yüze göre GÖRECELİ olarak belirlenir.
+      // detections[i] <-> resized[i] aynı sırada (resizeResults sırayı korur).
+      const naturalHeights = detections.map((d) => d.detection.box.height);
+      const maxNaturalHeight = Math.max(...naturalHeights);
+      const frontRowMinHeight = maxNaturalHeight * FRONT_ROW_RATIO;
+
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const matched = [];
+      let skippedBackRow = 0;
 
-      resized.forEach((det) => {
+      resized.forEach((det, i) => {
         const box = det.detection.box;
-        // Kalabalık/grup fotoğraflarında uzaktaki küçük yüzlerin 128 boyutlu vektörü
-        // güvenilmez oluyor -- bunlar hiç eşleştirilmez, kutu yine çizilir ama isim denenmez.
-        const tooSmall = box.width < MIN_FACE_PX || box.height < MIN_FACE_PX;
-        const match = (faceMatcher && !tooSmall) ? faceMatcher.findBestMatch(det.descriptor) : null;
+        // Arka sıradaki/uzak yüzler ekrana hiç çizilmez -- taramanın odağı sadece ön sıra.
+        if (detections[i].detection.box.height < frontRowMinHeight) { skippedBackRow++; return; }
+        const match = faceMatcher ? faceMatcher.findBestMatch(det.descriptor) : null;
         const isKnown = !!(match && match.label !== 'unknown');
         const info = isKnown ? personIndex.get(match.label) : null;
         // Hata ayıklama: eşleşme mesafesi (0 = birebir aynı, eşik: MATCH_TOLERANCE) her zaman
         // konsola yazılır; ekrandaki etikette de görünür (tanınan/tanınmayan fark etmez) --
         // kullanıcı sahada DevTools'a girmeden "ne kadar emin" ayrımını görebilsin.
         if (match) { console.log('Yüz eşleşme -- etiket: ' + match.label + ', mesafe: ' + match.distance.toFixed(3) + ' (eşik: ' + MATCH_TOLERANCE + ')'); }
-        const label = tooSmall
-          ? 'Bilinmiyor (küçük)'
-          : info
-            ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : '') + ' · ' + match.distance.toFixed(2))
-            : 'Bilinmiyor' + (match ? ' (' + match.distance.toFixed(2) + ')' : '');
+        const label = info
+          ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : '') + ' · ' + match.distance.toFixed(2))
+          : 'Bilinmiyor' + (match ? ' (' + match.distance.toFixed(2) + ')' : '');
 
         ctx.strokeStyle = isKnown ? '#1ABB9C' : '#e04f4f';
         ctx.lineWidth = 2;
@@ -371,10 +380,7 @@ export function initFaceScan() {
         // Kullanıcı isteği: kutunun üzerine imleçle gelince kim olduğunu net gösteren
         // bir tooltip -- canvas metni küçük/sıkışık kalabiliyor, burada daha okunaklı.
         let tipTitle; let tipSubtitle;
-        if (tooSmall) {
-          tipTitle = 'Bilinmiyor (yüz çok küçük)';
-          tipSubtitle = 'Net tanımak için fotoğrafta daha büyük görünmeli.';
-        } else if (info) {
+        if (info) {
           tipTitle = info.ad || 'İsimsiz kayıt';
           const parts = [];
           if (info.unvan) {parts.push(info.unvan);}
@@ -393,7 +399,8 @@ export function initFaceScan() {
         }
       });
 
-      statusEl.textContent = detections.length + ' yüz bulundu, ' + matched.length + ' kişi tanındı.';
+      statusEl.textContent = detections.length + ' yüz bulundu, ' + matched.length + ' kişi tanındı' +
+        (skippedBackRow ? ' (arka sıradaki ' + skippedBackRow + ' yüz taranmadı -- sadece ön sıra denendi)' : '') + '.';
 
       matched.sort((a, b) => {
         const ra = (a.rank === null || a.rank === undefined || a.rank === '') ? Infinity : Number(a.rank);
