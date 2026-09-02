@@ -754,10 +754,6 @@
 				const allActive = peopleData.il.concat(peopleData.universite).filter(function(p) { return p.status === "aktif"; });
 
 				const missingPhoto = allActive.filter(function(p) { return !p.photo; });
-				// Faz 16 (yüz tanıma): fotoğrafı OLUP geçerli bir descriptor'ı OLMAYAN aktif
-				// kayıtlar -- "bulkExtractFaceDescriptors()" butonuyla tek tek fotoğraf yeniden
-				// seçmeden, zaten kayıtlı fotoğraflar üzerinden toplu çıkarılabilir.
-				const missingDescriptor = allActive.filter(function(p) { return p.photo && !(Array.isArray(p.faceDescriptor) && p.faceDescriptor.length === 128); });
 
 				const byName = {};
 				allActive.forEach(function(p) { const key = (p.name || "").trim().toLocaleLowerCase("tr-TR"); if (!key) return; (byName[key] = byName[key] || []).push(p); });
@@ -772,78 +768,12 @@
 					'<div class="dash-alert-grid">' +
 					'<div class="dash-alert-card' + (missingPhoto.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + missingPhoto.length + '</span><span class="dash-alert-label">Fotoğrafsız Kayıt</span></div>' +
 					'<div class="dash-alert-card' + (duplicates.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + duplicates.length + '</span><span class="dash-alert-label">Mükerrer İsim</span></div>' +
-					'<div class="dash-alert-card' + (missingDescriptor.length ? " ak-warn" : "") + '"><span class="dash-alert-num">' + missingDescriptor.length + '</span><span class="dash-alert-label">Yüz Vektörü Eksik</span></div>' +
 					'</div>' +
 					'<h4 class="dash-alert-subhead">Doğrulama Tazeliği</h4>' + statSegmentedBarHtml(freshSegments, freshColors) +
-					'<h4 class="dash-alert-subhead">Yüz Tanıma — Vektörü Eksik Kayıtlar (' + missingDescriptor.length + ')</h4>' +
-					'<p class="hint">Fotoğrafı zaten var ama yüz tanıma ekranında tanınamayan kayıtlar. Fotoğrafları TEK TEK yeniden yüklemene gerek yok -- aşağıdaki düğme, mevcut fotoğraflar üzerinden vektörleri toplu çıkarıp kaydeder.</p>' +
-					(missingDescriptor.length ? '<button type="button" class="btn btn-primary" id="bulkFaceExtractBtn" onclick="bulkExtractFaceDescriptors()">Yüz Vektörlerini Toplu Çıkar (' + missingDescriptor.length + ')</button><p class="hint" id="bulkFaceExtractStatus"></p>' : '<p class="admin-user-empty">Yok -- fotoğrafı olan herkes tanınabilir durumda.</p>') +
 					'<h4 class="dash-alert-subhead">Fotoğrafsız Kayıtlar (' + missingPhoto.length + ')</h4>' +
 					(missingPhoto.length ? '<div class="stat-expiry-list">' + missingPhoto.slice(0, 30).map(function(p) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(p.name || "") + ' (' + (p._list === "il" ? "İl" : "Üniversite") + ')</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>') +
 					'<h4 class="dash-alert-subhead">Mükerrer İsimler (' + duplicates.length + ')</h4>' +
 					(duplicates.length ? '<div class="stat-expiry-list">' + duplicates.map(function(arr) { return '<div class="stat-expiry-row"><span class="stat-expiry-name">' + escapeHtml(arr[0].name || "") + ' — ' + arr.length + ' kayıt (' + arr.map(function(p) { return p._list === "il" ? "İl" : "Üniversite"; }).join(", ") + ')</span></div>'; }).join("") + '</div>' : '<p class="admin-user-empty">Yok.</p>');
-			}
-
-			// Faz 16: "Yüz Vektörü Eksik" listesindeki her kaydın FOTOĞRAFI ZATEN buluttan
-			// çekilmiş durumda (loadIntegrity() -> fetchAllPeople()) -- bu yüzden kullanıcının
-			// fotoğrafları tek tek yeniden seçip yüklemesine hiç gerek yok. Sırayla (aynı anda
-			// değil -- face-api tek seferde bir görsel işler) her fotoğraftan vektör çıkarılır,
-			// bulunanlar HEM ana kayda (faceDescriptor) HEM "yuzVerileri" aynasına hedefli
-			// (tüm kaydı değil, sadece gereken alanları) TEK atomik update() ile yazılır.
-			async function bulkExtractFaceDescriptors() {
-				if (!requireAdmin()) return;
-				const btn = document.getElementById("bulkFaceExtractBtn");
-				const statusEl = document.getElementById("bulkFaceExtractStatus");
-				if (!database) { showToast("Veritabanı bağlı değil.", "error"); return; }
-				if (btn) { btn.disabled = true; }
-
-				const peopleData = await fetchAllPeople();
-				const targets = peopleData.il.concat(peopleData.universite).filter(function(p) {
-					return p.status === "aktif" && p.photo && !(Array.isArray(p.faceDescriptor) && p.faceDescriptor.length === 128);
-				});
-				if (!targets.length) { if (statusEl) statusEl.textContent = "İşlenecek kayıt kalmadı."; if (btn) btn.disabled = false; return; }
-
-				let found = 0; let notFound = 0; let failed = 0;
-				for (let i = 0; i < targets.length; i++) {
-					const p = targets[i];
-					if (statusEl) { statusEl.textContent = "İşleniyor: " + (i + 1) + " / " + targets.length + " (" + (p.name || "") + ")"; }
-					try {
-						const img = await new Promise(function(resolve, reject) {
-							const im = new Image();
-							im.onload = function() { resolve(im); };
-							im.onerror = function() { reject(new Error("Fotoğraf açılamadı.")); };
-							im.src = p.photo;
-						});
-						const descriptor = await detectFaceDescriptorFromImage(img);
-						if (!descriptor) { notFound++; continue; }
-						const listKey = p._list; const id = p._id;
-						const updates = {};
-						updates[dbPath((LIST_PATHS[listKey] + "/" + id) + "/faceDescriptor")] = descriptor;
-						updates[dbPath("yuzVerileri/" + listKey + "/" + id)] = { ad: p.name || "", unvan: p.title || "", rank: (p.rank === "" || p.rank === undefined || p.rank === null) ? null : Number(p.rank), faceDescriptor: descriptor };
-						await database.ref("/").update(updates);
-						if (people[id]) { people[id].faceDescriptor = descriptor; }
-						found++;
-					} catch (err) {
-						console.error("Toplu yüz çıkarma hatası (" + (p.name || p._id) + "):", err);
-						failed++;
-					}
-				}
-
-				if (currentUser) {
-					const who = ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email;
-					["il", "universite"].forEach(function(listKey) {
-						const n = targets.filter(function(p) { return p._list === listKey; }).length;
-						if (!n) return;
-						const logKey = database.ref(dbPath("logs/" + listKey)).push().key;
-						database.ref(dbPath("logs/" + listKey) + "/" + logKey).set({ by: who, email: currentUser.email, action: "Toplu yüz vektörü çıkarma çalıştırıldı (" + found + " bulundu, " + notFound + " bulunamadı, " + failed + " hata)", target: listKey, timestamp: firebase.database.ServerValue.TIMESTAMP }).catch(function() {});
-					});
-				}
-
-				const summary = found + " kişi tanınabilir hâle geldi, " + notFound + " fotoğrafta yüz bulunamadı" + (failed ? ", " + failed + " kayıt hata verdi" : "") + ".";
-				if (statusEl) statusEl.textContent = summary;
-				showToast(summary, failed ? "warn" : "success");
-				if (btn) btn.disabled = false;
-				render();
 			}
 
 			// Faz 10 (Part B'nin son ölçülü aşaması): "Veri Sözlüğü" -- kişi formundaki birim/unvan
