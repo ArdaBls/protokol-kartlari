@@ -75,7 +75,7 @@ const CONTRAST_HELPERS_SRC = `
 	const pageErrors = [];
 	page.on('pageerror', (e) => pageErrors.push(e.message));
 	await routeCommon(page);
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
 	// --- 1. Varsayilan: data-theme yok, body acik --paper zemininde ---
@@ -100,7 +100,7 @@ const CONTRAST_HELPERS_SRC = `
 
 	// --- 3. Sayfa YENIDEN yuklenince erken <head> scripti data-theme'i DOM hazir olur
 	// olmaz (domcontentloaded, ana <script> daha calismadan) zaten uygulamis olmali -- FOUC yok kaniti ---
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'domcontentloaded' });
 	const earlyApplied = await page.evaluate(() => document.documentElement.getAttribute('data-theme') === 'dark');
 	await page.waitForTimeout(300);
 

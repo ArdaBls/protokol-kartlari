@@ -49,7 +49,7 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(400);
 
 	// Yazmayi yavaslatan yardimci: gercek ag gecikmesini taklit eder, cift-tiklama

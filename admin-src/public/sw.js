@@ -7,7 +7,7 @@
 // change but the same URL is requested. Activate handler clears old caches.
 // Kullanıcı isteği: ana sitenin sw.js'i (kök CACHE_NAME) ile AYNI sürüm numarası
 // şeması -- ikisi de her değişiklikte birlikte artırılır, artık 'r1/r2/...' değil.
-const CACHE = 'protokol-admin-v3.17.4';
+const CACHE = 'protokol-admin-v3.18.0';
 
 // Subpath-aware: scope is the directory the SW is registered against. Under
 // `/` it's `https://example.com/`; under `/admin/` it's that path. Resolving

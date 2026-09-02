@@ -17,7 +17,14 @@ export const NAV = [
         children: [
           { key: 'dashboard',   href: 'index.html',  text: 'Operasyonlar' },
           { key: 'dashboard-2', href: 'analitik.html', text: 'Analitik' },
-          { key: 'dashboard-4', href: 'sistem-durumu.html', text: 'Sistem durumu' }
+          { key: 'dashboard-4', href: 'sistem-durumu.html', text: 'Sistem durumu' },
+          // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası, protokol.html
+          // (ana sayfadaki gerçek, halka açık protokol kartları sayfası -- KENDİSİ HİÇ
+          // DEĞİŞMEDİ) buradan erişilebilir olmalı. Kök-domain'e göre MUTLAK yol (/protokol.html)
+          // -- admin build'i /admin/ altına deploy edildiği için (vite.config base:'/admin/')
+          // göreli bir yol yanlış klasöre işaret ederdi. Yeni sekmede açılır: editör admin
+          // panelindeki yerini kaybetmeden ana siteye göz atabilsin.
+          { key: 'protokol-kartlari', href: '/protokol.html', text: 'Protokol Kartları', target: '_blank' }
         ]
       },
       { key: 'calendar', href: 'takvim.html', text: 'Takvim', icon: 'calendar' },
@@ -109,7 +116,7 @@ function renderNavItem(item, activeKey) {
     const childActive = item.children.some((c) => c.key === activeKey);
     const sub = item.children.map((c) => {
       const a = c.key === activeKey;
-      return `<a class="nav-sublink${a ? ' active' : ''}" href="${c.href}"${a ? ' aria-current="page"' : ''}>${c.text}${c.badge ? `<span class="badge ${c.badge.cls}">${c.badge.text}</span>` : ''}</a>`;
+      return `<a class="nav-sublink${a ? ' active' : ''}" href="${c.href}"${c.target ? ` target="${c.target}" rel="noopener"` : ''}${a ? ' aria-current="page"' : ''}>${c.text}${c.badge ? `<span class="badge ${c.badge.cls}">${c.badge.text}</span>` : ''}</a>`;
     }).join('');
     const cls = ['nav-tree'];
     if (childActive) {cls.push('open', 'has-active');}

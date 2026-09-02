@@ -46,7 +46,7 @@ async function newPage(browser, width, height, mobile) {
 	await page.route('**fuse.js@*/dist/fuse.min.js', (r) => r.fulfill({ body: 'window.Fuse=function(){};', contentType: 'application/javascript' }));
 	await page.route('**://fonts.googleapis.com/**', (r) => r.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (r) => r.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(250);
 	return page;
 }

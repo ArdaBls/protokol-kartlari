@@ -411,7 +411,17 @@ export function syncShellUser() {
     } catch (_e) { /* zaten başlatılmış olabilir */ }
 
     firebase.auth().onAuthStateChanged((user) => {
-      if (!user) { applyGuestShellUser(); return; }
+      if (!user) {
+        // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası -- giriş yapmamış
+        // hiç kimse panel içeriğini GÖRMEMELİ, doğrudan tek giriş sayfasına yönlendirilir.
+        // returnTo ile giriş sonrası tam istediği admin sayfasına geri döner (giris.html'deki
+        // AYNI güvenli-dönüş deseni, sadece aynı origin'e izin verir). Auth sayfalarının
+        // (giris.html vb.) body'sinde data-shell="admin" YOK, mountShell() onlarda hiç
+        // çalışmıyor -- yönlendirme döngüsü riski yok.
+        applyGuestShellUser();
+        window.location.href = 'giris.html?returnTo=' + encodeURIComponent(window.location.href);
+        return;
+      }
       firebase.database().ref('users/' + user.uid).once('value').then((snap) => {
         const u = snap.val() || {};
         const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';

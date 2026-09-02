@@ -56,7 +56,7 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 
 	// Overlay açılana kadar kısa bir bekleme (onAuthStateChanged setTimeout(0) ile tetiklenip
 	// showLoading() çağırıyor), sonra zaman aşımının GERÇEKTEN dolmasını bekle.
@@ -111,7 +111,7 @@ function serve() {
 	await page2.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page2.route('**://fonts.gstatic.com/**', (route) => route.abort());
 	const t0 = Date.now();
-	await page2.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await page2.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	// Overlay'in kapanmasını bekle (poll) -- 20sn'lik yedek zamanlayıcıyı ASLA beklemeden kapanmalı.
 	await page2.waitForFunction(() => !document.getElementById('loadingOverlay').classList.contains('open'), { timeout: 3000 });
 	const elapsedMs = Date.now() - t0;

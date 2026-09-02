@@ -51,7 +51,7 @@ function serve() {
 	await page.route('**fuse.js@*/dist/fuse.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'node_modules', 'fuse.js', 'dist', 'fuse.min.js'), contentType: 'application/javascript' }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
 	await page.evaluate(() => {
@@ -102,7 +102,7 @@ function serve() {
 	await perfPage.route('**fuse.js@*/dist/fuse.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'node_modules', 'fuse.js', 'dist', 'fuse.min.js'), contentType: 'application/javascript' }));
 	await perfPage.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await perfPage.route('**://fonts.gstatic.com/**', (route) => route.abort());
-	await perfPage.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load' });
+	await perfPage.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await perfPage.waitForTimeout(300);
 	const perfMs = await perfPage.evaluate(() => {
 		currentUser = { uid: 'a1', role: 'admin', firstName: 'T', lastName: 'A', email: 'a@a.com' };

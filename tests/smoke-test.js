@@ -78,7 +78,10 @@ function serve() {
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '', contentType: 'text/css' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
 
-	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load', timeout: 30000 });
+	// index.html artık admin paneline yönlendiren bir kök yönlendirme dosyası (kullanıcı isteği:
+	// admin paneli sitenin yeni ana giriş noktası) -- app.js'in gerçek işlevselliğini taşıyan
+	// sayfa artık protokol.html (index.html ile birebir aynı app.js/style.css'i paylaşıyordu).
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load', timeout: 30000 });
 
 	// Uygulamanın render olması için kısa bekleme
 	await page.waitForTimeout(1500);
