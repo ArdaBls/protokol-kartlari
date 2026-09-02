@@ -12,6 +12,7 @@
      haberMetni alanı dolu olanları listeler (bkz. index.html'deki etkinlik formu, "Haber Metni"). -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="projects" data-breadcrumb="Anasayfa|index.html > Tüm haberler">
@@ -71,6 +72,8 @@ function fmtTarih(key) {
 
 let NEWS = [];
 let filterText = '';
+let canWrite = false;
+let currentUserName = '';
 
 function setState(html) {
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
@@ -89,9 +92,12 @@ function render() {
     const plain = String(e.haberMetni || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const excerpt = plain.slice(0, 140);
     return `
-      <a class="card" href="project_detail.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit">
+      <a class="card" href="project_detail.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit;position:relative">
+        ${canWrite ? `<button type="button" class="card-opt-btn news-delete-btn" data-id="${escapeHtml(id)}" title="Bu haberi sil" aria-label="Bu haberi sil" style="position:absolute;top:10px;right:10px;z-index:2">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6.5 4V2.5h3V4M4.5 4l.5 9.5h6l.5-9.5"/></svg>
+        </button>` : ''}
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px">
-          <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(e.ad || '(adsız)')}</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);padding-right:${canWrite ? '26px' : '0'}">${escapeHtml(e.ad || '(adsız)')}</div>
           <span class="status ${DURUM_CLS[durum] || ''}" style="flex-shrink:0">${DURUM_LABEL[durum] || durum}</span>
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${escapeHtml(fmtTarih(e.tarih))}${e.yer ? ' · ' + escapeHtml(e.yer) : ''}</div>
@@ -104,20 +110,51 @@ function render() {
 
 document.getElementById('news-search').addEventListener('input', (e) => { filterText = e.target.value; render(); });
 
-setState('Yükleniyor…');
-database.ref('etkinlikler').once('value').then((snap) => {
-  const events = snap.val() || {};
-  // Kullanıcı isteği: haber metni doldurulmuş olsun olmasın HER etkinlik burada listelenir --
-  // haberi yazma/düzenleme artık project_detail.html'deki CKEditor sisteminde yapılıyor,
-  // buradaki liste "girilecek/düzenlenecek haberler" panosu gibi çalışır.
-  NEWS = Object.entries(events)
-    .filter(([, e]) => e && e.ad)
-    .sort((a, b) => (b[1].tarih || '').localeCompare(a[1].tarih || ''));
-  if (!NEWS.length) { setState('Henüz etkinlik yok.'); return; }
-  render();
-}).catch((err) => {
-  console.error('Haberler yüklenemedi:', err);
-  setState('Haberler yüklenemedi.');
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('.news-delete-btn');
+  if (!btn) { return; }
+  e.preventDefault(); e.stopPropagation();
+  const id = btn.dataset.id;
+  const entry = NEWS.find(([nid]) => nid === id);
+  const name = entry ? (entry[1].ad || '(adsız)') : '(adsız)';
+  if (!window.confirm(`"${name}" etkinliğini/haberini kalıcı olarak silmek istediğinize emin misiniz?`)) { return; }
+  database.ref('etkinlikler/' + id).remove().then(() => {
+    database.ref('logs/etkinlik').push({ action: name + ' etkinliği silindi', by: currentUserName, ts: Date.now() });
+    NEWS = NEWS.filter(([nid]) => nid !== id);
+    render();
+  }).catch((err) => {
+    console.error('Silinemedi:', err);
+    alert('Silinemedi, tekrar deneyin.');
+  });
+});
+
+function loadNews() {
+  setState('Yükleniyor…');
+  database.ref('etkinlikler').once('value').then((snap) => {
+    const events = snap.val() || {};
+    // Kullanıcı isteği: haber metni doldurulmuş olsun olmasın HER etkinlik burada listelenir --
+    // haberi yazma/düzenleme artık project_detail.html'deki CKEditor sisteminde yapılıyor,
+    // buradaki liste "girilecek/düzenlenecek haberler" panosu gibi çalışır. Sıralama, etkinlik
+    // tarihine değil EKLENME zamanına (olusturmaTs) göre -- en son eklenen en üstte.
+    NEWS = Object.entries(events)
+      .filter(([, e]) => e && e.ad)
+      .sort((a, b) => (b[1].olusturmaTs || 0) - (a[1].olusturmaTs || 0));
+    if (!NEWS.length) { setState('Henüz etkinlik yok.'); return; }
+    render();
+  }).catch((err) => {
+    console.error('Haberler yüklenemedi:', err);
+    setState('Haberler yüklenemedi.');
+  });
+}
+
+firebase.auth().onAuthStateChanged((user) => {
+  if (!user) { canWrite = false; loadNews(); return; }
+  database.ref('users/' + user.uid).once('value').then((snap) => {
+    const u = snap.val() || {};
+    canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+    currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
+    loadNews();
+  }).catch(() => { canWrite = false; loadNews(); });
 });
 </script>
 
