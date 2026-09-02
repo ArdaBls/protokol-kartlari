@@ -24,7 +24,11 @@ const firebaseConfig = {
 const FACE_API_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
 const FACE_API_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
 // Kullanıcının belirttiği aralık (0.55-0.6) -- ne kadar düşükse o kadar SIKI eşleştirme.
-const MATCH_TOLERANCE = 0.55;
+// 0.55'te GERÇEK dünya fotoğrafları (farklı açı/ışık/sıkıştırma) çoğu zaman "Bilinmiyor"
+// çıkıyordu -- aynı fotoğrafla mesafe 0'a iniyor (pipeline doğru), ama farklı bir fotoğrafta
+// mesafe kolayca 0.55'i aşabiliyor. face-api.js'in kendi önerdiği varsayılan (0.6) ile
+// aralığın daha toleranslı ucuna çekildi.
+const MATCH_TOLERANCE = 0.6;
 
 const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
 
@@ -295,7 +299,13 @@ export function initFaceScan() {
         const isKnown = !!(match && match.label !== 'unknown');
         const info = isKnown ? personIndex.get(match.label) : null;
         const box = det.detection.box;
-        const label = info ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : '')) : 'Bilinmiyor';
+        // Hata ayıklama: eşleşme mesafesi (0 = birebir aynı, eşik: MATCH_TOLERANCE) her zaman
+        // konsola yazılır; "Bilinmiyor" etiketinin yanında da görünür -- kullanıcı sahada
+        // DevTools'a girmeden "yakın ama eşiği aşmış mı, yoksa alakasız mı" ayrımını görebilsin.
+        if (match) { console.log('Yüz eşleşme -- etiket: ' + match.label + ', mesafe: ' + match.distance.toFixed(3) + ' (eşik: ' + MATCH_TOLERANCE + ')'); }
+        const label = info
+          ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : ''))
+          : 'Bilinmiyor' + (match ? ' (' + match.distance.toFixed(2) + ')' : '');
 
         ctx.strokeStyle = isKnown ? '#1ABB9C' : '#e04f4f';
         ctx.lineWidth = 2;
