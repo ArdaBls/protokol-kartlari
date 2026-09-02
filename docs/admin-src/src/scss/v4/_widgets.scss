@@ -323,14 +323,6 @@
 .donut-legend-item .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 .donut-legend-item .pct { margin-inline-start: auto; font-weight: var(--font-weight-bold); color: var(--text); font-size: 11.5px; }
 
-// Kullanıcı isteği: Kişilere Göre Etkinlik Payı kartının yüksekliği 110.7px'e
-// sıkıştırıldı -- standart legend satırları (12px yazı + 3px dikey padding)
-// bu kadar dar bir alana sığmaz, bu yüzden bu kart özelinde daha sıkışık bir
-// varyant.
-.donut-legend--compact .donut-legend-item { font-size: 9.5px; padding: 1px 0; gap: 4px; }
-.donut-legend--compact .donut-legend-item .dot { width: 6px; height: 6px; }
-.donut-legend--compact .donut-legend-item .pct { font-size: 9.5px; }
-
 // ────────────────────────
 //  APP VERSIONS (progress)
 // ────────────────────────
