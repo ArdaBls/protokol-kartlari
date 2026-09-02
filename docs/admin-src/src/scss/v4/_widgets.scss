@@ -262,6 +262,19 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+.todo-delete {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.todo-delete svg { width: 11px; height: 11px; }
+.todo-delete:hover { background: rgba(220, 53, 69, 0.12); color: var(--red); }
 .todo-prio {
   width: 6px; height: 6px;
   border-radius: 50%;

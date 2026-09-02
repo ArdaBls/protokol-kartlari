@@ -36,6 +36,9 @@ if (document.querySelector('.settings-content')) {
 if (document.querySelector('[data-date-range], [data-rich-text], [data-multi-select]')) {
   import('./v4/form-controls.js').then((m) => m.initFormControls());
 }
+if (document.querySelector('[data-task-list]')) {
+  import('./v4/tasks-widget.js').then((m) => m.initTasksWidget());
+}
 
 // ────────────────────────
 //  Delegated interactions

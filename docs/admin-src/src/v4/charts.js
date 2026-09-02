@@ -443,6 +443,124 @@ const deviceUsage = (echarts, el, t) => donut(echarts, el, t, [
   ['Other',   10, 'red']
 ]);
 
+// ────────────────────────
+//  Kişilere göre etkinlik payı — Operasyonlar sayfası (Device Usage'ın yerinde)
+// ────────────────────────
+// Kullanıcı isteği: Device Usage'daki donut grafiği güzel bulundu, aynı stil
+// (donut + merkez sayı + dinamik liste) kişi başına toplam etkinlik yüzdesi
+// için de kullanılsın (aynı gorevli veri kaynağı, bkz. editorEventActivity).
+// Legend HTML'de sabit DEĞİL -- kişi sayısı ve isimleri veriye göre değiştiği
+// için chart, kendi kapsayıcısındaki .donut-legend ve .donut-center-label
+// .num'u da JS'ten dolduruyor. Bu, PAYLAŞILAN 'device-usage' anahtarından
+// AYRI bir anahtar (bkz. charts map) -- analitik.html/grafik-galerisi.html
+// hâlâ orijinal sahte iOS/Android/Desktop donut'unu kullanıyor, o sayfalar
+// etkilenmesin diye.
+function editorActivityShare(echarts, el, t) {
+  const chart = echarts.init(el);
+  const basePalette = [t.primary, t.azure, t.yellow, t.purple, t.green, t.blue];
+  const block = el.closest('.donut-block');
+  const legendEl = block ? block.querySelector('.donut-legend') : null;
+  const numEl = block ? block.querySelector('.donut-center-label .num') : null;
+
+  function renderEmpty(message) {
+    chart.setOption({
+      textStyle: { fontFamily, color: t.textMuted },
+      legend: { show: false },
+      graphic: [{
+        type: 'text', left: 'center', top: 'middle',
+        style: { text: message, fill: t.textMuted, fontSize: 11, fontFamily }
+      }],
+      series: []
+    }, true);
+    if (numEl) {numEl.textContent = '—';}
+    if (legendEl) {legendEl.innerHTML = '';}
+  }
+
+  renderEmpty('Yükleniyor…');
+
+  (async () => {
+    try {
+      if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return; }
+      if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
+      const [usersSnap, eventsSnap] = await Promise.all([
+        firebase.database().ref('users').once('value'),
+        firebase.database().ref('etkinlikler').once('value')
+      ]);
+      const users = usersSnap.val() || {};
+      const events = eventsSnap.val() || {};
+
+      const names = [];
+      Object.keys(users).forEach((uid) => {
+        const u = users[uid];
+        if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
+        const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+        if (full && names.indexOf(full) === -1) {names.push(full);}
+      });
+
+      const counts = {};
+      names.forEach((n) => { counts[n] = 0; });
+
+      Object.keys(events).forEach((id) => {
+        const e = events[id];
+        if (!e || !e.gorevli) {return;}
+        String(e.gorevli).split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => {
+          if (counts[n] !== undefined) {counts[n]++;}
+        });
+      });
+
+      const ranked = names
+        .map((name) => [name, counts[name]])
+        .filter(([, c]) => c > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+      if (!ranked.length) { renderEmpty('Henüz görevli atanmış etkinlik yok.'); return; }
+
+      const TOP_N = 5;
+      const top = ranked.slice(0, TOP_N);
+      const restSum = ranked.slice(TOP_N).reduce((s, [, c]) => s + c, 0);
+      const segments = top.map(([name, c], i) => [name, c, colorForIndex(i, basePalette)]);
+      if (restSum > 0) {segments.push(['Diğer', restSum, t.red]);}
+
+      const grandTotal = segments.reduce((s, [, c]) => s + c, 0);
+
+      chart.setOption({
+        textStyle: { fontFamily, color: t.textMuted },
+        tooltip: { ...baseOption(t).tooltip, trigger: 'item', formatter: '{b}: {d}%' },
+        legend: { show: false },
+        series: [{
+          type: 'pie',
+          radius: ['62%', '88%'],
+          center: ['50%', '50%'],
+          avoidLabelOverlap: false,
+          label: { show: false },
+          labelLine: { show: false },
+          data: segments.map(([name, value, color]) => ({
+            name, value, itemStyle: { color, borderColor: t.bgSurface, borderWidth: 2 }
+          }))
+        }]
+      }, true);
+
+      if (numEl) {
+        // Kullanıcı isteği: ortadaki büyük sayı toplam ADET değil, en yüksek
+        // paya sahip kişinin yüzdesi olsun (bkz. altındaki "yüzde" etiketi).
+        const topPct = Math.round((segments[0][1] / grandTotal) * 100);
+        numEl.textContent = topPct + '%';
+      }
+      if (legendEl) {
+        legendEl.innerHTML = segments.map(([name, value, color]) => {
+          const pct = Math.round((value / grandTotal) * 100);
+          return '<div class="donut-legend-item"><span class="dot" style="background:' + color + '"></span> ' + name + ' <span class="pct">' + pct + '%</span></div>';
+        }).join('');
+      }
+    } catch (err) {
+      console.error('editorActivityShare grafiği yüklenemedi:', err);
+      renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+    }
+  })();
+
+  return chart;
+}
+
 const browsers = (echarts, el, t) => donut(echarts, el, t, [
   ['Chrome',  62, 'primary'],
   ['Safari',  25, 'azure'],
@@ -1090,6 +1208,7 @@ const charts = {
   'sales-bar':         salesBar,
   'traffic-donut':     trafficDonut,
   'device-usage':      deviceUsage,
+  'editor-activity-share': editorActivityShare,
   'browsers':          browsers,
   'stacked-area':      stackedArea,
   'horizontal-bar':    horizontalBar,

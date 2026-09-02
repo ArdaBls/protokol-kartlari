@@ -163,50 +163,18 @@
       </div>
     </div>
 
-    <!-- To-Do -->
+    <!-- To-Do — gerçek Firebase verisi, bkz. tasks-widget.js -->
     <div class="card" style="display:flex;flex-direction:column;height:402px">
       <div class="card-header">
         <div>
           <div class="card-title">Tasks</div>
-          <div class="card-subtitle" data-todo-counter>4 of 6 remaining</div>
+          <div class="card-subtitle" data-todo-counter>Yükleniyor…</div>
+        </div>
+        <div class="card-options">
+          <button type="button" class="card-opt-btn" data-task-add aria-label="Yeni görev ekle"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg></button>
         </div>
       </div>
-      <div class="card-body" style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto">
-        <div class="todo-row done">
-          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
-          <span class="todo-text">Review Q4 analytics report</span>
-          <span class="todo-date">Dec 08</span>
-        </div>
-        <div class="todo-row done">
-          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
-          <span class="todo-text">Send invoices to clients</span>
-          <span class="todo-date">Jan 01</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Update user documentation</span>
-          <span class="todo-prio" style="background:var(--yellow)"></span>
-          <span class="todo-date">Jan 15</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Deploy v3.2.1 to production</span>
-          <span class="todo-prio" style="background:var(--red)"></span>
-          <span class="todo-date">Feb 01</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Fix sidebar responsive issues</span>
-          <span class="todo-prio" style="background:var(--yellow)"></span>
-          <span class="todo-date">Feb 14</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Prepare team standup notes</span>
-          <span class="todo-prio" style="background:var(--green)"></span>
-          <span class="todo-date">Feb 15</span>
-        </div>
-      </div>
+      <div class="card-body" data-task-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -280,26 +248,23 @@
       </div>
     </div>
 
-    <!-- Device usage + Kişilere göre etkinlik dağılımı -->
+    <!-- Kişilere göre etkinlik dağılımı -->
     <div style="display:flex;flex-direction:column;gap:16px">
       <div class="card">
-        <div class="card-header"><div class="card-title">Device Usage</div></div>
+        <div class="card-header">
+          <div class="card-title">Kişilere Göre Etkinlik Payı</div>
+          <div class="card-subtitle">Basın görevlisi olarak atandıkları toplam etkinlik</div>
+        </div>
         <div class="card-body">
           <div class="donut-block">
             <div class="donut-svg">
-              <div data-chart="device-usage" style="width:100%;height:100%"></div>
+              <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
               <div class="donut-center-label">
-                <div class="num">8.4k</div>
-                <div class="sub">devices</div>
+                <div class="num">—</div>
+                <div class="sub">yüzde</div>
               </div>
             </div>
-            <div class="donut-legend">
-              <div class="donut-legend-item"><span class="dot" style="background:var(--primary)"></span> iOS <span class="pct">30%</span></div>
-              <div class="donut-legend-item"><span class="dot" style="background:var(--azure)"></span> Android <span class="pct">25%</span></div>
-              <div class="donut-legend-item"><span class="dot" style="background:var(--yellow)"></span> Desktop <span class="pct">20%</span></div>
-              <div class="donut-legend-item"><span class="dot" style="background:var(--purple)"></span> Tablet <span class="pct">15%</span></div>
-              <div class="donut-legend-item"><span class="dot" style="background:var(--border-color)"></span> Other <span class="pct">10%</span></div>
-            </div>
+            <div class="donut-legend"></div>
           </div>
         </div>
       </div>
