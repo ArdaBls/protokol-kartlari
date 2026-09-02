@@ -215,7 +215,11 @@ function editorEventActivity(echarts, el, t) {
           itemWidth: 8,
           itemHeight: 8
         },
-        grid: { ...baseOption(t).grid, bottom: 36 },
+        // Kullanıcı isteği: grafik çok üste yaslıydı, soldaki sayılar görünmüyordu --
+        // top artırıldı (grafik kendi div'i içinde aşağı indi), containLabel:true ile
+        // sol eksen etiketleri (kaç haneli olursa olsun) ASLA kırpılmıyor, sabit bir
+        // piksel tahmini yerine ECharts kendi gerekli genişliği hesaplıyor.
+        grid: { ...baseOption(t).grid, top: 28, left: 8, right: 16, bottom: 40, containLabel: true },
         xAxis: {
           type: 'category',
           data: TR_MONTHS,
