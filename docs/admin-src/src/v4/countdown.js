@@ -23,6 +23,15 @@ let target = null; // { hedefTarih, baslangicTarih, olusturan } | null
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
+function fmtRemain(ms) {
+  if (ms <= 0) {return 'Süre doldu';}
+  const gun = Math.floor(ms / 86400000);
+  const saat = Math.floor((ms % 86400000) / 3600000);
+  const dk = Math.floor((ms % 3600000) / 60000);
+  const sn = Math.floor((ms % 60000) / 1000);
+  return gun + 'g ' + pad(saat) + ':' + pad(dk) + ':' + pad(sn);
+}
+
 function tick(valueEl, subEl, barEl) {
   if (!target || !target.hedefTarih) {
     valueEl.textContent = '—';
@@ -30,29 +39,46 @@ function tick(valueEl, subEl, barEl) {
     barEl.style.width = '0%';
     return;
   }
+
+  const d = new Date(target.hedefTarih);
+  const tarihStr = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+
+  // Duraklatıldıysa şimdiki zamana göre YENİDEN HESAPLAMA yapılmıyor -- pause
+  // anında dondurulan kalan süre (duraklananKalanMs) olduğu gibi gösteriliyor.
+  if (target.duraklatildi) {
+    valueEl.textContent = fmtRemain(target.duraklananKalanMs || 0) + ' (duraklatıldı)';
+    if (typeof target.duraklananPct === 'number') {barEl.style.width = target.duraklananPct.toFixed(2) + '%';}
+    subEl.textContent = 'Hedef: ' + tarihStr + (target.olusturan ? ' · ' + target.olusturan : '') + ' · duraklatıldı';
+    return;
+  }
+
   const now = Date.now();
-  const hedef = new Date(target.hedefTarih).getTime();
+  const hedef = d.getTime();
   const baslangic = target.baslangicTarih ? new Date(target.baslangicTarih).getTime() : now;
   const diff = hedef - now;
 
+  valueEl.textContent = fmtRemain(diff);
   if (diff <= 0) {
-    valueEl.textContent = 'Süre doldu';
     barEl.style.width = '100%';
   } else {
-    const gun = Math.floor(diff / 86400000);
-    const saat = Math.floor((diff % 86400000) / 3600000);
-    const dk = Math.floor((diff % 3600000) / 60000);
-    const sn = Math.floor((diff % 60000) / 1000);
-    valueEl.textContent = gun + 'g ' + pad(saat) + ':' + pad(dk) + ':' + pad(sn);
     const total = hedef - baslangic;
     const gecen = now - baslangic;
     const pct = total > 0 ? Math.min(100, Math.max(0, (gecen / total) * 100)) : 0;
     barEl.style.width = pct.toFixed(2) + '%';
   }
 
-  const d = new Date(target.hedefTarih);
-  const tarihStr = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   subEl.textContent = 'Hedef: ' + tarihStr + (target.olusturan ? ' · ' + target.olusturan : '');
+}
+
+function logAction(action, targetLabel) {
+  const logKey = database.ref('logs/sayac').push().key;
+  return database.ref('logs/sayac/' + logKey).set({
+    by: currentUserName || currentUserEmail,
+    email: currentUserEmail,
+    action,
+    target: targetLabel || '',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
 }
 
 function openEditModal() {
@@ -82,19 +108,19 @@ function openEditModal() {
           database.ref('ayarlar/sayac').set({
             hedefTarih,
             baslangicTarih,
-            olusturan: currentUserName || currentUserEmail
+            olusturan: currentUserName || currentUserEmail,
+            duraklatildi: false,
+            duraklananKalanMs: null,
+            duraklananPct: null
           })
-            .then(() => {
-              const logKey = database.ref('logs/sayac').push().key;
-              return database.ref('logs/sayac/' + logKey).set({
-                by: currentUserName || currentUserEmail,
-                email: currentUserEmail,
-                action: 'Sayaç hedef tarihi ayarlandı: ' + hedefTarih,
-                target: hedefTarih,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-              });
-            })
-            .catch((err) => { console.error('Sayaç kaydedilemedi:', err); showToast('Sayaç kaydedilemedi.', { variant: 'error' }); });
+            .then(() => logAction('Sayaç hedef tarihi ayarlandı: ' + hedefTarih, hedefTarih))
+            .catch((err) => {
+              console.error('Sayaç kaydedilemedi:', err);
+              // En sık neden: yerel-notlar/firebase-database-rules.json'daki
+              // "ayarlar/sayac" kuralı Firebase Console'a henüz YAPIŞTIRILMADI --
+              // bu durumda yazma PERMISSION_DENIED ile sessizce reddedilir.
+              showToast('Sayaç kaydedilemedi (' + (err && err.code || 'hata') + '). Firebase kurallarının güncel olduğundan emin olun.', { variant: 'error' });
+            });
           closeModal();
           return undefined;
         }
@@ -103,12 +129,52 @@ function openEditModal() {
   });
 }
 
+function togglePause() {
+  if (!canWrite) { showToast('Bu işlem için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
+  if (!target || !target.hedefTarih) { showToast('Önce bir hedef tarih belirleyin.', { variant: 'error' }); return; }
+
+  if (target.duraklatildi) {
+    // Devam ettir: kalan süreyi ŞİMDİDEN itibaren yeniden say -- hedefTarih'i
+    // (şimdi + donmuş kalan süre) olarak ileri kaydırıyoruz, böylece
+    // duraklatılan süre sayaçtan düşülmüş oluyor (komple sıfırlanmıyor).
+    const remain = target.duraklananKalanMs || 0;
+    const yeniHedef = new Date(Date.now() + remain).toISOString();
+    database.ref('ayarlar/sayac').update({
+      hedefTarih: yeniHedef,
+      duraklatildi: false,
+      duraklananKalanMs: null,
+      duraklananPct: null
+    })
+      .then(() => logAction('Sayaç devam ettirildi'))
+      .catch((err) => { console.error('Sayaç güncellenemedi:', err); showToast('Sayaç güncellenemedi.', { variant: 'error' }); });
+    return;
+  }
+
+  const now = Date.now();
+  const hedef = new Date(target.hedefTarih).getTime();
+  const baslangic = target.baslangicTarih ? new Date(target.baslangicTarih).getTime() : now;
+  const remain = Math.max(0, hedef - now);
+  const total = hedef - baslangic;
+  const pct = total > 0 ? Math.min(100, Math.max(0, ((now - baslangic) / total) * 100)) : 0;
+  database.ref('ayarlar/sayac').update({
+    duraklatildi: true,
+    duraklananKalanMs: remain,
+    duraklananPct: pct
+  })
+    .then(() => logAction('Sayaç duraklatıldı'))
+    .catch((err) => { console.error('Sayaç güncellenemedi:', err); showToast('Sayaç güncellenemedi.', { variant: 'error' }); });
+}
+
 export function initCountdown() {
   const valueEl = document.querySelector('[data-countdown-value]');
   if (!valueEl) {return;}
   const subEl = document.querySelector('[data-countdown-sub]');
   const barEl = document.querySelector('[data-countdown-bar]');
   const editBtn = document.querySelector('[data-countdown-edit]');
+  const pauseBtn = document.querySelector('[data-countdown-pause]');
+
+  const PAUSE_ICON = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="3" height="10" rx="0.5"/><rect x="8" y="2" width="3" height="10" rx="0.5"/></svg>';
+  const PLAY_ICON = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 2.5v9l8-4.5-8-4.5z"/></svg>';
 
   if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
   database = firebase.database();
@@ -127,11 +193,18 @@ export function initCountdown() {
   database.ref('ayarlar/sayac').on('value', (snap) => {
     target = snap.val();
     tick(valueEl, subEl, barEl);
+    if (pauseBtn) {
+      const paused = !!(target && target.duraklatildi);
+      pauseBtn.innerHTML = paused ? PLAY_ICON : PAUSE_ICON;
+      pauseBtn.setAttribute('aria-label', paused ? 'Sayacı devam ettir' : 'Sayacı duraklat');
+    }
   }, (err) => {
     console.error('Sayaç yüklenemedi:', err);
   });
 
   setInterval(() => tick(valueEl, subEl, barEl), 1000);
+
+  pauseBtn?.addEventListener('click', togglePause);
 
   editBtn?.addEventListener('click', openEditModal);
 }
