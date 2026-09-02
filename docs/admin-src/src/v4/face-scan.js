@@ -31,6 +31,7 @@ const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVe
 let faceMatcher = null;
 // label ("il:-Nx1a2b3c") -> { listKey, id, ad, unvan, rank }
 let personIndex = new Map();
+let canWrite = false;
 
 function loadFaceApiScript() {
   return new Promise((resolve, reject) => {
@@ -126,6 +127,74 @@ function renderRankedCards(list, container) {
   });
 }
 
+// Fotoğrafı zaten bulutta olan ama descriptor'ı olmayan aktif kayıtları SIRAYLA
+// işler -- fotoğraf yeniden seçilmez, zaten kayıtlı Base64/URL üzerinden aynı
+// detectFaceDescriptorFromImage mantığı (SsdMobilenetv1) kullanılır. app.js'teki
+// bulkExtractFaceDescriptors() ile AYNI iş, admin panelinin kendi sayfasından.
+async function bulkExtractFaceDescriptors(faceapi, btn, statusEl) {
+  if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  try {
+    statusEl.textContent = 'Fotoğraflı ama vektörsüz kayıtlar taranıyor…';
+    const [ilSnap, uniSnap] = await Promise.all([
+      firebase.database().ref('ilProtokolVerileri').once('value'),
+      firebase.database().ref('universiteProtokolVerileri').once('value')
+    ]);
+    const buckets = { il: ilSnap.val() || {}, universite: uniSnap.val() || {} };
+    const targets = [];
+    Object.keys(buckets).forEach((listKey) => {
+      Object.keys(buckets[listKey]).forEach((id) => {
+        const p = buckets[listKey][id];
+        if (p && p.status === 'aktif' && p.photo && !(Array.isArray(p.faceDescriptor) && p.faceDescriptor.length === 128)) {
+          targets.push({ listKey, id, ad: p.name || '', unvan: p.title || '', rank: p.rank, photo: p.photo });
+        }
+      });
+    });
+    if (!targets.length) { statusEl.textContent = 'İşlenecek kayıt yok -- fotoğrafı olan herkes zaten tanınabilir.'; return; }
+
+    let found = 0; let notFound = 0; let failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      btn.textContent = 'İşleniyor ' + (i + 1) + '/' + targets.length + '…';
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error('Fotoğraf açılamadı.'));
+          im.src = t.photo;
+        });
+        const result = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
+        if (!result) { notFound++; continue; }
+        const descriptor = Array.from(result.descriptor);
+        const updates = {};
+        updates[(LIST_PATHS[t.listKey] + '/' + t.id) + '/faceDescriptor'] = descriptor;
+        updates['yuzVerileri/' + t.listKey + '/' + t.id] = {
+          ad: t.ad, unvan: t.unvan,
+          rank: (t.rank === '' || t.rank === undefined || t.rank === null) ? null : Number(t.rank),
+          faceDescriptor: descriptor
+        };
+        await firebase.database().ref('/').update(updates);
+        found++;
+      } catch (err) {
+        console.error('Toplu yüz çıkarma hatası (' + t.ad + '):', err);
+        failed++;
+      }
+    }
+
+    const summary = found + ' kişi tanınabilir hâle geldi, ' + notFound + ' fotoğrafta yüz bulunamadı' + (failed ? ', ' + failed + ' kayıt hata verdi' : '') + '.';
+    statusEl.textContent = summary;
+    showToast(summary, { variant: failed ? 'error' : 'success' });
+  } catch (err) {
+    console.error('Toplu yüz çıkarma başlatılamadı:', err);
+    statusEl.textContent = 'Hata: ' + (err && err.message ? err.message : 'bilinmeyen hata');
+    showToast('Toplu çıkarma başarısız oldu.', { variant: 'error' });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
 export function initFaceScan() {
   const fileInput = document.getElementById('fsFileInput');
   const img = document.getElementById('fsImage');
@@ -133,6 +202,8 @@ export function initFaceScan() {
   const statusEl = document.getElementById('fsStatus');
   const resultsEl = document.getElementById('fsResults');
   const wrap = document.getElementById('fsImageWrap');
+  const bulkBtn = document.getElementById('fsBulkExtractBtn');
+  const bulkStatusEl = document.getElementById('fsBulkExtractStatus');
   if (!fileInput || !img || !canvas || !statusEl || !resultsEl || !wrap) {return;}
 
   let faceapiRef = null;
@@ -141,6 +212,25 @@ export function initFaceScan() {
     statusEl.textContent = 'Yüklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata') + ' — sayfayı yenileyip tekrar deneyin.';
     statusEl.classList.add('fs-status-error');
   });
+
+  // Sadece editor/admin/owner'a yazma izni var -- Firebase kuralı zaten aynı şekilde
+  // reddeder, ama butonu baştan gizlemek daha net bir kullanıcı deneyimi.
+  if (bulkBtn) {
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    firebase.auth().onAuthStateChanged((user) => {
+      if (!user) { canWrite = false; bulkBtn.style.display = 'none'; return; }
+      firebase.database().ref('users/' + user.uid).once('value').then((snap) => {
+        const role = (snap.val() || {}).role;
+        canWrite = role === 'editor' || role === 'admin' || role === 'owner';
+        bulkBtn.style.display = canWrite ? '' : 'none';
+      }).catch(() => { canWrite = false; bulkBtn.style.display = 'none'; });
+    });
+    bulkBtn.addEventListener('click', async () => {
+      await ready;
+      if (!faceapiRef) { showToast('Yüz tanıma sistemi hazır değil, sayfayı yenileyin.', { variant: 'error' }); return; }
+      await bulkExtractFaceDescriptors(faceapiRef, bulkBtn, bulkStatusEl || statusEl);
+    });
+  }
 
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
