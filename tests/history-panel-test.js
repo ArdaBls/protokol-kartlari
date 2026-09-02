@@ -21,7 +21,7 @@ function collectBooleanFailures(obj, excludePaths, prefix) {
 }
 
 const TESTS_DIR = __dirname;
-const SITE_ROOT = path.join(__dirname, '..');
+const SITE_ROOT = path.join(__dirname, '..', 'docs');
 const PORT = 8995;
 function serve() {
 	const server = http.createServer((req, res) => {

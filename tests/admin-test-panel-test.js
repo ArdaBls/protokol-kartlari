@@ -3,7 +3,7 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const TESTS_DIR = __dirname;
-const SITE_ROOT = path.join(__dirname, '..'); // index.html repo kokunde, tests/ altinda degil
+const SITE_ROOT = path.join(__dirname, '..', 'docs'); // index.html repo kokunde, tests/ altinda degil
 const PORT = 8965;
 function serve() {
 	const server = http.createServer((req, res) => {

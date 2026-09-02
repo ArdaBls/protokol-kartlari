@@ -224,10 +224,11 @@ function shellInjectionPlugin() {
 export default defineConfig(({ command }) => ({
   // Kullanıcı isteği: bu artık bir "admin paneli" değil, sitenin TEK ana sayfası --
   // /admin/production/ önek yolu tamamen kaldırıldı. Kaynak hâlâ admin-src/production/
-  // altında yaşıyor (proje içi düzen), ama Vite'ın kendi `root`u o klasöre ayarlanarak
-  // çıktı HTML'leri klasör öneki olmadan üretiliyor. `npm run build` bunları önce
-  // ../admin/'e (staging) yazar, sonra scripts/publish-root.mjs repo köküne taşır ve
-  // admin/ klasörünü siler -- bkz. o script'in başındaki yorum.
+  // altında yaşıyor (proje içi düzen -- admin-src'in kendisi de artık docs/ altında),
+  // ama Vite'ın kendi `root`u o klasöre ayarlanarak çıktı HTML'leri klasör öneki
+  // olmadan üretiliyor. `npm run build` bunları önce ../admin/'e (staging, docs/admin/)
+  // yazar, sonra scripts/publish-root.mjs docs/ köküne taşır ve admin/ klasörünü siler
+  // -- bkz. o script'in başındaki yorum.
   root: 'production',
   base: '/',
   publicDir: '../public',
@@ -235,8 +236,8 @@ export default defineConfig(({ command }) => ({
   logLevel: 'info',
   clearScreen: false,
   build: {
-    // root artık 'production' olduğu için '../../admin' -- admin-src/production'dan
-    // iki üst dizin repo köküne çıkar, admin-src/admin'e değil.
+    // root artık 'production' olduğu için '../../admin' -- docs/admin-src/production'dan
+    // iki üst dizin docs/ köküne çıkar (docs/admin/ staging), admin-src/admin'e değil.
     outDir: '../../admin',
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,

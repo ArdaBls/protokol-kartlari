@@ -1,17 +1,19 @@
 tests/node_modules/
 tests/package-lock.json
 tests/smoke-screenshot.png
-# Faz 15: admin paneli artik ayri bir Vite alt-projesi (admin-src/) -- kaynak commit edilir ama
-# node_modules (~170MB) ASLA. Derlenmis cikti admin/ klasorune yazilir, O commit edilir.
-admin-src/node_modules/
-admin-src/dist/
+# Faz 15: admin paneli artik ayri bir Vite alt-projesi (docs/admin-src/) -- kaynak commit edilir
+# ama node_modules (~170MB) ASLA. Derlenmis cikti docs/ kokune (staging: docs/admin/) yazilir,
+# publish-root.mjs docs/ kokune tasir, O commit edilir.
+docs/admin-src/node_modules/
+docs/admin-src/dist/
 # Claude calisma dosyalarinin TAMAMI repo disinda: skill'ler, subagent tanimlari, handover
 # arsivi ve kisisel ayarlar. Hepsi yerelde durur, GitHub'a hicbiri gitmez.
 .claude/
 CLAUDE.md
 # Firebase guvenlik kurallari: neyin korundugunu/korunmadigini birebir gosterdigi icin public
 # repoda tutulmuyor. Calisma kopyasi yerelde durur, canliya Firebase Console'dan yapistirilir.
-docs/firebase-database-rules.json
+# docs/ artik GitHub Pages'in yayinladigi klasor oldugu icin bu dosya oraya konmadi.
+yerel-notlar/firebase-database-rules.json
 # migrate-people-to-object.js'in ürettiği örnek çıktılar GERÇEK KİŞİSEL VERİ içerebilir (fotoğraf dahil) -- asla commit edilmez.
 scripts/*-migrated.json
 scripts/*.output.json

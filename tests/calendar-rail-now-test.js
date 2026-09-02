@@ -3,7 +3,7 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const ROOT = __dirname;
-const SITE_ROOT = path.join(__dirname, '..'); // index.html repo kokunde, tests/ altinda degil - ROOT sadece mock dosyalari icin
+const SITE_ROOT = path.join(__dirname, '..', 'docs'); // index.html repo kokunde, tests/ altinda degil - ROOT sadece mock dosyalari icin
 const PORT = 8963;
 
 function serve() {

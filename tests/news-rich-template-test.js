@@ -24,7 +24,7 @@ function collectBooleanFailures(obj, excludePaths, prefix) {
 }
 
 const TESTS_DIR = __dirname;
-const SITE_ROOT = path.join(__dirname, '..'); // index.html repo kokunde, tests/ altinda degil
+const SITE_ROOT = path.join(__dirname, '..', 'docs'); // index.html repo kokunde, tests/ altinda degil
 const PORT = 8961;
 function serve() {
 	const server = http.createServer((req, res) => {
