@@ -30,7 +30,7 @@
   <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
   <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
   <script type="module" crossorigin src="/js/modal-C4oI3O5p.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BRztGujC.js"></script>
+  <script type="module" crossorigin src="/js/main-v4-UW3flQER.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/main-v4-eD2xopCg.css">
 </head>
 <body data-shell="admin" data-page="dashboard" data-breadcrumb="Home > Dashboard">
@@ -263,19 +263,15 @@
     </div>
     <div class="card">
       <div class="stat">
-        <div class="stat-icon yellow">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <div class="stat-icon azure">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
         </div>
         <div class="stat-content">
-          <div class="stat-label">Orders</div>
+          <div class="stat-label">Tahmini Çekilen Fotoğraf</div>
           <div class="stat-value-row">
-            <span class="stat-value">1,240</span>
-            <span class="stat-change down"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v6M3 6l3 3 3-3"/></svg>3%</span>
+            <span class="stat-value" data-photo-counter>—</span>
           </div>
-          <div class="stat-subtext">78 shipped today</div>
-        </div>
-        <div class="stat-spark">
-          <div class="bar" style="height:80%;background:var(--yellow)"></div><div class="bar" style="height:70%;background:var(--yellow)"></div><div class="bar" style="height:75%;background:var(--yellow)"></div><div class="bar" style="height:60%;background:var(--yellow)"></div><div class="bar" style="height:65%;background:var(--yellow)"></div><div class="bar" style="height:50%;background:var(--yellow)"></div><div class="bar" style="height:55%;background:var(--yellow)"></div><div class="bar" style="height:45%;background:var(--yellow)"></div><div class="bar" style="height:40%;background:var(--yellow)"></div><div class="bar" style="height:35%;background:var(--yellow)"></div>
+          <div class="stat-subtext">Basın görevlisi olarak gidilen etkinliklere göre (tahmini)</div>
         </div>
       </div>
     </div>
@@ -338,73 +334,63 @@
     </div>
   </div>
 
-  <!-- ── CHART + ACTIVITY ROW ── -->
+  <!-- ── CHART + TASKS ROW ── -->
   <div class="row col-8-4">
-    <div class="card">
+    <div class="card" style="display:flex;flex-direction:column;height:402px">
       <div class="card-header">
         <div>
           <div class="card-title">Editör Aktivitesi</div>
           <div class="card-subtitle">Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık</div>
         </div>
       </div>
-      <div class="chart-area" style="height:240px">
+      <div class="chart-area" style="flex:1;min-height:0">
         <div data-chart="editor-event-activity" style="width:100%;height:100%"></div>
       </div>
     </div>
 
-    <!-- Activity feed -->
-    <div class="card">
+    <!-- To-Do -->
+    <div class="card" style="display:flex;flex-direction:column;height:402px">
       <div class="card-header">
-        <div class="card-title">Recent Activity</div>
-        <div class="card-options">
-          <button class="card-opt-btn" aria-label="Card options"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h8"/></svg></button>
+        <div>
+          <div class="card-title">Tasks</div>
+          <div class="card-subtitle" data-todo-counter>4 of 6 remaining</div>
         </div>
       </div>
-      <div class="card-body" style="padding:8px 16px">
-        <ul class="activity-list">
-          <li class="activity-item">
-            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">SK</div>
-            <div>
-              <div class="activity-body"><strong>Sarah K.</strong> placed a new order for $245.00</div>
-              <div class="activity-time">2 min ago</div>
-            </div>
-          </li>
-          <li class="activity-item">
-            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--blue),#0550a0)">MR</div>
-            <div>
-              <div class="activity-body"><strong>Michael R.</strong> registered a new account</div>
-              <div class="activity-time">18 min ago</div>
-            </div>
-          </li>
-          <li class="activity-item">
-            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--green),#1a8a32)">SY</div>
-            <div>
-              <div class="activity-body"><strong>Payment</strong> processed — Invoice #4521</div>
-              <div class="activity-time">45 min ago</div>
-            </div>
-          </li>
-          <li class="activity-item">
-            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--yellow),#c97f00)">JL</div>
-            <div>
-              <div class="activity-body"><strong>Jeffie L.</strong> reviewed <strong>Dashboard Kit</strong></div>
-              <div class="activity-time">1 hour ago</div>
-            </div>
-          </li>
-          <li class="activity-item">
-            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--purple),#8a2da0)">EL</div>
-            <div>
-              <div class="activity-body"><strong>Emmy L.</strong> created project <strong>Morning Clock</strong></div>
-              <div class="activity-time">4 hours ago</div>
-            </div>
-          </li>
-          <li class="activity-item">
-            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--red),#a82b2b)">DS</div>
-            <div>
-              <div class="activity-body"><strong>Shipment</strong> dispatched — Order #3847</div>
-              <div class="activity-time">6 hours ago</div>
-            </div>
-          </li>
-        </ul>
+      <div class="card-body" style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto">
+        <div class="todo-row done">
+          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
+          <span class="todo-text">Review Q4 analytics report</span>
+          <span class="todo-date">Dec 08</span>
+        </div>
+        <div class="todo-row done">
+          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
+          <span class="todo-text">Send invoices to clients</span>
+          <span class="todo-date">Jan 01</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Update user documentation</span>
+          <span class="todo-prio" style="background:var(--yellow)"></span>
+          <span class="todo-date">Jan 15</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Deploy v3.2.1 to production</span>
+          <span class="todo-prio" style="background:var(--red)"></span>
+          <span class="todo-date">Feb 01</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Fix sidebar responsive issues</span>
+          <span class="todo-prio" style="background:var(--yellow)"></span>
+          <span class="todo-date">Feb 14</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Prepare team standup notes</span>
+          <span class="todo-prio" style="background:var(--green)"></span>
+          <span class="todo-date">Feb 15</span>
+        </div>
       </div>
     </div>
   </div>
@@ -479,28 +465,8 @@
       </div>
     </div>
 
-    <!-- Storage + Device usage -->
+    <!-- Device usage + Kişilere göre etkinlik dağılımı -->
     <div style="display:flex;flex-direction:column;gap:16px">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Storage</div>
-          <div class="card-subtitle">6.8 GB of 8 GB used</div>
-        </div>
-        <div class="card-body">
-          <div class="storage-bar">
-            <div style="width:42%;background:var(--primary)"></div>
-            <div style="width:18%;background:var(--azure)"></div>
-            <div style="width:12%;background:var(--yellow)"></div>
-            <div style="width:13%;background:var(--border-color)"></div>
-          </div>
-          <div class="storage-legend">
-            <div class="storage-legend-item"><span class="dot" style="background:var(--primary)"></span> Regular <span class="val">3.4 GB</span></div>
-            <div class="storage-legend-item"><span class="dot" style="background:var(--azure)"></span> System <span class="val">1.4 GB</span></div>
-            <div class="storage-legend-item"><span class="dot" style="background:var(--yellow)"></span> Shared <span class="val">1.0 GB</span></div>
-            <div class="storage-legend-item"><span class="dot" style="background:var(--border-color)"></span> Free <span class="val">1.2 GB</span></div>
-          </div>
-        </div>
-      </div>
       <div class="card">
         <div class="card-header"><div class="card-title">Device Usage</div></div>
         <div class="card-body">
@@ -525,90 +491,6 @@
     </div>
   </div>
 
-  <!-- ── BOTTOM ROW ── -->
-  <div class="row col-3">
-    <!-- Visitors -->
-    <div class="card">
-      <div class="card-header"><div class="card-title">Visitors by Location</div></div>
-      <div class="card-body" style="padding:8px 16px">
-        <div class="visitor-row"><span class="visitor-flag">🇺🇸</span><span class="visitor-name">United States</span><span class="visitor-pct">33%</span><div class="visitor-bar"><div class="fill" style="width:33%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇫🇷</span><span class="visitor-name">France</span><span class="visitor-pct">27%</span><div class="visitor-bar"><div class="fill" style="width:27%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇩🇪</span><span class="visitor-name">Germany</span><span class="visitor-pct">16%</span><div class="visitor-bar"><div class="fill" style="width:16%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇪🇸</span><span class="visitor-name">Spain</span><span class="visitor-pct">11%</span><div class="visitor-bar"><div class="fill" style="width:11%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇬🇧</span><span class="visitor-name">United Kingdom</span><span class="visitor-pct">10%</span><div class="visitor-bar"><div class="fill" style="width:10%"></div></div></div>
-        <div class="visitor-row"><span class="visitor-flag">🇱🇻</span><span class="visitor-name">Latvia</span><span class="visitor-pct">3%</span><div class="visitor-bar"><div class="fill" style="width:3%"></div></div></div>
-      </div>
-    </div>
-
-    <!-- To-Do -->
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Tasks</div>
-          <div class="card-subtitle" data-todo-counter>4 of 6 remaining</div>
-        </div>
-      </div>
-      <div class="card-body" style="padding:8px 16px">
-        <div class="todo-row done">
-          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
-          <span class="todo-text">Review Q4 analytics report</span>
-          <span class="todo-date">Dec 08</span>
-        </div>
-        <div class="todo-row done">
-          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
-          <span class="todo-text">Send invoices to clients</span>
-          <span class="todo-date">Jan 01</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Update user documentation</span>
-          <span class="todo-prio" style="background:var(--yellow)"></span>
-          <span class="todo-date">Jan 15</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Deploy v3.2.1 to production</span>
-          <span class="todo-prio" style="background:var(--red)"></span>
-          <span class="todo-date">Feb 01</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Fix sidebar responsive issues</span>
-          <span class="todo-prio" style="background:var(--yellow)"></span>
-          <span class="todo-date">Feb 14</span>
-        </div>
-        <div class="todo-row">
-          <div class="todo-cb"></div>
-          <span class="todo-text">Prepare team standup notes</span>
-          <span class="todo-prio" style="background:var(--green)"></span>
-          <span class="todo-date">Feb 15</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- App Versions + Settings -->
-    <div style="display:flex;flex-direction:column;gap:16px">
-      <div class="card">
-        <div class="card-header"><div class="card-title">App Versions</div></div>
-        <div class="card-body" style="padding:10px 16px">
-          <div class="version-row"><span class="version-label">v3.2.1</span><div class="version-bar"><div class="fill" style="width:68%;background:var(--primary)"></div></div><span class="version-pct">68%</span></div>
-          <div class="version-row"><span class="version-label">v3.2.0</span><div class="version-bar"><div class="fill" style="width:52%;background:var(--azure)"></div></div><span class="version-pct">52%</span></div>
-          <div class="version-row"><span class="version-label">v3.1.9</span><div class="version-bar"><div class="fill" style="width:34%;background:var(--yellow)"></div></div><span class="version-pct">34%</span></div>
-          <div class="version-row"><span class="version-label">v3.1.8</span><div class="version-bar"><div class="fill" style="width:21%;background:var(--green)"></div></div><span class="version-pct">21%</span></div>
-          <div class="version-row"><span class="version-label">v3.1.7</span><div class="version-bar"><div class="fill" style="width:14%;background:var(--purple)"></div></div><span class="version-pct">14%</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Quick Settings</div></div>
-        <div class="card-body" style="padding:6px 16px">
-          <div class="toggle-row"><div><div class="label">Email notifications</div></div><div class="toggle on"></div></div>
-          <div class="toggle-row"><div><div class="label">Two-factor auth</div></div><div class="toggle on"></div></div>
-          <div class="toggle-row"><div><div class="label">Dark mode</div></div><div class="toggle"></div></div>
-          <div class="toggle-row"><div><div class="label">Public profile</div></div><div class="toggle on"></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
 </div>
 

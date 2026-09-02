@@ -122,6 +122,20 @@ function colorForIndex(i, basePalette) {
   return 'hsl(' + Math.round(hue) + ', 62%, 52%)';
 }
 
+// colorForIndex() 7+ kişide 'hsl(...)' string'i döndürüyor -- basePalette'teki
+// '#rrggbb' tonlarının aksine, buna doğrudan hex alfa eki (+ '55') eklemek
+// GEÇERSİZ bir CSS rengi üretir (ör. 'hsl(243, 62%, 52%)55') ve ECharts'ın
+// canvas gradient'i bunu parse edemeyip sayfayı kırar. Her iki biçimi de
+// güvenle alfa'lı hale getiren tek noktadan bir yardımcı.
+function withAlpha(color, hexAlpha) {
+  if (color[0] === '#') {return color + hexAlpha;}
+  if (color.indexOf('hsl(') === 0) {
+    const alpha = (parseInt(hexAlpha, 16) / 255).toFixed(2);
+    return color.replace('hsl(', 'hsla(').replace(/\)$/, ', ' + alpha + ')');
+  }
+  return color;
+}
+
 function editorEventActivity(echarts, el, t) {
   const chart = echarts.init(el);
   const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
@@ -195,8 +209,8 @@ function editorEventActivity(echarts, el, t) {
           itemStyle: { color },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: color + '55' },
-              { offset: 1, color: color + '08' }
+              { offset: 0, color: withAlpha(color, '55') },
+              { offset: 1, color: withAlpha(color, '08') }
             ])
           },
           data: counts[name]
@@ -248,6 +262,49 @@ function editorEventActivity(echarts, el, t) {
   })();
 
   return chart;
+}
+
+// ────────────────────────
+//  Tahmini çekilen fotoğraf sayacı — Operasyonlar sayfası
+// ────────────────────────
+// Kullanıcı isteği: "bir kişi bir etkinliğe basın görevlisi olarak gittiyse
+// fotoğraf makinesiyle gitmiştir" -- o kişinin toplam görevli olduğu etkinlik
+// sayısı × kişiye özel ortalama fotoğraf oranı, TÜM bilinen kişiler için
+// toplanıp TEK bir büyük sayı olarak gösterilir (kim ne kadar çekmiş -- panelde
+// AYRI AYRI gösterilmiyor, sadece toplam). Listede olmayan kişiler sayaca dahil
+// EDİLMEZ (kullanıcı isteği: "sadece bilinenleri say") -- yeni biri eklendikçe
+// bu tabloya elle eklenecek. Bu tablo herkese açık JS bundle'ında -- kullanıcı
+// bunun bilinçli tercihi olduğunu onayladı ("herkes görsün").
+const PHOTO_RATE_TABLE = {
+  'Arda Bilasa': 350,
+  'Berk Can Dereci': 800
+};
+
+function initPhotoCounter() {
+  const el = document.querySelector('[data-photo-counter]');
+  if (!el) {return;}
+
+  (async () => {
+    try {
+      if (!window.firebase) {return;}
+      if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
+      const eventsSnap = await firebase.database().ref('etkinlikler').once('value');
+      const events = eventsSnap.val() || {};
+
+      let total = 0;
+      Object.keys(events).forEach((id) => {
+        const e = events[id];
+        if (!e || !e.gorevli) {return;}
+        String(e.gorevli).split(',').map((s) => s.trim()).filter(Boolean).forEach((name) => {
+          if (PHOTO_RATE_TABLE[name] !== undefined) {total += PHOTO_RATE_TABLE[name];}
+        });
+      });
+
+      el.textContent = total > 0 ? total.toLocaleString('tr-TR') + '+' : '—';
+    } catch (err) {
+      console.error('Fotoğraf sayacı yüklenemedi:', err);
+    }
+  })();
 }
 
 function revenueLine(echarts, el, t) {
@@ -1061,6 +1118,8 @@ const charts = {
  * the import never fires on pages without a matching element.
  * @returns {Promise<void>}
  */
+export { initPhotoCounter };
+
 export async function initCharts() {
   const elements = document.querySelectorAll('[data-chart]');
   if (!elements.length) {return;}

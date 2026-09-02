@@ -3,7 +3,7 @@
 
 import './scss/v4/main.scss';
 import { mountShell } from './v4/shell.js';
-import { initCharts } from './v4/charts.js';
+import { initCharts, initPhotoCounter } from './v4/charts.js';
 import { initTables } from './v4/tables.js';
 import { openMenu, DEFAULT_CARD_MENU } from './v4/menus.js';
 import { initCommandPalette } from './v4/command-palette.js';
@@ -11,6 +11,7 @@ import { initPageActions } from './v4/page-actions.js';
 
 mountShell();
 initCharts();
+initPhotoCounter();
 initTables();
 initCommandPalette();
 initPageActions();
