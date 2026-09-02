@@ -31,21 +31,21 @@ function buildItems() {
   });
   // Inline actions
   const actions = [
-    { label: 'Toggle theme', keywords: 'theme dark light mode toggle', action: toggleTheme },
-    { label: 'Open profile', keywords: 'profile account user me', action: () => { window.location.href = 'profil.html'; } },
-    { label: 'Open settings', keywords: 'settings preferences config', action: () => { window.location.href = 'ayarlar.html'; } },
-    { label: 'Help & support', keywords: 'help faq support docs', action: () => { window.location.href = 'yardim-merkezi.html'; } },
+    { label: 'Temayı değiştir', keywords: 'theme dark light mode toggle tema koyu açık değiştir', action: toggleTheme },
+    { label: 'Profili aç', keywords: 'profile account user me profil hesap', action: () => { window.location.href = 'profil.html'; } },
+    { label: 'Ayarları aç', keywords: 'settings preferences config ayarlar tercihler', action: () => { window.location.href = 'ayarlar.html'; } },
+    { label: 'Yardım ve destek', keywords: 'help faq support docs yardım destek', action: () => { window.location.href = 'yardim-merkezi.html'; } },
     {
-      label: 'Sign out',
-      keywords: 'sign out logout exit',
+      label: 'Çıkış yap',
+      keywords: 'sign out logout exit çıkış',
       action: () => showModal({
-        title: 'Sign out?',
+        title: 'Çıkış yapılsın mı?',
         size: 'sm',
-        body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">You\'ll need to sign back in to access your dashboard.</p>',
+        body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">Panele erişmek için tekrar giriş yapmanız gerekecek.</p>',
         actions: [
-          { label: 'Cancel', variant: 'ghost' },
-          { label: 'Sign out', variant: 'primary', action: () => {
-            showToast('Signed out', { variant: 'success' });
+          { label: 'Vazgeç', variant: 'ghost' },
+          { label: 'Çıkış yap', variant: 'primary', action: () => {
+            showToast('Çıkış yapıldı', { variant: 'success' });
             setTimeout(() => { window.location.href = 'giris.html'; }, 600);
           } }
         ]
@@ -110,13 +110,13 @@ function applyFilter() {
 
 function renderList() {
   if (!filtered.length) {
-    listEl.innerHTML = '<div class="cmdk-empty">No results</div>';
+    listEl.innerHTML = '<div class="cmdk-empty">Sonuç yok</div>';
     return;
   }
   // Group results by section while preserving sort order.
   const seen = new Set();
   const html = filtered.map((it, i) => {
-    const sectionLabel = it.kind === 'action' ? 'Actions' : it.section;
+    const sectionLabel = it.kind === 'action' ? 'İşlemler' : it.section;
     let header = '';
     if (!seen.has(sectionLabel)) {
       seen.add(sectionLabel);
@@ -168,17 +168,17 @@ function open() {
   host = document.createElement('div');
   host.className = 'cmdk-backdrop';
   host.innerHTML = `
-    <div class="cmdk-dialog" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="cmdk-dialog" role="dialog" aria-modal="true" aria-label="Komut paleti">
       <div class="cmdk-input-wrap">
         <svg class="cmdk-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
-        <input class="cmdk-input" type="text" placeholder="Search pages or run a command…" autocomplete="off" spellcheck="false" aria-label="Search">
+        <input class="cmdk-input" type="text" placeholder="Sayfa ara veya komut çalıştır…" autocomplete="off" spellcheck="false" aria-label="Ara">
         <kbd class="cmdk-esc">esc</kbd>
       </div>
       <div class="cmdk-list" role="listbox"></div>
       <div class="cmdk-footer">
-        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-        <span><kbd>↵</kbd> select</span>
-        <span><kbd>esc</kbd> close</span>
+        <span><kbd>↑</kbd><kbd>↓</kbd> gezin</span>
+        <span><kbd>↵</kbd> seç</span>
+        <span><kbd>esc</kbd> kapat</span>
       </div>
     </div>
   `;
@@ -239,7 +239,7 @@ export function initCommandPalette() {
     search.addEventListener('focus', opener);
     search.addEventListener('click', opener);
     search.setAttribute('readonly', '');
-    search.setAttribute('aria-label', 'Open command palette');
+    search.setAttribute('aria-label', 'Komut paletini aç');
   }
 }
 

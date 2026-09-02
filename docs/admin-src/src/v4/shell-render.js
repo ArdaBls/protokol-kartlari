@@ -222,7 +222,7 @@ export function renderTopbar(breadcrumb) {
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
-        <input type="text" placeholder="Search pages or run a command…" aria-label="Open command palette">
+        <input type="text" placeholder="Sayfa ara veya komut çalıştır…" aria-label="Komut paletini aç">
         <kbd>⌘K</kbd>
       </div>
       <div class="topbar-right">
