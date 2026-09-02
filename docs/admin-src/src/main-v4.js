@@ -116,6 +116,34 @@ document.addEventListener('click', (e) => {
   openMenu(btn, DEFAULT_CARD_MENU);
 });
 
+// Editör Aktivitesi kartındaki "%" düğmesi: aylık çizgi grafiği ↔ Kişilere
+// Göre Etkinlik Payı donut'u arasında geçiş yapar (bkz. index.html'deki
+// [data-chart-view] konteynerleri). Donut, display:none iken 0x0 boyutla
+// mount olduğu için görünür olduğunda ECharts'a "resize" event'i üzerinden
+// (bkz. charts.js'teki mounted-chart resize dinleyicisi) yeniden ölç
+// tetiklenir -- ayrı bir API'ye ihtiyaç duymadan mevcut mekanizma tekrar
+// kullanılıyor.
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-chart-view-toggle]');
+  if (!btn) {return;}
+  const card = btn.closest('.card');
+  if (!card) {return;}
+  const lineView = card.querySelector('[data-chart-view="line"]');
+  const shareView = card.querySelector('[data-chart-view="share"]');
+  const subtitle = card.querySelector('[data-editor-activity-subtitle]');
+  if (!lineView || !shareView) {return;}
+  const showingShare = shareView.style.display !== 'none';
+  lineView.style.display = showingShare ? '' : 'none';
+  shareView.style.display = showingShare ? 'none' : '';
+  btn.classList.toggle('active', !showingShare);
+  if (subtitle) {
+    subtitle.textContent = showingShare
+      ? 'Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık'
+      : 'Basın görevlisi olarak atandıkları toplam etkinlik payı';
+  }
+  window.dispatchEvent(new Event('resize'));
+});
+
 // Chip dismiss (× icon) and chip toggle.
 document.addEventListener('click', (e) => {
   const closer = e.target.closest('.chip-close');

@@ -30,8 +30,8 @@
   <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
   <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
   <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-CpEoz1ui.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-B8Hk5E0h.css">
+  <script type="module" crossorigin src="/js/main-v4-uMgonUaQ.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CGgQD2bh.css">
 </head>
 <body data-shell="admin" data-page="dashboard" data-breadcrumb="Home > Dashboard">
 
@@ -313,20 +313,20 @@
         <div class="progress-thin"><div class="bar" style="width:42%;background:var(--red)"></div></div>
       </div>
     </div>
-    <div class="card" style="height:188px;overflow:hidden">
-      <div class="card-header">
-        <div class="card-title">Kişilere Göre Etkinlik Payı</div>
+    <div class="card" style="height:110.7px;overflow:hidden;padding:10px 14px;display:flex;align-items:center;gap:10px">
+      <div class="donut-svg" style="width:74px;height:74px;flex-shrink:0">
+        <div data-chart="device-usage" style="width:100%;height:100%"></div>
+        <div class="donut-center-label">
+          <div class="num" style="font-size:13px">8.4k</div>
+          <div class="sub" style="font-size:8px">devices</div>
+        </div>
       </div>
-      <div class="card-body">
-        <div class="donut-block">
-          <div class="donut-svg">
-            <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
-            <div class="donut-center-label">
-              <div class="num">—</div>
-              <div class="sub">yüzde</div>
-            </div>
-          </div>
-          <div class="donut-legend"></div>
+      <div style="min-width:0;flex:1;overflow:hidden">
+        <div class="card-title" style="font-size:11.5px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Device Usage</div>
+        <div class="donut-legend donut-legend--compact">
+          <div class="donut-legend-item"><span class="dot" style="background:var(--primary)"></span> iOS <span class="pct">30%</span></div>
+          <div class="donut-legend-item"><span class="dot" style="background:var(--azure)"></span> Android <span class="pct">25%</span></div>
+          <div class="donut-legend-item"><span class="dot" style="background:var(--yellow)"></span> Desktop <span class="pct">20%</span></div>
         </div>
       </div>
     </div>
@@ -338,11 +338,26 @@
       <div class="card-header">
         <div>
           <div class="card-title">Editör Aktivitesi</div>
-          <div class="card-subtitle">Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık</div>
+          <div class="card-subtitle" data-editor-activity-subtitle>Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık</div>
+        </div>
+        <div class="card-options">
+          <button type="button" class="chart-view-toggle" data-chart-view-toggle aria-label="Kişilere göre etkinlik payını göster">%</button>
         </div>
       </div>
-      <div class="chart-area" style="flex:1;min-height:0">
+      <div class="chart-area" data-chart-view="line" style="flex:1;min-height:0">
         <div data-chart="editor-event-activity" style="width:100%;height:100%"></div>
+      </div>
+      <div class="chart-area" data-chart-view="share" style="flex:1;min-height:0;display:none">
+        <div class="donut-block" style="height:100%;align-items:center;justify-content:center;padding:0 16px;gap:40px">
+          <div class="donut-svg" style="width:260px;height:260px;flex:0 0 260px;margin-right:24px">
+            <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
+            <div class="donut-center-label">
+              <div class="num">—</div>
+              <div class="sub">yüzde</div>
+            </div>
+          </div>
+          <div class="donut-legend donut-legend--lg" style="flex:0 0 auto;width:280px"></div>
+        </div>
       </div>
     </div>
 

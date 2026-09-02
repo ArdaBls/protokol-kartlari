@@ -476,6 +476,7 @@ function editorActivityShare(echarts, el, t) {
   const block = el.closest('.donut-block');
   const legendEl = block ? block.querySelector('.donut-legend') : null;
   const numEl = block ? block.querySelector('.donut-center-label .num') : null;
+  const subEl = block ? block.querySelector('.donut-center-label .sub') : null;
 
   function renderEmpty(message) {
     chart.setOption({
@@ -553,15 +554,15 @@ function editorActivityShare(echarts, el, t) {
     }, true);
 
     if (numEl) {
-      // Kullanıcı isteği: ortadaki büyük sayı toplam ADET değil, en yüksek
-      // paya sahip kişinin yüzdesi olsun (bkz. altındaki "yüzde" etiketi).
-      const topPct = Math.round((segments[0][1] / grandTotal) * 100);
-      numEl.textContent = topPct + '%';
+      // Kullanıcı isteği: ortada sadece "%" işareti olsun, sayı değil.
+      numEl.textContent = '%';
     }
+    if (subEl) { subEl.textContent = ''; }
     if (legendEl) {
       legendEl.innerHTML = segments.map(([name, value, color]) => {
         const pct = Math.round((value / grandTotal) * 100);
-        return '<div class="donut-legend-item"><span class="dot" style="background:' + color + '"></span> ' + name + ' <span class="pct">' + pct + '%</span></div>';
+        // Kullanıcı isteği: yüzdenin yanında kaç etkinliğe gittiği (toplam adet) de yazsın.
+        return '<div class="donut-legend-item"><span class="dot" style="background:' + color + '"></span><span class="name">' + name + '</span><span class="pct">' + pct + '% · ' + value + ' etkinlik</span></div>';
       }).join('');
     }
   }
