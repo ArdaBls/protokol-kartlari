@@ -1,0 +1,60 @@
+// Yüz Tanıma ve Protokol Sıralama (Faz 16) — sistem-durumu.html'in yerini aldı.
+
+.fs-upload-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.fs-status {
+  font-size: 13px; color: var(--text-muted);
+}
+.fs-status-error { color: var(--red); font-weight: var(--font-weight-medium); }
+
+.fs-image-wrap {
+  position: relative;
+  display: none; // initFaceScan() bir dosya seçilince 'block' yapar
+  max-width: 100%;
+  margin-top: 14px;
+  line-height: 0; // <img> altında boşluk bırakan inline-baseline artığını keser
+}
+#fsImage { display: block; max-width: 100%; height: auto; border-radius: var(--radius-md); }
+#fsCanvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+.fs-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.fs-empty { color: var(--text-muted); font-size: 13px; }
+
+.fs-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+.fs-card-rank {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--primary-lt); color: var(--primary-dk);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: var(--font-weight-bold);
+}
+.fs-card-photo {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-surface-secondary);
+}
+.fs-card-img { width: 100%; height: 100%; object-fit: cover; }
+.fs-card-avatar-fallback {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: var(--font-weight-bold); color: var(--text-muted);
+}
+.fs-card-info { min-width: 0; }
+.fs-card-name { font-size: 13.5px; font-weight: var(--font-weight-medium); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-card-title { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

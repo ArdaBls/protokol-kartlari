@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Operations dashboard | Protokol</title>
+<title>Yüz Tanıma ve Protokol Sıralama | Protokol</title>
 <link rel="icon" href="/images/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. face-scan.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -15,21 +19,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icon-192.png">
-<meta name="description" content="Operations dashboard — Dashboards > Operations. OMÜ Protokol Kartları admin paneli.">
+<meta name="description" content="Yüz Tanıma ve Protokol Sıralama — Sistem durumu. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Operations dashboard">
-<meta property="og:description" content="Operations dashboard — Dashboards > Operations. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:title" content="Yüz Tanıma ve Protokol Sıralama">
+<meta property="og:description" content="Yüz Tanıma ve Protokol Sıralama — Sistem durumu. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/images/android-chrome-512x512.svg">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
-  <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
-  <script type="module" crossorigin src="/js/modal-C4oI3O5p.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BKtpPMb6.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-eD2xopCg.css">
+  <script type="module" crossorigin src="/js/sistem-durumu-Cku6PvOX.js"></script>
+  <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
+  <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
+  <link rel="modulepreload" crossorigin href="/js/modal-C4oI3O5p.js">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-BCDipjRm.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-BZIDcBMC.css">
 </head>
-<body data-shell="admin" data-page="dashboard-4" data-breadcrumb="Home > Dashboards > Operations">
+<body data-shell="admin" data-page="dashboard-4" data-breadcrumb="Anasayfa|index.html > Sistem durumu">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -184,7 +189,7 @@
         <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span class="sep" aria-hidden="true">›</span><span>Dashboards</span><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Operations</span></nav>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Sistem durumu</span></nav>
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
@@ -209,324 +214,51 @@
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Operations</div>
-        <h1 class="page-title">System health</h1>
-      </div>
-      <div class="page-actions">
-        <span class="status status-green" style="font-size:12.5px;margin-right:8px">
-          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse-dot 2s infinite"></span>
-          All systems operational
-        </span>
-        <button class="btn btn-outline">Status page</button>
-        <button class="btn btn-primary">Run incident drill</button>
+        <div class="page-pretitle">Yapay Zekâ</div>
+        <h1 class="page-title">Yüz Tanıma ve Protokol Sıralama</h1>
       </div>
     </div>
   </div>
 
-  <!-- ── Maintenance banner ── -->
   <div class="row col-1">
-    <div class="banner banner-info">
-      <svg class="banner-icon" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v.01M8 7v4"/></svg>
-      <div class="banner-body"><strong>Scheduled maintenance</strong> — API gateway upgrade <strong>Friday Apr 30 at 02:00 UTC</strong>. Expected 15 min of partial degradation.</div>
-      <div class="banner-actions"><button class="btn btn-outline btn-sm">View runbook</button></div>
-    </div>
-  </div>
-
-  <!-- ── Row 1: 4-up KPIs ── -->
-  <div class="row col-4">
-    <div class="card"><div class="stat">
-      <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l5 5L21 4"/></svg></div>
-      <div class="stat-content">
-        <div class="stat-label">Uptime</div>
-        <div class="stat-value-row"><span class="stat-value">99.98%</span></div>
-        <div class="stat-subtext">30-day rolling</div>
-      </div>
-    </div></div>
-
-    <div class="card"><div class="stat">
-      <div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      <div class="stat-content">
-        <div class="stat-label">P95 latency</div>
-        <div class="stat-value-row"><span class="stat-value">142ms</span><span class="stat-change up">↑ 8ms</span></div>
-        <div class="stat-subtext">SLO: 200ms</div>
-      </div>
-    </div></div>
-
-    <div class="card"><div class="stat">
-      <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12h6M16 12h6M12 2v6M12 16v6"/><circle cx="12" cy="12" r="4"/></svg></div>
-      <div class="stat-content">
-        <div class="stat-label">Requests/min</div>
-        <div class="stat-value-row"><span class="stat-value">8,432</span></div>
-        <div class="stat-subtext">peak today: 11,402</div>
-      </div>
-    </div></div>
-
-    <div class="card"><div class="stat">
-      <div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7v10l10 5 10-5V7z"/></svg></div>
-      <div class="stat-content">
-        <div class="stat-label">Error rate</div>
-        <div class="stat-value-row"><span class="stat-value">0.04%</span><span class="stat-change down">↓ 0.01pp</span></div>
-        <div class="stat-subtext">28 errors in 1h</div>
-      </div>
-    </div></div>
-  </div>
-
-  <!-- ── Row 2: Traffic chart + Quick health gauges ── -->
-  <div class="row col-8-4">
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">Traffic — last 7 days</div>
-          <div class="card-subtitle">Sessions & page views</div>
-        </div>
-        <div class="chart-tabs">
-          <button class="chart-tab active">7d</button>
-          <button class="chart-tab">24h</button>
-          <button class="chart-tab">1h</button>
+          <div class="card-title">1. Kayıtlı kişileri hazırla</div>
+          <div class="card-subtitle">Yalnızca ad/unvan/sıra/yüz vektörü indirilir -- fotoğraflar taranmaz</div>
         </div>
       </div>
-      <div class="chart-area" style="height:240px">
-        <div data-chart="dashboard-network" style="width:100%;height:100%"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Resource usage</div></div>
-      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)"><strong>CPU</strong></span><span style="color:var(--text-muted)">62% · 4 cores</span></div>
-          <div class="progress-thin"><div class="bar" style="width:62%;background:var(--primary)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)"><strong>Memory</strong></span><span style="color:var(--text-muted)">5.8 / 16 GB</span></div>
-          <div class="progress-thin"><div class="bar" style="width:36%;background:var(--azure)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)"><strong>Disk</strong></span><span style="color:var(--text-muted)">186 / 500 GB</span></div>
-          <div class="progress-thin"><div class="bar" style="width:37%;background:var(--green)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)"><strong>Network in</strong></span><span style="color:var(--text-muted)">128 Mbps</span></div>
-          <div class="progress-thin"><div class="bar" style="width:42%;background:var(--purple)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)"><strong>Network out</strong></span><span style="color:var(--text-muted)">94 Mbps</span></div>
-          <div class="progress-thin"><div class="bar" style="width:32%;background:var(--yellow)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)"><strong>API quota</strong></span><span style="color:var(--text-muted)">87,400 / 100,000</span></div>
-          <div class="progress-thin"><div class="bar" style="width:87%;background:var(--red)"></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Row 3: API endpoint stats + Cache hit gauge ── -->
-  <div class="row col-8-4">
-    <div class="card">
-      <div class="card-header"><div class="card-title">API endpoints · last hour</div><a href="#" style="font-size:12px">View all</a></div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr><th>Endpoint</th><th style="text-align:right">Requests</th><th style="text-align:right">P50</th><th style="text-align:right">P95</th><th style="text-align:right">Errors</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:12px">GET /api/users</td>
-                <td style="text-align:right">42,810</td>
-                <td style="text-align:right">38ms</td>
-                <td style="text-align:right">98ms</td>
-                <td style="text-align:right">0.01%</td>
-                <td><span class="status status-green">OK</span></td>
-              </tr>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:12px">POST /api/orders</td>
-                <td style="text-align:right">18,402</td>
-                <td style="text-align:right">52ms</td>
-                <td style="text-align:right">182ms</td>
-                <td style="text-align:right">0.04%</td>
-                <td><span class="status status-green">OK</span></td>
-              </tr>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:12px">GET /api/search</td>
-                <td style="text-align:right">12,938</td>
-                <td style="text-align:right">120ms</td>
-                <td style="text-align:right">340ms</td>
-                <td style="text-align:right">0.18%</td>
-                <td><span class="status status-yellow">Slow</span></td>
-              </tr>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:12px">PATCH /api/users/:id</td>
-                <td style="text-align:right">8,124</td>
-                <td style="text-align:right">61ms</td>
-                <td style="text-align:right">134ms</td>
-                <td style="text-align:right">0.02%</td>
-                <td><span class="status status-green">OK</span></td>
-              </tr>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:12px">GET /api/reports/export</td>
-                <td style="text-align:right">2,401</td>
-                <td style="text-align:right">820ms</td>
-                <td style="text-align:right">2.4s</td>
-                <td style="text-align:right">0.84%</td>
-                <td><span class="status status-red">Degraded</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Cache hit rate</div>
-          <div class="card-subtitle">last 24h</div>
-        </div>
-      </div>
-      <div class="chart-area" style="height:240px">
-        <div data-chart="gauge" style="width:100%;height:100%"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Row 4: Service status + Recent incidents ── -->
-  <div class="row col-2">
-    <div class="card">
-      <div class="card-header"><div class="card-title">Service status</div></div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table">
-            <thead><tr><th>Service</th><th>Status</th><th>Uptime</th><th>Region</th></tr></thead>
-            <tbody>
-              <tr><td class="cell-strong">api.protokol.sbs</td><td><span class="status status-green">Operational</span></td><td>99.99%</td><td>us-east-1</td></tr>
-              <tr><td class="cell-strong">app.protokol.sbs</td><td><span class="status status-green">Operational</span></td><td>99.97%</td><td>us-east-1</td></tr>
-              <tr><td class="cell-strong">cdn.protokol.sbs</td><td><span class="status status-green">Operational</span></td><td>100%</td><td>global</td></tr>
-              <tr><td class="cell-strong">queue-worker</td><td><span class="status status-yellow">Degraded</span></td><td>99.4%</td><td>eu-west-1</td></tr>
-              <tr><td class="cell-strong">stripe-webhook</td><td><span class="status status-green">Operational</span></td><td>99.95%</td><td>us-east-1</td></tr>
-              <tr><td class="cell-strong">db-primary</td><td><span class="status status-green">Operational</span></td><td>99.99%</td><td>us-east-1</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Incident timeline</div></div>
       <div class="card-body">
-        <div class="timeline">
-          <div class="timeline-item is-yellow">
-            <div class="ti-time">14 min ago · ongoing</div>
-            <div class="ti-title">Queue worker degraded</div>
-            <div class="ti-desc">eu-west-1 latency spike, mitigated via autoscale.</div>
-          </div>
-          <div class="timeline-item is-green">
-            <div class="ti-time">2 hours ago · resolved</div>
-            <div class="ti-title">Database failover completed</div>
-            <div class="ti-desc">Replica promoted; primary recovered in 4m12s.</div>
-          </div>
-          <div class="timeline-item is-red">
-            <div class="ti-time">Yesterday · resolved</div>
-            <div class="ti-title">Auth outage — 3 minutes</div>
-            <div class="ti-desc">4xx spike on /login. Cause: stale JWT signing key.</div>
-          </div>
-          <div class="timeline-item is-green">
-            <div class="ti-time">2 days ago · resolved</div>
-            <div class="ti-title">SSL cert renewed</div>
-            <div class="ti-desc">protokol.sbs · auto-renewed via ACM.</div>
-          </div>
+        <p class="fs-status" id="fsStatus">Başlatılıyor…</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-1">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">2. Etkinlik / grup fotoğrafı yükle</div>
+          <div class="card-subtitle">Fotoğraftaki yüzler tespit edilip kayıtlı kişilerle eşleştirilir</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="fs-upload-row">
+          <input type="file" id="fsFileInput" accept="image/*" class="form-control" style="max-width:320px">
+        </div>
+        <div class="fs-image-wrap" id="fsImageWrap">
+          <img id="fsImage" alt="Yüklenen etkinlik fotoğrafı">
+          <canvas id="fsCanvas"></canvas>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── Row 5: Background jobs + Deployment history + Recent errors ── -->
-  <div class="row col-3">
+  <div class="row col-1">
     <div class="card">
-      <div class="card-header"><div class="card-title">Background jobs</div><div class="card-subtitle" style="margin-left:8px">queue: default</div></div>
-      <div class="card-body" style="padding:12px 16px">
-        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
-          <div><div style="font-size:24px;font-weight:600;color:var(--text);line-height:1">1,284</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">queued</div></div>
-          <div><div style="font-size:24px;font-weight:600;color:var(--green);line-height:1">42</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">/sec</div></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Pending</span><span class="cell-strong">1,284</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Processing</span><span style="color:var(--primary);font-weight:500">28</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Completed (24h)</span><span class="cell-strong">3.6M</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Failed (24h)</span><span style="color:var(--red);font-weight:500">142</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Retries</span><span style="color:var(--yellow);font-weight:500">38</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Recent deployments</div></div>
-      <div class="card-body" style="padding:8px 16px">
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
-            <span class="status status-green" style="font-size:10px">v4.0.2</span>
-            <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              <span style="color:var(--text);font-weight:500">feat: settings persistence</span>
-              <span style="color:var(--text-muted);margin-left:6px">· main</span>
-            </div>
-            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">2h · 28s</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
-            <span class="status status-green" style="font-size:10px">v4.0.1</span>
-            <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              <span style="color:var(--text);font-weight:500">fix: chart skeleton flash</span>
-              <span style="color:var(--text-muted);margin-left:6px">· main</span>
-            </div>
-            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">5h · 31s</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
-            <span class="status status-green" style="font-size:10px">v4.0.0</span>
-            <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              <span style="color:var(--text);font-weight:500">feat: full inbox client</span>
-              <span style="color:var(--text-muted);margin-left:6px">· main</span>
-            </div>
-            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">1d · 42s</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
-            <span class="status status-red" style="font-size:10px">rollback</span>
-            <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              <span style="color:var(--text);font-weight:500">v3.9.4 reverted</span>
-              <span style="color:var(--text-muted);margin-left:6px">· hotfix</span>
-            </div>
-            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">2d · 12s</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
-            <span class="status status-green" style="font-size:10px">v3.9.3</span>
-            <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              <span style="color:var(--text);font-weight:500">perf: lazy-load charts</span>
-              <span style="color:var(--text-muted);margin-left:6px">· main</span>
-            </div>
-            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">3d · 38s</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Recent errors</div><a href="#" style="font-size:12px">Sentry →</a></div>
-      <div class="card-body" style="padding:8px 16px;display:flex;flex-direction:column;gap:10px">
-        <div style="padding:8px 10px;border-left:3px solid var(--red);background:var(--red-lt);border-radius:var(--radius-sm)">
-          <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--red);font-weight:600">TypeError: Cannot read 'id' of null</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">api/orders.js:142 · 28× in last hour</div>
-        </div>
-        <div style="padding:8px 10px;border-left:3px solid var(--yellow);background:var(--yellow-lt);border-radius:var(--radius-sm)">
-          <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--yellow);font-weight:600">Timeout: stripe-webhook (30s)</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">webhooks/stripe.js · 4× in last hour</div>
-        </div>
-        <div style="padding:8px 10px;border-left:3px solid var(--orange);background:rgba(247,103,7,0.1);border-radius:var(--radius-sm)">
-          <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--orange);font-weight:600">429 Too Many Requests</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">middleware/rate-limit.js · 12×</div>
-        </div>
-        <div style="padding:8px 10px;border-left:3px solid var(--text-muted);background:var(--bg-surface-secondary);border-radius:var(--radius-sm)">
-          <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--text);font-weight:600">DeprecationWarning: util._extend</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">node_modules/legacy-pkg · 6×</div>
-        </div>
+      <div class="card-header"><div class="card-title">3. Protokol sırasına göre tanınanlar</div></div>
+      <div class="card-body">
+        <div class="fs-results" id="fsResults"></div>
       </div>
     </div>
   </div>
@@ -539,6 +271,7 @@
     </footer>
   
 </main>
+
 
 </body>
 </html>
