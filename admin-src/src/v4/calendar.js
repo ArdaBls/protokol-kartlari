@@ -459,6 +459,7 @@ function calGoToMonth(y, m) { calAnchor = new Date(y, m, 1); calSetView('month')
 
 let calWeekScrollKey = null;
 let calWeekScrollTopPreserved = null;
+let calDidInitialMobileScroll = false;
 
 function renderWeekView(body) {
   const n = calDayCount();
@@ -589,6 +590,17 @@ function renderWeekView(body) {
       const hasToday = days.some((d) => isSameDay(d, today));
       const target = hasToday ? Math.max(0, (new Date().getHours() - 2) * CAL_HOUR_H) : 7 * CAL_HOUR_H;
       sc.scrollTop = Math.max(0, target - 12);
+      // Kullanıcı isteği: mobil/iOS'ta sayfa AÇILDIĞINDA o anki saat görünsün, sayfanın
+      // en tepesinden (topbar/başlık/araç çubuğu) başlamasın -- iç ızgaranın scrollTop'ı
+      // yukarıda zaten doğru satıra ayarlanıyor ama SAYFA (viewport) yine de en üstte
+      // kalıyordu, kullanıcı ızgarayı görmek için elle aşağı kaydırmak zorunda kalıyordu.
+      // SADECE İLK açılışta (her yeniden çizimde DEĞİL -- aksi halde düzenleme/sürükleme
+      // sırasında sayfa kendiliğinden zıplardı) ve SADECE dokunmatik/dar ekranda (masaüstünde
+      // istenmedi) uygulanır.
+      if (hasToday && !calDidInitialMobileScroll && window.matchMedia && window.matchMedia('(max-width:700px)').matches) {
+        calDidInitialMobileScroll = true;
+        requestAnimationFrame(() => { body.scrollIntoView({ block: 'start' }); });
+      }
     }
   }
 }
@@ -780,6 +792,9 @@ async function calMoveMultiDayEvent(id, newTarih, newBitisTarihi) {
 // açan tıklama/click jesti normal çalışmaya devam eder.
 function calSortableFilter(evt, item) {
   if (evt && evt.target && evt.target.closest && evt.target.closest('.cal-resize-handle')) { return true; }
+  // Bekleyen bir oluşturma onayı varken başka bir etkinliği sürükleyip taşımaya da
+  // izin verilmez (kullanıcı isteği) -- titretilerek bildirilir.
+  if (calPendingCreate) { calShakePendingCreate(); return true; }
   // Kilit ikonu sürüklenebilir bloğun İÇİNDE olduğu için SortableJS dokunuşu "sürükleme
   // olabilir" diye yakalayıp delayOnTouchOnly ile 150ms bekletiyordu -- bu ikonu mobilde
   // "tıklanamaz" hissettiriyordu (bkz. ana sitedeki calSortableFilter, app.js). filter
@@ -811,6 +826,10 @@ let calPendingCreate = null;
 function calShowPendingCreateBar(ghost, dateKey, startMin, endMin) {
   calCancelPendingCreate();
   ghost.classList.add('cal-create-select-pending');
+  // Kullanıcı isteği: bırakınca ghost artık pasif değil -- gerçek etkinliklerdeki
+  // AYNI üst/alt sürükleme kollarını taşıyor, böylece "biraz erken/geç bırakmışım"
+  // durumunda jesti BAŞTAN yapmaya gerek kalmadan sadece saati ince ayar edilebilir.
+  ghost.insertAdjacentHTML('beforeend', '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span><span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span>');
   const bar = document.createElement('div');
   bar.className = 'cal-create-confirm-bar';
   bar.innerHTML =
@@ -821,6 +840,38 @@ function calShowPendingCreateBar(ghost, dateKey, startMin, endMin) {
   bar.querySelector('.ccb-confirm').addEventListener('click', calConfirmPendingCreate);
   bar.querySelector('.ccb-cancel').addEventListener('click', calCancelPendingCreate);
   calPendingCreate = { ghost, bar, dateKey, startMin, endMin };
+}
+// Ghost'un üstündeki/altındaki metni ve onay çubuğundaki saat metnini TEK yerden
+// senkron tutar -- hem sürükleyerek-oluşturma hem de ghost'un kendi kolundan
+// yapılan ince ayar bunu çağırır.
+function calUpdatePendingCreateLabels() {
+  if (!calPendingCreate) { return; }
+  const p = calPendingCreate;
+  p.ghost.style.top = ((p.startMin / 60) * CAL_HOUR_H) + 'px';
+  p.ghost.style.height = Math.max(18, ((p.endMin - p.startMin) / 60) * CAL_HOUR_H) + 'px';
+  const timeText = minToHm(p.startMin) + '–' + minToHm(p.endMin);
+  // Ghost'un ilk çocuğu her zaman saat metnini taşıyan bir metin düğümü (calStartGridSelectGesture'da
+  // ghost.textContent=... ile oluşturulur, kollar insertAdjacentHTML('beforeend',...) ile ONDAN
+  // SONRA eklenir) -- yoksa (savunma amaçlı) baştan oluşturulur.
+  const firstNode = p.ghost.firstChild;
+  if (firstNode && firstNode.nodeType === 3 /* Node.TEXT_NODE */) { firstNode.textContent = timeText; }
+  else { p.ghost.prepend(document.createTextNode(timeText)); }
+  const timeEl = p.bar.querySelector('.ccb-time');
+  if (timeEl) { timeEl.textContent = fmtTrDate(p.dateKey) + ' · ' + timeText; }
+}
+// Onay çubuğu ekranda görünürken başka bir yerde saat ayarlamaya çalışmak (kullanıcı
+// isteği: "başka hiçbir yerde oluşturma yapamayalım") sessizce yok sayılmaz --
+// bekleyen ghost ve "Oluştur" butonu kısa bir titreşimle ("önce bunu bitir") uyarır.
+function calShakePendingCreate() {
+  if (!calPendingCreate) { return; }
+  const { ghost, bar } = calPendingCreate;
+  const confirmBtn = bar.querySelector('.ccb-confirm');
+  [ghost, confirmBtn].forEach((el) => {
+    if (!el) { return; }
+    el.classList.remove('is-shaking'); el.offsetWidth; // eslint-disable-line no-unused-expressions -- reflow tetikler
+    el.classList.add('is-shaking');
+    el.addEventListener('animationend', () => el.classList.remove('is-shaking'), { once: true });
+  });
 }
 function calConfirmPendingCreate() {
   if (!calPendingCreate) { return; }
@@ -835,6 +886,42 @@ function calCancelPendingCreate() {
   p.ghost.remove();
   p.bar.remove();
 }
+// Ghost'un kendi üst/alt kolundan yapılan ince ayar -- calStartResizeGesture'ın
+// (gerçek etkinlikler için) AYNI piksel/snap mantığı, ama Firebase'e hiç yazmaz,
+// sadece calPendingCreate.startMin/endMin'i günceller.
+function calStartPendingResizeGesture(e) {
+  const handle = e.target.closest('.cal-resize-handle');
+  if (!handle || !calPendingCreate || !calPendingCreate.ghost.contains(handle)) { return; }
+  e.stopPropagation();
+  const isTop = handle.classList.contains('cal-resize-handle-top');
+  const p = calPendingCreate;
+  const daycol = p.ghost.parentElement;
+  if (!daycol) { return; }
+  const origStartMin = p.startMin, origEndMin = p.endMin;
+  const pointerId = e.pointerId;
+  handle.setPointerCapture(pointerId);
+  document.body.style.cursor = 'ns-resize';
+  function onMove(e2) {
+    if (e2.pointerId !== pointerId || !calPendingCreate) { return; }
+    const rect = daycol.getBoundingClientRect();
+    const rawMin = ((e2.clientY - rect.top) / CAL_HOUR_H) * 60;
+    let snapped = Math.round(rawMin / 5) * 5;
+    if (isTop) { snapped = Math.max(0, Math.min(origEndMin - 5, snapped)); p.startMin = snapped; }
+    else { snapped = Math.max(origStartMin + 5, Math.min(24 * 60, snapped)); p.endMin = snapped; }
+    calUpdatePendingCreateLabels();
+  }
+  function onUp(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    try { handle.releasePointerCapture(pointerId); } catch (err) { /* noop */ }
+    document.body.style.cursor = '';
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  }
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
 
 function calStartGridSelectGesture(e) {
   if (e.target.closest('.cal-resize-handle')) { return; }
@@ -842,6 +929,10 @@ function calStartGridSelectGesture(e) {
   const daycol = e.target.closest('.cal-daycol');
   if (!daycol) { return; }
   if (!canWrite) { return; }
+  // Kullanıcı isteği: onay çubuğu ("✓ Oluştur / ✕ Vazgeç") ekrandayken başka bir yerde
+  // YENİ bir oluşturma jesti başlatılamaz -- bekleyen etkinlik önce onaylanmalı/vazgeçilmeli.
+  // Sessizce yok saymak yerine titretilerek "önce bunu bitir" bildirilir (mobilde de işe yarar).
+  if (calPendingCreate) { calShakePendingCreate(); return; }
   const dateKey = daycol.dataset.date;
   if (!dateKey) { return; }
   const pointerId = e.pointerId;
@@ -900,6 +991,11 @@ function calStartGridSelectGesture(e) {
 function calStartResizeGesture(e) {
   const handle = e.target.closest('.cal-resize-handle');
   if (!handle) { return; }
+  // Ghost'un KENDİ kolu ise calStartPendingResizeGesture zaten hallediyor -- buraya hiç girme.
+  if (calPendingCreate && calPendingCreate.ghost.contains(handle)) { return; }
+  // Başka (gerçek) bir etkinliğin saatini ayarlamaya çalışmak: bekleyen onay çubuğu
+  // varken izin verilmez (kullanıcı isteği), titretilerek bildirilir.
+  if (calPendingCreate) { calShakePendingCreate(); return; }
   e.stopPropagation();
   const isTop = handle.classList.contains('cal-resize-handle-top');
   const block = handle.closest('.cal-block[data-evid]');
@@ -964,6 +1060,9 @@ function calStartMultiDayGesture(e) {
   // Kilit simgesine dokunmak bu jesti başlatmamalı: aksi halde setPointerCapture ile
   // dokunuş bara kilitlenip kilit ikonunun kendi tıklaması kaybolabiliyordu.
   if (e.target.closest('.cal-lock-ico')) { return; }
+  // Bekleyen bir oluşturma onayı varken başka bir etkinliğin süresini değiştirmeye
+  // izin verilmez (kullanıcı isteği) -- titretilerek bildirilir.
+  if (calPendingCreate) { calShakePendingCreate(); return; }
   e.stopPropagation();
   const isHandleL = !!e.target.closest('.cal-multiday-handle-l');
   const isHandleR = !!e.target.closest('.cal-multiday-handle-r');
@@ -1341,6 +1440,7 @@ function bindCalMainBody() {
   if (!body) { return; }
 
   body.addEventListener('pointerdown', (e) => {
+    calStartPendingResizeGesture(e);
     calStartResizeGesture(e);
     calStartGridSelectGesture(e);
     calStartMultiDayGesture(e);

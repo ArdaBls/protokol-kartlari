@@ -103,6 +103,10 @@
 
 .cal-create-select-pending { animation: calCreatePulse 1.1s ease-in-out infinite; }
 @keyframes calCreatePulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+// Onaylanmayı bekleyen ghost artık kendi üst/alt sürükleme kollarını taşıyor -- ghost'un
+// kendisi (görsel amaçlı) pointer-events:none, kollar bunu AÇIKÇA geri açmalı yoksa
+// ne tıklanabilir ne sürüklenebilir olurlar.
+.cal-create-select-pending .cal-resize-handle { pointer-events: auto; }
 .cal-create-confirm-bar {
   position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom,0px)); transform: translateX(-50%);
   z-index: 1200; display: flex; align-items: center; gap: 8px; padding: 9px 10px 9px 16px; border-radius: 999px;
@@ -116,6 +120,20 @@
 .cal-create-confirm-bar .ccb-cancel { background: rgba(255,255,255,.14); color: #fff; }
 .cal-create-confirm-bar .ccb-cancel:hover { background: rgba(255,255,255,.24); }
 .cal-create-confirm-bar button:active { transform: scale(.95); }
+
+// Kullanıcı isteği: bekleyen onay varken başka bir yerde saat ayarlamaya çalışılırsa
+// ghost VE "Oluştur" butonu hafifçe sallanır ("önce bunu bitir" bildirimi) -- buton
+// ayrıca kısa süreliğine kırmızıya döner. Sallanma sırasında pulse animasyonuyla
+// çakışmasın diye ghost'a ikisi de aynı anda uygulanır (farklı özellikler: opacity vs transform).
+@keyframes calPendingShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.cal-create-select-pending.is-shaking { animation: calCreatePulse 1.1s ease-in-out infinite, calPendingShake .28s cubic-bezier(.22,1,.36,1); }
+.cal-create-confirm-bar .ccb-confirm.is-shaking { animation: calPendingShake .28s cubic-bezier(.22,1,.36,1); background: var(--red) !important; }
 
 .cal-allday-chip { display: flex; align-items: center; gap: 5px; border-radius: 5px; padding: 2.5px 7px; font-size: 11px; font-weight: var(--font-weight-bold); cursor: pointer; border: none; border-left: 3px solid; text-align: left; font-family: inherit; overflow: hidden; user-select: none; }
 .cal-allday-chip .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
