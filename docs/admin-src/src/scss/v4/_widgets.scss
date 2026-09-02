@@ -346,12 +346,6 @@
 .donut-legend-item .name { overflow: hidden; text-overflow: ellipsis; }
 .donut-legend-item .pct { margin-inline-start: auto; font-weight: var(--font-weight-bold); color: var(--text); font-size: 11.5px; flex-shrink: 0; }
 
-// Kısıtlı yükseklikli (110.7px) kartlarda donut + legend'i yan yana sığdırmak
-// için sıkışık varyant (bkz. Device Usage kartı).
-.donut-legend--compact .donut-legend-item { font-size: 9.5px; padding: 1px 0; gap: 4px; }
-.donut-legend--compact .donut-legend-item .dot { width: 6px; height: 6px; }
-.donut-legend--compact .donut-legend-item .pct { font-size: 9.5px; }
-
 // Editör Aktivitesi kartındaki büyük donut görünümü (bkz. [data-chart-view="share"])
 // için daha büyük, okunaklı legend satırları.
 .donut-legend--lg .donut-legend-item { font-size: 15px; padding: 10px 0; gap: 10px; }
