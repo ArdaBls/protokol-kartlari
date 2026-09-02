@@ -24,11 +24,16 @@ const firebaseConfig = {
 const FACE_API_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
 const FACE_API_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
 // Kullanıcının belirttiği aralık (0.55-0.6) -- ne kadar düşükse o kadar SIKI eşleştirme.
-// 0.55'te GERÇEK dünya fotoğrafları (farklı açı/ışık/sıkıştırma) çoğu zaman "Bilinmiyor"
-// çıkıyordu -- aynı fotoğrafla mesafe 0'a iniyor (pipeline doğru), ama farklı bir fotoğrafta
-// mesafe kolayca 0.55'i aşabiliyor. face-api.js'in kendi önerdiği varsayılan (0.6) ile
-// aralığın daha toleranslı ucuna çekildi.
-const MATCH_TOLERANCE = 0.6;
+// 0.6'da denendi ama kalabalık/grup fotoğraflarında protokolde OLMAYAN sivil kişiler bile
+// yanlışlıkla kayıtlı birinin ismiyle etiketleniyordu -- kayıtlı kişi sayısı arttıkça (~170)
+// rastgele bir yüzün BİRİNE tesadüfen yakın çıkma ihtimali artar, üstüne kalabalık fotoğrafta
+// küçük/uzak yüzlerin vektörü zaten daha az güvenilir. Yanlış isim koymak, tanımamaktan
+// (Bilinmiyor demekten) çok daha kötü bir hata -- eşik sıkılaştırıldı (bkz. MIN_FACE_PX de).
+const MATCH_TOLERANCE = 0.5;
+// Bu genişlikten (piksel, EKRANDA gösterilen boyutta) küçük yüzler HİÇ eşleştirilmez --
+// kalabalık fotoğraftaki uzak/küçük yüzlerin 128 boyutlu vektörü güvenilmez olur, bunlar
+// hep "Bilinmiyor" kalır (kutuları yine çizilir, sadece isim denenmez).
+const MIN_FACE_PX = 70;
 
 const LIST_PATHS = { il: 'ilProtokolVerileri', universite: 'universiteProtokolVerileri' };
 
@@ -295,17 +300,22 @@ export function initFaceScan() {
       const matched = [];
 
       resized.forEach((det) => {
-        const match = faceMatcher ? faceMatcher.findBestMatch(det.descriptor) : null;
+        const box = det.detection.box;
+        // Kalabalık/grup fotoğraflarında uzaktaki küçük yüzlerin 128 boyutlu vektörü
+        // güvenilmez oluyor -- bunlar hiç eşleştirilmez, kutu yine çizilir ama isim denenmez.
+        const tooSmall = box.width < MIN_FACE_PX || box.height < MIN_FACE_PX;
+        const match = (faceMatcher && !tooSmall) ? faceMatcher.findBestMatch(det.descriptor) : null;
         const isKnown = !!(match && match.label !== 'unknown');
         const info = isKnown ? personIndex.get(match.label) : null;
-        const box = det.detection.box;
         // Hata ayıklama: eşleşme mesafesi (0 = birebir aynı, eşik: MATCH_TOLERANCE) her zaman
-        // konsola yazılır; "Bilinmiyor" etiketinin yanında da görünür -- kullanıcı sahada
-        // DevTools'a girmeden "yakın ama eşiği aşmış mı, yoksa alakasız mı" ayrımını görebilsin.
+        // konsola yazılır; ekrandaki etikette de görünür (tanınan/tanınmayan fark etmez) --
+        // kullanıcı sahada DevTools'a girmeden "ne kadar emin" ayrımını görebilsin.
         if (match) { console.log('Yüz eşleşme -- etiket: ' + match.label + ', mesafe: ' + match.distance.toFixed(3) + ' (eşik: ' + MATCH_TOLERANCE + ')'); }
-        const label = info
-          ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : ''))
-          : 'Bilinmiyor' + (match ? ' (' + match.distance.toFixed(2) + ')' : '');
+        const label = tooSmall
+          ? 'Bilinmiyor (küçük)'
+          : info
+            ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : '') + ' · ' + match.distance.toFixed(2))
+            : 'Bilinmiyor' + (match ? ' (' + match.distance.toFixed(2) + ')' : '');
 
         ctx.strokeStyle = isKnown ? '#1ABB9C' : '#e04f4f';
         ctx.lineWidth = 2;
