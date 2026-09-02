@@ -1,22 +1,621 @@
 <!DOCTYPE html>
-<!--
-	=====================================================================
-	OMÜ Protokol Kartları — kök yönlendirme
-	Copyright (c) 2026 Arda Bilasa. Tüm hakları saklıdır.
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Dashboard | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.svg">
+<meta name="description" content="Dashboard — Dashboard. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Dashboard">
+<meta property="og:description" content="Dashboard — Dashboard. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:image" content="/images/android-chrome-512x512.svg">
+<meta property="og:site_name" content="Protokol">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
+  <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
+  <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
+  <script type="module" crossorigin src="/js/modal-C4oI3O5p.js"></script>
+  <script type="module" crossorigin src="/js/main-v4-Hl05X3Pw.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-DkFn8k0F.css">
+</head>
+<body data-shell="admin" data-page="dashboard" data-breadcrumb="Home > Dashboard">
 
-	Kullanıcı isteği: protokol.sbs (çıplak domain) artık admin paneline
-	açılıyor -- yeni admin paneli sitenin ana giriş noktası oldu. Girişsiz
-	ziyaretçi admin panelinin kendi shell.js'indeki (syncShellUser) global
-	yetki kontrolüyle otomatik olarak giris.html'e yönlendirilir, panel
-	içeriği hiç görünmez. Halka açık protokol kartları deneyimi (kart
-	tarama, PIN girişi vb.) protokol.html'de DEĞİŞMEDEN duruyor, admin
-	panelinin "Panolar" grubundan bir bağlantıyla erişilebiliyor.
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-	Bu dosyanın ESKİ tam içeriği (app.js paylaşan diğer kök sayfalarla
-	(protokol.html/takvim.html/admin.html) neredeyse birebir aynıydı) git
-	geçmişinde kalıcı olarak korunuyor, kayıp yok.
-	=====================================================================
--->
-<meta http-equiv="refresh" content="0;url=admin/production/index.html">
-<link rel="canonical" href="admin/production/index.html">
-<title>Protokol</title>
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="sidebar-brand">
+        <img class="brand-icon" src="../images/favicon.png" alt="">
+        <div class="brand-name">Protokol</div>
+      </div>
+      <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-label">Genel</div>
+      
+      <div class="nav-tree open has-active">
+        <button type="button" class="nav-link nav-toggle" aria-expanded="true">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="10" width="7" height="11" rx="1.5"/></svg>
+          <span class="nav-text">Panolar</span>
+          
+          <svg class="nav-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
+        </button>
+        <div class="nav-sub"><div class="nav-sub-inner"><a class="nav-sublink active" href="index.html" aria-current="page">Operasyonlar</a><a class="nav-sublink" href="analitik.html">Analitik</a><a class="nav-sublink" href="sistem-durumu.html">Sistem durumu</a><a class="nav-sublink" href="/protokol.html" target="_blank" rel="noopener">Protokol Kartları</a></div></div>
+      </div>
+    
+    <a class="nav-link" href="takvim.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v6M16 4v6"/></svg>
+      <span class="nav-text">Takvim</span>
+      
+    </a>
+  
+    <a class="nav-link" href="harita.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="nav-text">Harita</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Uygulamalar</div>
+      
+    <a class="nav-link" href="yapilacaklar.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="14" rx="1.5"/><rect x="11" y="3" width="6" height="9" rx="1.5"/><rect x="19" y="3" width="2" height="6" rx="0.5"/></svg>
+      <span class="nav-text">Kanban</span>
+      
+    </a>
+  
+    <a class="nav-link" href="bildirimler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+      <span class="nav-text">Bildirimler</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Haberler</div>
+      
+    <a class="nav-link" href="tum-haberler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span class="nav-text">Tüm haberler</span>
+      
+    </a>
+  
+    <a class="nav-link" href="haber-detayi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/></svg>
+      <span class="nav-text">Haber detayı</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Yönetim</div>
+      
+    <a class="nav-link" href="kisiler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+      <span class="nav-text">Kişiler</span>
+      
+    </a>
+  
+    <a class="nav-link" href="kullanici-yonetimi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-text">Kullanıcı yönetimi</span>
+      
+    </a>
+  
+    <a class="nav-link" href="profil.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-text">Profiliniz</span>
+      
+    </a>
+  
+    <a class="nav-link" href="ayarlar.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+      <span class="nav-text">Ayarlar</span>
+      
+    </a>
+  
+    <a class="nav-link" href="yardim-merkezi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>
+      <span class="nav-text">Yardım merkezi</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Geliştirici Araçları</div>
+      
+      <div class="nav-tree">
+        <button type="button" class="nav-link nav-toggle" aria-expanded="false">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          <span class="nav-text">UI kütüphanesi</span>
+          
+          <svg class="nav-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
+        </button>
+        <div class="nav-sub"><div class="nav-sub-inner"><a class="nav-sublink" href="form-genel.html">Genel</a><a class="nav-sublink" href="gelismis-kontroller.html">Gelişmiş kontroller</a><a class="nav-sublink" href="form-dogrulama.html">Doğrulama</a><a class="nav-sublink" href="form-sihirbaz.html">Sihirbaz</a><a class="nav-sublink" href="tablolar.html">Tablolar</a><a class="nav-sublink" href="grafik-galerisi.html">Grafik galerisi</a><a class="nav-sublink" href="bilesenler.html">Bileşenler</a><a class="nav-sublink" href="widgetlar.html">Widget'lar</a><a class="nav-sublink" href="tipografi.html">Tipografi</a><a class="nav-sublink" href="ikonlar.html">İkonlar</a></div></div>
+      </div>
+    
+    </div>
+  </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar">A</div>
+          <div class="sidebar-user-info">
+            <div class="name">Aigars Silkalns</div>
+            <div class="role">Admin</div>
+          </div>
+          <button class="more-btn" aria-label="More options">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+  
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Dashboard</span></nav>
+      </div>
+      <div class="search-box">
+        <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+        <input type="text" placeholder="Search pages or run a command…" aria-label="Open command palette">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+          <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+        </a>
+        <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">A</button>
+      </div>
+    </header>
+  
+<main id="main-content" tabindex="-1" class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Overview</div>
+        <h1 class="page-title">Dashboard</h1>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+          New view
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M8 4v8"/></svg>
+          Create report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STAT CARDS ── -->
+  <div class="row col-3">
+    <div class="card">
+      <div class="stat">
+        <div class="stat-icon teal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value-row">
+            <span class="stat-value">2,500</span>
+            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>12%</span>
+          </div>
+          <div class="stat-subtext">342 new this week</div>
+        </div>
+        <div class="stat-spark">
+          <div class="bar" style="height:40%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:45%"></div><div class="bar" style="height:60%"></div><div class="bar" style="height:50%"></div><div class="bar" style="height:70%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:75%"></div><div class="bar" style="height:90%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <div class="stat-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Avg Session</div>
+          <div class="stat-value-row">
+            <span class="stat-value">123.5<span style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:1px">min</span></span>
+            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>8%</span>
+          </div>
+          <div class="stat-subtext">+14min from last week</div>
+        </div>
+        <div class="stat-spark">
+          <div class="bar" style="height:50%;background:var(--blue)"></div><div class="bar" style="height:40%;background:var(--blue)"></div><div class="bar" style="height:65%;background:var(--blue)"></div><div class="bar" style="height:55%;background:var(--blue)"></div><div class="bar" style="height:70%;background:var(--blue)"></div><div class="bar" style="height:60%;background:var(--blue)"></div><div class="bar" style="height:80%;background:var(--blue)"></div><div class="bar" style="height:75%;background:var(--blue)"></div><div class="bar" style="height:85%;background:var(--blue)"></div><div class="bar" style="height:90%;background:var(--blue)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <div class="stat-icon yellow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Orders</div>
+          <div class="stat-value-row">
+            <span class="stat-value">1,240</span>
+            <span class="stat-change down"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v6M3 6l3 3 3-3"/></svg>3%</span>
+          </div>
+          <div class="stat-subtext">78 shipped today</div>
+        </div>
+        <div class="stat-spark">
+          <div class="bar" style="height:80%;background:var(--yellow)"></div><div class="bar" style="height:70%;background:var(--yellow)"></div><div class="bar" style="height:75%;background:var(--yellow)"></div><div class="bar" style="height:60%;background:var(--yellow)"></div><div class="bar" style="height:65%;background:var(--yellow)"></div><div class="bar" style="height:50%;background:var(--yellow)"></div><div class="bar" style="height:55%;background:var(--yellow)"></div><div class="bar" style="height:45%;background:var(--yellow)"></div><div class="bar" style="height:40%;background:var(--yellow)"></div><div class="bar" style="height:35%;background:var(--yellow)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-3">
+    <div class="card">
+      <div class="stat">
+        <div class="stat-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Revenue</div>
+          <div class="stat-value-row">
+            <span class="stat-value">$24,567</span>
+            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>18%</span>
+          </div>
+          <div class="stat-subtext">$3,218 today</div>
+        </div>
+      </div>
+      <div style="padding:0 16px 12px">
+        <div class="progress-thin"><div class="bar" style="width:75%;background:var(--green)"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <div class="stat-icon red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Conversions</div>
+          <div class="stat-value-row">
+            <span class="stat-value">2,315</span>
+            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>5%</span>
+          </div>
+          <div class="stat-subtext">Rate: 4.2%</div>
+        </div>
+      </div>
+      <div style="padding:0 16px 12px">
+        <div class="progress-thin"><div class="bar" style="width:42%;background:var(--red)"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <div class="stat-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Page Views</div>
+          <div class="stat-value-row">
+            <span class="stat-value">47,325</span>
+            <span class="stat-change up"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3M3 6l3-3 3 3"/></svg>22%</span>
+          </div>
+          <div class="stat-subtext">6,854 unique visitors</div>
+        </div>
+      </div>
+      <div style="padding:0 16px 12px">
+        <div class="progress-thin"><div class="bar" style="width:68%;background:var(--purple)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHART + ACTIVITY ROW ── -->
+  <div class="row col-8-4">
+    <div class="card">
+      <div class="chart-header">
+        <div class="chart-header-left">
+          <div class="card-title">Network Activities</div>
+          <div class="chart-stat" style="margin-top:8px">6,782 <span style="font-size:13px;font-weight:500;color:var(--green)">↑ 7%</span></div>
+          <div style="font-size:11.5px;color:var(--text-muted)">Total sessions this week</div>
+        </div>
+        <div class="chart-tabs">
+          <button class="chart-tab active">7 days</button>
+          <button class="chart-tab">30 days</button>
+          <button class="chart-tab">90 days</button>
+        </div>
+      </div>
+      <div class="chart-area">
+        <div data-chart="dashboard-network" style="width:100%;height:100%"></div>
+      </div>
+      <div class="card-footer" style="display:flex;gap:20px;font-size:11.5px;color:var(--text-muted)">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:3px;background:var(--primary);border-radius:2px;display:inline-block"></span> Sessions</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:3px;background:var(--azure);border-radius:2px;display:inline-block;opacity:.6"></span> Page views</span>
+      </div>
+    </div>
+
+    <!-- Activity feed -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent Activity</div>
+        <div class="card-options">
+          <button class="card-opt-btn" aria-label="Card options"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h8"/></svg></button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:8px 16px">
+        <ul class="activity-list">
+          <li class="activity-item">
+            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--primary),var(--primary-dk))">SK</div>
+            <div>
+              <div class="activity-body"><strong>Sarah K.</strong> placed a new order for $245.00</div>
+              <div class="activity-time">2 min ago</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--blue),#0550a0)">MR</div>
+            <div>
+              <div class="activity-body"><strong>Michael R.</strong> registered a new account</div>
+              <div class="activity-time">18 min ago</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--green),#1a8a32)">SY</div>
+            <div>
+              <div class="activity-body"><strong>Payment</strong> processed — Invoice #4521</div>
+              <div class="activity-time">45 min ago</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--yellow),#c97f00)">JL</div>
+            <div>
+              <div class="activity-body"><strong>Jeffie L.</strong> reviewed <strong>Dashboard Kit</strong></div>
+              <div class="activity-time">1 hour ago</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--purple),#8a2da0)">EL</div>
+            <div>
+              <div class="activity-body"><strong>Emmy L.</strong> created project <strong>Morning Clock</strong></div>
+              <div class="activity-time">4 hours ago</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-avatar" style="background:linear-gradient(135deg,var(--red),#a82b2b)">DS</div>
+            <div>
+              <div class="activity-body"><strong>Shipment</strong> dispatched — Order #3847</div>
+              <div class="activity-time">6 hours ago</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABLE + SIDEBAR WIDGETS ── -->
+  <div class="row col-8-4">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Recent Orders</div>
+          <div class="card-subtitle">Latest 5 transactions</div>
+        </div>
+        <button class="btn btn-outline btn-sm">View All →</button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cell-mono">#7841</td>
+                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--primary)">JD</div><span class="cell-strong">John Doe</span></div></td>
+                <td>AdminLTE Pro</td>
+                <td class="cell-strong">$245</td>
+                <td><span class="status status-green">Paid</span></td>
+                <td>Feb 14</td>
+              </tr>
+              <tr>
+                <td class="cell-mono">#7840</td>
+                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--azure)">AS</div><span class="cell-strong">Anna Smith</span></div></td>
+                <td>Dashboard Theme</td>
+                <td class="cell-strong">$89</td>
+                <td><span class="status status-blue">Processing</span></td>
+                <td>Feb 13</td>
+              </tr>
+              <tr>
+                <td class="cell-mono">#7839</td>
+                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--purple)">RJ</div><span class="cell-strong">Robert Jones</span></div></td>
+                <td>Dashboard Pack</td>
+                <td class="cell-strong">$490</td>
+                <td><span class="status status-green">Paid</span></td>
+                <td>Feb 13</td>
+              </tr>
+              <tr>
+                <td class="cell-mono">#7838</td>
+                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--yellow)">EW</div><span class="cell-strong">Emily Wang</span></div></td>
+                <td>ArchitectUI</td>
+                <td class="cell-strong">$125</td>
+                <td><span class="status status-yellow">Pending</span></td>
+                <td>Feb 12</td>
+              </tr>
+              <tr>
+                <td class="cell-mono">#7837</td>
+                <td><div class="cell-customer"><div class="cell-avatar" style="background:var(--red)">MK</div><span class="cell-strong">Mark Kim</span></div></td>
+                <td>Bootstrap Bundle</td>
+                <td class="cell-strong">$67</td>
+                <td><span class="status status-red">Cancelled</span></td>
+                <td>Feb 11</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage + Device usage -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Storage</div>
+          <div class="card-subtitle">6.8 GB of 8 GB used</div>
+        </div>
+        <div class="card-body">
+          <div class="storage-bar">
+            <div style="width:42%;background:var(--primary)"></div>
+            <div style="width:18%;background:var(--azure)"></div>
+            <div style="width:12%;background:var(--yellow)"></div>
+            <div style="width:13%;background:var(--border-color)"></div>
+          </div>
+          <div class="storage-legend">
+            <div class="storage-legend-item"><span class="dot" style="background:var(--primary)"></span> Regular <span class="val">3.4 GB</span></div>
+            <div class="storage-legend-item"><span class="dot" style="background:var(--azure)"></span> System <span class="val">1.4 GB</span></div>
+            <div class="storage-legend-item"><span class="dot" style="background:var(--yellow)"></span> Shared <span class="val">1.0 GB</span></div>
+            <div class="storage-legend-item"><span class="dot" style="background:var(--border-color)"></span> Free <span class="val">1.2 GB</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Device Usage</div></div>
+        <div class="card-body">
+          <div class="donut-block">
+            <div class="donut-svg">
+              <div data-chart="device-usage" style="width:100%;height:100%"></div>
+              <div class="donut-center-label">
+                <div class="num">8.4k</div>
+                <div class="sub">devices</div>
+              </div>
+            </div>
+            <div class="donut-legend">
+              <div class="donut-legend-item"><span class="dot" style="background:var(--primary)"></span> iOS <span class="pct">30%</span></div>
+              <div class="donut-legend-item"><span class="dot" style="background:var(--azure)"></span> Android <span class="pct">25%</span></div>
+              <div class="donut-legend-item"><span class="dot" style="background:var(--yellow)"></span> Desktop <span class="pct">20%</span></div>
+              <div class="donut-legend-item"><span class="dot" style="background:var(--purple)"></span> Tablet <span class="pct">15%</span></div>
+              <div class="donut-legend-item"><span class="dot" style="background:var(--border-color)"></span> Other <span class="pct">10%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BOTTOM ROW ── -->
+  <div class="row col-3">
+    <!-- Visitors -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Visitors by Location</div></div>
+      <div class="card-body" style="padding:8px 16px">
+        <div class="visitor-row"><span class="visitor-flag">🇺🇸</span><span class="visitor-name">United States</span><span class="visitor-pct">33%</span><div class="visitor-bar"><div class="fill" style="width:33%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇫🇷</span><span class="visitor-name">France</span><span class="visitor-pct">27%</span><div class="visitor-bar"><div class="fill" style="width:27%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇩🇪</span><span class="visitor-name">Germany</span><span class="visitor-pct">16%</span><div class="visitor-bar"><div class="fill" style="width:16%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇪🇸</span><span class="visitor-name">Spain</span><span class="visitor-pct">11%</span><div class="visitor-bar"><div class="fill" style="width:11%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇬🇧</span><span class="visitor-name">United Kingdom</span><span class="visitor-pct">10%</span><div class="visitor-bar"><div class="fill" style="width:10%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇱🇻</span><span class="visitor-name">Latvia</span><span class="visitor-pct">3%</span><div class="visitor-bar"><div class="fill" style="width:3%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- To-Do -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tasks</div>
+          <div class="card-subtitle" data-todo-counter>4 of 6 remaining</div>
+        </div>
+      </div>
+      <div class="card-body" style="padding:8px 16px">
+        <div class="todo-row done">
+          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
+          <span class="todo-text">Review Q4 analytics report</span>
+          <span class="todo-date">Dec 08</span>
+        </div>
+        <div class="todo-row done">
+          <div class="todo-cb done"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6l2.5 3 5-6"/></svg></div>
+          <span class="todo-text">Send invoices to clients</span>
+          <span class="todo-date">Jan 01</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Update user documentation</span>
+          <span class="todo-prio" style="background:var(--yellow)"></span>
+          <span class="todo-date">Jan 15</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Deploy v3.2.1 to production</span>
+          <span class="todo-prio" style="background:var(--red)"></span>
+          <span class="todo-date">Feb 01</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Fix sidebar responsive issues</span>
+          <span class="todo-prio" style="background:var(--yellow)"></span>
+          <span class="todo-date">Feb 14</span>
+        </div>
+        <div class="todo-row">
+          <div class="todo-cb"></div>
+          <span class="todo-text">Prepare team standup notes</span>
+          <span class="todo-prio" style="background:var(--green)"></span>
+          <span class="todo-date">Feb 15</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Versions + Settings -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">App Versions</div></div>
+        <div class="card-body" style="padding:10px 16px">
+          <div class="version-row"><span class="version-label">v3.2.1</span><div class="version-bar"><div class="fill" style="width:68%;background:var(--primary)"></div></div><span class="version-pct">68%</span></div>
+          <div class="version-row"><span class="version-label">v3.2.0</span><div class="version-bar"><div class="fill" style="width:52%;background:var(--azure)"></div></div><span class="version-pct">52%</span></div>
+          <div class="version-row"><span class="version-label">v3.1.9</span><div class="version-bar"><div class="fill" style="width:34%;background:var(--yellow)"></div></div><span class="version-pct">34%</span></div>
+          <div class="version-row"><span class="version-label">v3.1.8</span><div class="version-bar"><div class="fill" style="width:21%;background:var(--green)"></div></div><span class="version-pct">21%</span></div>
+          <div class="version-row"><span class="version-label">v3.1.7</span><div class="version-bar"><div class="fill" style="width:14%;background:var(--purple)"></div></div><span class="version-pct">14%</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Quick Settings</div></div>
+        <div class="card-body" style="padding:6px 16px">
+          <div class="toggle-row"><div><div class="label">Email notifications</div></div><div class="toggle on"></div></div>
+          <div class="toggle-row"><div><div class="label">Two-factor auth</div></div><div class="toggle on"></div></div>
+          <div class="toggle-row"><div><div class="label">Dark mode</div></div><div class="toggle"></div></div>
+          <div class="toggle-row"><div><div class="label">Public profile</div></div><div class="toggle on"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+    <footer class="footer">
+      <span>© 2026 Arda Bilasa. Tüm hakları saklıdır.</span>
+      <span>Firebase v9.23.0</span>
+    </footer>
+  
+</main>
+
+</body>
+</html>

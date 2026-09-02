@@ -21,9 +21,9 @@ export const NAV = [
           // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası, protokol.html
           // (ana sayfadaki gerçek, halka açık protokol kartları sayfası -- KENDİSİ HİÇ
           // DEĞİŞMEDİ) buradan erişilebilir olmalı. Kök-domain'e göre MUTLAK yol (/protokol.html)
-          // -- admin build'i /admin/ altına deploy edildiği için (vite.config base:'/admin/')
-          // göreli bir yol yanlış klasöre işaret ederdi. Yeni sekmede açılır: editör admin
-          // panelindeki yerini kaybetmeden ana siteye göz atabilsin.
+          // kullanılıyor; her iki sayfa da artık aynı kökte yayınlansa da mutlak yol zararsız
+          // ve niyeti daha açık ifade ediyor. Yeni sekmede açılır: editör admin panelindeki
+          // yerini kaybetmeden ana siteye göz atabilsin.
           { key: 'protokol-kartlari', href: '/protokol.html', text: 'Protokol Kartları', target: '_blank' }
         ]
       },

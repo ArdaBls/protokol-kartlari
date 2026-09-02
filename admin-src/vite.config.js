@@ -16,7 +16,7 @@ function discoverEntries() {
     // historical name was `main` so we keep that for the dashboard chunk;
     // everything else uses the filename stem.
     const stem = file === 'index.html' ? 'main' : file.replace(/\.html$/, '');
-    out[stem] = `production/${file}`;
+    out[stem] = file;
   }
   return out;
 }
@@ -33,7 +33,7 @@ function discoverEntries() {
 // is both dishonest and a structured-data violation.
 function structuredDataPlugin() {
   const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf8'));
-  const SITE = 'https://protokol.sbs/admin/';
+  const SITE = 'https://protokol.sbs/';
   const ENTITIES = {
     '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'",
     '&mdash;': '\u2014', '&ndash;': '\u2013', '&nbsp;': ' ', '&hellip;': '\u2026'
@@ -124,7 +124,7 @@ function sitemapPlugin() {
         .filter((stem) => !SITEMAP_EXCLUDE.has(stem))
         .sort()
         // index.html is the site root; the rest keep their filename.
-        .map((stem) => (stem === 'index' ? origin : `${origin}production/${stem}.html`));
+        .map((stem) => (stem === 'index' ? origin : `${origin}${stem}.html`));
 
       const body = urls
         .map((loc) => `  <url><loc>${loc.replace(/&/g, '&amp;')}</loc></url>`)
@@ -133,31 +133,6 @@ function sitemapPlugin() {
         type: 'asset',
         fileName: 'sitemap.xml',
         source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`
-      });
-    }
-  };
-}
-
-// Emit a root index.html that forwards to the dashboard. Entry pages all live
-// under production/, so without this the bare deploy root (GitHub Pages, R2,
-// `npm run preview`) has no front door and 404s. The redirect target is
-// relative, so it resolves the same whether the site is served from / or from
-// a subpath like /admin/.
-function rootRedirectPlugin() {
-  return {
-    name: 'protokol-root-redirect',
-    apply: 'build',
-    generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'index.html',
-        source: [
-          '<!DOCTYPE html>',
-          '<meta http-equiv="refresh" content="0;url=production/index.html">',
-          '<link rel="canonical" href="production/index.html">',
-          '<title>Protokol</title>',
-          ''
-        ].join('\n')
       });
     }
   };
@@ -245,25 +220,24 @@ function shellInjectionPlugin() {
   };
 }
 
-// `base` is the public path the built site is served from. Defaults to root.
-// Set BASE_PATH to test a subpath build (or to deploy under a subpath):
-//   BASE_PATH=/admin/ npm run build
-// `preview` also honors BASE_PATH so you can verify the built site at the
-// real path it'll be served from. `dev` always runs at `/` since the dev
-// server doesn't read built artifacts.
+// Site artık tek bir kök altında yayınlanıyor, bu yüzden `base` her zaman '/'.
 export default defineConfig(({ command }) => ({
-  // Faz 15 (kullanıcı isteği: gentelella'yı Vite ile olduğu gibi projeye taşı) -- bu kaynak
-  // admin-src/ altında yaşıyor, GERÇEK statik çıktı ../admin/'e yazılıyor (protokol-kartları
-  // reposunun GitHub Pages'in servis ettiği köküne göre admin/ alt-yolu). base '/admin/' -- site
-  // protokol.sbs custom domain'inde admin paneli protokol.sbs/admin/... altında yayınlanacak.
-  root: '.',
-  base: command === 'serve' ? '/' : '/admin/',
-  publicDir: 'public',
-  plugins: [shellInjectionPlugin(), rootRedirectPlugin(), sitemapPlugin(), structuredDataPlugin()],
+  // Kullanıcı isteği: bu artık bir "admin paneli" değil, sitenin TEK ana sayfası --
+  // /admin/production/ önek yolu tamamen kaldırıldı. Kaynak hâlâ admin-src/production/
+  // altında yaşıyor (proje içi düzen), ama Vite'ın kendi `root`u o klasöre ayarlanarak
+  // çıktı HTML'leri klasör öneki olmadan üretiliyor. `npm run build` bunları önce
+  // ../admin/'e (staging) yazar, sonra scripts/publish-root.mjs repo köküne taşır ve
+  // admin/ klasörünü siler -- bkz. o script'in başındaki yorum.
+  root: 'production',
+  base: '/',
+  publicDir: '../public',
+  plugins: [shellInjectionPlugin(), sitemapPlugin(), structuredDataPlugin()],
   logLevel: 'info',
   clearScreen: false,
   build: {
-    outDir: '../admin',
+    // root artık 'production' olduğu için '../../admin' -- admin-src/production'dan
+    // iki üst dizin repo köküne çıkar, admin-src/admin'e değil.
+    outDir: '../../admin',
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
     // Optimize source maps: 'hidden' for production (generates but doesn't reference in bundle)
@@ -335,11 +309,10 @@ export default defineConfig(({ command }) => ({
     target: 'es2022'
   },
   server: {
-    // Entry HTMLs live in production/, not at the project root.
     // Default to an uncommon port so we don't collide with the dozen tools
     // that grab 3000/4000/5173/8000/8080. Override with PORT env if needed.
     // strictPort defaults to false → Vite auto-increments on collision.
-    open: '/production/index.html',
+    open: '/index.html',
     port: Number(process.env.PORT) || 9173,
     host: true,
     // /api/* → examples/express-sqlite (when running). Falls through 404 if
@@ -361,7 +334,7 @@ export default defineConfig(({ command }) => ({
     }
   },
   preview: {
-    open: '/production/index.html',
+    open: '/index.html',
     port: Number(process.env.PREVIEW_PORT) || 9174,
     host: true
   },
@@ -370,7 +343,14 @@ export default defineConfig(({ command }) => ({
     force: false
   },
   resolve: {
-    // Modern build without jQuery aliases
+    // `root` is 'production/' (see comment above) but every page's scripts import
+    // from absolute '/src/...' paths written as if root were still admin-src/. This
+    // alias keeps those absolute imports resolving correctly without having to
+    // rewrite every <script type="module" src="/src/..."> and inline import(...) call
+    // across all 36+ production/*.html pages.
+    alias: {
+      '/src': resolve(import.meta.dirname, 'src')
+    }
   },
   css: {
     // Enable CSS source maps only in development (saves ~8MB in production build)

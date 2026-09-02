@@ -16,8 +16,8 @@ initCommandPalette();
 initPageActions();
 
 // Service worker — only in production builds (skip on dev so HMR isn't fought
-// by the cache). Path uses Vite's BASE_URL so subpath deploys (e.g.
-// protokol.sbs/admin/) register the SW at the right scope.
+// by the cache). Single site-wide SW now (protokol.html shares this same
+// registration/scope) — see admin-src/public/sw.js's header comment.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     const swPath = `${import.meta.env.BASE_URL}sw.js`;

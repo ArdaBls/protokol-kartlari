@@ -114,7 +114,8 @@
 	mockDatabase.ServerValue = { TIMESTAMP: { ".sv": "timestamp" } };
 
 	window.firebase = {
-		initializeApp: function (config) { console.log("[mock] firebase.initializeApp çağrıldı"); },
+		apps: [],
+		initializeApp: function (config) { window.firebase.apps.push({}); console.log("[mock] firebase.initializeApp çağrıldı"); },
 		database: mockDatabase,
 		auth: function () { return mockAuth; }
 	};

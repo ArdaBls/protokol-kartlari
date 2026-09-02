@@ -159,7 +159,7 @@
 					// ile geldiği sayfaya (index/takvim/protokol/admin fark etmez) geri dönüyor.
 					// PIN ile hızlı hesap değiştirme AYRI bir özellik (zaten doğrudan Firebase'e
 					// giriş yapıyor, modal kullanmıyor), dokunulmadı.
-					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="location.href=\'admin/production/giris.html?returnTo=\'+encodeURIComponent(location.href)">Giriş Yap</button>';
+					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="location.href=\'giris.html?returnTo=\'+encodeURIComponent(location.href)">Giriş Yap</button>';
 					return;
 				}
 				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin", owner: "Kurucu" }[currentUser.role] || "Onay Bekliyor";
@@ -175,7 +175,7 @@
 				// admin-menu-item DEĞİL: o sınıf mobilde gizleniyor (mobilde eski panele erişimi
 				// admin-fab karşılıyor) -- yeni panelin mobilde henüz kendi fab'ı yok, dropdown'da
 				// her ekran boyutunda görünür kalmalı.
-				const newAdminItem = (currentUser.role === "admin" || currentUser.role === "owner") ? '<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); location.href=\'admin/production/index.html\';">🆕 Yeni Admin Paneli</button>' : "";
+				const newAdminItem = (currentUser.role === "admin" || currentUser.role === "owner") ? '<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); location.href=\'index.html\';">🆕 Yeni Admin Paneli</button>' : "";
 				wrap.innerHTML =
 				'<div class="header-profile-wrap">' +
 				'<button type="button" class="header-profile-btn ' + (currentUser.role || "pending") + '" id="headerProfileBtn" onclick="toggleHeaderMenu()" aria-haspopup="true" aria-expanded="false" title="Hesap menüsü">' +
