@@ -11,7 +11,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<!-- Superbuild: kullanıcı isteği "daha detaylı/gelişmiş" bir editör -- classic build'in
+     aksine yazı tipi rengi/boyutu, hizalama, tablo, medya gömme, kaynak (HTML) görünümü,
+     bul-değiştir gibi tüm eklentileri tek pakette içerir, ayrı ayrı derleme gerektirmez. -->
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/super-build/ckeditor.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|projects.html > Haber detayı">
@@ -102,25 +105,38 @@ function render(id, e) {
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
           <div class="card-header"><div class="card-title">Etkinlik bilgileri</div></div>
-          <div class="card-body" style="font-size:13px;color:var(--text-secondary);line-height:2">
-            <div><span style="color:var(--text-muted)">Tarih</span> · <strong style="color:var(--text)">${escapeHtml(fmtTarih(e.tarih))}</strong></div>
-            ${e.yer ? `<div><span style="color:var(--text-muted)">Yer</span> · ${escapeHtml(e.yer)}</div>` : ''}
-            ${e.birim ? `<div><span style="color:var(--text-muted)">Düzenleyen birim</span> · ${escapeHtml(e.birim)}</div>` : ''}
-            ${e.planlayan ? `<div><span style="color:var(--text-muted)">Planlayan</span> · ${escapeHtml(e.planlayan)}</div>` : ''}
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+            ${canWrite ? `
+              <div class="field"><label for="ed-tarih">Tarih</label><input type="date" id="ed-tarih" class="form-control" value="${escapeHtml(e.tarih || '')}"></div>
+              <div class="field"><label for="ed-yer">Yer / Mekân</label><input type="text" id="ed-yer" class="form-control" value="${escapeHtml(e.yer || '')}"></div>
+              <div class="field"><label for="ed-birim">Düzenleyen Birim</label><input type="text" id="ed-birim" class="form-control" value="${escapeHtml(e.birim || '')}"></div>
+              <div class="field"><label for="ed-planlayan">Planlayan / Sorumlu</label><input type="text" id="ed-planlayan" class="form-control" value="${escapeHtml(e.planlayan || '')}"></div>
+            ` : `
+              <div style="font-size:13px;color:var(--text-secondary);line-height:2">
+                <div><span style="color:var(--text-muted)">Tarih</span> · <strong style="color:var(--text)">${escapeHtml(fmtTarih(e.tarih))}</strong></div>
+                ${e.yer ? `<div><span style="color:var(--text-muted)">Yer</span> · ${escapeHtml(e.yer)}</div>` : ''}
+                ${e.birim ? `<div><span style="color:var(--text-muted)">Düzenleyen birim</span> · ${escapeHtml(e.birim)}</div>` : ''}
+                ${e.planlayan ? `<div><span style="color:var(--text-muted)">Planlayan</span> · ${escapeHtml(e.planlayan)}</div>` : ''}
+              </div>
+            `}
           </div>
         </div>
 
         <div class="card">
           <div class="card-header"><div class="card-title">Haberi yazan(lar)</div></div>
-          <div class="card-body" style="font-size:13px;color:var(--text-secondary)">
-            ${yazanlar.length ? yazanlar.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Henüz işlenmemiş.</span>'}
+          <div class="card-body">
+            ${canWrite
+              ? `<input type="text" id="ed-haberYazanlari" class="form-control" placeholder="Virgülle ayırarak yazın" value="${escapeHtml(e.haberYazanlari || '')}">`
+              : `<div style="font-size:13px;color:var(--text-secondary)">${yazanlar.length ? yazanlar.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Henüz işlenmemiş.</span>'}</div>`}
           </div>
         </div>
 
         <div class="card">
           <div class="card-header"><div class="card-title">Basın görevlisi</div></div>
-          <div class="card-body" style="font-size:13px;color:var(--text-secondary)">
-            ${gorevliler.length ? gorevliler.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Atanmamış.</span>'}
+          <div class="card-body">
+            ${canWrite
+              ? `<input type="text" id="ed-gorevli" class="form-control" placeholder="Virgülle ayırarak yazın" value="${escapeHtml(e.gorevli || '')}">`
+              : `<div style="font-size:13px;color:var(--text-secondary)">${gorevliler.length ? gorevliler.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Atanmamış.</span>'}</div>`}
           </div>
         </div>
       </div>
@@ -129,26 +145,59 @@ function render(id, e) {
 
   if (canWrite) {
     const saveBtn = document.getElementById('haberSaveBtn');
+    const fieldIds = ['ed-tarih', 'ed-yer', 'ed-birim', 'ed-planlayan', 'ed-haberYazanlari', 'ed-gorevli'];
+    const fieldEls = fieldIds.map((fid) => document.getElementById(fid));
+
     ClassicEditor.create(document.getElementById('haberEditor'), {
-      toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'blockQuote', 'undo', 'redo']
+      toolbar: {
+        items: [
+          'heading', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+          'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
+          'bulletedList', 'numberedList', 'todoList', 'outdent', 'indent', 'alignment', '|',
+          'link', 'blockQuote', 'insertTable', 'mediaEmbed', 'horizontalLine', 'specialCharacters', '|',
+          'findAndReplace', 'sourceEditing', '|', 'undo', 'redo'
+        ],
+        shouldNotGroupWhenFull: true
+      },
+      table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] }
     }).then((editor) => {
       ckEditorInstance = editor;
-      const original = editor.getData();
-      const updateSaveVisibility = () => { saveBtn.style.display = editor.getData() === original ? 'none' : ''; };
+      const originalHtml = editor.getData();
+      const original = { haberMetni: originalHtml };
+      fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
+
+      const updateSaveVisibility = () => {
+        const changed = editor.getData() !== original.haberMetni || fieldIds.some((fid, i) => fieldEls[i].value !== original[fid]);
+        saveBtn.style.display = changed ? '' : 'none';
+      };
       editor.model.document.on('change:data', updateSaveVisibility);
+      fieldEls.forEach((el) => el.addEventListener('input', updateSaveVisibility));
+
       saveBtn.addEventListener('click', () => {
         saveBtn.disabled = true; saveBtn.textContent = 'Kaydediliyor…';
-        const html = editor.getData();
-        database.ref('etkinlikler/' + id).update({ haberMetni: html, guncellemeTs: Date.now() }).then(() => {
+        const patch = {
+          haberMetni: editor.getData(),
+          tarih: fieldEls[0].value || e.tarih || '',
+          yer: fieldEls[1].value.trim(),
+          birim: fieldEls[2].value.trim(),
+          planlayan: fieldEls[3].value.trim(),
+          haberYazanlari: fieldEls[4].value.trim(),
+          gorevli: fieldEls[5].value.trim(),
+          guncellemeTs: Date.now()
+        };
+        database.ref('etkinlikler/' + id).update(patch).then(() => {
           database.ref('logs/etkinlik').push({
-            action: (e.ad || '(adsız)') + ' etkinliğinin haber metni güncellendi',
+            action: (e.ad || '(adsız)') + ' etkinliğinin haber detayı güncellendi',
             by: currentUserName || (firebase.auth().currentUser && firebase.auth().currentUser.email) || '',
             ts: Date.now()
           });
+          Object.assign(e, patch);
+          fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
+          original.haberMetni = editor.getData();
           saveBtn.textContent = 'Kaydedildi ✓';
           setTimeout(() => { saveBtn.style.display = 'none'; saveBtn.disabled = false; saveBtn.textContent = 'Kaydet'; }, 1400);
         }).catch((err) => {
-          console.error('Haber metni kaydedilemedi:', err);
+          console.error('Haber detayı kaydedilemedi:', err);
           saveBtn.disabled = false; saveBtn.textContent = 'Kaydet';
           alert('Kaydedilemedi, tekrar deneyin.');
         });
