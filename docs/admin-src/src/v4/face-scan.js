@@ -230,7 +230,44 @@ export function initFaceScan() {
   const bulkBtn = document.getElementById('fsBulkExtractBtn');
   const bulkStatusEl = document.getElementById('fsBulkExtractStatus');
   const bulkListEl = document.getElementById('fsBulkExtractList');
+  const tooltip = document.getElementById('fsTooltip');
   if (!fileInput || !img || !canvas || !statusEl || !resultsEl || !wrap) {return;}
+
+  // Canvas'a çizilen kutular gerçek DOM elemanı değil, salt piksel -- kullanıcı isteği
+  // (imleçle üzerine gelince kim olduğunu net göstersin) için son taramanın kutularını
+  // burada saklıyoruz, mousemove ile hangi kutunun içinde olduğumuzu kendimiz hesaplıyoruz.
+  let lastBoxes = []; // { box: {x,y,width,height}, title, subtitle, isKnown }
+
+  function findBoxAt(x, y) {
+    for (let i = lastBoxes.length - 1; i >= 0; i--) {
+      const b = lastBoxes[i].box;
+      if (x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height) {return lastBoxes[i];}
+    }
+    return null;
+  }
+
+  wrap.addEventListener('mousemove', (e) => {
+    if (!lastBoxes.length) {return;}
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const hit = findBoxAt(x, y);
+    if (!hit) {
+      tooltip.hidden = true;
+      wrap.style.cursor = '';
+      return;
+    }
+    wrap.style.cursor = 'pointer';
+    tooltip.innerHTML = '<strong>' + escapeHtml(hit.title) + '</strong>' + (hit.subtitle ? '<span class="fs-tooltip-dim">' + escapeHtml(hit.subtitle) + '</span>' : '');
+    // Tooltip'i imlecin biraz üstünde/sağında tut, kutu wrap'in sağ kenarına dayanırsa taşmasın.
+    const wrapRect = wrap.getBoundingClientRect();
+    let left = x + 14;
+    if (left + 240 > wrapRect.width) {left = Math.max(0, x - 240 - 14);}
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = Math.max(0, y - 10) + 'px';
+    tooltip.hidden = false;
+  });
+  wrap.addEventListener('mouseleave', () => { tooltip.hidden = true; wrap.style.cursor = ''; });
 
   let faceapiRef = null;
   const ready = loadModelsAndPeople(statusEl).then((fa) => { faceapiRef = fa; }).catch((err) => {
@@ -283,6 +320,9 @@ export function initFaceScan() {
         .withFaceLandmarks()
         .withFaceDescriptors();
 
+      lastBoxes = [];
+      tooltip.hidden = true;
+
       if (!detections.length) {
         statusEl.textContent = 'Fotoğrafta hiç yüz bulunamadı.';
         const ctx = canvas.getContext('2d');
@@ -327,6 +367,26 @@ export function initFaceScan() {
         ctx.fillRect(box.x, Math.max(0, box.y - 20), textW + 10, 20);
         ctx.fillStyle = '#fff';
         ctx.fillText(label, box.x + 5, Math.max(14, box.y - 5));
+
+        // Kullanıcı isteği: kutunun üzerine imleçle gelince kim olduğunu net gösteren
+        // bir tooltip -- canvas metni küçük/sıkışık kalabiliyor, burada daha okunaklı.
+        let tipTitle; let tipSubtitle;
+        if (tooSmall) {
+          tipTitle = 'Bilinmiyor (yüz çok küçük)';
+          tipSubtitle = 'Net tanımak için fotoğrafta daha büyük görünmeli.';
+        } else if (info) {
+          tipTitle = info.ad || 'İsimsiz kayıt';
+          const parts = [];
+          if (info.unvan) {parts.push(info.unvan);}
+          parts.push(info.listKey === 'il' ? 'İl Protokolü' : 'Üniversite Protokolü');
+          if (info.rank !== null && info.rank !== undefined && info.rank !== '') {parts.push('Sıra ' + info.rank);}
+          parts.push('Eşleşme mesafesi: ' + match.distance.toFixed(2));
+          tipSubtitle = parts.join(' · ');
+        } else {
+          tipTitle = 'Bilinmiyor';
+          tipSubtitle = match ? ('Kayıtlı kimseye yeterince yakın değil (mesafe: ' + match.distance.toFixed(2) + ', eşik: ' + MATCH_TOLERANCE + ')') : 'Kayıtlı hiç kimseyle eşleşmedi.';
+        }
+        lastBoxes.push({ box, title: tipTitle, subtitle: tipSubtitle, isKnown });
 
         if (info && !matched.some((m) => m.listKey === info.listKey && m.id === info.id)) {
           matched.push(info);

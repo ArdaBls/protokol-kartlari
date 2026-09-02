@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/face-scan-DvKEpYBp.js","js/toast-CBtjS_PZ.js","js/rolldown-runtime-_5RX-BWT.js"])))=>i.map(i=>d[i]);
+import{t as a}from"./main-v4-BDqVTxmH.js";a(async()=>{const{initFaceScan:a}=await(import("./face-scan-DvKEpYBp.js"));return{initFaceScan:a}},__vite__mapDeps([0,1,2])).then(({initFaceScan:a})=>{a()});

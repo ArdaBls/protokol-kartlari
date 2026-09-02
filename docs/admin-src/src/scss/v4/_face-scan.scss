@@ -18,6 +18,24 @@
 #fsImage { display: block; max-width: 100%; height: auto; border-radius: var(--radius-md); }
 #fsCanvas { position: absolute; top: 0; left: 0; pointer-events: none; }
 
+// Kutuların üzerine gelince çıkan detaylı bilgi kartı -- canvas piksel olduğu için gerçek
+// bir DOM elemanı, initFaceScan()'in mousemove ile imleç konumuna taşıdığı.
+.fs-tooltip {
+  position: absolute;
+  z-index: 5;
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated, #1a2332);
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(0,0,0,.25));
+  pointer-events: none; // fare olayları hâlâ .fs-image-wrap'e düşsün
+}
+.fs-tooltip strong { display: block; font-size: 13.5px; margin-bottom: 2px; }
+.fs-tooltip .fs-tooltip-dim { color: rgba(255,255,255,.65); }
+
 .fs-results {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
