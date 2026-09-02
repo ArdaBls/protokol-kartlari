@@ -131,10 +131,11 @@ function renderRankedCards(list, container) {
 // işler -- fotoğraf yeniden seçilmez, zaten kayıtlı Base64/URL üzerinden aynı
 // detectFaceDescriptorFromImage mantığı (SsdMobilenetv1) kullanılır. app.js'teki
 // bulkExtractFaceDescriptors() ile AYNI iş, admin panelinin kendi sayfasından.
-async function bulkExtractFaceDescriptors(faceapi, btn, statusEl) {
+async function bulkExtractFaceDescriptors(faceapi, btn, statusEl, listEl) {
   if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
   btn.disabled = true;
   const originalLabel = btn.textContent;
+  if (listEl) {listEl.innerHTML = '';}
   try {
     statusEl.textContent = 'Fotoğraflı ama vektörsüz kayıtlar taranıyor…';
     const [ilSnap, uniSnap] = await Promise.all([
@@ -153,7 +154,11 @@ async function bulkExtractFaceDescriptors(faceapi, btn, statusEl) {
     });
     if (!targets.length) { statusEl.textContent = 'İşlenecek kayıt yok -- fotoğrafı olan herkes zaten tanınabilir.'; return; }
 
-    let found = 0; let notFound = 0; let failed = 0;
+    let found = 0; let failed = 0;
+    // Kullanıcı isteği: sahada telefonla çalışırken sonucu tek tek kontrol edemiyor --
+    // yüzü bulunamayan (muhtemelen düşük çözünürlük/profil fotoğrafı) kayıtların ad+unvanı
+    // ekrana bir liste olarak basılır, eve dönünce o kişilerin fotoğrafı elle kontrol edilir.
+    const notFoundList = [];
     for (let i = 0; i < targets.length; i++) {
       const t = targets[i];
       btn.textContent = 'İşleniyor ' + (i + 1) + '/' + targets.length + '…';
@@ -165,7 +170,7 @@ async function bulkExtractFaceDescriptors(faceapi, btn, statusEl) {
           im.src = t.photo;
         });
         const result = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks().withFaceDescriptor();
-        if (!result) { notFound++; continue; }
+        if (!result) { notFoundList.push(t); continue; }
         const descriptor = Array.from(result.descriptor);
         const updates = {};
         updates[(LIST_PATHS[t.listKey] + '/' + t.id) + '/faceDescriptor'] = descriptor;
@@ -182,9 +187,20 @@ async function bulkExtractFaceDescriptors(faceapi, btn, statusEl) {
       }
     }
 
-    const summary = found + ' kişi tanınabilir hâle geldi, ' + notFound + ' fotoğrafta yüz bulunamadı' + (failed ? ', ' + failed + ' kayıt hata verdi' : '') + '.';
+    const summary = found + ' kişi tanınabilir hâle geldi, ' + notFoundList.length + ' fotoğrafta yüz bulunamadı' + (failed ? ', ' + failed + ' kayıt hata verdi' : '') + '.';
     statusEl.textContent = summary;
     showToast(summary, { variant: failed ? 'error' : 'success' });
+
+    if (listEl) {
+      if (notFoundList.length) {
+        listEl.innerHTML = '<p class="fs-status" style="margin-top:8px"><strong>Yüzü tanınamayan ' + notFoundList.length + ' kayıt</strong> (fotoğrafı kontrol edilmeli):</p>' +
+          '<ul class="fs-notfound-list">' + notFoundList.map((t) => (
+          '<li>' + escapeHtml(t.ad) + (t.unvan ? ' — ' + escapeHtml(t.unvan) : '') + ' <span class="fs-notfound-liste">(' + (t.listKey === 'il' ? 'İl' : 'Üniversite') + ')</span></li>'
+        )).join('') + '</ul>';
+      } else {
+        listEl.innerHTML = '';
+      }
+    }
   } catch (err) {
     console.error('Toplu yüz çıkarma başlatılamadı:', err);
     statusEl.textContent = 'Hata: ' + (err && err.message ? err.message : 'bilinmeyen hata');
@@ -204,6 +220,7 @@ export function initFaceScan() {
   const wrap = document.getElementById('fsImageWrap');
   const bulkBtn = document.getElementById('fsBulkExtractBtn');
   const bulkStatusEl = document.getElementById('fsBulkExtractStatus');
+  const bulkListEl = document.getElementById('fsBulkExtractList');
   if (!fileInput || !img || !canvas || !statusEl || !resultsEl || !wrap) {return;}
 
   let faceapiRef = null;
@@ -228,7 +245,7 @@ export function initFaceScan() {
     bulkBtn.addEventListener('click', async () => {
       await ready;
       if (!faceapiRef) { showToast('Yüz tanıma sistemi hazır değil, sayfayı yenileyin.', { variant: 'error' }); return; }
-      await bulkExtractFaceDescriptors(faceapiRef, bulkBtn, bulkStatusEl || statusEl);
+      await bulkExtractFaceDescriptors(faceapiRef, bulkBtn, bulkStatusEl || statusEl, bulkListEl);
     });
   }
 
