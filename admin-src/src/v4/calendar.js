@@ -590,16 +590,24 @@ function renderWeekView(body) {
       const hasToday = days.some((d) => isSameDay(d, today));
       const target = hasToday ? Math.max(0, (new Date().getHours() - 2) * CAL_HOUR_H) : 7 * CAL_HOUR_H;
       sc.scrollTop = Math.max(0, target - 12);
-      // Kullanıcı isteği: mobil/iOS'ta sayfa AÇILDIĞINDA o anki saat görünsün, sayfanın
-      // en tepesinden (topbar/başlık/araç çubuğu) başlamasın -- iç ızgaranın scrollTop'ı
+      // Kullanıcı isteği: mobil/iOS'ta sayfa AÇILDIĞINDA o anki saat (kırmızı çizgi) görünsün,
+      // sayfanın en tepesinden (başlık/araç çubuğu) başlamasın -- iç ızgaranın scrollTop'ı
       // yukarıda zaten doğru satıra ayarlanıyor ama SAYFA (viewport) yine de en üstte
       // kalıyordu, kullanıcı ızgarayı görmek için elle aşağı kaydırmak zorunda kalıyordu.
-      // SADECE İLK açılışta (her yeniden çizimde DEĞİL -- aksi halde düzenleme/sürükleme
-      // sırasında sayfa kendiliğinden zıplardı) ve SADECE dokunmatik/dar ekranda (masaüstünde
+      // Önceki sürüm scrollIntoView + requestAnimationFrame kullanıyordu ama bu, Firebase
+      // verisi/yetki kontrolü asenkron geldiği için sayfa yüksekliği HENÜZ oturmadan
+      // çalışıp etkisiz kalabiliyordu -- artık window.scrollTo ile MUTLAK hedef konum
+      // hesaplanıyor ve ilk render'dan biraz sonra (asenkron içerik oturana kadar) çalışıyor.
+      // SADECE İLK açılışta (her yeniden çizimde DEĞİL) ve SADECE dar ekranda (masaüstünde
       // istenmedi) uygulanır.
       if (hasToday && !calDidInitialMobileScroll && window.matchMedia && window.matchMedia('(max-width:700px)').matches) {
         calDidInitialMobileScroll = true;
-        requestAnimationFrame(() => { body.scrollIntoView({ block: 'start' }); });
+        setTimeout(() => {
+          const card = body.closest('.cal-card') || body;
+          const topbarH = document.querySelector('.topbar')?.offsetHeight || 0;
+          const targetY = window.scrollY + card.getBoundingClientRect().top - topbarH - 8;
+          window.scrollTo({ top: Math.max(0, targetY) });
+        }, 300);
       }
     }
   }

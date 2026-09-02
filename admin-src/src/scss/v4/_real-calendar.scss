@@ -110,17 +110,12 @@
 .cal-create-select-pending { animation: calCreatePulse 1.1s ease-in-out infinite; flex-direction: column; gap: 1px; }
 @keyframes calCreatePulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
 .cal-create-select-pending .ccs-time { pointer-events: none; }
-.cal-create-select-pending .ccs-hint { display: none; font-size: 9px; font-weight: var(--font-weight-normal); opacity: .8; pointer-events: none; }
-// Kullanıcı isteği: ghost'un gövdesine tıklayınca doğrudan düzenleme ekranı açılması
-// SADECE masaüstünde -- mobilde sürükleme kolunu tam yakalayamayan bir parmak ghost'un
-// ortasına düşünce yanlışlıkla düzenleme ekranı açmasın diye (dokunmatikte tek yol
-// alttaki "✓ Oluştur" butonu, bkz. calGridClick'teki calPendingCreate koruması).
-@media (min-width: 701px) {
-  // Kullanıcı isteği: üzerine gelince (hover) opak/dolu bir renge dönmesin -- hâlâ bir
-  // silüet olarak kalmalı, sadece tıklanabilir olduğu cursor:pointer ile anlaşılır.
-  .cal-create-select-pending { pointer-events: auto; cursor: pointer; }
-  .cal-create-select-pending .ccs-hint { display: block; }
-}
+.cal-create-select-pending .ccs-hint { font-size: 9px; font-weight: var(--font-weight-normal); opacity: .8; pointer-events: none; }
+// Kullanıcı isteği: ghost'un gövdesine tıklayınca doğrudan düzenleme ekranı açılsın --
+// hem masaüstünde hem mobilde (mobildeki yanlış-tık riski, calGridClick'teki
+// calPendingCreate koruması -- ghost dışına düşen her dokunuş sessizce titretilip yok
+// sayılıyor -- ile zaten bertaraf edildiği için burada platforma göre ayrım YOK).
+.cal-create-select-pending { pointer-events: auto; cursor: pointer; }
 // Onaylanmayı bekleyen ghost artık kendi üst/alt sürükleme kollarını taşıyor -- ghost'un
 // kendisi (görsel amaçlı) pointer-events:none, kollar bunu AÇIKÇA geri açmalı yoksa
 // ne tıklanabilir ne sürüklenebilir olurlar.
