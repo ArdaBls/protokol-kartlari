@@ -291,7 +291,7 @@
 // alt satıra düşüyordu (ör. bitiş saati yalnız kalıp alta taşması). Sabit 3 sütunlu grid,
 // üçünü de HER ZAMAN aynı satırda tutar, dar ekranda sütunlar birlikte küçülür.
 .cal-ev-datetime-row { display: grid; grid-template-columns: minmax(0,0.85fr) minmax(0,1fr) minmax(0,1fr); gap: var(--space-2); }
-.cal-ev-datetime-row .cal-ev-date, .cal-ev-datetime-row .cal-ev-time { min-width: 0; }
+.cal-ev-datetime-row .cal-ev-date, .cal-ev-datetime-row .cal-ev-time-field { min-width: 0; }
 
 .cal-ev-time-wrap { display: flex; gap: 3px; align-items: stretch; }
 .cal-ev-time-wrap input[type='time'] { flex: 1; min-width: 0; }

@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/calendar-B1vaaSC7.js","js/toast-CBtjS_PZ.js","js/rolldown-runtime-_5RX-BWT.js","js/modal-C4oI3O5p.js"])))=>i.map(i=>d[i]);
-import{t as a}from"./main-v4-Hl05X3Pw.js";a(async()=>{const{initCalendar:a}=await(import("./calendar-B1vaaSC7.js"));return{initCalendar:a}},__vite__mapDeps([0,1,2,3])).then(({initCalendar:a})=>{a()});

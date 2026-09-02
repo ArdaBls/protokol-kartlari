@@ -1309,8 +1309,8 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       '<label class="cal-ev-form-check"><input type="checkbox" id="cef-cokgunlu"' + (isMultiDay ? ' checked' : '') + '> Çok günlü etkinlik (birden fazla gün sürer)</label>' +
       '<div class="cal-ev-datetime-row">' +
         '<div class="cal-ev-form-row cal-ev-date"><label for="cef-tarih">Tarih</label><input type="date" id="cef-tarih" class="form-control" value="' + escapeHtml(tarih) + '" required></div>' +
-        '<div class="cal-ev-form-row cal-ev-time" style="display:' + (isMultiDay ? 'none' : '') + ';"><label for="cef-saat">Başlangıç Saati</label><div class="cal-ev-time-wrap"><input type="time" id="cef-saat" class="form-control" value="' + escapeHtml(saat) + '"><button type="button" class="cal-ev-now-btn" data-now-target="cef-saat" title="Şu anki saati yaz">⏱</button></div></div>' +
-        '<div class="cal-ev-form-row cal-ev-time" style="display:' + (isMultiDay ? 'none' : '') + ';"><label for="cef-bitis">Bitiş Saati</label><div class="cal-ev-time-wrap"><input type="time" id="cef-bitis" class="form-control" value="' + escapeHtml(bitisSaat) + '"><button type="button" class="cal-ev-now-btn" data-now-target="cef-bitis" title="Şu anki saati yaz">⏱</button></div></div>' +
+        '<div class="cal-ev-form-row cal-ev-time-field" style="display:' + (isMultiDay ? 'none' : '') + ';"><label for="cef-saat">Başlangıç Saati</label><div class="cal-ev-time-wrap"><input type="time" id="cef-saat" class="form-control" value="' + escapeHtml(saat) + '"><button type="button" class="cal-ev-now-btn" data-now-target="cef-saat" title="Şu anki saati yaz">⏱</button></div></div>' +
+        '<div class="cal-ev-form-row cal-ev-time-field" style="display:' + (isMultiDay ? 'none' : '') + ';"><label for="cef-bitis">Bitiş Saati</label><div class="cal-ev-time-wrap"><input type="time" id="cef-bitis" class="form-control" value="' + escapeHtml(bitisSaat) + '"><button type="button" class="cal-ev-now-btn" data-now-target="cef-bitis" title="Şu anki saati yaz">⏱</button></div></div>' +
         '<div class="cal-ev-form-row cal-ev-date" id="cef-bitisTarihiWrap" style="display:' + (isMultiDay ? '' : 'none') + ';"><label for="cef-bitisTarihi">Bitiş Tarihi</label><input type="date" id="cef-bitisTarihi" class="form-control" value="' + escapeHtml(bitisTarihi) + '"></div>' +
       '</div>' +
       '<div class="cal-ev-form-row"><label for="cef-yer">Yer / Mekân</label><input type="text" id="cef-yer" class="form-control" value="' + escapeHtml(ev ? ev.yer : '') + '" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>' +
@@ -1458,7 +1458,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     const t = e.target;
     if (t.id === 'cef-cokgunlu') {
       const on = t.checked;
-      bodyEl.querySelectorAll('.cal-ev-datetime-row .cal-ev-time').forEach((el) => { el.style.display = on ? 'none' : ''; });
+      bodyEl.querySelectorAll('.cal-ev-datetime-row .cal-ev-time-field').forEach((el) => { el.style.display = on ? 'none' : ''; });
       const wrap = bodyEl.querySelector('#cef-bitisTarihiWrap');
       if (wrap) { wrap.style.display = on ? '' : 'none'; }
       if (on) {

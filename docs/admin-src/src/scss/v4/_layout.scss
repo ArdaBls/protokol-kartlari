@@ -74,6 +74,9 @@
   gap: 10px;
   border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
+  // <a> artık logo/marka alanı -- ana ekrana (index.html) götürüyor, link
+  // varsayılan alt çizgi/renk mirasını kırmasın.
+  text-decoration: none;
 }
 .brand-icon {
   width: 28px; height: 28px;

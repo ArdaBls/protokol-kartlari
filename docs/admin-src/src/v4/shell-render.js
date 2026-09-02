@@ -12,21 +12,19 @@ export const NAV = [
   {
     label: 'Genel',
     items: [
-      {
-        text: 'Panolar', icon: 'dashboard',
-        children: [
-          { key: 'dashboard',   href: 'index.html',  text: 'Operasyonlar' },
-          { key: 'dashboard-2', href: 'analitik.html', text: 'Analitik' },
-          { key: 'dashboard-4', href: 'sistem-durumu.html', text: 'Sistem durumu' },
-          // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası, protokol.html
-          // (ana sayfadaki gerçek, halka açık protokol kartları sayfası -- KENDİSİ HİÇ
-          // DEĞİŞMEDİ) buradan erişilebilir olmalı. Kök-domain'e göre MUTLAK yol (/protokol.html)
-          // kullanılıyor; her iki sayfa da artık aynı kökte yayınlansa da mutlak yol zararsız
-          // ve niyeti daha açık ifade ediyor. Yeni sekmede açılır: editör admin panelindeki
-          // yerini kaybetmeden ana siteye göz atabilsin.
-          { key: 'protokol-kartlari', href: '/protokol.html', text: 'Protokol Kartları', target: '_blank' }
-        ]
-      },
+      // Kullanıcı isteği: "Panolar" akordeon sekmesi kaldırıldı, içindekiler
+      // düz (tek tıkla açılan) sekmeler olarak yan yana kondu -- Operasyonlar
+      // (index.html, ana ekran) en üstte.
+      { key: 'dashboard',   href: 'index.html',  text: 'Operasyonlar', icon: 'dashboard' },
+      { key: 'dashboard-2', href: 'analitik.html', text: 'Analitik', icon: 'charts' },
+      { key: 'dashboard-4', href: 'sistem-durumu.html', text: 'Sistem durumu', icon: 'layout' },
+      // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası, protokol.html
+      // (ana sayfadaki gerçek, halka açık protokol kartları sayfası -- KENDİSİ HİÇ
+      // DEĞİŞMEDİ) buradan erişilebilir olmalı. Kök-domain'e göre MUTLAK yol (/protokol.html)
+      // kullanılıyor; her iki sayfa da artık aynı kökte yayınlansa da mutlak yol zararsız
+      // ve niyeti daha açık ifade ediyor. Yeni sekmede açılır: editör admin panelindeki
+      // yerini kaybetmeden ana siteye göz atabilsin.
+      { key: 'protokol-kartlari', href: '/protokol.html', text: 'Protokol Kartları', icon: 'files', target: '_blank' },
       { key: 'calendar', href: 'takvim.html', text: 'Takvim', icon: 'calendar' },
       { key: 'map',      href: 'harita.html',      text: 'Harita', icon: 'map' }
     ]
@@ -152,10 +150,10 @@ export function renderSidebar(activeKey) {
 
   return `
     <aside class="sidebar" aria-label="Primary navigation">
-      <div class="sidebar-brand">
+      <a class="sidebar-brand" href="index.html">
         <img class="brand-icon" src="../images/favicon.png" alt="">
         <div class="brand-name">Protokol</div>
-      </div>
+      </a>
       <nav class="sidebar-nav">${groups}</nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
