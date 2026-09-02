@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|projects.html > Haber detayı">
@@ -59,6 +61,9 @@ function setMessage(title, body) {
   `;
 }
 
+let canWrite = false;
+let ckEditorInstance = null;
+
 function render(id, e) {
   const durum = normalizeDurum(e.durum);
   const yazanlar = parseNameList(e.haberYazanlari);
@@ -82,8 +87,15 @@ function render(id, e) {
     <div class="row col-8-4">
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
-          <div class="card-header"><div class="card-title">Haber metni</div></div>
-          <div class="card-body" style="font-size:13px;color:var(--text-secondary);line-height:1.7;white-space:pre-wrap">${e.haberMetni ? escapeHtml(e.haberMetni) : '<span style="color:var(--text-muted)">Bu etkinlik için henüz haber metni girilmemiş.</span>'}</div>
+          <div class="card-header">
+            <div class="card-title">Haber metni</div>
+            ${canWrite ? '<button type="button" class="btn btn-primary" id="haberSaveBtn" style="display:none">Kaydet</button>' : ''}
+          </div>
+          <div class="card-body">
+            ${canWrite
+              ? `<div id="haberEditor">${e.haberMetni || ''}</div>`
+              : `<div style="font-size:13px;color:var(--text-secondary);line-height:1.7">${e.haberMetni || '<span style="color:var(--text-muted)">Bu etkinlik için henüz haber metni girilmemiş.</span>'}</div>`}
+          </div>
         </div>
       </div>
 
@@ -114,12 +126,42 @@ function render(id, e) {
       </div>
     </div>
   `;
+
+  if (canWrite) {
+    const saveBtn = document.getElementById('haberSaveBtn');
+    ClassicEditor.create(document.getElementById('haberEditor'), {
+      toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'blockQuote', 'undo', 'redo']
+    }).then((editor) => {
+      ckEditorInstance = editor;
+      const original = editor.getData();
+      const updateSaveVisibility = () => { saveBtn.style.display = editor.getData() === original ? 'none' : ''; };
+      editor.model.document.on('change:data', updateSaveVisibility);
+      saveBtn.addEventListener('click', () => {
+        saveBtn.disabled = true; saveBtn.textContent = 'Kaydediliyor…';
+        const html = editor.getData();
+        database.ref('etkinlikler/' + id).update({ haberMetni: html, guncellemeTs: Date.now() }).then(() => {
+          database.ref('logs/etkinlik').push({
+            action: (e.ad || '(adsız)') + ' etkinliğinin haber metni güncellendi',
+            by: currentUserName || (firebase.auth().currentUser && firebase.auth().currentUser.email) || '',
+            ts: Date.now()
+          });
+          saveBtn.textContent = 'Kaydedildi ✓';
+          setTimeout(() => { saveBtn.style.display = 'none'; saveBtn.disabled = false; saveBtn.textContent = 'Kaydet'; }, 1400);
+        }).catch((err) => {
+          console.error('Haber metni kaydedilemedi:', err);
+          saveBtn.disabled = false; saveBtn.textContent = 'Kaydet';
+          alert('Kaydedilemedi, tekrar deneyin.');
+        });
+      });
+    }).catch((err) => { console.error('CKEditor başlatılamadı:', err); });
+  }
 }
 
+let currentUserName = '';
 const id = new URLSearchParams(location.search).get('id');
-if (!id) {
-  setMessage('Haber detayı', 'Bir etkinlik seçilmedi. Tüm haberler sayfasından bir habere tıklayın.');
-} else {
+
+function loadEvent() {
+  if (!id) { setMessage('Haber detayı', 'Bir etkinlik seçilmedi. Tüm haberler sayfasından bir habere tıklayın.'); return; }
   database.ref('etkinlikler/' + id).once('value').then((snap) => {
     const e = snap.val();
     if (!e) { setMessage('Haber bulunamadı', 'Bu etkinlik silinmiş veya artık mevcut değil.'); return; }
@@ -129,6 +171,16 @@ if (!id) {
     setMessage('Haber detayı', 'Yüklenemedi.');
   });
 }
+
+firebase.auth().onAuthStateChanged((user) => {
+  if (!user) { canWrite = false; loadEvent(); return; }
+  database.ref('users/' + user.uid).once('value').then((snap) => {
+    const u = snap.val() || {};
+    canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+    currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
+    loadEvent();
+  }).catch(() => { canWrite = false; loadEvent(); });
+});
 </script>
 
 </body>
