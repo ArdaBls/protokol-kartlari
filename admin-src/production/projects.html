@@ -70,6 +70,20 @@ function fmtTarih(key) {
   return d && m && y ? `${d}.${m}.${y}` : key;
 }
 
+// Sıralama anahtarı. olusturmaTs alanı sonradan eklendiği için ESKİ kayıtlarda yok; düz
+// `olusturmaTs || 0` kullanıldığında bu kayıtların hepsi 0 alıp listenin en dibine düşüyor
+// VE kendi aralarında eskiden-yeniye diziliyordu -- "en son eklenen en üstte" niyetinin tam
+// tersi. Seçilen çözüm: damga yoksa etkinlik `tarih`ine düşmek. İkisi de ms epoch olduğu için
+// aynı ölçekte karşılaştırılabiliyor ve damgasız eski kayıtlar dibe yığılmak yerine kendi
+// dönemlerine, doğru sırada yerleşiyor. Hiçbiri yoksa 0 (en sonda) kalır.
+function sortTs(e) {
+  if (e && Number.isFinite(Number(e.olusturmaTs)) && Number(e.olusturmaTs) > 0) { return Number(e.olusturmaTs); }
+  const a = String((e && e.tarih) || '').split('-');
+  if (a.length !== 3) { return 0; }
+  const t = new Date(Number(a[0]), Number(a[1]) - 1, Number(a[2])).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 let NEWS = [];
 let filterText = '';
 let canWrite = false;
@@ -80,17 +94,24 @@ function setState(html) {
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
 }
 
+// haberMetni zengin metin editöründen gelen HTML -- hem kart önizlemesi hem de arama
+// aynı düz metni kullanmalı. Aksi hâlde filtre ham HTML'de arayıp "span", "strong",
+// "href" gibi ekranda GÖRÜNMEYEN kelimelerle eşleşiyordu.
+const stripTags = (h) => String(h || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+// toLowerCase() Türkçe'de yanlış: 'İ'.toLowerCase() birleşen noktalı "i̇" üretiyor, bu yüzden
+// "İletişim" araması "iletişim" ile eşleşmiyordu. Karşılaştırmanın İKİ tarafı da tr yerel
+// ayarıyla küçültülmeli, yoksa sorun taraf değiştirir.
+const trLower = (s) => String(s || '').toLocaleLowerCase('tr');
+
 function render() {
-  const q = filterText.toLowerCase();
-  const items = NEWS.filter(([, e]) => !q || (e.ad || '').toLowerCase().includes(q) || (e.haberMetni || '').toLowerCase().includes(q));
+  const q = trLower(filterText).trim();
+  const items = NEWS.filter(([, e]) => !q || trLower(e.ad).includes(q) || trLower(stripTags(e.haberMetni)).includes(q));
   if (!items.length) { setState('Eşleşen haber yok.'); return; }
 
   grid.innerHTML = items.map(([id, e]) => {
     const durum = normalizeDurum(e.durum);
     const writers = parseNameList(e.haberYazanlari).join(', ') || '—';
-    // haberMetni artık CKEditor'ün ürettiği HTML -- kart önizlemesinde etiketler
-    // olmadan düz metin gösterilir.
-    const plain = String(e.haberMetni || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const plain = stripTags(e.haberMetni);
     const excerpt = plain.slice(0, 140);
     return `
       <a class="card" href="project_detail.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit;position:relative">
@@ -123,11 +144,13 @@ grid.addEventListener('click', (e) => {
     // Log şeması ana siteyle (app.js executeEventDelete) ve notifications.html'in okuduğu
     // alanlarla BİREBİR aynı olmalı: notifications.html tarihi `timestamp`'ten okuyup ona
     // göre sıralıyor -- `ts` yazılırsa kayıt 01.01.1970 görünüp listenin en dibine düşer.
+    // Log yazımı silme işleminin başarısını etkilemez, ama .catch()'siz bırakılırsa
+    // (ör. logs/ kuralı reddederse) yakalanmamış promise reddi olarak konsola düşer.
     database.ref('logs/etkinlik').push({
       by: currentUserName, email: currentUserEmail,
       action: name + ' etkinliği silindi', target: name,
       timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
+    }).catch((err) => console.error('Silme logu yazılamadı:', err));
     NEWS = NEWS.filter(([nid]) => nid !== id);
     render();
   }).catch((err) => {
@@ -146,7 +169,7 @@ function loadNews() {
     // tarihine değil EKLENME zamanına (olusturmaTs) göre -- en son eklenen en üstte.
     NEWS = Object.entries(events)
       .filter(([, e]) => e && e.ad)
-      .sort((a, b) => (b[1].olusturmaTs || 0) - (a[1].olusturmaTs || 0));
+      .sort((a, b) => sortTs(b[1]) - sortTs(a[1]));
     if (!NEWS.length) { setState('Henüz etkinlik yok.'); return; }
     render();
   }).catch((err) => {

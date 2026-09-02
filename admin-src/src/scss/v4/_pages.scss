@@ -771,7 +771,15 @@
 // tam otursun (mobilde zaten sorun yoktu, bu sadece masaüstü/geniş ekran içindi).
 // SADECE harita sayfasına özel (data-page="map") -- diğer sayfalardaki normal
 // sayfa kaydırması etkilenmez.
-@media (min-width: 701px) {
+// Eşikler: 1101px, `.col-8-4`'ün İKİ sütuna döndüğü noktadır (_layout.scss'te
+// `@media (max-width:1100px)` grid'i tek sütuna indiriyor). Eski 701px eşiğiyle 701-1100px
+// arasında (iPad yatay 1024x768, 1024px'lik masaüstü penceresi) harita kartı ve birim listesi
+// kartı ALT ALTA geliyor ama `height:100vh; overflow:hidden` kutusuna sıkışıyordu: ikinci kart
+// tamamen kırpılıyor, kaydırma da olmadığı için hiç erişilemiyordu.
+// min-height:700px ise kısa yatay ekranlarda (ör. 1280x600) haritanın kendisinin kırpılmasını
+// engeller -- dikeyde yer yoksa sayfa normal şekilde kayabilmeli.
+// Yani kilit yalnızca iki kart gerçekten yan yanayken VE dikeyde sığıyorken uygulanır.
+@media (min-width: 1101px) and (min-height: 700px) {
   body[data-page="map"] .main { height: 100vh; overflow: hidden; }
   body[data-page="map"] .page-wrapper { overflow: hidden; }
 }

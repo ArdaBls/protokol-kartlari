@@ -173,10 +173,24 @@ function calDayCount() {
 // vermesi istendi (bkz. görev tanımı madde 1); debounce'lu, sık resize
 // event'lerinde renderCalendar()'ı gereksiz yere onlarca kez tetiklemez.
 let calResizeDebounceTimer = null;
+let calLastDayCount = null;
 function calOnWindowResize() {
   if (calView !== 'week' && calView !== 'day') { return; }
   clearTimeout(calResizeDebounceTimer);
-  calResizeDebounceTimer = setTimeout(() => { renderCalendar(); }, 150);
+  calResizeDebounceTimer = setTimeout(() => {
+    // ESKİDEN her resize KOŞULSUZ renderCalendar() çağırıyordu. renderCalendar()'ın ilk işi
+    // calCancelPendingCreate() olduğu için: mobilde parmakla saat aralığı seçtikten sonra
+    // tarayıcı URL çubuğunun gizlenip görünmesi bile bir resize üretip bekleyen
+    // "Oluştur/Vazgeç" onayını ve ghost'u sessizce siliyordu (ayrıca render tüm Sortable
+    // örneklerini destroy ettiği için süren bir sürükleme de bozuluyordu).
+    // Artık yalnızca gösterilecek GÜN SAYISI gerçekten değiştiyse ve bekleyen bir onay
+    // yokken yeniden çizilir -- yeniden çizmenin tek amacı zaten buydu.
+    if (calPendingCreate) { return; }
+    const n = calDayCount();
+    if (n === calLastDayCount) { return; }
+    calLastDayCount = n;
+    renderCalendar();
+  }, 150);
 }
 function calVisibleWeekDays() {
   const n = calDayCount();
@@ -202,7 +216,12 @@ function eventList() {
   });
   return out;
 }
-function visibleEvents() { return eventList().filter((e) => e.durum !== 'iptal' || calView === 'list'); }
+// ESKİDEN burada "iptal" durumundakiler gizleniyordu (liste görünümü için bir istisnayla),
+// ama renderListView o istisnayı ikinci bir filtreyle geri kapatıyordu -- sonuç: bir etkinliği
+// İptal yapan editör onu takvimde HİÇBİR görünümde bir daha bulamıyordu (geri açmak, tarihini
+// görmek, silmek imkânsızdı). Ana sitede (app.js calVisibleEvents) böyle bir gizleme YOK;
+// iptaller görünür kalır, sadece .cancelled stiliyle (üstü çizili) ayırt edilir.
+function visibleEvents() { return eventList(); }
 function eventsOn(dateKey) { return visibleEvents().filter((e) => e.tarih === dateKey); }
 
 // ── Firebase read/write ──
@@ -270,18 +289,32 @@ async function deleteEvent(id) {
 }
 
 // Basit alan-bazlı değişiklik özeti — ana sitedeki describeEventChanges'in çekirdek alan alt kümesi.
-const FIELD_LABELS = { ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati', bitisSaat: 'Bitiş Saati', yer: 'Yer / Mekân', birim: 'Düzenleyen Birim', not: 'Not', locked: 'Kilit' };
+const FIELD_LABELS = {
+  ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati',
+  bitisSaat: 'Bitiş Saati', bitisTarihi: 'Bitiş Tarihi (çok günlü)', yer: 'Yer / Mekân',
+  birim: 'Düzenleyen Birim', planlayan: 'Planlayan / Sorumlu', gorevli: 'Basın Görevlisi',
+  haberYazanlari: 'Haberi Yazan(lar)', haberKaynagi: 'Haber Kaynağı', not: 'Not', locked: 'Kilit'
+};
+// Tarih alanları logda ham YYYY-MM-DD yerine ana sitedeki gibi (app.js fmtTrDate) okunur
+// biçimde yazılır -- log satırını insan okuyacak.
+function logDate(v) { const d = parseKey(v); return d ? (d.getDate() + ' ' + CAL_MONTHS[d.getMonth()] + ' ' + d.getFullYear()) : (v || '(boş)'); }
 function describeChanges(oldE, newE) {
   oldE = oldE || {}; newE = newE || {};
   const changes = [];
   if ((oldE.tur || 'diger') !== (newE.tur || 'diger')) { changes.push(FIELD_LABELS.tur + ': ' + evType(oldE.tur).ad + ' → ' + evType(newE.tur).ad); }
   if ((oldE.durum || 'planlandi') !== (newE.durum || 'planlandi')) { changes.push(FIELD_LABELS.durum + ': ' + evStatus(oldE.durum).ad + ' → ' + evStatus(newE.durum).ad); }
-  ['ad', 'tarih', 'saat', 'bitisSaat', 'yer', 'birim', 'not'].forEach((k) => {
+  ['tarih', 'bitisTarihi'].forEach((k) => {
+    const o = (oldE[k] === null || oldE[k] === undefined) ? '' : String(oldE[k]).trim();
+    const n = (newE[k] === null || newE[k] === undefined) ? '' : String(newE[k]).trim();
+    if (o !== n) { changes.push(FIELD_LABELS[k] + ': ' + (o ? logDate(o) : '(boş)') + ' → ' + (n ? logDate(n) : '(boş)')); }
+  });
+  ['ad', 'saat', 'bitisSaat', 'yer', 'birim', 'planlayan', 'gorevli', 'haberYazanlari', 'haberKaynagi', 'not'].forEach((k) => {
     const o = (oldE[k] === null || oldE[k] === undefined) ? '' : String(oldE[k]).trim();
     const n = (newE[k] === null || newE[k] === undefined) ? '' : String(newE[k]).trim();
     if (o !== n) { changes.push(FIELD_LABELS[k] + ': ' + (o || '(boş)') + ' → ' + (n || '(boş)')); }
   });
-  if (!!oldE.locked !== !!newE.locked) { changes.push(FIELD_LABELS.locked + ': ' + (newE.locked ? 'açıldı 🔒' : 'kaldırıldı')); }
+  // ESKİDEN bu metin TERSTİ: etkinlik KİLİTLENDİĞİNDE loga "Kilit: açıldı" yazıyordu.
+  if (!!oldE.locked !== !!newE.locked) { changes.push(FIELD_LABELS.locked + ': ' + (newE.locked ? '🔒 kilitlendi' : 'kilit açıldı')); }
   return changes;
 }
 function evLogName(s) { return String(s || 'Etkinlik').split(' · ').join(' - '); }
@@ -376,6 +409,8 @@ function layoutMultiDayRow(bars) {
 
 function renderCalendar() {
   calCancelPendingCreate();
+  // calOnWindowResize "gün sayısı değişti mi" karşılaştırmasını buradaki değere göre yapar.
+  calLastDayCount = calDayCount();
   sortableInstances.forEach((inst) => inst.destroy()); sortableInstances = [];
   renderTopbar();
   const body = document.getElementById('calMainBody'); if (!body) { return; }
@@ -470,7 +505,11 @@ function renderWeekView(body) {
     const evs = eventsOn(k).filter((e) => hmToMin(e.saat) === null && !(e.bitisTarihi && e.bitisTarihi !== e.tarih));
     allday += '<div class="cal-allday-col" data-date="' + k + '">' + evs.map((e) => {
       const ty = evType(e.tur);
-      return '<button type="button" class="cal-allday-chip' + ((e.durum === 'tamamlandi') ? ' done' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="background:' + ty.renk + '; border-left-color:' + ty.renk + '; color:#fff;"><span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span></button>';
+      // Rozet + kilit ESKİDEN burada YOKTU (ana sitede var, app.js:4646): saatsiz (tüm gün)
+      // bir etkinlik SADECE bu çip olarak çizildiği için, ana sitede kilitlenmiş bir tüm-gün
+      // etkinliğinin kilidi admin panelinden açılamıyordu -- sürüklenmiyordu (calSortableFilter
+      // engelliyor) ama kilidi görünmediği için nedeni de anlaşılmıyordu.
+      return '<button type="button" class="cal-allday-chip' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="background:' + ty.renk + '; border-left-color:' + ty.renk + '; color:#fff;"><span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) + '</button>';
     }).join('') + '</div>';
   });
   allday += '</div>';
@@ -500,7 +539,11 @@ function renderWeekView(body) {
         'style="' + calBlockStyle(e) + ' top:' + top + 'px; height:' + hgt + 'px; left:calc(' + left + '% + 2px); width:calc(' + w + '% - 4px);">' +
         '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' + badgeHtml(e) + lockIconHtml(e) +
         '<span class="cal-status-bar" style="background:' + stBar + ';"></span>' +
-        (e.locked ? '' :
+        // Kollar yalnızca GERÇEKTEN boyutlandırabilecek kullanıcıya çizilir: yetkisiz
+        // kullanıcı eskiden ns-resize imleci ve hover "grip" ipucu görüyor, sürükleyince
+        // hiçbir şey olmuyordu (calStartResizeGesture canWrite'ta sessizce dönüyor).
+        // Ana site aynı şeyi .edit-only + body.is-readonly CSS'iyle yapıyor.
+        ((e.locked || !canWrite) ? '' :
         '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span>' +
         '<span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span>') + '</button>';
     });
@@ -524,6 +567,21 @@ function renderWeekView(body) {
   const isFreshView = scrollKey !== calWeekScrollKey;
   calWeekScrollKey = scrollKey;
   const sc = document.getElementById('calTgScroll');
+  // Başlık satırı ve tüm-gün şeridi kaydırma çubuğunun DIŞINDA kalıyor, saat ızgarası ise
+  // onun İÇİNDE -- telafi edilmezse (klasik kaydırma çubuğu kullanan masaüstü tarayıcılarda)
+  // gün başlıkları sütunlardan çubuk genişliği kadar kayıyor. Ana sitedeki app.js:4738-4744
+  // ile aynı telafi; çubuk kaplamalı (overlay) olan platformlarda sbw=0 çıkar, hiçbir şey olmaz.
+  if (sc) {
+    const sbw = sc.offsetWidth - sc.clientWidth;
+    if (sbw > 0) {
+      const headEl = body.querySelector('.cal-tg-head');
+      const alldayEl = body.querySelector('.cal-allday');
+      const multidayEl = body.querySelector('.cal-allday-multiday');
+      if (headEl) { headEl.style.paddingRight = sbw + 'px'; }
+      if (alldayEl) { alldayEl.style.paddingRight = sbw + 'px'; }
+      if (multidayEl) { multidayEl.style.paddingRight = sbw + 'px'; }
+    }
+  }
   if (sc) {
     if (!isFreshView && calWeekScrollTopPreserved !== null) {
       sc.scrollTop = calWeekScrollTopPreserved;
@@ -607,7 +665,7 @@ function renderYearView(body) {
 
 function renderListView(body) {
   const today = todayDate();
-  const evs = visibleEvents().filter((e) => e.durum !== 'iptal');
+  const evs = visibleEvents();
   if (!evs.length) { body.innerHTML = '<div class="cal-list-wrap"><div class="cal-empty">Etkinlik yok.</div></div>'; return; }
   let html = '<div class="cal-list">'; let lastDay = null;
   evs.forEach((e) => {
@@ -903,12 +961,18 @@ function calStartResizeGesture(e) {
 function calStartMultiDayGesture(e) {
   const bar = e.target.closest('.cal-multiday-bar');
   if (!bar) { return; }
+  // Kilit simgesine dokunmak bu jesti başlatmamalı: aksi halde setPointerCapture ile
+  // dokunuş bara kilitlenip kilit ikonunun kendi tıklaması kaybolabiliyordu.
+  if (e.target.closest('.cal-lock-ico')) { return; }
   e.stopPropagation();
   const isHandleL = !!e.target.closest('.cal-multiday-handle-l');
   const isHandleR = !!e.target.closest('.cal-multiday-handle-r');
   const id = bar.dataset.evid;
   const ev = id ? EVENTS[id] : null;
-  if (!ev || !ev.bitisTarihi || !canWrite || ev.locked) { return; }
+  if (!ev || !ev.bitisTarihi || !canWrite) { return; }
+  // Kilitliyken ESKİDEN sessizce dönüyordu -- kullanıcı çubuğu sürüklemeye çalışıp
+  // hiçbir tepki alamıyor, nedenini anlamıyordu (ana site burada uyarı gösteriyor).
+  if (ev.locked) { showToast('Bu etkinlik kilitli, taşınamaz/süresi değiştirilemez. Önce kilidi açın.', { variant: 'error' }); return; }
   const container = bar.closest('.cal-allday-multiday');
   if (!container) { return; }
   const days = calVisibleWeekDays();
@@ -1089,7 +1153,11 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
     '</form>';
 
   const actions = [];
-  if (id) {
+  // "Sil" ESKİDEN sadece `id` varlığına bağlıydı, canWrite'a değil -- girişsiz ziyaretçi de
+  // kırmızı Sil butonunu görüp onay penceresine kadar gidiyor, ancak en sonda "yetkiniz yok"
+  // toast'ı alıyordu. (applyReadonly yalnızca form alanlarını disable ediyor, footer
+  // butonlarına dokunmuyor.)
+  if (id && canWrite) {
     actions.push({ label: 'Sil', variant: 'danger', closeOnAction: false, action: ({ close }) => {
       if (!window.confirm('Bu etkinliği silmek istediğinize emin misiniz?')) { return false; }
       deleteEvent(id); close(); return false;
@@ -1166,7 +1234,12 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
   // çizildiği için bu, her çizimden sonra tekrar uygulanmalı.
   const applyReadonly = () => {
     if (canWrite) { return; }
-    bodyEl.querySelectorAll('input, select, textarea').forEach((el) => { el.disabled = true; });
+    // Arama kutuları HARİÇ: yetkisiz kullanıcı da katılımcı/basın görevlisi listesinde
+    // arama yapıp kimin seçili olduğunu görebilmeli -- arama veri değiştirmez.
+    bodyEl.querySelectorAll('input, select, textarea').forEach((el) => {
+      if (el.classList.contains('cal-ev-att-search')) { return; }
+      el.disabled = true;
+    });
   };
 
   // Pickerlar önce (boş/eski önbellekle) render edilir, havuzlar tazelendikçe (bu modal hâlâ

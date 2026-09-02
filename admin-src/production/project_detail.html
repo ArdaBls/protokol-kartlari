@@ -15,6 +15,11 @@
      jsDelivr üzerinden açık kaynak (GPL) TinyMCE dağıtımı -- Tiny Cloud API anahtarı
      GEREKMİYOR, "bu alan adı kayıtlı değil" uyarı çubuğu göstermez. -->
 <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
+<!-- DOMPurify: haberMetni TinyMCE'nin ürettiği HTML olduğu için escape EDİLEMEZ (biçimlendirme
+     kaybolur), ama `etkinlikler` düğümüne herhangi bir editor rolü yazabildiğinden depolanmış
+     XSS yüzeyi var. Ham HTML basılan her yerde sanitize etmek için TinyMCE ile aynı desende
+     (jsDelivr, sürüm sabitlenmiş major) yüklenir. -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|projects.html > Haber detayı">
@@ -48,10 +53,36 @@ const root = document.getElementById('detail-root');
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const parseNameList = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
 
+// escapeHtml `javascript:` şemasını ENGELLEMEZ: escape edilmiş bir "javascript:alert(1)"
+// href olarak hâlâ çalışır ve `arsiv` alanına bunu yazan bir editör, sayfayı açan kişinin
+// oturumunda kod çalıştırabilir. Bu yüzden href'e basmadan önce şema beyaz listeden geçer
+// (calendar.js'teki safeLinkUrl ile birebir aynı mantık -- iki yerde aynı davranış olsun diye).
+function safeLinkUrl(u) { const s = String(u === undefined || u === null ? '' : u).trim(); return /^https?:\/\//i.test(s) ? s : ''; }
+
+// haberMetni TinyMCE HTML'i olduğu için escape edilemez; sanitize edilir. DOMPurify CDN'den
+// gelmemiş olabilir (ağ hatası/engelleme) -- bu durumda sessizce ham HTML basmak yerine
+// GÜVENLİ tarafa düşüp escape ediyoruz: biçimlendirme kaybolur ama XSS yüzeyi açılmaz.
+const sanitizeHtml = (h) => (window.DOMPurify ? window.DOMPurify.sanitize(String(h == null ? '' : h)) : escapeHtml(h == null ? '' : h));
+
 function fmtTarih(key) {
   if (!key) return '';
   const [y, m, d] = key.split('-');
   return d && m && y ? `${d}.${m}.${y}` : key;
+}
+
+// calendar.js'teki parseKey ile birebir aynı doğrulama: takvim `eventList()` içinde
+// `if (!e.tarih) continue;` dediği ve tarihleri YYYY-MM-DD anahtarı olarak eşlediği için,
+// buradan geçersiz/boş bir tarih yazılırsa etkinlik takvimin HİÇBİR görünümünde çıkmaz
+// ("hayalet kayıt"). Yıl/ay/gün geri okunduğunda birebir eşleşmeli -- 2025-02-31 gibi
+// takvimsel olarak var olmayan tarihler Date tarafından kaydırıldığı için böyle yakalanır.
+function isValidDateKey(s) {
+  const a = String(s || '').split('-');
+  if (a.length !== 3) { return false; }
+  const y = Number(a[0]), m = Number(a[1]), day = Number(a[2]);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) { return false; }
+  const d = new Date(y, m - 1, day);
+  if (isNaN(d.getTime())) { return false; }
+  return d.getFullYear() === y && d.getMonth() === m - 1 && d.getDate() === day;
 }
 
 // Gelişmiş editör: TinyMCE (kullanıcı isteği -- CKEditor yerine, editör deneyimi
@@ -86,12 +117,25 @@ function setMessage(title, body) {
 }
 
 let canWrite = false;
-let ckEditorInstance = null;
+let editorInstance = null;
 
 function render(id, e) {
+  // render() birden fazla kez çalışabiliyor (ör. sayfa açıkken oturum durumu değişince
+  // onAuthStateChanged -> loadEvent() -> render()). Aşağıdaki root.innerHTML ataması eski
+  // #haberEditor'ü DOM'dan söküyor ama TinyMCE örneği bellekte kalıyor; aynı id'ye ikinci
+  // init kopuk (detached) bir örnek bırakıp getContent()'i yanlış editörden okutabiliyor.
+  // Bu yüzden DOM'u ezmeden ÖNCE varsa mevcut örneği kaldırıyoruz. TinyMCE CDN'den
+  // yüklenemediyse window.tinymce tanımsız olabilir -- savunmacı davranıyoruz.
+  if (window.tinymce) { try { window.tinymce.remove('#haberEditor'); } catch (err) { console.error('TinyMCE temizlenemedi:', err); } }
+  editorInstance = null;
+
   const durum = normalizeDurum(e.durum);
   const yazanlar = parseNameList(e.haberYazanlari);
   const gorevliler = parseNameList(e.gorevli);
+  // Şeması güvenli olmayan (http/https dışı) bir arşiv bağlantısı hiç render edilmez --
+  // "tıklanabilir ama zararsız" bir buton bırakmak yerine butonu tamamen gizliyoruz ki
+  // kullanıcı bozuk/kötü niyetli bir bağlantıyı meşru sanıp tıklamasın.
+  const arsivUrl = safeLinkUrl(e.arsiv);
   document.title = (e.ad || 'Haber detayı') + ' | Protokol';
 
   root.innerHTML = `
@@ -103,7 +147,7 @@ function render(id, e) {
         </div>
         <div class="page-actions">
           <span class="status ${DURUM_CLS[durum] || ''}" style="font-size:12.5px">${DURUM_LABEL[durum] || durum}</span>
-          ${e.arsiv ? `<a class="btn btn-outline" href="${escapeHtml(e.arsiv)}" target="_blank" rel="noopener">Arşiv bağlantısı</a>` : ''}
+          ${arsivUrl ? `<a class="btn btn-outline" href="${escapeHtml(arsivUrl)}" target="_blank" rel="noopener">Arşiv bağlantısı</a>` : ''}
         </div>
       </div>
     </div>
@@ -113,12 +157,15 @@ function render(id, e) {
         <div class="card">
           <div class="card-header">
             <div class="card-title">Haber metni</div>
-            ${canWrite ? '<button type="button" class="btn btn-primary" id="haberSaveBtn" style="display:none">Kaydet</button>' : ''}
+            ${canWrite ? `<div style="display:flex;align-items:center;gap:10px">
+              <span id="haberSaveErr" role="alert" style="display:none;font-size:12.5px;color:var(--danger,#e5484d)"></span>
+              <button type="button" class="btn btn-primary" id="haberSaveBtn" style="display:none">Kaydet</button>
+            </div>` : ''}
           </div>
           <div class="card-body">
             ${canWrite
               ? `<textarea id="haberEditor">${escapeHtml(e.haberMetni || '')}</textarea>`
-              : `<div style="font-size:13px;color:var(--text-secondary);line-height:1.7">${e.haberMetni || '<span style="color:var(--text-muted)">Bu etkinlik için henüz haber metni girilmemiş.</span>'}</div>`}
+              : `<div style="font-size:13px;color:var(--text-secondary);line-height:1.7">${e.haberMetni ? sanitizeHtml(e.haberMetni) : '<span style="color:var(--text-muted)">Bu etkinlik için henüz haber metni girilmemiş.</span>'}</div>`}
           </div>
         </div>
       </div>
@@ -169,8 +216,17 @@ function render(id, e) {
     const fieldIds = ['ed-tarih', 'ed-yer', 'ed-birim', 'ed-planlayan', 'ed-haberYazanlari', 'ed-gorevli'];
     const fieldEls = fieldIds.map((fid) => document.getElementById(fid));
 
+    const saveErr = document.getElementById('haberSaveErr');
+    // Sayfada showToast yok; hata mesajı Kaydet butonunun yanında satır içi gösteriliyor
+    // (alert() kaydetme akışını kesip odak kaybettiriyor, kullanıcı hatalı alana dönemiyor).
+    const showSaveError = (msg) => {
+      if (saveErr) { saveErr.textContent = msg; saveErr.style.display = ''; }
+      else { alert(msg); }
+    };
+    const clearSaveError = () => { if (saveErr) { saveErr.textContent = ''; saveErr.style.display = 'none'; } };
+
     createHaberEditor(document.getElementById('haberEditor')).then((editor) => {
-      ckEditorInstance = editor;
+      editorInstance = editor;
       const originalHtml = editor.getContent();
       const original = { haberMetni: originalHtml };
       fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
@@ -183,16 +239,30 @@ function render(id, e) {
       fieldEls.forEach((el) => el.addEventListener('input', updateSaveVisibility));
 
       saveBtn.addEventListener('click', () => {
+        clearSaveError();
+        // Tarih YAZMADAN ÖNCE doğrulanır: kaydın tarihi zaten yoksa ve kullanıcı da
+        // girmezse eskiden tarih:'' yazılıyordu ve etkinlik takvimden tamamen kayboluyordu.
+        // Boş/geçersiz tarihle kaydetmektense hiç kaydetmemek daha az zarar verir.
+        const tarih = fieldEls[0].value || e.tarih || '';
+        if (!isValidDateKey(tarih)) {
+          showSaveError('Geçerli bir tarih girin (gg.aa.yyyy). Tarihsiz kayıt takvimde görünmez.');
+          fieldEls[0].focus();
+          saveBtn.disabled = false; saveBtn.textContent = 'Kaydet';
+          return;
+        }
         saveBtn.disabled = true; saveBtn.textContent = 'Kaydediliyor…';
         const patch = {
           haberMetni: editor.getContent(),
-          tarih: fieldEls[0].value || e.tarih || '',
+          tarih,
           yer: fieldEls[1].value.trim(),
           birim: fieldEls[2].value.trim(),
           planlayan: fieldEls[3].value.trim(),
           haberYazanlari: fieldEls[4].value.trim(),
           gorevli: fieldEls[5].value.trim(),
-          guncellemeTs: Date.now()
+          // Aynı alanın iki farklı saat kaynağıyla yazılması (istemci saati vs. sunucu saati)
+          // saati bozuk bir istemcide sıralamayı bozar; projedeki diğer tüm yazmalar
+          // (calendar.js persistEvent, app.js) sunucu damgası kullanıyor.
+          guncellemeTs: firebase.database.ServerValue.TIMESTAMP
         };
         database.ref('etkinlikler/' + id).update(patch).then(() => {
           // Log şeması ana siteyle (app.js persistEvent) ve notifications.html'in okuduğu
@@ -204,7 +274,10 @@ function render(id, e) {
             target: e.ad || '',
             timestamp: firebase.database.ServerValue.TIMESTAMP
           });
-          Object.assign(e, patch);
+          // patch.guncellemeTs bir sunucu damgası "sentinel"i (gerçek sayı değil); yerel
+          // kopyaya taşınırsa sonraki okumalarda sayı sanılıp karışıklık yaratır, bu yüzden
+          // yerel nesneye sadece gerçek değerler yazılır.
+          Object.assign(e, patch, { guncellemeTs: e.guncellemeTs });
           fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
           original.haberMetni = editor.getContent();
           saveBtn.textContent = 'Kaydedildi ✓';
