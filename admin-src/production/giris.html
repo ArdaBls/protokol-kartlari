@@ -57,7 +57,7 @@
     </form>
 
     <div class="auth-footer">
-      Hesabın yok mu? <a href="kayit-ol.html">Oluştur</a>
+      Hesabın yok mu? <a href="kayit-ol.html" id="signup-link">Oluştur</a>
     </div>
   </div>
 </div>
@@ -114,6 +114,12 @@ function safeReturnTo() {
   } catch (_e) { return 'index.html'; }
 }
 const returnTo = safeReturnTo();
+// "Hesabın yok mu?" linkine de returnTo taşınır -- ana siteden geldiyse kayıt
+// sonrası da oraya dönebilsin, zincir kayıt sayfasında kopmasın.
+const signupLink = document.getElementById('signup-link');
+if (signupLink && new URLSearchParams(location.search).get('returnTo')) {
+  signupLink.href = 'kayit-ol.html?returnTo=' + encodeURIComponent(returnTo);
+}
 
 // Zaten giriş yapılmışsa tekrar formu göstermeden hedefe yönlendir.
 auth.onAuthStateChanged((user) => {
