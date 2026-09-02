@@ -536,7 +536,14 @@
 .col-4   { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .col-3   { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .col-2   { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.col-8-4 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+// Kullanıcı isteği: col-8-4'teki TEK ara boşluk, üstteki col-3 satırının 2.
+// (sağdaki) ara boşluğuyla piksel piksel hizalansın. Basit 2fr/1fr oranı bunu
+// SAĞLAMAZ -- 2 boşluklu 3'lü ızgara ile 1 boşluklu 2'li ızgaranın fr-birimi
+// hesap payları farklı (gap sayısı farklı olduğu için). Çözüm: col-3 ile
+// AYNI 3'lü ızgarayı kullanıp ilk kartı 2 sütuna yaydırmak -- böylece
+// matematiksel olarak col-3'ün ikinci boşluğuyla birebir aynı noktaya düşer.
+.col-8-4 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.col-8-4 > :first-child { grid-column: span 2; }
 .col-4-8 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 .col-1   { grid-template-columns: minmax(0, 1fr); }
 
