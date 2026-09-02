@@ -323,31 +323,29 @@ function initPhotoCounter() {
 }
 
 // ────────────────────────
-//  Kayıtlı kullanıcı sayacı — Operasyonlar sayfası (eski sahte "Total Users")
+//  Toplam protokol sayacı — Operasyonlar sayfası (eski sahte "Total Users")
 // ────────────────────────
-function initUserCounter() {
-  const el = document.querySelector('[data-user-counter]');
+// Kullanıcı isteği: kullanıcı hesap sayısı değil, İl Protokol Sırası
+// listesindeki (ilProtokolVerileri) toplam kişi kaydı sayısı gösterilsin.
+function initProtocolCounter() {
+  const el = document.querySelector('[data-protocol-counter]');
   if (!el) {return;}
-  const subEl = document.querySelector('[data-user-counter-sub]');
+  const subEl = document.querySelector('[data-protocol-counter-sub]');
 
   if (!window.firebase) {return;}
   if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
 
-  firebase.database().ref('users').on('value', (snap) => {
-    const users = snap.val() || {};
-    const entries = Object.values(users).filter(Boolean);
-    const total = entries.length;
-    const pending = entries.filter((u) => u.role === 'pending').length;
-    el.textContent = total.toLocaleString('tr-TR');
-    if (subEl) {
-      subEl.textContent = pending > 0
-        ? (total - pending) + ' onaylı · ' + pending + ' onay bekliyor'
-        : total + ' onaylı kullanıcı';
-    }
-  }, () => {
-    // "users" düğümü sadece admin/owner'a açık (bkz. Firebase kuralı).
+  firebase.database().ref('ilProtokolVerileri').on('value', (snap) => {
+    const data = snap.val() || {};
+    const entries = Object.values(data).filter(Boolean);
+    // "aktif" filtresi, app.js'teki aynı kuralla tutarlı (pasif/silindi hariç).
+    const aktif = entries.filter((p) => p.status !== 'pasif' && p.status !== 'silindi');
+    el.textContent = aktif.length.toLocaleString('tr-TR');
+    if (subEl) {subEl.textContent = 'İl protokol sırasındaki aktif kayıt';}
+  }, (err) => {
+    console.error('Protokol sayısı yüklenemedi:', err);
     el.textContent = '—';
-    if (subEl) {subEl.textContent = 'Bu veriyi yalnızca yönetici/kurucu görebilir.';}
+    if (subEl) {subEl.textContent = 'Yüklenemedi.';}
   });
 }
 
@@ -1285,7 +1283,7 @@ const charts = {
  * the import never fires on pages without a matching element.
  * @returns {Promise<void>}
  */
-export { initPhotoCounter, initUserCounter };
+export { initPhotoCounter, initProtocolCounter };
 
 export async function initCharts() {
   const elements = document.querySelectorAll('[data-chart]');
