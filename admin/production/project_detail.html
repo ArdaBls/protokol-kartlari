@@ -11,10 +11,13 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<!-- Superbuild: kullanıcı isteği "daha detaylı/gelişmiş" bir editör -- classic build'in
-     aksine yazı tipi rengi/boyutu, hizalama, tablo, medya gömme, kaynak (HTML) görünümü,
-     bul-değiştir gibi tüm eklentileri tek pakette içerir, ayrı ayrı derleme gerektirmez. -->
-<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/super-build/ckeditor.js"></script>
+<!-- "super-build" dağıtımı CKEditor tarafından kaldırıldı (CDN'de artık yok, "editör
+     yüklenemedi" hatasının sebebi buydu) -- güncel/desteklenen yöntem, tek tek eklentileri
+     ckeditor5 ESM paketinden import edip kendi ClassicEditor'ümüzü kurmak. Import map,
+     module script'ler "ckeditor5" gibi çıplak (bare) belirteçleri çözebilsin diye <head>'de,
+     kullanan modül script'ten ÖNCE tanımlanmalı. -->
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css">
+
 <link rel="manifest" href="/admin/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -30,7 +33,10 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/admin/js/project_detail-CYvCi67K.js"></script>
+<script type="importmap">
+{ "imports": { "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.js", "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/44.1.0/" } }
+</script>
+  <script type="module" crossorigin src="/admin/js/project_detail-CnwHkLDW.js"></script>
   <link rel="modulepreload" crossorigin href="/admin/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/admin/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/admin/js/modal-C4oI3O5p.js">

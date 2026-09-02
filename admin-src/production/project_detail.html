@@ -11,10 +11,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<!-- Superbuild: kullanıcı isteği "daha detaylı/gelişmiş" bir editör -- classic build'in
-     aksine yazı tipi rengi/boyutu, hizalama, tablo, medya gömme, kaynak (HTML) görünümü,
-     bul-değiştir gibi tüm eklentileri tek pakette içerir, ayrı ayrı derleme gerektirmez. -->
-<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/super-build/ckeditor.js"></script>
+<!-- "super-build" dağıtımı CKEditor tarafından kaldırıldı (CDN'de artık yok, "editör
+     yüklenemedi" hatasının sebebi buydu) -- güncel/desteklenen yöntem, tek tek eklentileri
+     ckeditor5 ESM paketinden import edip kendi ClassicEditor'ümüzü kurmak. Import map,
+     module script'ler "ckeditor5" gibi çıplak (bare) belirteçleri çözebilsin diye <head>'de,
+     kullanan modül script'ten ÖNCE tanımlanmalı. -->
+<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css">
+<script type="importmap">
+{ "imports": { "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.js", "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/44.1.0/" } }
+</script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|projects.html > Haber detayı">
@@ -52,6 +57,53 @@ function fmtTarih(key) {
   if (!key) return '';
   const [y, m, d] = key.split('-');
   return d && m && y ? `${d}.${m}.${y}` : key;
+}
+
+// Gelişmiş editör: eklentiler ckeditor5 ESM paketinden (CDN, importmap ile) tek tek
+// import edilip kendi ClassicEditor'ümüz kuruluyor -- "super-build" hazır paketi CKEditor
+// tarafından kaldırıldığı için CDN'de artık yok ("editör yüklenemedi" hatasının sebebi
+// buydu). Bu dinamik import BAŞARISIZ olursa (ağ hatası, CDN sürüm değişikliği vb.)
+// sayfanın geri kalanı (yetki kontrolü, sağdaki alanlar, kayıt) ETKİLENMESİN diye
+// üstteki statik değil BURADA, dinamik ve try/catch içinde yapılıyor; olur da başarısız
+// olursa kanıtlanmış eski classic build CDN paketine otomatik geri düşülür.
+async function createHaberEditor(el) {
+  try {
+    const CK = await import('ckeditor5');
+    return CK.ClassicEditor.create(el, {
+      licenseKey: 'GPL',
+      plugins: [
+        CK.Essentials, CK.Paragraph, CK.Heading, CK.Autoformat, CK.PasteFromOffice,
+        CK.Bold, CK.Italic, CK.Underline, CK.Strikethrough, CK.RemoveFormat,
+        CK.Font, CK.List, CK.TodoList, CK.Indent, CK.IndentBlock, CK.Alignment,
+        CK.Link, CK.BlockQuote, CK.Table, CK.TableToolbar, CK.TableColumnResize,
+        CK.MediaEmbed, CK.HorizontalLine, CK.SpecialCharacters, CK.SpecialCharactersEssentials,
+        CK.FindAndReplace, CK.SourceEditing
+      ],
+      toolbar: {
+        items: [
+          'heading', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+          'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
+          'bulletedList', 'numberedList', 'todoList', 'outdent', 'indent', 'alignment', '|',
+          'link', 'blockQuote', 'insertTable', 'mediaEmbed', 'horizontalLine', 'specialCharacters', '|',
+          'findAndReplace', 'sourceEditing', '|', 'undo', 'redo'
+        ],
+        shouldNotGroupWhenFull: true
+      },
+      table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] }
+    });
+  } catch (err) {
+    console.error('Gelişmiş editör (ckeditor5 ESM) yüklenemedi, klasik sürüme geri dönülüyor:', err);
+    await new Promise((resolve, reject) => {
+      if (window.ClassicEditor) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    return window.ClassicEditor.create(el, {
+      toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'blockQuote', 'insertTable', 'mediaEmbed', 'undo', 'redo']
+    });
+  }
 }
 
 function setMessage(title, body) {
@@ -148,19 +200,7 @@ function render(id, e) {
     const fieldIds = ['ed-tarih', 'ed-yer', 'ed-birim', 'ed-planlayan', 'ed-haberYazanlari', 'ed-gorevli'];
     const fieldEls = fieldIds.map((fid) => document.getElementById(fid));
 
-    ClassicEditor.create(document.getElementById('haberEditor'), {
-      toolbar: {
-        items: [
-          'heading', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
-          'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
-          'bulletedList', 'numberedList', 'todoList', 'outdent', 'indent', 'alignment', '|',
-          'link', 'blockQuote', 'insertTable', 'mediaEmbed', 'horizontalLine', 'specialCharacters', '|',
-          'findAndReplace', 'sourceEditing', '|', 'undo', 'redo'
-        ],
-        shouldNotGroupWhenFull: true
-      },
-      table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] }
-    }).then((editor) => {
+    createHaberEditor(document.getElementById('haberEditor')).then((editor) => {
       ckEditorInstance = editor;
       const originalHtml = editor.getData();
       const original = { haberMetni: originalHtml };
