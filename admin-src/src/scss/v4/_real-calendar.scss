@@ -223,15 +223,24 @@
 .cal-ev-badge-box label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text); cursor: pointer; }
 .cal-ev-badge-box input { cursor: pointer; }
 
-.cal-ev-datetime-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.cal-ev-datetime-row .cal-ev-date { flex: 0 1 118px; min-width: 100px; }
-.cal-ev-datetime-row .cal-ev-time { flex: 1 1 140px; min-width: 120px; }
+// flex-wrap ile üç kutu (tarih + iki saat) dar ekranlarda ÖNGÖRÜLEMEZ biçimde tek tek
+// alt satıra düşüyordu (ör. bitiş saati yalnız kalıp alta taşması). Sabit 3 sütunlu grid,
+// üçünü de HER ZAMAN aynı satırda tutar, dar ekranda sütunlar birlikte küçülür.
+.cal-ev-datetime-row { display: grid; grid-template-columns: minmax(0,0.85fr) minmax(0,1fr) minmax(0,1fr); gap: var(--space-2); }
+.cal-ev-datetime-row .cal-ev-date, .cal-ev-datetime-row .cal-ev-time { min-width: 0; }
 
-.cal-ev-time-wrap { display: flex; gap: 4px; align-items: stretch; }
+.cal-ev-time-wrap { display: flex; gap: 3px; align-items: stretch; }
 .cal-ev-time-wrap input[type='time'] { flex: 1; min-width: 0; }
 .cal-ev-now-btn {
   flex: 0 0 auto; border: 1px solid var(--primary); background: var(--primary-lt); color: var(--primary-dk);
-  border-radius: 6px; padding: 0 7px; font-size: 14px; line-height: 1; cursor: pointer; white-space: nowrap;
+  border-radius: 6px; padding: 0 5px; font-size: 13px; line-height: 1; cursor: pointer; white-space: nowrap;
+}
+@media (max-width: 420px) {
+  // Çok dar ekranlarda saat alanları ("--:--") ve ⏱ butonu yan yana sığmayabilir --
+  // etiket/font boyutu küçültülerek üç sütunun aynı satırda kalması korunur.
+  .cal-ev-datetime-row { gap: 5px; }
+  .cal-ev-form-row label { font-size: 11px; }
+  .cal-ev-now-btn { padding: 0 3px; font-size: 11px; }
 }
 .cal-ev-now-btn:hover { background: var(--primary); color: #fff; }
 .cal-ev-now-btn:active { transform: scale(.94); }

@@ -270,10 +270,6 @@ export default defineConfig(({ command }) => ({
     sourcemap: process.env.NODE_ENV === 'production' ? 'hidden' : true,
     target: 'es2022',
     rollupOptions: {
-      // project_detail.html'in dinamik import('ckeditor5') çağrısı, CDN'den bir importmap
-      // ile TARAYICIDA çözülüyor -- Vite/Rolldown'ın bunu npm paketiymiş gibi paketlemeye
-      // çalışmasını (ve bulamayınca build'i patlatmasını) önlemek için dışarıda bırakılır.
-      external: ['ckeditor5'],
       plugins: [
         // Bundle analyzer - generates stats.html file
         visualizer({

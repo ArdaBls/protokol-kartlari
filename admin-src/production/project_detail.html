@@ -11,15 +11,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<!-- "super-build" dağıtımı CKEditor tarafından kaldırıldı (CDN'de artık yok, "editör
-     yüklenemedi" hatasının sebebi buydu) -- güncel/desteklenen yöntem, tek tek eklentileri
-     ckeditor5 ESM paketinden import edip kendi ClassicEditor'ümüzü kurmak. Import map,
-     module script'ler "ckeditor5" gibi çıplak (bare) belirteçleri çözebilsin diye <head>'de,
-     kullanan modül script'ten ÖNCE tanımlanmalı. -->
-<link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.css">
-<script type="importmap">
-{ "imports": { "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/44.1.0/ckeditor5.js", "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/44.1.0/" } }
-</script>
+<!-- Kullanıcı isteği: CKEditor yerine TinyMCE (editör deneyimi daha iyi bulundu).
+     jsDelivr üzerinden açık kaynak (GPL) TinyMCE dağıtımı -- Tiny Cloud API anahtarı
+     GEREKMİYOR, "bu alan adı kayıtlı değil" uyarı çubuğu göstermez. -->
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|projects.html > Haber detayı">
@@ -59,51 +54,25 @@ function fmtTarih(key) {
   return d && m && y ? `${d}.${m}.${y}` : key;
 }
 
-// Gelişmiş editör: eklentiler ckeditor5 ESM paketinden (CDN, importmap ile) tek tek
-// import edilip kendi ClassicEditor'ümüz kuruluyor -- "super-build" hazır paketi CKEditor
-// tarafından kaldırıldığı için CDN'de artık yok ("editör yüklenemedi" hatasının sebebi
-// buydu). Bu dinamik import BAŞARISIZ olursa (ağ hatası, CDN sürüm değişikliği vb.)
-// sayfanın geri kalanı (yetki kontrolü, sağdaki alanlar, kayıt) ETKİLENMESİN diye
-// üstteki statik değil BURADA, dinamik ve try/catch içinde yapılıyor; olur da başarısız
-// olursa kanıtlanmış eski classic build CDN paketine otomatik geri düşülür.
+// Gelişmiş editör: TinyMCE (kullanıcı isteği -- CKEditor yerine, editör deneyimi
+// daha iyi bulundu). #haberEditor bir <textarea> -- TinyMCE onu bulup zengin metin
+// editörüne çeviriyor, getContent()/setContent() ile HTML okunup yazılıyor.
+// tinymce.init() bir dizi editör örneğiyle çözülen bir promise döner.
 async function createHaberEditor(el) {
-  try {
-    const CK = await import('ckeditor5');
-    return CK.ClassicEditor.create(el, {
-      licenseKey: 'GPL',
-      plugins: [
-        CK.Essentials, CK.Paragraph, CK.Heading, CK.Autoformat, CK.PasteFromOffice,
-        CK.Bold, CK.Italic, CK.Underline, CK.Strikethrough, CK.RemoveFormat,
-        CK.Font, CK.List, CK.TodoList, CK.Indent, CK.IndentBlock, CK.Alignment,
-        CK.Link, CK.BlockQuote, CK.Table, CK.TableToolbar, CK.TableColumnResize,
-        CK.MediaEmbed, CK.HorizontalLine, CK.SpecialCharacters, CK.SpecialCharactersEssentials,
-        CK.FindAndReplace, CK.SourceEditing
-      ],
-      toolbar: {
-        items: [
-          'heading', '|', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
-          'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
-          'bulletedList', 'numberedList', 'todoList', 'outdent', 'indent', 'alignment', '|',
-          'link', 'blockQuote', 'insertTable', 'mediaEmbed', 'horizontalLine', 'specialCharacters', '|',
-          'findAndReplace', 'sourceEditing', '|', 'undo', 'redo'
-        ],
-        shouldNotGroupWhenFull: true
-      },
-      table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] }
-    });
-  } catch (err) {
-    console.error('Gelişmiş editör (ckeditor5 ESM) yüklenemedi, klasik sürüme geri dönülüyor:', err);
-    await new Promise((resolve, reject) => {
-      if (window.ClassicEditor) { resolve(); return; }
-      const s = document.createElement('script');
-      s.src = 'https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js';
-      s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
-    return window.ClassicEditor.create(el, {
-      toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'blockQuote', 'insertTable', 'mediaEmbed', 'undo', 'redo']
-    });
-  }
+  const [editor] = await tinymce.init({
+    target: el,
+    license_key: 'gpl',
+    height: 420,
+    menubar: false,
+    branding: false,
+    promotion: false,
+    plugins: 'advlist autolink lists link charmap searchreplace visualblocks code fullscreen insertdatetime media table wordcount',
+    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough forecolor backcolor removeformat | ' +
+      'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | ' +
+      'link table media charmap | searchreplace code fullscreen',
+    content_style: 'body{font-family:Inter,sans-serif;font-size:14px}'
+  });
+  return editor;
 }
 
 function setMessage(title, body) {
@@ -148,7 +117,7 @@ function render(id, e) {
           </div>
           <div class="card-body">
             ${canWrite
-              ? `<div id="haberEditor">${e.haberMetni || ''}</div>`
+              ? `<textarea id="haberEditor">${escapeHtml(e.haberMetni || '')}</textarea>`
               : `<div style="font-size:13px;color:var(--text-secondary);line-height:1.7">${e.haberMetni || '<span style="color:var(--text-muted)">Bu etkinlik için henüz haber metni girilmemiş.</span>'}</div>`}
           </div>
         </div>
@@ -202,21 +171,21 @@ function render(id, e) {
 
     createHaberEditor(document.getElementById('haberEditor')).then((editor) => {
       ckEditorInstance = editor;
-      const originalHtml = editor.getData();
+      const originalHtml = editor.getContent();
       const original = { haberMetni: originalHtml };
       fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
 
       const updateSaveVisibility = () => {
-        const changed = editor.getData() !== original.haberMetni || fieldIds.some((fid, i) => fieldEls[i].value !== original[fid]);
+        const changed = editor.getContent() !== original.haberMetni || fieldIds.some((fid, i) => fieldEls[i].value !== original[fid]);
         saveBtn.style.display = changed ? '' : 'none';
       };
-      editor.model.document.on('change:data', updateSaveVisibility);
+      editor.on('input change undo redo keyup', updateSaveVisibility);
       fieldEls.forEach((el) => el.addEventListener('input', updateSaveVisibility));
 
       saveBtn.addEventListener('click', () => {
         saveBtn.disabled = true; saveBtn.textContent = 'Kaydediliyor…';
         const patch = {
-          haberMetni: editor.getData(),
+          haberMetni: editor.getContent(),
           tarih: fieldEls[0].value || e.tarih || '',
           yer: fieldEls[1].value.trim(),
           birim: fieldEls[2].value.trim(),
@@ -233,7 +202,7 @@ function render(id, e) {
           });
           Object.assign(e, patch);
           fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
-          original.haberMetni = editor.getData();
+          original.haberMetni = editor.getContent();
           saveBtn.textContent = 'Kaydedildi ✓';
           setTimeout(() => { saveBtn.style.display = 'none'; saveBtn.disabled = false; saveBtn.textContent = 'Kaydet'; }, 1400);
         }).catch((err) => {
@@ -242,7 +211,7 @@ function render(id, e) {
           alert('Kaydedilemedi, tekrar deneyin.');
         });
       });
-    }).catch((err) => { console.error('CKEditor başlatılamadı:', err); });
+    }).catch((err) => { console.error('TinyMCE başlatılamadı:', err); });
   }
 }
 

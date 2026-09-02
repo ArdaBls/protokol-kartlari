@@ -1,1 +1,0 @@
-{"version":3,"mappings":";sDACoC,mBAAE,gBAA/B,mDAAuB,mCAAQ,mBAAqB","names":[],"ignoreList":[],"sources":["../../admin-src/production/calendar.html?html-proxy&index=1.js"],"sourcesContent":["\nimport('/src/v4/calendar.js').then(({ initCalendar }) => { initCalendar(); });\n"],"file":"calendar-BZaMuLvS.js"}
