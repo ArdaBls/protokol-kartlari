@@ -350,6 +350,7 @@ export function initFaceScan() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const matched = [];
       let skippedBackRow = 0;
+      let unknownSkipped = 0;
 
       resized.forEach((det, i) => {
         const box = det.detection.box;
@@ -358,49 +359,46 @@ export function initFaceScan() {
         const match = faceMatcher ? faceMatcher.findBestMatch(det.descriptor) : null;
         const isKnown = !!(match && match.label !== 'unknown');
         const info = isKnown ? personIndex.get(match.label) : null;
-        // Hata ayıklama: eşleşme mesafesi (0 = birebir aynı, eşik: MATCH_TOLERANCE) her zaman
-        // konsola yazılır; ekrandaki etikette de görünür (tanınan/tanınmayan fark etmez) --
-        // kullanıcı sahada DevTools'a girmeden "ne kadar emin" ayrımını görebilsin.
+        // Hata ayıklama: eşleşme mesafesi (0 = birebir aynı, eşik: MATCH_TOLERANCE) tanınan
+        // her yüz için konsola yazılır -- kullanıcı sahada DevTools'a girmeden "ne kadar emin"
+        // olduğunu görebilsin.
         if (match) { console.log('Yüz eşleşme -- etiket: ' + match.label + ', mesafe: ' + match.distance.toFixed(3) + ' (eşik: ' + MATCH_TOLERANCE + ')'); }
-        const label = info
-          ? (info.ad + (info.unvan ? ' (' + info.unvan + ')' : '') + ' · ' + match.distance.toFixed(2))
-          : 'Bilinmiyor' + (match ? ' (' + match.distance.toFixed(2) + ')' : '');
 
-        ctx.strokeStyle = isKnown ? '#1ABB9C' : '#e04f4f';
+        // Kullanıcı isteği: kalabalık fotoğrafta "Bilinmiyor" kutuları görsel karmaşa
+        // yaratıyordu -- artık SADECE tanınan kişiler çizilir, tanınmayanlar hiç gösterilmez.
+        if (!info) { unknownSkipped++; return; }
+
+        const label = info.ad + (info.unvan ? ' (' + info.unvan + ')' : '') + ' · ' + match.distance.toFixed(2);
+
+        ctx.strokeStyle = '#1ABB9C';
         ctx.lineWidth = 2;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
         ctx.font = '600 13px Inter, system-ui, sans-serif';
         const textW = ctx.measureText(label).width;
-        ctx.fillStyle = isKnown ? '#1ABB9C' : '#e04f4f';
+        ctx.fillStyle = '#1ABB9C';
         ctx.fillRect(box.x, Math.max(0, box.y - 20), textW + 10, 20);
         ctx.fillStyle = '#fff';
         ctx.fillText(label, box.x + 5, Math.max(14, box.y - 5));
 
         // Kullanıcı isteği: kutunun üzerine imleçle gelince kim olduğunu net gösteren
         // bir tooltip -- canvas metni küçük/sıkışık kalabiliyor, burada daha okunaklı.
-        let tipTitle; let tipSubtitle;
-        if (info) {
-          tipTitle = info.ad || 'İsimsiz kayıt';
-          const parts = [];
-          if (info.unvan) {parts.push(info.unvan);}
-          parts.push(info.listKey === 'il' ? 'İl Protokolü' : 'Üniversite Protokolü');
-          if (info.rank !== null && info.rank !== undefined && info.rank !== '') {parts.push('Sıra ' + info.rank);}
-          parts.push('Eşleşme mesafesi: ' + match.distance.toFixed(2));
-          tipSubtitle = parts.join(' · ');
-        } else {
-          tipTitle = 'Bilinmiyor';
-          tipSubtitle = match ? ('Kayıtlı kimseye yeterince yakın değil (mesafe: ' + match.distance.toFixed(2) + ', eşik: ' + MATCH_TOLERANCE + ')') : 'Kayıtlı hiç kimseyle eşleşmedi.';
-        }
-        lastBoxes.push({ box, title: tipTitle, subtitle: tipSubtitle, isKnown });
+        const tipTitle = info.ad || 'İsimsiz kayıt';
+        const tipParts = [];
+        if (info.unvan) {tipParts.push(info.unvan);}
+        tipParts.push(info.listKey === 'il' ? 'İl Protokolü' : 'Üniversite Protokolü');
+        if (info.rank !== null && info.rank !== undefined && info.rank !== '') {tipParts.push('Sıra ' + info.rank);}
+        tipParts.push('Eşleşme mesafesi: ' + match.distance.toFixed(2));
+        lastBoxes.push({ box, title: tipTitle, subtitle: tipParts.join(' · '), isKnown: true });
 
-        if (info && !matched.some((m) => m.listKey === info.listKey && m.id === info.id)) {
+        if (!matched.some((m) => m.listKey === info.listKey && m.id === info.id)) {
           matched.push(info);
         }
       });
 
-      statusEl.textContent = detections.length + ' yüz bulundu, ' + matched.length + ' kişi tanındı' +
-        (skippedBackRow ? ' (arka sıradaki ' + skippedBackRow + ' yüz taranmadı -- sadece ön sıra denendi)' : '') + '.';
+      statusEl.textContent = matched.length + ' kişi tanındı' +
+        (unknownSkipped ? ' (' + unknownSkipped + ' tanınmayan yüz gizlendi)' : '') +
+        (skippedBackRow ? ' (arka sıradaki ' + skippedBackRow + ' yüz hiç taranmadı -- sadece ön sıra denendi)' : '') + '.';
 
       matched.sort((a, b) => {
         const ra = (a.rank === null || a.rank === undefined || a.rank === '') ? Infinity : Number(a.rank);
