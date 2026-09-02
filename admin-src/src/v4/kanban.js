@@ -40,6 +40,8 @@ function normalizeDurum(d) { const k = d || 'planlandi'; return LEGACY_DURUM[k] 
 
 let EVENTS = {}; // id -> event object (canlı Firebase verisi)
 let canWrite = false;
+let currentUserName = '';
+let currentUserEmail = '';
 let filterText = '';
 let database = null;
 let boardEl = null;
@@ -132,11 +134,29 @@ function setupDnD() {
     const newCol = body.dataset.drop;
     const ev = EVENTS[draggedId];
     if (!ev || normalizeDurum(ev.durum) === newCol) { return; }
+    if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
     const oldDurum = ev.durum;
+    const oldTitle = COLUMNS.find((c) => c.id === normalizeDurum(oldDurum))?.title || oldDurum || '—';
+    const newTitle = COLUMNS.find((c) => c.id === newCol)?.title || newCol;
     ev.durum = newCol; // iyimser güncelleme
     render();
-    database.ref('etkinlikler/' + draggedId + '/durum').set(newCol)
-      .then(() => showToast(`"${ev.ad}" → ${COLUMNS.find((c) => c.id === newCol)?.title || newCol}`, { variant: 'success' }))
+    // Durum değişikliği ESKİDEN tek başına .set() ile yazılıyordu: ne işlem günlüğüne
+    // (logs/etkinlik) düşüyordu -- yani panodan yapılan durum değişiklikleri admin
+    // log ekranında HİÇ görünmüyordu -- ne de guncellemeTs tazeleniyordu (admin
+    // panosunun "en eski güncellenen" sıralaması bu alana bakıyor). Projedeki diğer
+    // tüm etkinlik yazmaları gibi artık TEK atomik çok-yollu update ile yazılıyor.
+    const updates = {};
+    updates['etkinlikler/' + draggedId + '/durum'] = newCol;
+    updates['etkinlikler/' + draggedId + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
+    const logKey = database.ref('logs/etkinlik').push().key;
+    updates['logs/etkinlik/' + logKey] = {
+      by: currentUserName || currentUserEmail, email: currentUserEmail,
+      action: (ev.ad || 'Etkinlik') + ' etkinliğinin durumu panodan değiştirildi · Durum: ' + oldTitle + ' → ' + newTitle,
+      target: ev.ad || '',
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+    database.ref('/').update(updates)
+      .then(() => showToast(`"${ev.ad}" → ${newTitle}`, { variant: 'success' }))
       .catch((err) => {
         console.error('Durum güncellenemedi:', err);
         ev.durum = oldDurum;
@@ -168,10 +188,14 @@ export function initKanban() {
   setupDnD();
 
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; loadEvents(); return; }
-    database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
-      const role = snap.val();
-      canWrite = role === 'editor' || role === 'admin' || role === 'owner';
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; loadEvents(); return; }
+    currentUserEmail = user.email || '';
+    // Log satırındaki "kim" bilgisi için rolle birlikte ad/soyad da okunur (users/{uid}
+    // kendi kaydını okuma kuralı zaten var: ".read": "auth.uid === $uid").
+    database.ref('users/' + user.uid).once('value').then((snap) => {
+      const u = snap.val() || {};
+      canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+      currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
       loadEvents();
     }).catch(() => { canWrite = false; loadEvents(); });
   });

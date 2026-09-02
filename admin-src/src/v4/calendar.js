@@ -298,6 +298,19 @@ function calBlockClasses(ev, dayDate) {
   if (ev.locked) { c += ' locked'; }
   return c;
 }
+// Rozetler (Basına Kapalı / Dış Katılımlı / Canlı Yayın) -- ana sitedeki badgeHtml
+// ile birebir aynı. Modalde seçilip Firebase'e yazılıyorlardı ama takvim bloklarında
+// HİÇ gösterilmiyordu (port sırasında atlanmış); artık ana sitedeki gibi kilit
+// simgesinin hemen öncesinde, her görünümde çiziliyor.
+function badgeHtml(ev) {
+  const keys = Array.isArray(ev.rozetler) ? ev.rozetler : [];
+  if (!keys.length) { return ''; }
+  return '<span class="cal-badge-wrap">' + keys.map((k) => {
+    const b = EVENT_BADGES.find((x) => x.key === k);
+    if (!b) { return ''; }
+    return '<span class="cal-badge" style="background:' + b.bg + '; color:' + b.renk + ';">' + escapeHtml(b.ad) + '</span>';
+  }).join('') + '</span>';
+}
 // Ana sitedeki lockIconHtml/toggleEventLock ile birebir aynı: kilit, düzenleme
 // modalının İÇİNDE bir alan DEĞİL, etkinliğin kendi üzerinde her zaman görünen,
 // dokunulabilir bir simge -- tıklanınca (event.stopPropagation() ile bloğun
@@ -306,6 +319,12 @@ const LOCK_SVG_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const LOCK_SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V9a4 4 0 0 1 7.65-1.65"/></svg>';
 function lockIconHtml(ev) {
   const locked = !!ev.locked;
+  // Yetkisiz kullanıcıda kilit AÇMA/KAPAMA anlamsız (tıklayınca sadece hata toast'ı
+  // çıkıyordu); kilitli etkinliklerde durum yine görünsün diye salt-okunur bir rozet
+  // olarak gösterilir, kilitsizlerde hiç çizilmez.
+  if (!canWrite) {
+    return locked ? '<span class="cal-lock-ico is-locked is-static" title="Kilitli">' + LOCK_SVG_CLOSED + '</span>' : '';
+  }
   const title = locked ? 'Kilitli · sürüklenemez (açmak için dokun)' : 'Kilitle (sürüklenmesini/boyutunu değiştirmeyi engelle)';
   return '<span class="cal-lock-ico' + (locked ? ' is-locked' : '') + '" data-lock-evid="' + escapeHtml(ev._id) + '" title="' + title + '">' + (locked ? LOCK_SVG_CLOSED : LOCK_SVG_OPEN) + '</span>';
 }
@@ -438,7 +457,7 @@ function renderWeekView(body) {
       // render edilmez (calStartMultiDayGesture zaten .cal-multiday-handle
       // arıyor, kol yoksa jest hiç başlamaz).
       return '<button type="button" class="' + cls + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="' + gc + ' background:' + ty.renk + '; border-color:' + ty.renk + '; color:#fff;">' +
-        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockIconHtml(e) +
+        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) +
         (e.locked ? '' : '<span class="cal-multiday-handle cal-multiday-handle-l" data-act="multiday-resize-l" aria-hidden="true"></span>' +
         '<span class="cal-multiday-handle cal-multiday-handle-r" data-act="multiday-resize-r" aria-hidden="true"></span>') + '</button>';
     }).join('');
@@ -479,7 +498,7 @@ function renderWeekView(body) {
       const stBar = evStatus(e.durum).renk;
       inner += '<button type="button" class="' + calBlockClasses(e, d) + compact + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" ' +
         'style="' + calBlockStyle(e) + ' top:' + top + 'px; height:' + hgt + 'px; left:calc(' + left + '% + 2px); width:calc(' + w + '% - 4px);">' +
-        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' + lockIconHtml(e) +
+        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' + badgeHtml(e) + lockIconHtml(e) +
         '<span class="cal-status-bar" style="background:' + stBar + ';"></span>' +
         (e.locked ? '' :
         '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span>' +
@@ -602,7 +621,7 @@ function renderListView(body) {
     html += '<button type="button" class="cal-ev" data-evid="' + escapeHtml(e._id) + '" data-act="edit">' +
       '<span class="cal-ev-dot" style="background:' + ty.renk + ';"></span>' +
       '<span class="cal-ev-time">' + escapeHtml((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? fmtMultiDayRange(e.tarih, e.bitisTarihi) : (e.saat || '—')) + '</span>' +
-      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockIconHtml(e) +
+      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) +
       '<span class="cal-ev-meta"><span class="cal-tag" style="background:' + st.renk + ';">' + escapeHtml(st.ad) + '</span>' + meta.join(' · ') + '</span></span></button>';
   });
   body.innerHTML = '<div class="cal-list-wrap">' + html + '</div>';
@@ -1140,18 +1159,31 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
   const bodyEl = modalHandle.body;
   const modalToken = ++openEventModalToken;
 
+  // Yetkisi olmayan (girişsiz ziyaretçi veya rolü "pending" kullanıcı) için form
+  // ESKİDEN tamamen düzenlenebilir görünüyordu ama "Kaydet" butonu hiç çıkmıyordu --
+  // kullanıcı doldurup kaydedemediğini ancak en sonda anlıyordu. Alanlar artık
+  // salt-okunur (disabled) gelir. Pickerlar sonradan (havuzlar yüklendikçe) YENİDEN
+  // çizildiği için bu, her çizimden sonra tekrar uygulanmalı.
+  const applyReadonly = () => {
+    if (canWrite) { return; }
+    bodyEl.querySelectorAll('input, select, textarea').forEach((el) => { el.disabled = true; });
+  };
+
   // Pickerlar önce (boş/eski önbellekle) render edilir, havuzlar tazelendikçe (bu modal hâlâ
   // AÇIKSA -- modalToken kontrolü ana sitedeki gorevliLoadToken yarış-durumu korumasının aynısı)
   // yeniden çizilir.
   renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters);
   renderAttendeePicker(bodyEl, calAttendees);
+  applyReadonly();
   loadPressOfficerPool().then(() => {
     if (modalToken !== openEventModalToken) { return; }
     renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters);
+    applyReadonly();
   });
   loadPeoplePool().then(() => {
     if (modalToken !== openEventModalToken) { return; }
     renderAttendeePicker(bodyEl, calAttendees);
+    applyReadonly();
   });
 
   bodyEl.addEventListener('input', (e) => {

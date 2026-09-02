@@ -195,10 +195,14 @@ function render(id, e) {
           guncellemeTs: Date.now()
         };
         database.ref('etkinlikler/' + id).update(patch).then(() => {
+          // Log şeması ana siteyle (app.js persistEvent) ve notifications.html'in okuduğu
+          // alanlarla BİREBİR aynı olmalı: notifications.html tarihi `timestamp`'ten okuyup
+          // ona göre sıralıyor -- `ts` yazılırsa kayıt 01.01.1970 görünüp listenin dibine düşer.
           database.ref('logs/etkinlik').push({
+            by: currentUserName || currentUserEmail, email: currentUserEmail,
             action: (e.ad || '(adsız)') + ' etkinliğinin haber detayı güncellendi',
-            by: currentUserName || (firebase.auth().currentUser && firebase.auth().currentUser.email) || '',
-            ts: Date.now()
+            target: e.ad || '',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
           });
           Object.assign(e, patch);
           fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
@@ -216,6 +220,7 @@ function render(id, e) {
 }
 
 let currentUserName = '';
+let currentUserEmail = '';
 const id = new URLSearchParams(location.search).get('id');
 
 function loadEvent() {
@@ -236,6 +241,7 @@ firebase.auth().onAuthStateChanged((user) => {
     const u = snap.val() || {};
     canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
     currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
+    currentUserEmail = user.email || '';
     loadEvent();
   }).catch(() => { canWrite = false; loadEvent(); });
 });

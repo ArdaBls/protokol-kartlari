@@ -74,6 +74,7 @@ let NEWS = [];
 let filterText = '';
 let canWrite = false;
 let currentUserName = '';
+let currentUserEmail = '';
 
 function setState(html) {
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
@@ -119,7 +120,14 @@ grid.addEventListener('click', (e) => {
   const name = entry ? (entry[1].ad || '(adsız)') : '(adsız)';
   if (!window.confirm(`"${name}" etkinliğini/haberini kalıcı olarak silmek istediğinize emin misiniz?`)) { return; }
   database.ref('etkinlikler/' + id).remove().then(() => {
-    database.ref('logs/etkinlik').push({ action: name + ' etkinliği silindi', by: currentUserName, ts: Date.now() });
+    // Log şeması ana siteyle (app.js executeEventDelete) ve notifications.html'in okuduğu
+    // alanlarla BİREBİR aynı olmalı: notifications.html tarihi `timestamp`'ten okuyup ona
+    // göre sıralıyor -- `ts` yazılırsa kayıt 01.01.1970 görünüp listenin en dibine düşer.
+    database.ref('logs/etkinlik').push({
+      by: currentUserName, email: currentUserEmail,
+      action: name + ' etkinliği silindi', target: name,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
     NEWS = NEWS.filter(([nid]) => nid !== id);
     render();
   }).catch((err) => {
@@ -153,6 +161,7 @@ firebase.auth().onAuthStateChanged((user) => {
     const u = snap.val() || {};
     canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
     currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
+    currentUserEmail = user.email || '';
     loadNews();
   }).catch(() => { canWrite = false; loadNews(); });
 });
