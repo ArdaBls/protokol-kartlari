@@ -618,6 +618,17 @@ function calGridClick(e, dateKey, col) {
   const y = e.clientY - rect.top;
   let mins = Math.round((y / CAL_HOUR_H) * 60 / 30) * 30;
   mins = Math.max(0, Math.min(23 * 60 + 30, mins));
+  // Kullanıcı isteği: mobilde tek dokunuş da masaüstündeki gibi DOĞRUDAN düzenleme ekranını
+  // açmasın -- sürükleyerek oluşturmayla AYNI 1 saatlik onay silüetini gösterir, kullanıcı
+  // isterse kollarla saati ince ayar edip "Oluştur"a basar. Masaüstünde (fare) davranış
+  // DEĞİŞMEDİ: tek tık hâlâ doğrudan düzenleme ekranını açar.
+  if (window.matchMedia && window.matchMedia('(max-width:700px)').matches) {
+    const ghost = document.createElement('div');
+    ghost.className = 'cal-create-select';
+    col.appendChild(ghost);
+    calShowPendingCreateBar(ghost, dateKey, mins, Math.min(24 * 60, mins + 60));
+    return;
+  }
   openEventModal(null, dateKey, minToHm(mins));
 }
 
@@ -894,10 +905,24 @@ function calShakePendingCreate() {
 }
 function calConfirmPendingCreate() {
   if (!calPendingCreate) { return; }
-  const p = calPendingCreate; calPendingCreate = null;
-  p.bar.remove();
-  p.ghost.remove();
-  openEventModal(null, p.dateKey, minToHm(p.startMin), minToHm(p.endMin));
+  const p = calPendingCreate;
+  // Kullanıcı isteği: ghost'u HEMEN silmiyoruz -- modal açıkken arka planda (bulanık takvimin
+  // üzerinde) görünür kalmalı, "kaydet"in dışında bir yolla (X/Vazgeç/arka plana tıklama) modal
+  // kapatılırsa ghost YERİNDE kalıp kullanıcı saati elle tekrar girmek zorunda kalmamalı. Onay
+  // çubuğu modalla çakışmasın diye gizlenir, iptal edilirse geri gösterilir.
+  p.bar.style.display = 'none';
+  openEventModal(null, p.dateKey, minToHm(p.startMin), minToHm(p.endMin), (committed) => {
+    if (!calPendingCreate) { return; } // zaten başka bir yolla temizlenmiş
+    if (committed) {
+      // persistEvent başarılıysa renderCalendar() zaten TÜM ızgarayı yeniden çiziyor (ghost'un
+      // bağlı olduğu eski .cal-daycol DOM'dan kalkıyor) -- burada sadece çubuğu (document.body'nin
+      // doğrudan çocuğu, ızgara yeniden çizilirken ETKİLENMEZ) ve JS durumunu temizlemek yeterli.
+      calPendingCreate.bar.remove();
+      calPendingCreate = null;
+    } else {
+      calPendingCreate.bar.style.display = '';
+    }
+  });
 }
 function calCancelPendingCreate() {
   if (!calPendingCreate) { return; }
@@ -1026,6 +1051,10 @@ function calStartResizeGesture(e) {
   const handle = e.target.closest('.cal-resize-handle');
   if (!handle) { return; }
   // Ghost'un KENDİ kolu ise calStartPendingResizeGesture zaten hallediyor -- buraya hiç girme.
+  // DOM YAPISINA göre kontrol edilir (calPendingCreate değişkeninin o anki durumuna değil) --
+  // mobilde bu ikisi bir tık senkron kaymışsa (kullanıcı bildirimi: kollarla sürüklerken
+  // altta koyu bir GERÇEK-etkinlik-tarzı ikinci silüet kalıyordu) bu kontrol yine doğru sonuç verir.
+  if (handle.closest('.cal-create-select-pending')) { return; }
   if (calPendingCreate && calPendingCreate.ghost.contains(handle)) { return; }
   // Başka (gerçek) bir etkinliğin saatini ayarlamaya çalışmak: bekleyen onay çubuğu
   // varken izin verilmez (kullanıcı isteği), titretilerek bildirilir.
@@ -1246,7 +1275,10 @@ function renderAttendeePicker(bodyEl, calAttendees) {
   box.innerHTML = html;
 }
 
-function openEventModal(id, presetDate, presetTime, presetEndTime) {
+// onModalClose(committed): opsiyonel, modal HANGİ sebeple kapanırsa kapansın (X/backdrop/Vazgeç/
+// Kaydet fark etmez) bir kez çağrılır. committed=true sadece Kaydet/Oluştur eylemi tıklanıp
+// yazma başlatıldıysa (calConfirmPendingCreate bekleyen ghost'u temizlemek için kullanır).
+function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose) {
   const ev = id ? EVENTS[id] : null;
   const tarih = ev ? (ev.tarih || '') : (presetDate || dKey(calAnchor));
   const saat = ev ? (ev.saat || '') : (presetTime || '');
@@ -1304,6 +1336,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
   const calPressStaff = ev ? parseGorevliString(ev.gorevli) : [];
   const calNewsWriters = ev ? parseGorevliString(ev.haberYazanlari) : [];
 
+  let saveCommitted = false;
   if (canWrite) {
     actions.push({ label: id ? 'Kaydet' : 'Oluştur', variant: 'primary', action: ({ body }) => {
       const form = body.querySelector('#calEvForm');
@@ -1349,6 +1382,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
       const logLabel = id
         ? evLogName(ad) + ' etkinliği düzenlendi' + (ref ? (() => { const c = describeChanges(ref, Object.assign({}, ref, patch)); return c.length ? ' · ' + c.join(' · ') : ''; })() : '')
         : evLogName(ad) + ' etkinliği oluşturuldu';
+      saveCommitted = true;
       persistEvent(id, patch, logLabel).then((res) => {
         if (res) { showToast(id ? 'Etkinlik kaydedildi.' : 'Etkinlik oluşturuldu.', { variant: 'success' }); renderCalendar(); }
       });
@@ -1356,7 +1390,10 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
     } });
   }
 
-  const modalHandle = showModal({ title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'md' });
+  const modalHandle = showModal({
+    title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'md',
+    onClose: onModalClose ? () => onModalClose(saveCommitted) : undefined
+  });
   const bodyEl = modalHandle.body;
   const modalToken = ++openEventModalToken;
 

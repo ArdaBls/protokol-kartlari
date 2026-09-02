@@ -99,6 +99,12 @@
   position: absolute; left: 2px; right: 2px; z-index: 2; border-radius: 8px; border: 1.5px dashed var(--primary);
   background: var(--primary-lt); color: var(--primary-dk); font-size: 11px; font-weight: var(--font-weight-bold);
   font-family: var(--font-mono); display: flex; align-items: center; justify-content: center; text-align: center; padding: 2px; pointer-events: none; overflow: hidden;
+  // iOS Safari, top/height'ı JS ile sık sık (her touchmove'da) değiştiren mutlak konumlu bir
+  // öğeyi kendi katmanına ALMADAN çizerse eski konumdaki boyayı bir anlığına "artık" (koyu bir
+  // ikinci silüet) olarak bırakabiliyor -- kullanıcı bildirimi: kollarla sürüklerken altta koyu
+  // bir silüet daha kalıyordu. Kendi kompozit katmanına zorlamak bu tanınmış WebKit tuhaflığını önler.
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
 }
 
 .cal-create-select-pending { animation: calCreatePulse 1.1s ease-in-out infinite; flex-direction: column; gap: 1px; }
@@ -110,8 +116,9 @@
 // ortasına düşünce yanlışlıkla düzenleme ekranı açmasın diye (dokunmatikte tek yol
 // alttaki "✓ Oluştur" butonu, bkz. calGridClick'teki calPendingCreate koruması).
 @media (min-width: 701px) {
+  // Kullanıcı isteği: üzerine gelince (hover) opak/dolu bir renge dönmesin -- hâlâ bir
+  // silüet olarak kalmalı, sadece tıklanabilir olduğu cursor:pointer ile anlaşılır.
   .cal-create-select-pending { pointer-events: auto; cursor: pointer; }
-  .cal-create-select-pending:hover { background: var(--primary); color: #fff; }
   .cal-create-select-pending .ccs-hint { display: block; }
 }
 // Onaylanmayı bekleyen ghost artık kendi üst/alt sürükleme kollarını taşıyor -- ghost'un
