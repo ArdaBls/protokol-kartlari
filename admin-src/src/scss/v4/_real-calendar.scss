@@ -101,8 +101,19 @@
   font-family: var(--font-mono); display: flex; align-items: center; justify-content: center; text-align: center; padding: 2px; pointer-events: none; overflow: hidden;
 }
 
-.cal-create-select-pending { animation: calCreatePulse 1.1s ease-in-out infinite; }
+.cal-create-select-pending { animation: calCreatePulse 1.1s ease-in-out infinite; flex-direction: column; gap: 1px; }
 @keyframes calCreatePulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+.cal-create-select-pending .ccs-time { pointer-events: none; }
+.cal-create-select-pending .ccs-hint { display: none; font-size: 9px; font-weight: var(--font-weight-normal); opacity: .8; pointer-events: none; }
+// Kullanıcı isteği: ghost'un gövdesine tıklayınca doğrudan düzenleme ekranı açılması
+// SADECE masaüstünde -- mobilde sürükleme kolunu tam yakalayamayan bir parmak ghost'un
+// ortasına düşünce yanlışlıkla düzenleme ekranı açmasın diye (dokunmatikte tek yol
+// alttaki "✓ Oluştur" butonu, bkz. calGridClick'teki calPendingCreate koruması).
+@media (min-width: 701px) {
+  .cal-create-select-pending { pointer-events: auto; cursor: pointer; }
+  .cal-create-select-pending:hover { background: var(--primary); color: #fff; }
+  .cal-create-select-pending .ccs-hint { display: block; }
+}
 // Onaylanmayı bekleyen ghost artık kendi üst/alt sürükleme kollarını taşıyor -- ghost'un
 // kendisi (görsel amaçlı) pointer-events:none, kollar bunu AÇIKÇA geri açmalı yoksa
 // ne tıklanabilir ne sürüklenebilir olurlar.

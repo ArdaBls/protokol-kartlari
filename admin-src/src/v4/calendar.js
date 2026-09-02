@@ -609,6 +609,11 @@ function calGridClick(e, dateKey, col) {
   if (calGridSelectSuppressClick) { calGridSelectSuppressClick = false; return; }
   if (!canWrite) { return; }
   if (e.target.closest('.cal-block')) { return; }
+  // Bekleyen ghost'un GÖVDESİ pointer-events:none olduğu için üzerine yapılan bir dokunuş
+  // ALTINDAKİ .cal-daycol'a "düşüp" buraya kadar geliyordu -- kullanıcı sürükleme kolunu
+  // tam yakalayamayınca (özellikle mobilde) beklenmedik biçimde YENİ bir etkinlik açılıyordu.
+  // calPendingCreate varken bu tık tamamen yok sayılır, ghost titretilerek uyarılır.
+  if (calPendingCreate) { calShakePendingCreate(); return; }
   const rect = col.getBoundingClientRect();
   const y = e.clientY - rect.top;
   let mins = Math.round((y / CAL_HOUR_H) * 60 / 30) * 30;
@@ -826,10 +831,27 @@ let calPendingCreate = null;
 function calShowPendingCreateBar(ghost, dateKey, startMin, endMin) {
   calCancelPendingCreate();
   ghost.classList.add('cal-create-select-pending');
-  // Kullanıcı isteği: bırakınca ghost artık pasif değil -- gerçek etkinliklerdeki
-  // AYNI üst/alt sürükleme kollarını taşıyor, böylece "biraz erken/geç bırakmışım"
-  // durumunda jesti BAŞTAN yapmaya gerek kalmadan sadece saati ince ayar edilebilir.
-  ghost.insertAdjacentHTML('beforeend', '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span><span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span>');
+  // Kullanıcı isteği: bırakınca ghost artık pasif değil -- gerçek etkinliklerdeki AYNI
+  // üst/alt sürükleme kollarını taşıyor (böylece "biraz erken/geç bırakmışım" durumunda
+  // jesti baştan yapmaya gerek kalmadan saat ince ayar edilebilir), MASAÜSTÜNDE ayrıca
+  // ghost'un GÖVDESİNE tıklayınca doğrudan düzenleme ekranı açılır ("Düzenlemek için
+  // tıklayın" ipucuyla, bkz. _real-calendar.scss). MOBİLDE bu tıklanabilirlik CSS ile
+  // kapatılır (kullanıcı isteği: "telefonda öyle yapmayalım") -- sürükleme kolunu tam
+  // yakalayamayan bir parmağın ghost'un ortasına düşmesi orada yanlışlıkla düzenleme
+  // ekranı açmasın diye; mobilde tek yol alttaki "✓ Oluştur" butonu.
+  ghost.innerHTML =
+    '<span class="ccs-time"></span>' +
+    '<span class="ccs-hint">Düzenlemek için tıklayın</span>' +
+    '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span>' +
+    '<span class="cal-resize-handle" data-act="resize-handle" aria-hidden="true"></span>';
+  ghost.addEventListener('click', (e) => {
+    if (e.target.closest('.cal-resize-handle')) { return; }
+    // stopPropagation ŞART: bu click .cal-daycol'a kadar bubble ederse, calConfirmPendingCreate()
+    // zaten calPendingCreate'i null yaptığı için delege edilen calGridClick guard'ı devre dışı
+    // kalır ve tıklanan noktada İKİNCİ bir (istenmeyen) yeni etkinlik daha açılır.
+    e.stopPropagation();
+    calConfirmPendingCreate();
+  });
   const bar = document.createElement('div');
   bar.className = 'cal-create-confirm-bar';
   bar.innerHTML =
@@ -840,6 +862,7 @@ function calShowPendingCreateBar(ghost, dateKey, startMin, endMin) {
   bar.querySelector('.ccb-confirm').addEventListener('click', calConfirmPendingCreate);
   bar.querySelector('.ccb-cancel').addEventListener('click', calCancelPendingCreate);
   calPendingCreate = { ghost, bar, dateKey, startMin, endMin };
+  calUpdatePendingCreateLabels();
 }
 // Ghost'un üstündeki/altındaki metni ve onay çubuğundaki saat metnini TEK yerden
 // senkron tutar -- hem sürükleyerek-oluşturma hem de ghost'un kendi kolundan
@@ -850,12 +873,8 @@ function calUpdatePendingCreateLabels() {
   p.ghost.style.top = ((p.startMin / 60) * CAL_HOUR_H) + 'px';
   p.ghost.style.height = Math.max(18, ((p.endMin - p.startMin) / 60) * CAL_HOUR_H) + 'px';
   const timeText = minToHm(p.startMin) + '–' + minToHm(p.endMin);
-  // Ghost'un ilk çocuğu her zaman saat metnini taşıyan bir metin düğümü (calStartGridSelectGesture'da
-  // ghost.textContent=... ile oluşturulur, kollar insertAdjacentHTML('beforeend',...) ile ONDAN
-  // SONRA eklenir) -- yoksa (savunma amaçlı) baştan oluşturulur.
-  const firstNode = p.ghost.firstChild;
-  if (firstNode && firstNode.nodeType === 3 /* Node.TEXT_NODE */) { firstNode.textContent = timeText; }
-  else { p.ghost.prepend(document.createTextNode(timeText)); }
+  const timeSpan = p.ghost.querySelector('.ccs-time');
+  if (timeSpan) { timeSpan.textContent = timeText; }
   const timeEl = p.bar.querySelector('.ccb-time');
   if (timeEl) { timeEl.textContent = fmtTrDate(p.dateKey) + ' · ' + timeText; }
 }
@@ -932,7 +951,13 @@ function calStartGridSelectGesture(e) {
   // Kullanıcı isteği: onay çubuğu ("✓ Oluştur / ✕ Vazgeç") ekrandayken başka bir yerde
   // YENİ bir oluşturma jesti başlatılamaz -- bekleyen etkinlik önce onaylanmalı/vazgeçilmeli.
   // Sessizce yok saymak yerine titretilerek "önce bunu bitir" bildirilir (mobilde de işe yarar).
-  if (calPendingCreate) { calShakePendingCreate(); return; }
+  // Ghost'un KENDİSİNE basmak bu kuralın DIŞINDA (masaüstünde tıkla-düzenle akışı) --
+  // titretmek yerine o click'in kendi işleyicisine (calShowPendingCreateBar'da bağlı) bırakılır.
+  if (calPendingCreate) {
+    if (calPendingCreate.ghost.contains(e.target)) { return; }
+    calShakePendingCreate();
+    return;
+  }
   const dateKey = daycol.dataset.date;
   if (!dateKey) { return; }
   const pointerId = e.pointerId;
@@ -980,6 +1005,15 @@ function calStartGridSelectGesture(e) {
     if (e2.pointerId !== pointerId) { return; }
     cleanup();
     if (!moved) { ghost.remove(); return; }
+    // Kullanıcı isteği: mobilde (dokunmatikte) parmak neredeyse hiç kaymadan (doğal titreme
+    // 3px eşiğini az aşınca) jest "sürüklendi" sayılıp 15dk'lık asgari bloğu bırakıyordu --
+    // bu kadar ince bir bloğu parmakla üstünden/altından tutup ayarlamak neredeyse imkansız.
+    // Dokunmatikte GERÇEKTEN kasıtlı bir sürükleme olmadıysa (süre hâlâ 15dk asgaride) süre
+    // 1 saate yükseltilir; kullanıcı bilerek daha uzun/kısa bir aralık sürüklediyse dokunulmaz.
+    if (e2.pointerType === 'touch' && (endMin - startMin) <= 15) {
+      endMin = Math.min(24 * 60, startMin + 60);
+      applyLive(); // ghost'un görsel boyutu yeni (1 saatlik) süreye göre güncellenir
+    }
     calGridSelectSuppressClick = true;
     calShowPendingCreateBar(ghost, dateKey, startMin, endMin);
   }
