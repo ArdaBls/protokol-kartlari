@@ -19,7 +19,7 @@
   "shortcuts": [
     { "name": "Dashboard", "url": "production/index.html" },
     { "name": "Inbox", "url": "production/inbox.html" },
-    { "name": "Calendar", "url": "production/calendar.html" },
-    { "name": "Settings", "url": "production/settings.html" }
+    { "name": "Calendar", "url": "production/takvim.html" },
+    { "name": "Settings", "url": "production/ayarlar.html" }
   ]
 }

@@ -54,7 +54,7 @@
   background: var(--sidebar-bg);
   // Leaflet'in kendi iç panelleri (.leaflet-pane, özellikle marker/popup/
   // tooltip panes + .leaflet-control-container) varsayılan olarak 400-1000
-  // z-index aralığında -- bkz. map.html. Sidebar (özellikle mobil çekmece
+  // z-index aralığında -- bkz. harita.html. Sidebar (özellikle mobil çekmece
   // modunda) bunların HER ZAMAN üzerinde kalmalı, aksi halde harita sayfasında
   // menü haritanın altına giriyor.
   z-index: 1200;

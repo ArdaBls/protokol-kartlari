@@ -26,8 +26,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 }
 
 // Lazy-load page-specific modules only when their host element is on the page.
-// (calendar.js is self-loaded from calendar.html's own inline module script,
-// same pattern as kanban.html — it needs the Firebase compat scripts to be
+// (calendar.js is self-loaded from takvim.html's own inline module script,
+// same pattern as yapilacaklar.html — it needs the Firebase compat scripts to be
 // present first, which only that page's <head> loads.)
 if (document.querySelector('.settings-content')) {
   import('./v4/settings.js').then((m) => m.initSettings());

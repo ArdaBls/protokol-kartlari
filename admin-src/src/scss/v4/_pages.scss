@@ -370,7 +370,7 @@
 .contact-card .stats strong { display: block; font-size: 13px; color: var(--text); font-weight: var(--font-weight-bold); }
 
 // ────────────────────────
-//  ICON GRID (icons.html)
+//  ICON GRID (ikonlar.html)
 // ────────────────────────
 .icon-grid {
   display: grid;
@@ -481,7 +481,7 @@
 // ────────────────────────
 
 // ────────────────────────
-//  WIZARD (form_wizards.html)
+//  WIZARD (form-sihirbaz.html)
 // ────────────────────────
 .wizard-steps {
   display: flex;
@@ -740,12 +740,12 @@
 }
 
 // ────────────────────────
-//  MAP PAGE (map.html)
+//  MAP PAGE (harita.html)
 // ────────────────────────
 // .page-wrapper is a sticky-footer flex column (see _layout.scss); the map
 // row grows to fill whatever height is left above the footer instead of a
 // fixed 560px box, same flex-chain pattern used by .cal-card in
-// _real-calendar.scss. map.invalidateSize() (already wired in map.html) picks
+// _real-calendar.scss. map.invalidateSize() (already wired in harita.html) picks
 // up the resulting dynamic height on load/resize/sidebar-toggle.
 .map-row {
   flex: 1 1 auto;

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Analytics dashboard | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/admin/site.webmanifest">
+<meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/admin/images/apple-touch-icon.svg">
+<meta name="description" content="Analytics dashboard — Dashboards > Analytics. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Analytics dashboard">
+<meta property="og:description" content="Analytics dashboard — Dashboards > Analytics. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:image" content="/admin/images/android-chrome-512x512.svg">
+<meta property="og:site_name" content="Protokol">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
+  <script type="module" crossorigin src="/admin/js/rolldown-runtime-_5RX-BWT.js"></script>
+  <script type="module" crossorigin src="/admin/js/toast-CBtjS_PZ.js"></script>
+  <script type="module" crossorigin src="/admin/js/modal-C4oI3O5p.js"></script>
+  <script type="module" crossorigin src="/admin/js/main-v4-Cq4Hluny.js"></script>
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-CmCwBJzJ.css">
+</head>
+<body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Home > Dashboards > Analytics">
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="sidebar-brand">
+        <img class="brand-icon" src="../images/favicon.png" alt="">
+        <div class="brand-name">Protokol</div>
+      </div>
+      <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-label">Genel</div>
+      
+      <div class="nav-tree open has-active">
+        <button type="button" class="nav-link nav-toggle" aria-expanded="true">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="10" width="7" height="11" rx="1.5"/></svg>
+          <span class="nav-text">Panolar</span>
+          
+          <svg class="nav-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
+        </button>
+        <div class="nav-sub"><div class="nav-sub-inner"><a class="nav-sublink" href="index.html">Operasyonlar</a><a class="nav-sublink active" href="analitik.html" aria-current="page">Analitik</a><a class="nav-sublink" href="sistem-durumu.html">Sistem durumu</a></div></div>
+      </div>
+    
+    <a class="nav-link" href="takvim.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v6M16 4v6"/></svg>
+      <span class="nav-text">Takvim</span>
+      
+    </a>
+  
+    <a class="nav-link" href="harita.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="nav-text">Harita</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Uygulamalar</div>
+      
+    <a class="nav-link" href="yapilacaklar.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="14" rx="1.5"/><rect x="11" y="3" width="6" height="9" rx="1.5"/><rect x="19" y="3" width="2" height="6" rx="0.5"/></svg>
+      <span class="nav-text">Kanban</span>
+      
+    </a>
+  
+    <a class="nav-link" href="bildirimler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+      <span class="nav-text">Bildirimler</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Haberler</div>
+      
+    <a class="nav-link" href="tum-haberler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span class="nav-text">Tüm haberler</span>
+      
+    </a>
+  
+    <a class="nav-link" href="haber-detayi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/></svg>
+      <span class="nav-text">Haber detayı</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Yönetim</div>
+      
+    <a class="nav-link" href="kisiler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+      <span class="nav-text">Kişiler</span>
+      
+    </a>
+  
+    <a class="nav-link" href="kullanici-yonetimi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-text">Kullanıcı yönetimi</span>
+      
+    </a>
+  
+    <a class="nav-link" href="profil.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-text">Profiliniz</span>
+      
+    </a>
+  
+    <a class="nav-link" href="ayarlar.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+      <span class="nav-text">Ayarlar</span>
+      
+    </a>
+  
+    <a class="nav-link" href="yardim-merkezi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>
+      <span class="nav-text">Yardım merkezi</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Geliştirici Araçları</div>
+      
+      <div class="nav-tree">
+        <button type="button" class="nav-link nav-toggle" aria-expanded="false">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          <span class="nav-text">UI kütüphanesi</span>
+          
+          <svg class="nav-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
+        </button>
+        <div class="nav-sub"><div class="nav-sub-inner"><a class="nav-sublink" href="form-genel.html">Genel</a><a class="nav-sublink" href="gelismis-kontroller.html">Gelişmiş kontroller</a><a class="nav-sublink" href="form-dogrulama.html">Doğrulama</a><a class="nav-sublink" href="form-sihirbaz.html">Sihirbaz</a><a class="nav-sublink" href="tablolar.html">Tablolar</a><a class="nav-sublink" href="grafik-galerisi.html">Grafik galerisi</a><a class="nav-sublink" href="bilesenler.html">Bileşenler</a><a class="nav-sublink" href="widgetlar.html">Widget'lar</a><a class="nav-sublink" href="tipografi.html">Tipografi</a><a class="nav-sublink" href="ikonlar.html">İkonlar</a></div></div>
+      </div>
+    
+    </div>
+  </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar">A<span class="online"></span></div>
+          <div class="sidebar-user-info">
+            <div class="name">Aigars Silkalns</div>
+            <div class="role">Admin</div>
+          </div>
+          <button class="more-btn" aria-label="More options">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+  
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span class="sep" aria-hidden="true">›</span><span>Dashboards</span><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Analytics</span></nav>
+      </div>
+      <div class="search-box">
+        <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+        <input type="text" placeholder="Search pages or run a command…" aria-label="Open command palette">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+          <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+        </a>
+        <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">A</button>
+      </div>
+    </header>
+  
+<main id="main-content" tabindex="-1" class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Analytics</div>
+        <h1 class="page-title">Traffic overview</h1>
+      </div>
+      <div class="page-actions">
+        <div class="segmented" role="radiogroup" style="margin-right:8px">
+          <label><input type="radio" name="rng"><span>7d</span></label>
+          <label><input type="radio" name="rng" checked><span>30d</span></label>
+          <label><input type="radio" name="rng"><span>90d</span></label>
+        </div>
+        <button class="btn btn-outline">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v10M5 8l3 3 3-3M2 14h12"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary">Share</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 1: 4-up KPIs with sparklines ── -->
+  <div class="row col-4">
+    <div class="card"><div class="stat">
+      <div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg></div>
+      <div class="stat-content">
+        <div class="stat-label">Visitors</div>
+        <div class="stat-value-row"><span class="stat-value">42,871</span><span class="stat-change up">↑ 14%</span></div>
+        <div class="stat-subtext">vs last 30 days</div>
+      </div>
+      <div class="stat-spark"><div class="bar" style="height:30%"></div><div class="bar" style="height:50%"></div><div class="bar" style="height:40%"></div><div class="bar" style="height:60%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:75%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:85%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:80%"></div></div>
+    </div></div>
+
+    <div class="card"><div class="stat">
+      <div class="stat-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-6 9 6M5 9v11h14V9"/></svg></div>
+      <div class="stat-content">
+        <div class="stat-label">Bounce rate</div>
+        <div class="stat-value-row"><span class="stat-value">38.4%</span><span class="stat-change down">↓ 2.1pp</span></div>
+        <div class="stat-subtext">improving</div>
+      </div>
+      <div class="stat-spark"><div class="bar" style="height:80%;background:var(--red)"></div><div class="bar" style="height:75%;background:var(--red)"></div><div class="bar" style="height:60%;background:var(--red)"></div><div class="bar" style="height:65%;background:var(--red)"></div><div class="bar" style="height:55%;background:var(--red)"></div><div class="bar" style="height:50%;background:var(--red)"></div><div class="bar" style="height:45%;background:var(--red)"></div><div class="bar" style="height:40%;background:var(--red)"></div><div class="bar" style="height:42%;background:var(--red)"></div><div class="bar" style="height:38%;background:var(--red)"></div></div>
+    </div></div>
+
+    <div class="card"><div class="stat">
+      <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l5 5L21 4"/></svg></div>
+      <div class="stat-content">
+        <div class="stat-label">Conversions</div>
+        <div class="stat-value-row"><span class="stat-value">2,315</span><span class="stat-change up">↑ 5.4%</span></div>
+        <div class="stat-subtext">5.4% of visitors</div>
+      </div>
+      <div class="stat-spark"><div class="bar" style="height:50%;background:var(--green)"></div><div class="bar" style="height:55%;background:var(--green)"></div><div class="bar" style="height:60%;background:var(--green)"></div><div class="bar" style="height:65%;background:var(--green)"></div><div class="bar" style="height:70%;background:var(--green)"></div><div class="bar" style="height:75%;background:var(--green)"></div><div class="bar" style="height:80%;background:var(--green)"></div><div class="bar" style="height:85%;background:var(--green)"></div><div class="bar" style="height:90%;background:var(--green)"></div><div class="bar" style="height:88%;background:var(--green)"></div></div>
+    </div></div>
+
+    <div class="card"><div class="stat">
+      <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <div class="stat-content">
+        <div class="stat-label">Avg session</div>
+        <div class="stat-value-row"><span class="stat-value">3:42</span><span class="stat-change up">↑ 8%</span></div>
+        <div class="stat-subtext">minutes per visit</div>
+      </div>
+      <div class="stat-spark"><div class="bar" style="height:50%;background:var(--purple)"></div><div class="bar" style="height:55%;background:var(--purple)"></div><div class="bar" style="height:60%;background:var(--purple)"></div><div class="bar" style="height:65%;background:var(--purple)"></div><div class="bar" style="height:70%;background:var(--purple)"></div><div class="bar" style="height:75%;background:var(--purple)"></div><div class="bar" style="height:80%;background:var(--purple)"></div><div class="bar" style="height:85%;background:var(--purple)"></div><div class="bar" style="height:90%;background:var(--purple)"></div><div class="bar" style="height:95%;background:var(--purple)"></div></div>
+    </div></div>
+  </div>
+
+  <!-- ── Row 2: Live counter + Big revenue chart ── -->
+  <div class="row col-4-8">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Live now</div></div>
+      <div class="card-body" style="padding:8px 16px 14px">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+          <span style="font-size:42px;font-weight:700;letter-spacing:-1px;color:var(--text);line-height:1">847</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--green);font-weight:600">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite"></span>
+            LIVE
+          </span>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:14px">visitors right now</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:11.5px">
+          <div><div style="color:var(--text-muted);margin-bottom:2px">Returning</div><div style="color:var(--text);font-weight:600;font-size:15px">62%</div></div>
+          <div><div style="color:var(--text-muted);margin-bottom:2px">Mobile</div><div style="color:var(--text);font-weight:600;font-size:15px">48%</div></div>
+          <div><div style="color:var(--text-muted);margin-bottom:2px">From search</div><div style="color:var(--text);font-weight:600;font-size:15px">71%</div></div>
+          <div><div style="color:var(--text-muted);margin-bottom:2px">Avg pages</div><div style="color:var(--text);font-weight:600;font-size:15px">4.2</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Revenue</div>
+          <div class="card-subtitle">$24,567 this month · ↑ 18% vs last month</div>
+        </div>
+        <div class="chart-tabs">
+          <button class="chart-tab active">7d</button>
+          <button class="chart-tab">30d</button>
+          <button class="chart-tab">90d</button>
+          <button class="chart-tab">12m</button>
+        </div>
+      </div>
+      <div class="chart-area" style="height:240px">
+        <div data-chart="revenue-line" style="width:100%;height:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 3: Stacked area + Conversion funnel ── -->
+  <div class="row col-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Plan growth</div>
+          <div class="card-subtitle">Stacked area · Pro · Business · Starter</div>
+        </div>
+      </div>
+      <div class="chart-area" style="height:240px">
+        <div data-chart="stacked-area" style="width:100%;height:100%"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Conversion funnel</div>
+          <div class="card-subtitle">Visitor → Paid</div>
+        </div>
+      </div>
+      <div class="chart-area" style="height:240px">
+        <div data-chart="funnel" style="width:100%;height:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 4: Activity heatmap + Devices donut ── -->
+  <div class="row col-8-4">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Activity heatmap</div>
+          <div class="card-subtitle">Sessions by hour and day-of-week</div>
+        </div>
+      </div>
+      <div class="chart-area" style="height:240px">
+        <div data-chart="heatmap" style="width:100%;height:100%"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Devices</div></div>
+      <div class="card-body">
+        <div class="donut-block">
+          <div class="donut-svg">
+            <div data-chart="device-usage" style="width:100%;height:100%"></div>
+            <div class="donut-center-label"><div class="num">55%</div><div class="sub">mobile</div></div>
+          </div>
+          <div class="donut-legend">
+            <div class="donut-legend-item"><span class="dot" style="background:var(--primary)"></span> iOS <span class="pct">30%</span></div>
+            <div class="donut-legend-item"><span class="dot" style="background:var(--azure)"></span> Android <span class="pct">25%</span></div>
+            <div class="donut-legend-item"><span class="dot" style="background:var(--yellow)"></span> Desktop <span class="pct">20%</span></div>
+            <div class="donut-legend-item"><span class="dot" style="background:var(--purple)"></span> Tablet <span class="pct">15%</span></div>
+            <div class="donut-legend-item"><span class="dot" style="background:var(--red)"></span> Other <span class="pct">10%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 5: Top pages + Top countries + Top referrers ── -->
+  <div class="row col-3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Top pages</div><a href="#" style="font-size:12px">View all</a></div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Page</th><th style="text-align:right">Views</th><th style="text-align:right">% chg</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--font-mono);font-size:12px">/pricing</td><td style="text-align:right">12,498</td><td style="text-align:right"><span style="color:var(--green)">+24%</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:12px">/features</td><td style="text-align:right">9,221</td><td style="text-align:right"><span style="color:var(--green)">+12%</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:12px">/blog/v4</td><td style="text-align:right">8,164</td><td style="text-align:right"><span style="color:var(--green)">+87%</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:12px">/docs</td><td style="text-align:right">6,432</td><td style="text-align:right"><span style="color:var(--text-muted)">+2%</span></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:12px">/login</td><td style="text-align:right">5,108</td><td style="text-align:right"><span style="color:var(--red)">−4%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Top countries</div></div>
+      <div class="card-body" style="padding:8px 16px">
+        <div class="visitor-row"><span class="visitor-flag">🇺🇸</span><span class="visitor-name">United States</span><span class="visitor-pct">42%</span><div class="visitor-bar"><div class="fill" style="width:42%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇩🇪</span><span class="visitor-name">Germany</span><span class="visitor-pct">21%</span><div class="visitor-bar"><div class="fill" style="width:21%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇯🇵</span><span class="visitor-name">Japan</span><span class="visitor-pct">14%</span><div class="visitor-bar"><div class="fill" style="width:14%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇧🇷</span><span class="visitor-name">Brazil</span><span class="visitor-pct">9%</span><div class="visitor-bar"><div class="fill" style="width:9%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇫🇷</span><span class="visitor-name">France</span><span class="visitor-pct">7%</span><div class="visitor-bar"><div class="fill" style="width:7%"></div></div></div>
+        <div class="visitor-row"><span class="visitor-flag">🇮🇳</span><span class="visitor-name">India</span><span class="visitor-pct">7%</span><div class="visitor-bar"><div class="fill" style="width:7%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Top referrers</div></div>
+      <div class="card-body" style="padding:8px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border-radius:6px;background:#0e1117;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">GH</div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;color:var(--text);font-weight:500">github.com</div>
+            <div style="font-size:11px;color:var(--text-muted)">8,432 visits</div>
+          </div>
+          <span style="font-size:12px;color:var(--green);font-weight:600">+34%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border-radius:6px;background:#ff4500;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">PH</div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;color:var(--text);font-weight:500">producthunt.com</div>
+            <div style="font-size:11px;color:var(--text-muted)">3,210 visits</div>
+          </div>
+          <span style="font-size:12px;color:var(--green);font-weight:600">+12%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border-radius:6px;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">𝕏</div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;color:var(--text);font-weight:500">x.com</div>
+            <div style="font-size:11px;color:var(--text-muted)">2,847 visits</div>
+          </div>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600">+1%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border-radius:6px;background:#4285f4;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">G</div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;color:var(--text);font-weight:500">google.com</div>
+            <div style="font-size:11px;color:var(--text-muted)">12,094 visits</div>
+          </div>
+          <span style="font-size:12px;color:var(--green);font-weight:600">+8%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 6: Goals + Top searches + Cohort retention ── -->
+  <div class="row col-3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Goals</div></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)">Sign-ups</span><span style="color:var(--text-muted)">412 / 500</span></div>
+          <div class="progress-thin"><div class="bar" style="width:82%;background:var(--primary)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)">Trial conversions</span><span style="color:var(--text-muted)">87 / 100</span></div>
+          <div class="progress-thin"><div class="bar" style="width:87%;background:var(--green)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)">Newsletter</span><span style="color:var(--text-muted)">2,140 / 3,000</span></div>
+          <div class="progress-thin"><div class="bar" style="width:71%;background:var(--azure)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)">Demo bookings</span><span style="color:var(--text-muted)">28 / 50</span></div>
+          <div class="progress-thin"><div class="bar" style="width:56%;background:var(--yellow)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span style="color:var(--text)">Pro upgrades</span><span style="color:var(--text-muted)">14 / 25</span></div>
+          <div class="progress-thin"><div class="bar" style="width:56%;background:var(--purple)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Top searches</div></div>
+      <div class="card-body" style="padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px">
+        <span class="chip">admin template <small style="margin-left:4px;opacity:0.6">2.4k</small></span>
+        <span class="chip">free dashboard <small style="margin-left:4px;opacity:0.6">1.8k</small></span>
+        <span class="chip">echarts <small style="margin-left:4px;opacity:0.6">1.2k</small></span>
+        <span class="chip">vite tailwind <small style="margin-left:4px;opacity:0.6">980</small></span>
+        <span class="chip">bootstrap 5 <small style="margin-left:4px;opacity:0.6">820</small></span>
+        <span class="chip">datatables <small style="margin-left:4px;opacity:0.6">740</small></span>
+        <span class="chip">dark mode <small style="margin-left:4px;opacity:0.6">680</small></span>
+        <span class="chip">vanilla js <small style="margin-left:4px;opacity:0.6">520</small></span>
+        <span class="chip">kanban <small style="margin-left:4px;opacity:0.6">410</small></span>
+        <span class="chip">pricing tables <small style="margin-left:4px;opacity:0.6">380</small></span>
+        <span class="chip">theme generator <small style="margin-left:4px;opacity:0.6">340</small></span>
+        <span class="chip">2026 redesign <small style="margin-left:4px;opacity:0.6">220</small></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Cohort retention</div><div class="card-subtitle" style="margin-left:8px">last 6 weeks</div></div>
+      <div class="card-body" style="padding:0 16px 16px">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead>
+            <tr style="color:var(--text-muted)"><th style="text-align:left;padding:6px 4px;font-weight:500">Cohort</th><th style="padding:6px 4px;font-weight:500">W1</th><th style="padding:6px 4px;font-weight:500">W2</th><th style="padding:6px 4px;font-weight:500">W3</th><th style="padding:6px 4px;font-weight:500">W4</th><th style="padding:6px 4px;font-weight:500">W5</th></tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:4px;color:var(--text);font-weight:500">Apr 1</td><td style="padding:3px;background:var(--primary);color:white;text-align:center;font-weight:600">100</td><td style="padding:3px;background:rgba(26,187,156,0.7);color:white;text-align:center">82</td><td style="padding:3px;background:rgba(26,187,156,0.5);color:white;text-align:center">71</td><td style="padding:3px;background:rgba(26,187,156,0.4);color:white;text-align:center">64</td><td style="padding:3px;background:rgba(26,187,156,0.3);text-align:center">58</td></tr>
+            <tr><td style="padding:4px;color:var(--text);font-weight:500">Apr 8</td><td style="padding:3px;background:var(--primary);color:white;text-align:center;font-weight:600">100</td><td style="padding:3px;background:rgba(26,187,156,0.65);color:white;text-align:center">79</td><td style="padding:3px;background:rgba(26,187,156,0.55);color:white;text-align:center">68</td><td style="padding:3px;background:rgba(26,187,156,0.4);color:white;text-align:center">62</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td></tr>
+            <tr><td style="padding:4px;color:var(--text);font-weight:500">Apr 15</td><td style="padding:3px;background:var(--primary);color:white;text-align:center;font-weight:600">100</td><td style="padding:3px;background:rgba(26,187,156,0.7);color:white;text-align:center">85</td><td style="padding:3px;background:rgba(26,187,156,0.55);color:white;text-align:center">72</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td></tr>
+            <tr><td style="padding:4px;color:var(--text);font-weight:500">Apr 22</td><td style="padding:3px;background:var(--primary);color:white;text-align:center;font-weight:600">100</td><td style="padding:3px;background:rgba(26,187,156,0.75);color:white;text-align:center">88</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td></tr>
+            <tr><td style="padding:4px;color:var(--text);font-weight:500">Apr 29</td><td style="padding:3px;background:var(--primary);color:white;text-align:center;font-weight:600">100</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td><td style="padding:3px;background:var(--bg-surface-secondary);color:var(--text-muted);text-align:center">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+    <footer class="footer">
+      <span>© 2026 Arda Bilasa. Tüm hakları saklıdır.</span>
+      <span>Firebase v9.23.0</span>
+    </footer>
+  
+</main>
+
+</body>
+</html>

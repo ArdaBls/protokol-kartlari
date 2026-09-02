@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tüm haberler | Protokol</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. Etkinliklerin
+     haberMetni alanı dolu olanları listeler (bkz. index.html'deki etkinlik formu, "Haber Metni"). -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="projects" data-breadcrumb="Anasayfa|index.html > Tüm haberler">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Haberler</div>
+        <h1 class="page-title">Tüm haberler</h1>
+      </div>
+      <div class="page-actions">
+        <div class="search-box" style="width:220px">
+          <svg class="s-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+          <input type="text" id="news-search" placeholder="Haber ara…" aria-label="Haber ara">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row col-3" id="projects-grid">
+    <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+
+const DURUM_LABEL = { planlandi: 'Planlandı', yaziliyor: 'Haber yazılıyor', incelemede: 'İncelemede', tamamlandi: 'Tamamlandı', iptal: 'İptal' };
+const DURUM_CLS   = { yaziliyor: 'status-yellow', incelemede: 'status-blue', tamamlandi: 'status-green', iptal: 'status-red' };
+// "Gerçekleşti" aşaması kaldırılıp durum tek iş akışında birleştirildi (bkz. app.js
+// EVENT_STATUS) -- eski kayıtlardaki cekildi/haber/yayinlandi değerleri en yakın yeni
+// karşılığına eşlenir, ham/çevrilmemiş metin görünmesin diye.
+const LEGACY_DURUM = { cekildi: 'planlandi', haber: 'yaziliyor', yayinlandi: 'tamamlandi' };
+const normalizeDurum = (d) => { const k = d || 'planlandi'; return LEGACY_DURUM[k] || k; };
+
+const grid = document.getElementById('projects-grid');
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const parseNameList = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+
+function fmtTarih(key) {
+  if (!key) return '';
+  const [y, m, d] = key.split('-');
+  return d && m && y ? `${d}.${m}.${y}` : key;
+}
+
+// Sıralama anahtarı. olusturmaTs alanı sonradan eklendiği için ESKİ kayıtlarda yok; düz
+// `olusturmaTs || 0` kullanıldığında bu kayıtların hepsi 0 alıp listenin en dibine düşüyor
+// VE kendi aralarında eskiden-yeniye diziliyordu -- "en son eklenen en üstte" niyetinin tam
+// tersi. Seçilen çözüm: damga yoksa etkinlik `tarih`ine düşmek. İkisi de ms epoch olduğu için
+// aynı ölçekte karşılaştırılabiliyor ve damgasız eski kayıtlar dibe yığılmak yerine kendi
+// dönemlerine, doğru sırada yerleşiyor. Hiçbiri yoksa 0 (en sonda) kalır.
+function sortTs(e) {
+  if (e && Number.isFinite(Number(e.olusturmaTs)) && Number(e.olusturmaTs) > 0) { return Number(e.olusturmaTs); }
+  const a = String((e && e.tarih) || '').split('-');
+  if (a.length !== 3) { return 0; }
+  const t = new Date(Number(a[0]), Number(a[1]) - 1, Number(a[2])).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
+let NEWS = [];
+let filterText = '';
+let canWrite = false;
+let currentUserName = '';
+let currentUserEmail = '';
+
+function setState(html) {
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
+}
+
+// haberMetni zengin metin editöründen gelen HTML -- hem kart önizlemesi hem de arama
+// aynı düz metni kullanmalı. Aksi hâlde filtre ham HTML'de arayıp "span", "strong",
+// "href" gibi ekranda GÖRÜNMEYEN kelimelerle eşleşiyordu.
+const stripTags = (h) => String(h || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+// toLowerCase() Türkçe'de yanlış: 'İ'.toLowerCase() birleşen noktalı "i̇" üretiyor, bu yüzden
+// "İletişim" araması "iletişim" ile eşleşmiyordu. Karşılaştırmanın İKİ tarafı da tr yerel
+// ayarıyla küçültülmeli, yoksa sorun taraf değiştirir.
+const trLower = (s) => String(s || '').toLocaleLowerCase('tr');
+
+function render() {
+  const q = trLower(filterText).trim();
+  const items = NEWS.filter(([, e]) => !q || trLower(e.ad).includes(q) || trLower(stripTags(e.haberMetni)).includes(q));
+  if (!items.length) { setState('Eşleşen haber yok.'); return; }
+
+  grid.innerHTML = items.map(([id, e]) => {
+    const durum = normalizeDurum(e.durum);
+    const writers = parseNameList(e.haberYazanlari).join(', ') || '—';
+    const plain = stripTags(e.haberMetni);
+    const excerpt = plain.slice(0, 140);
+    return `
+      <a class="card" href="haber-detayi.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit;position:relative">
+        ${canWrite ? `<button type="button" class="card-opt-btn news-delete-btn" data-id="${escapeHtml(id)}" title="Bu haberi sil" aria-label="Bu haberi sil" style="position:absolute;top:10px;right:10px;z-index:2">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6.5 4V2.5h3V4M4.5 4l.5 9.5h6l.5-9.5"/></svg>
+        </button>` : ''}
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px">
+          <div style="font-size:14px;font-weight:600;color:var(--text);padding-right:${canWrite ? '26px' : '0'}">${escapeHtml(e.ad || '(adsız)')}</div>
+          <span class="status ${DURUM_CLS[durum] || ''}" style="flex-shrink:0">${DURUM_LABEL[durum] || durum}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${escapeHtml(fmtTarih(e.tarih))}${e.yer ? ' · ' + escapeHtml(e.yer) : ''}</div>
+        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px">${excerpt ? escapeHtml(excerpt) + (plain.length > 140 ? '…' : '') : '<span style="color:var(--text-muted)">Haber metni henüz girilmedi.</span>'}</div>
+        <div style="font-size:11.5px;color:var(--text-muted)">Yazan: ${escapeHtml(writers)}</div>
+      </a>
+    `;
+  }).join('');
+}
+
+document.getElementById('news-search').addEventListener('input', (e) => { filterText = e.target.value; render(); });
+
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('.news-delete-btn');
+  if (!btn) { return; }
+  e.preventDefault(); e.stopPropagation();
+  const id = btn.dataset.id;
+  const entry = NEWS.find(([nid]) => nid === id);
+  const name = entry ? (entry[1].ad || '(adsız)') : '(adsız)';
+  if (!window.confirm(`"${name}" etkinliğini/haberini kalıcı olarak silmek istediğinize emin misiniz?`)) { return; }
+  database.ref('etkinlikler/' + id).remove().then(() => {
+    // Log şeması ana siteyle (app.js executeEventDelete) ve bildirimler.html'in okuduğu
+    // alanlarla BİREBİR aynı olmalı: bildirimler.html tarihi `timestamp`'ten okuyup ona
+    // göre sıralıyor -- `ts` yazılırsa kayıt 01.01.1970 görünüp listenin en dibine düşer.
+    // Log yazımı silme işleminin başarısını etkilemez, ama .catch()'siz bırakılırsa
+    // (ör. logs/ kuralı reddederse) yakalanmamış promise reddi olarak konsola düşer.
+    database.ref('logs/etkinlik').push({
+      by: currentUserName, email: currentUserEmail,
+      action: name + ' etkinliği silindi', target: name,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).catch((err) => console.error('Silme logu yazılamadı:', err));
+    NEWS = NEWS.filter(([nid]) => nid !== id);
+    render();
+  }).catch((err) => {
+    console.error('Silinemedi:', err);
+    alert('Silinemedi, tekrar deneyin.');
+  });
+});
+
+function loadNews() {
+  setState('Yükleniyor…');
+  database.ref('etkinlikler').once('value').then((snap) => {
+    const events = snap.val() || {};
+    // Kullanıcı isteği: haber metni doldurulmuş olsun olmasın HER etkinlik burada listelenir --
+    // haberi yazma/düzenleme artık haber-detayi.html'deki CKEditor sisteminde yapılıyor,
+    // buradaki liste "girilecek/düzenlenecek haberler" panosu gibi çalışır. Sıralama, etkinlik
+    // tarihine değil EKLENME zamanına (olusturmaTs) göre -- en son eklenen en üstte.
+    NEWS = Object.entries(events)
+      .filter(([, e]) => e && e.ad)
+      .sort((a, b) => sortTs(b[1]) - sortTs(a[1]));
+    if (!NEWS.length) { setState('Henüz etkinlik yok.'); return; }
+    render();
+  }).catch((err) => {
+    console.error('Haberler yüklenemedi:', err);
+    setState('Haberler yüklenemedi.');
+  });
+}
+
+firebase.auth().onAuthStateChanged((user) => {
+  if (!user) { canWrite = false; loadNews(); return; }
+  database.ref('users/' + user.uid).once('value').then((snap) => {
+    const u = snap.val() || {};
+    canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+    currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
+    currentUserEmail = user.email || '';
+    loadNews();
+  }).catch(() => { canWrite = false; loadNews(); });
+});
+</script>
+
+</body>
+</html>

@@ -32,9 +32,9 @@ function buildItems() {
   // Inline actions
   const actions = [
     { label: 'Toggle theme', keywords: 'theme dark light mode toggle', action: toggleTheme },
-    { label: 'Open profile', keywords: 'profile account user me', action: () => { window.location.href = 'profile.html'; } },
-    { label: 'Open settings', keywords: 'settings preferences config', action: () => { window.location.href = 'settings.html'; } },
-    { label: 'Help & support', keywords: 'help faq support docs', action: () => { window.location.href = 'faq.html'; } },
+    { label: 'Open profile', keywords: 'profile account user me', action: () => { window.location.href = 'profil.html'; } },
+    { label: 'Open settings', keywords: 'settings preferences config', action: () => { window.location.href = 'ayarlar.html'; } },
+    { label: 'Help & support', keywords: 'help faq support docs', action: () => { window.location.href = 'yardim-merkezi.html'; } },
     {
       label: 'Sign out',
       keywords: 'sign out logout exit',
@@ -46,7 +46,7 @@ function buildItems() {
           { label: 'Cancel', variant: 'ghost' },
           { label: 'Sign out', variant: 'primary', action: () => {
             showToast('Signed out', { variant: 'success' });
-            setTimeout(() => { window.location.href = 'login.html'; }, 600);
+            setTimeout(() => { window.location.href = 'giris.html'; }, 600);
           } }
         ]
       })

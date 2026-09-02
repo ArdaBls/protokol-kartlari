@@ -16,36 +16,36 @@ export const NAV = [
         text: 'Panolar', icon: 'dashboard',
         children: [
           { key: 'dashboard',   href: 'index.html',  text: 'Operasyonlar' },
-          { key: 'dashboard-2', href: 'index2.html', text: 'Analitik' },
-          { key: 'dashboard-4', href: 'index4.html', text: 'Sistem durumu' }
+          { key: 'dashboard-2', href: 'analitik.html', text: 'Analitik' },
+          { key: 'dashboard-4', href: 'sistem-durumu.html', text: 'Sistem durumu' }
         ]
       },
-      { key: 'calendar', href: 'calendar.html', text: 'Takvim', icon: 'calendar' },
-      { key: 'map',      href: 'map.html',      text: 'Harita', icon: 'map' }
+      { key: 'calendar', href: 'takvim.html', text: 'Takvim', icon: 'calendar' },
+      { key: 'map',      href: 'harita.html',      text: 'Harita', icon: 'map' }
     ]
   },
   {
     label: 'Uygulamalar',
     items: [
-      { key: 'kanban',        href: 'kanban.html',        text: 'Kanban',       icon: 'kanban' },
-      { key: 'notifications', href: 'notifications.html', text: 'Bildirimler',  icon: 'bell' }
+      { key: 'kanban',        href: 'yapilacaklar.html',        text: 'Kanban',       icon: 'kanban' },
+      { key: 'notifications', href: 'bildirimler.html', text: 'Bildirimler',  icon: 'bell' }
     ]
   },
   {
     label: 'Haberler',
     items: [
-      { key: 'projects',       href: 'projects.html',       text: 'Tüm haberler', icon: 'projects' },
-      { key: 'project-detail', href: 'project_detail.html', text: 'Haber detayı', icon: 'pages' }
+      { key: 'projects',       href: 'tum-haberler.html',       text: 'Tüm haberler', icon: 'projects' },
+      { key: 'project-detail', href: 'haber-detayi.html', text: 'Haber detayı', icon: 'pages' }
     ]
   },
   {
     label: 'Yönetim',
     items: [
-      { key: 'users',           href: 'contacts.html',         text: 'Kişiler',            icon: 'users' },
-      { key: 'user_management', href: 'user_management.html',  text: 'Kullanıcı yönetimi', icon: 'profile' },
-      { key: 'profile',         href: 'profile.html',          text: 'Profiliniz',         icon: 'profile' },
-      { key: 'settings',        href: 'settings.html',         text: 'Ayarlar',            icon: 'settings' },
-      { key: 'faq',             href: 'faq.html',              text: 'Yardım merkezi',     icon: 'help' }
+      { key: 'users',           href: 'kisiler.html',         text: 'Kişiler',            icon: 'users' },
+      { key: 'user_management', href: 'kullanici-yonetimi.html',  text: 'Kullanıcı yönetimi', icon: 'profile' },
+      { key: 'profile',         href: 'profil.html',          text: 'Profiliniz',         icon: 'profile' },
+      { key: 'settings',        href: 'ayarlar.html',         text: 'Ayarlar',            icon: 'settings' },
+      { key: 'faq',             href: 'yardim-merkezi.html',              text: 'Yardım merkezi',     icon: 'help' }
     ]
   },
   {
@@ -54,16 +54,16 @@ export const NAV = [
       {
         text: 'UI kütüphanesi', icon: 'ui',
         children: [
-          { key: 'forms',           href: 'form.html',            text: 'Genel' },
-          { key: 'form-advanced',   href: 'form_advanced.html',   text: 'Gelişmiş kontroller' },
-          { key: 'form-validation', href: 'form_validation.html', text: 'Doğrulama' },
-          { key: 'form-wizards',    href: 'form_wizards.html',    text: 'Sihirbaz' },
-          { key: 'tables-dynamic',  href: 'tables_dynamic.html',  text: 'Tablolar' },
-          { key: 'echarts',         href: 'echarts.html',         text: 'Grafik galerisi' },
-          { key: 'ui',              href: 'general_elements.html', text: 'Bileşenler' },
-          { key: 'widgets',         href: 'widgets.html',          text: 'Widget\'lar' },
-          { key: 'typography',      href: 'typography.html',       text: 'Tipografi' },
-          { key: 'icons',           href: 'icons.html',            text: 'İkonlar' }
+          { key: 'forms',           href: 'form-genel.html',            text: 'Genel' },
+          { key: 'form-advanced',   href: 'gelismis-kontroller.html',   text: 'Gelişmiş kontroller' },
+          { key: 'form-validation', href: 'form-dogrulama.html', text: 'Doğrulama' },
+          { key: 'form-wizards',    href: 'form-sihirbaz.html',    text: 'Sihirbaz' },
+          { key: 'tables-dynamic',  href: 'tablolar.html',  text: 'Tablolar' },
+          { key: 'echarts',         href: 'grafik-galerisi.html',         text: 'Grafik galerisi' },
+          { key: 'ui',              href: 'bilesenler.html', text: 'Bileşenler' },
+          { key: 'widgets',         href: 'widgetlar.html',          text: 'Widget\'lar' },
+          { key: 'typography',      href: 'tipografi.html',       text: 'Tipografi' },
+          { key: 'icons',           href: 'ikonlar.html',            text: 'İkonlar' }
         ]
       }
     ]
@@ -186,7 +186,7 @@ const CRUMB_HREFS = (() => {
 const escapeAttr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 // Every crumb but the last resolves to a link, in this order:
-//   1. explicit target in the page's data-breadcrumb — "Forms|form.html"
+//   1. explicit target in the page's data-breadcrumb — "Forms|form-genel.html"
 //   2. exact label match against NAV (see CRUMB_HREFS above)
 //   3. no match → plain text, exactly as before
 // The last crumb is the current page: never a link, always aria-current.
@@ -226,7 +226,7 @@ export function renderTopbar(breadcrumb) {
           <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <a class="tb-btn" href="notifications.html" title="Bildirimler" aria-label="Bildirimler">
+        <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
         </a>
         <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">A</button>

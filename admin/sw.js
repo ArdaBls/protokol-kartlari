@@ -5,13 +5,13 @@
 
 // Bump the suffix on every release to bust users' caches when CSS/JS hashes
 // change but the same URL is requested. Activate handler clears old caches.
-const CACHE = 'protokol-admin-r3';
+const CACHE = 'protokol-admin-r4';
 
 // Subpath-aware: scope is the directory the SW is registered against. Under
 // `/` it's `https://example.com/`; under `/admin/` it's that path. Resolving
 // relative URLs against the scope makes the SW work in both.
 const SCOPE = self.registration?.scope || self.location.origin + '/';
-const OFFLINE_URL = new URL('production/offline.html', SCOPE).href;
+const OFFLINE_URL = new URL('production/cevrimdisi.html', SCOPE).href;
 const PRECACHE = [OFFLINE_URL];
 
 self.addEventListener('install', (event) => {

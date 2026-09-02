@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Protokol — Admin Paneli</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="/admin/site.webmanifest">
+<meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/admin/images/apple-touch-icon.svg">
+<meta name="description" content="OMÜ Protokol Kartları admin paneli.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Protokol — Admin Paneli">
+<meta property="og:description" content="OMÜ Protokol Kartları admin paneli.">
+<meta property="og:image" content="/admin/images/android-chrome-512x512.svg">
+<meta property="og:site_name" content="Protokol">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
+  <script type="module" crossorigin src="/admin/js/rolldown-runtime-_5RX-BWT.js"></script>
+  <script type="module" crossorigin src="/admin/js/toast-CBtjS_PZ.js"></script>
+  <script type="module" crossorigin src="/admin/js/modal-C4oI3O5p.js"></script>
+  <script type="module" crossorigin src="/admin/js/main-v4-Cq4Hluny.js"></script>
+  <link rel="stylesheet" crossorigin href="/admin/assets/main-v4-CmCwBJzJ.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Protokol Kartları Admin Paneli","applicationCategory":"DeveloperApplication","operatingSystem":"Any","softwareVersion":"1.0.0","url":"https://protokol.sbs/admin/","description":"OMÜ Protokol Kartları — admin paneli. Vite 8, vanilla JS.","author":{"@type":"Person","name":"Arda Bilasa"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is it really free for commercial use?","acceptedAnswer":{"@type":"Answer","text":"Yes. Use it for client work, side projects, your own SaaS."}},{"@type":"Question","name":"Do I need a backend?","acceptedAnswer":{"@type":"Answer","text":"No. This is a pure frontend template — static HTML/CSS/JS. Wire it up to whatever stack you like."}},{"@type":"Question","name":"Can I use it with React/Vue/Svelte?","acceptedAnswer":{"@type":"Answer","text":"The SCSS design system is framework-agnostic — drop the compiled CSS into any project. The HTML pages and shell rendering are vanilla JS, so port what you need."}},{"@type":"Question","name":"How do I customize the colors?","acceptedAnswer":{"@type":"Answer","text":"Every color lives in _tokens.scss as a CSS custom property. Change --primary and every chart, button, badge, and link updates."}},{"@type":"Question","name":"What changed in v4?","acceptedAnswer":{"@type":"Answer","text":"Bootstrap and jQuery are gone. The design system is custom SCSS. ECharts replaced Chart.js. DataTables replaced jQuery DataTables. node_modules dropped from ~600 MB to ~165 MB."}},{"@type":"Question","name":"Where can I get help?","acceptedAnswer":{"@type":"Answer","text":"Read the help center ."}}]}]}</script>
+</head>
+<body class="landing-body">
+
+<header class="landing-nav">
+  <div class="brand">
+    <img class="brand-icon" src="../images/favicon.png" alt="">
+    <div class="brand-name">Protokol</div>
+  </div>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#showcase">Showcase</a>
+    <a href="#testimonials">Reviews</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <div class="cta">
+    <a href="giris.html" class="btn btn-outline">Sign in</a>
+    <a href="index.html" class="btn btn-primary">Try the demo</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--primary-lt);color:var(--primary);border-radius:999px;font-size:12px;font-weight:600;margin-bottom:18px">
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--primary)"></span>
+    v4.0 — fresh for 2026
+  </div>
+  <h1>The admin dashboard, <span>redesigned for 2026.</span></h1>
+  <p class="subhead">Fresh design system. Real ECharts. Real DataTables. Vite 8, vanilla JS, zero jQuery.</p>
+  <div class="cta">
+    <a href="index.html" class="btn btn-primary" style="height:42px;padding:0 18px;font-size:14px">View live demo →</a>
+  </div>
+  <div style="margin-top:32px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)">
+    <span>✓ No backend required</span>
+    <span>✓ Zero jQuery</span>
+    <span>✓ ~17 KB above-the-fold</span>
+  </div>
+</section>
+
+<!-- Stats band -->
+<section style="max-width:1100px;margin:0 auto;padding:0 32px 60px">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:32px;text-align:center;border-top:1px solid var(--border-color-light);border-bottom:1px solid var(--border-color-light);padding:32px 0">
+    <div>
+      <div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">55+</div>
+      <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px">Pages</div>
+    </div>
+    <div>
+      <div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">16</div>
+      <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px">Chart types</div>
+    </div>
+    <div>
+      <div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">3</div>
+      <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px">Prod deps</div>
+    </div>
+    <div>
+      <div style="font-size:32px;font-weight:700;color:var(--text);letter-spacing:-1px">5s</div>
+      <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px">Build time</div>
+    </div>
+  </div>
+</section>
+
+<!-- Features grid -->
+<section class="features" id="features">
+  <div class="feature">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="10" width="7" height="11" rx="1.5"/></svg></div>
+    <h2>55+ pages</h2>
+    <p>Dashboards, forms, tables, charts, calendar, inbox, chat, kanban, file manager, e-commerce, admin — all designed in the same v4 system.</p>
+  </div>
+  <div class="feature">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19V5M8 19v-8M12 19V9M16 19v-5M20 19v-9"/></svg></div>
+    <h2>Real charts & tables</h2>
+    <p>Apache ECharts and DataTables wired in, styled to match the design system. 16 chart variants, sortable tables, CSV export — all working.</p>
+  </div>
+  <div class="feature">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h7l-1 8 11-12h-7z"/></svg></div>
+    <h2>Lean & modern</h2>
+    <p>Bootstrap 5 is gone — replaced with a self-contained design system in 10 SCSS partials. ~17 KB above-the-fold (gzipped). No jQuery.</p>
+  </div>
+  <div class="feature">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 3a14 14 0 010 18M12 3a14 14 0 000 18M3 12h18"/></svg></div>
+    <h2>Light & dark themes</h2>
+    <p>Pre-paint script reads <code style="font-family:var(--font-mono);font-size:11px;background:var(--bg-surface-secondary);padding:1px 4px;border-radius:3px">localStorage</code> and <code style="font-family:var(--font-mono);font-size:11px;background:var(--bg-surface-secondary);padding:1px 4px;border-radius:3px">prefers-color-scheme</code> — dark mode never flashes.</p>
+  </div>
+  <div class="feature">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6v6H9zM3 15h6v6H3zM15 15h6v6h-6z"/><path d="M12 9v6"/></svg></div>
+    <h2>Fully interactive</h2>
+    <p>Inbox sends emails. Kanban drags. Calendar adds events. Forms validate. Settings persist. Not just pretty — these pages actually work.</p>
+  </div>
+  <div class="feature">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg></div>
+    <h2>⌘K command palette</h2>
+    <p>Global fuzzy search across every page and action. Built-in keyboard shortcuts on the inbox (J/K/R/C). Modern admin UX out of the box.</p>
+  </div>
+</section>
+
+<!-- Showcase strip -->
+<section id="showcase" style="background:var(--bg-surface-secondary);padding:80px 32px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:48px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--primary);margin-bottom:8px">Every surface, designed</div>
+      <h2 style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);margin-bottom:12px">Pages you'd actually want to ship</h2>
+      <p style="font-size:15px;color:var(--text-secondary);max-width:560px;margin:0 auto;line-height:1.5">Browse 55 production-ready pages. Each one uses the same components, the same tokens, the same design language.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">
+      <a href="index.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text);transition:border-color 150ms,transform 150ms">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Dashboard</div>
+        <div style="font-size:12px;color:var(--text-muted)">4 variants · stat tiles · charts · activity</div>
+      </a>
+      <a href="yapilacaklar.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Kanban</div>
+        <div style="font-size:12px;color:var(--text-muted)">HTML5 drag-drop · click to edit</div>
+      </a>
+      <a href="takvim.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Calendar</div>
+        <div style="font-size:12px;color:var(--text-muted)">Month grid · full event CRUD</div>
+      </a>
+      <a href="grafik-galerisi.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Charts</div>
+        <div style="font-size:12px;color:var(--text-muted)">16 chart types · token-driven colors</div>
+      </a>
+      <a href="form-genel.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Forms</div>
+        <div style="font-size:12px;color:var(--text-muted)">Tag input · sliders · OTP · validation</div>
+      </a>
+      <a href="tablolar.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Tables</div>
+        <div style="font-size:12px;color:var(--text-muted)">DataTables · sort · search · CSV export</div>
+      </a>
+      <a href="ayarlar.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Settings</div>
+        <div style="font-size:12px;color:var(--text-muted)">Persisted toggles · integrations · team</div>
+      </a>
+      <a href="giris.html" style="display:block;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:20px;text-decoration:none;color:var(--text)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Auth</div>
+        <div style="font-size:12px;color:var(--text-muted)">Login · register · 2FA · lock screen</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Stack section -->
+<section style="max-width:1100px;margin:0 auto;padding:80px 32px;text-align:center">
+  <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--primary);margin-bottom:8px">Modern stack</div>
+  <h2 style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);margin-bottom:32px">Built on what you already use</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:880px;margin:0 auto">
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Vite 8</div>
+      <div style="font-size:11px;color:var(--text-muted)">Rolldown</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">SCSS modules</div>
+      <div style="font-size:11px;color:var(--text-muted)">@use partials</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Vanilla ES2022</div>
+      <div style="font-size:11px;color:var(--text-muted)">No framework</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Apache ECharts</div>
+      <div style="font-size:11px;color:var(--text-muted)">Lazy-loaded</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">DataTables 2</div>
+      <div style="font-size:11px;color:var(--text-muted)">Re-skinned</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Leaflet 1.9</div>
+      <div style="font-size:11px;color:var(--text-muted)">Maps</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Inter</div>
+      <div style="font-size:11px;color:var(--text-muted)">Google Fonts</div>
+    </div>
+    <div style="padding:20px;border:1px solid var(--border-color);border-radius:var(--radius);background:var(--bg-surface)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">MIT license</div>
+      <div style="font-size:11px;color:var(--text-muted)">Free forever</div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section id="testimonials" style="background:var(--bg-surface-secondary);padding:80px 32px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:48px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--primary);margin-bottom:8px">From the community</div>
+      <h2 style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);margin-bottom:12px">Used by 22,000+ developers</h2>
+      <p style="font-size:15px;color:var(--text-secondary)">Trusted by teams who need a fast, reliable admin dashboard.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">
+      <div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:24px">
+        <div style="display:flex;gap:2px;color:var(--yellow);margin-bottom:14px">★★★★★</div>
+        <p style="font-size:14px;color:var(--text);line-height:1.55;margin-bottom:18px">"Finally, an admin template that doesn't ship 600MB of node_modules. The token system is so clean — I changed --primary and the entire app rebranded.”</p>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dk));color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">SK</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Sarah Kowalski</div>
+            <div style="font-size:11px;color:var(--text-muted)">Product designer · Acme Corp</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:24px">
+        <div style="display:flex;gap:2px;color:var(--yellow);margin-bottom:14px">★★★★★</div>
+        <p style="font-size:14px;color:var(--text);line-height:1.55;margin-bottom:18px">"Dropped this into my SaaS prototype on a Saturday and had it deployed by Sunday night. The DataTables and ECharts integration alone saved me a week.”</p>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#0550a0);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">MR</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Michael Reyes</div>
+            <div style="font-size:11px;color:var(--text-muted)">Engineering lead · Globex</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:24px">
+        <div style="display:flex;gap:2px;color:var(--yellow);margin-bottom:14px">★★★★★</div>
+        <p style="font-size:14px;color:var(--text);line-height:1.55;margin-bottom:18px">"The dark mode is genuinely good — most templates make dark mode look like an afterthought. v4 nailed the color tokens for both modes.”</p>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#7d2db1);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">EW</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Emily Wang</div>
+            <div style="font-size:11px;color:var(--text-muted)">Frontend dev · Initech</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="max-width:760px;margin:0 auto;padding:80px 32px">
+  <div style="text-align:center;margin-bottom:48px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--primary);margin-bottom:8px">Questions</div>
+    <h2 style="font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);margin-bottom:12px">Frequently asked</h2>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <details style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:18px 20px" open>
+      <summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">Is it really free for commercial use? <span style="color:var(--text-muted)">+</span></summary>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color-light)">Yes. Use it for client work, side projects, your own SaaS.</div>
+    </details>
+    <details style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:18px 20px">
+      <summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">Do I need a backend? <span style="color:var(--text-muted)">+</span></summary>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color-light)">No. This is a pure frontend template — static HTML/CSS/JS. Wire it up to whatever stack you like.</div>
+    </details>
+    <details style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:18px 20px">
+      <summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">Can I use it with React/Vue/Svelte? <span style="color:var(--text-muted)">+</span></summary>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color-light)">The SCSS design system is framework-agnostic — drop the compiled CSS into any project. The HTML pages and shell rendering are vanilla JS, so port what you need.</div>
+    </details>
+    <details style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:18px 20px">
+      <summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">How do I customize the colors? <span style="color:var(--text-muted)">+</span></summary>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color-light)">Every color lives in <code style="font-family:var(--font-mono);font-size:11.5px;background:var(--bg-surface-secondary);padding:1px 5px;border-radius:3px">_tokens.scss</code> as a CSS custom property. Change <code style="font-family:var(--font-mono);font-size:11.5px;background:var(--bg-surface-secondary);padding:1px 5px;border-radius:3px">--primary</code> and every chart, button, badge, and link updates.</div>
+    </details>
+    <details style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:18px 20px">
+      <summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">What changed in v4? <span style="color:var(--text-muted)">+</span></summary>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color-light)">Bootstrap and jQuery are gone. The design system is custom SCSS. ECharts replaced Chart.js. DataTables replaced jQuery DataTables. node_modules dropped from ~600 MB to ~165 MB.</div>
+    </details>
+    <details style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius);padding:18px 20px">
+      <summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">Where can I get help? <span style="color:var(--text-muted)">+</span></summary>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color-light)">Read the <a href="yardim-merkezi.html">help center</a>.</div>
+    </details>
+  </div>
+</section>
+
+<!-- CTA band -->
+<section class="cta-band">
+  <h2>See it in action</h2>
+  <p>The dashboard you saw above is the live demo — every page works.</p>
+  <a href="index.html" class="btn btn-outline" style="height:42px;padding:0 18px;font-size:14px;background:white;color:var(--primary);border-color:white">Open the dashboard</a>
+</section>
+
+<footer class="landing-footer">
+  <span>© 2026 Arda Bilasa. Tüm hakları saklıdır.</span>
+  <span>Firebase v9.23.0</span>
+</footer>
+
+</body>
+</html>

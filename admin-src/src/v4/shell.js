@@ -277,7 +277,7 @@ function openSignOutModal() {
         variant: 'primary',
         action: () => {
           showToast('Signed out', { variant: 'success' });
-          setTimeout(() => { window.location.href = 'login.html'; }, 600);
+          setTimeout(() => { window.location.href = 'giris.html'; }, 600);
         }
       }
     ]
@@ -285,12 +285,12 @@ function openSignOutModal() {
 }
 
 const USER_MENU = [
-  { label: 'Profile',            action: () => { window.location.href = 'profile.html'; } },
-  { label: 'Account settings',   action: () => { window.location.href = 'settings.html'; } },
+  { label: 'Profile',            action: () => { window.location.href = 'profil.html'; } },
+  { label: 'Account settings',   action: () => { window.location.href = 'ayarlar.html'; } },
   { label: 'Keyboard shortcuts', action: openShortcutsModal },
   '-',
-  { label: 'Help & support',     action: () => { window.location.href = 'faq.html'; } },
-  { label: 'Lock screen',        action: () => { window.location.href = 'lock_screen.html'; } },
+  { label: 'Help & support',     action: () => { window.location.href = 'yardim-merkezi.html'; } },
+  { label: 'Lock screen',        action: () => { window.location.href = 'kilit-ekrani.html'; } },
   { label: 'Sign out',           action: openSignOutModal }
 ];
 

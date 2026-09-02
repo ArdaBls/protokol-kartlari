@@ -50,7 +50,7 @@ function structuredDataPlugin() {
     transformIndexHtml: {
       order: 'post',
       handler(html, ctx) {
-        if (!/landing\.html$/.test(ctx?.filename || ctx?.path || '')) return html;
+        if (!/tanitim\.html$/.test(ctx?.filename || ctx?.path || '')) return html;
 
         const faq = [];
         const blocks = /<details[^>]*>([\s\S]*?)<\/details>/g;
@@ -106,8 +106,9 @@ function structuredDataPlugin() {
 // excluded — they're real pages in the template, but nobody wants a login
 // form or a 404 mockup as a search result.
 const SITEMAP_EXCLUDE = new Set([
-  'coming_soon', 'forgot_password', 'lock_screen', 'login', 'maintenance',
-  'offline', 'page_403', 'page_404', 'page_500', 'register', 'verify_2fa'
+  'yakinda', 'sifremi-unuttum', 'kilit-ekrani', 'giris', 'bakim',
+  'cevrimdisi', 'erisim-engellendi', 'sayfa-bulunamadi', 'sunucu-hatasi',
+  'kayit-ol', 'iki-adimli-dogrulama'
 ]);
 
 function sitemapPlugin() {
