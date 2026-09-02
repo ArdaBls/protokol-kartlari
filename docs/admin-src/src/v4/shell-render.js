@@ -31,7 +31,7 @@ export const NAV = [
   {
     label: 'Uygulamalar',
     items: [
-      { key: 'kanban',        href: 'yapilacaklar.html',        text: 'Kanban',       icon: 'kanban' },
+      { key: 'kanban',        href: 'yapilacaklar.html',        text: 'Yapılacaklar Listesi',       icon: 'kanban' },
       { key: 'notifications', href: 'bildirimler.html', text: 'Bildirimler',  icon: 'bell' }
     ]
   },
