@@ -63,7 +63,7 @@ const EVENT_BADGES = [
 ];
 
 const FACULTY_GROUPS = [
-  { title: 'Rektörlük', items: ['Rektör', 'Rektör Yardımcısı'] },
+  { title: 'Rektörlük', items: ['Rektörlük'] },
   { title: 'Fakülteler', items: [
     'Ali Fuad Başgil Hukuk Fakültesi', 'Çarşamba İnsan ve Toplum Bilimleri Fakültesi', 'Diş Hekimliği Fakültesi',
     'Eczacılık Fakültesi', 'Eğitim Fakültesi', 'Fen Fakültesi', 'Güzel Sanatlar Fakültesi',
@@ -298,11 +298,26 @@ function calBlockClasses(ev, dayDate) {
   if (ev.locked) { c += ' locked'; }
   return c;
 }
-// Ana sitedeki lockIconHtml'in v1 (sadece-görsel) alt kümesi -- admin panelinde
-// kilit yalnızca düzenleme modalındaki toggle'dan açılıp kapatılır (bkz.
-// openEventModal), ikon üzerine dokunarak değil; bu yüzden burada onclick YOK,
-// sadece küçük bir 🔒 rozeti gösterilir.
-function lockBadgeHtml(ev) { return ev.locked ? '<span class="cal-lock-badge" title="Kilitli · sürüklenip boyutlandırılamaz">🔒</span>' : ''; }
+// Ana sitedeki lockIconHtml/toggleEventLock ile birebir aynı: kilit, düzenleme
+// modalının İÇİNDE bir alan DEĞİL, etkinliğin kendi üzerinde her zaman görünen,
+// dokunulabilir bir simge -- tıklanınca (event.stopPropagation() ile bloğun
+// kendi tıklama/sürükleme davranışına sızmadan) doğrudan kilit durumunu değiştirir.
+const LOCK_SVG_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const LOCK_SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V9a4 4 0 0 1 7.65-1.65"/></svg>';
+function lockIconHtml(ev) {
+  const locked = !!ev.locked;
+  const title = locked ? 'Kilitli · sürüklenemez (açmak için dokun)' : 'Kilitle (sürüklenmesini/boyutunu değiştirmeyi engelle)';
+  return '<span class="cal-lock-ico' + (locked ? ' is-locked' : '') + '" data-lock-evid="' + escapeHtml(ev._id) + '" title="' + title + '">' + (locked ? LOCK_SVG_CLOSED : LOCK_SVG_OPEN) + '</span>';
+}
+async function toggleEventLock(id) {
+  if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
+  const ev = EVENTS[id]; if (!ev) { return; }
+  const wasLocked = !!ev.locked;
+  const patch = { locked: !wasLocked };
+  const label = evLogName(ev.ad) + ' etkinliği ' + (wasLocked ? 'kilidi açıldı' : 'kilitlendi');
+  const res = await persistEvent(id, patch, label);
+  if (res) { renderCalendar(); }
+}
 
 // ── Layout algorithms (ported verbatim from app.js) ──
 
@@ -423,7 +438,7 @@ function renderWeekView(body) {
       // render edilmez (calStartMultiDayGesture zaten .cal-multiday-handle
       // arıyor, kol yoksa jest hiç başlamaz).
       return '<button type="button" class="' + cls + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="' + gc + ' background:' + ty.renk + '; border-color:' + ty.renk + '; color:#fff;">' +
-        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockBadgeHtml(e) +
+        '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockIconHtml(e) +
         (e.locked ? '' : '<span class="cal-multiday-handle cal-multiday-handle-l" data-act="multiday-resize-l" aria-hidden="true"></span>' +
         '<span class="cal-multiday-handle cal-multiday-handle-r" data-act="multiday-resize-r" aria-hidden="true"></span>') + '</button>';
     }).join('');
@@ -464,7 +479,7 @@ function renderWeekView(body) {
       const stBar = evStatus(e.durum).renk;
       inner += '<button type="button" class="' + calBlockClasses(e, d) + compact + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" ' +
         'style="' + calBlockStyle(e) + ' top:' + top + 'px; height:' + hgt + 'px; left:calc(' + left + '% + 2px); width:calc(' + w + '% - 4px);">' +
-        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' + lockBadgeHtml(e) +
+        '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span><span class="bh">' + escapeHtml(e.saat || '') + (e.bitisSaat ? '–' + escapeHtml(e.bitisSaat) : '') + '</span>' + lockIconHtml(e) +
         '<span class="cal-status-bar" style="background:' + stBar + ';"></span>' +
         (e.locked ? '' :
         '<span class="cal-resize-handle cal-resize-handle-top" data-act="resize-handle" aria-hidden="true"></span>' +
@@ -529,7 +544,7 @@ function renderMonthView(body) {
     const shown = evs.slice(0, 3);
     let chips = shown.map((e) => {
       return '<button type="button" class="cal-block compact' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + (e.locked ? ' locked' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="position:relative; ' + calBlockStyle(e) + '">' +
-        ((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? '<span class="bh">' + escapeHtml(fmtMultiDayRange(e.tarih, e.bitisTarihi)) + '</span>' : (e.saat ? '<span class="bh">' + escapeHtml(e.saat) + '</span>' : '')) + '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockBadgeHtml(e) + '</button>';
+        ((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? '<span class="bh">' + escapeHtml(fmtMultiDayRange(e.tarih, e.bitisTarihi)) + '</span>' : (e.saat ? '<span class="bh">' + escapeHtml(e.saat) + '</span>' : '')) + '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockIconHtml(e) + '</button>';
     }).join('');
     if (evs.length > shown.length) { chips += '<button type="button" class="cal-more" data-date="' + k + '" data-act="more">+' + (evs.length - shown.length) + ' tane daha</button>'; }
     cells += '<div class="' + cls + '" data-date="' + k + '">' +
@@ -587,7 +602,7 @@ function renderListView(body) {
     html += '<button type="button" class="cal-ev" data-evid="' + escapeHtml(e._id) + '" data-act="edit">' +
       '<span class="cal-ev-dot" style="background:' + ty.renk + ';"></span>' +
       '<span class="cal-ev-time">' + escapeHtml((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? fmtMultiDayRange(e.tarih, e.bitisTarihi) : (e.saat || '—')) + '</span>' +
-      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockBadgeHtml(e) +
+      '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockIconHtml(e) +
       '<span class="cal-ev-meta"><span class="cal-tag" style="background:' + st.renk + ';">' + escapeHtml(st.ad) + '</span>' + meta.join(' · ') + '</span></span></button>';
   });
   body.innerHTML = '<div class="cal-list-wrap">' + html + '</div>';
@@ -688,6 +703,11 @@ async function calMoveMultiDayEvent(id, newTarih, newBitisTarihi) {
 // açan tıklama/click jesti normal çalışmaya devam eder.
 function calSortableFilter(evt, item) {
   if (evt && evt.target && evt.target.closest && evt.target.closest('.cal-resize-handle')) { return true; }
+  // Kilit ikonu sürüklenebilir bloğun İÇİNDE olduğu için SortableJS dokunuşu "sürükleme
+  // olabilir" diye yakalayıp delayOnTouchOnly ile 150ms bekletiyordu -- bu ikonu mobilde
+  // "tıklanamaz" hissettiriyordu (bkz. ana sitedeki calSortableFilter, app.js). filter
+  // true dönerek sürükleme daha başlamadan kesilir, ikonun kendi click'i etkilenmez.
+  if (evt && evt.target && evt.target.closest && evt.target.closest('.cal-lock-ico')) { return true; }
   const id = item && item.dataset ? item.dataset.evid : null;
   if (id && EVENTS[id] && EVENTS[id].locked) { return true; }
   return false;
@@ -948,32 +968,26 @@ function loadPeoplePool() {
   }).catch(() => { peoplePoolCache = peoplePoolCache || []; });
 }
 
-// Basın görevlisi / haberi yazan(lar) — AYNI pressOfficerPool havuzundan, iki ayrı isim listesi.
-function renderPressStaffPicker(bodyEl, calPressStaff) {
-  const box = bodyEl.querySelector('#cef-gorevliBox'); if (!box) { return; }
-  const searchEl = bodyEl.querySelector('#cef-gorevliSearch');
+// Basın görevlisi / haberi yazan(lar) — kullanıcı isteği: AYNI pressOfficerPool
+// havuzundan tek bir kişi listesi, her kişi için İKİ bağımsız işaretleme (Basın
+// Görevlisi / Haberi Yazdı) — eskiden iki ayrı arama kutulu liste olan bu ikisi
+// tek listeye indirgendi.
+function renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters) {
+  const box = bodyEl.querySelector('#cef-personBox'); if (!box) { return; }
+  const searchEl = bodyEl.querySelector('#cef-personSearch');
   const q = ((searchEl && searchEl.value) || '').trim().toLocaleLowerCase('tr');
   const filtered = pressOfficerPool.filter((p) => p.name.toLocaleLowerCase('tr').includes(q));
+  const extraNames = new Set([...calPressStaff, ...calNewsWriters].filter((n) => !filtered.some((p) => p.name === n)));
+  function row(name) {
+    return '<div class="cal-ev-role-item"><span class="name">' + escapeHtml(name) + '</span>' +
+      '<span class="cal-ev-role-toggles">' +
+        '<label><input type="checkbox" class="cal-ev-role-basin" data-name="' + escapeHtml(name) + '" ' + (calPressStaff.indexOf(name) !== -1 ? 'checked' : '') + '> Basın Görevlisi</label>' +
+        '<label><input type="checkbox" class="cal-ev-role-haber" data-name="' + escapeHtml(name) + '" ' + (calNewsWriters.indexOf(name) !== -1 ? 'checked' : '') + '> Haberi Yazdı</label>' +
+      '</span></div>';
+  }
   let html = '';
-  calPressStaff.forEach((name) => {
-    if (filtered.some((p) => p.name === name)) { return; }
-    html += '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-gorevli-cb" data-name="' + escapeHtml(name) + '" checked><span><b>' + escapeHtml(name) + '</b></span></label>';
-  });
-  html += filtered.map((p) => '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-gorevli-cb" data-name="' + escapeHtml(p.name) + '" ' + (calPressStaff.indexOf(p.name) !== -1 ? 'checked' : '') + '><span><b>' + escapeHtml(p.name) + '</b></span></label>').join('');
-  if (!html) { html = '<p class="cal-ev-att-empty">' + (pressOfficerPool.length ? 'Eşleşen kişi yok.' : 'Henüz admin tarafından işaretlenmiş basın görevlisi yok.') + '</p>'; }
-  box.innerHTML = html;
-}
-function renderNewsWriterPicker(bodyEl, calNewsWriters) {
-  const box = bodyEl.querySelector('#cef-haberYazanlariBox'); if (!box) { return; }
-  const searchEl = bodyEl.querySelector('#cef-haberYazanlariSearch');
-  const q = ((searchEl && searchEl.value) || '').trim().toLocaleLowerCase('tr');
-  const filtered = pressOfficerPool.filter((p) => p.name.toLocaleLowerCase('tr').includes(q));
-  let html = '';
-  calNewsWriters.forEach((name) => {
-    if (filtered.some((p) => p.name === name)) { return; }
-    html += '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-haberyazani-cb" data-name="' + escapeHtml(name) + '" checked><span><b>' + escapeHtml(name) + '</b></span></label>';
-  });
-  html += filtered.map((p) => '<label class="cal-ev-att-item"><input type="checkbox" class="cal-ev-haberyazani-cb" data-name="' + escapeHtml(p.name) + '" ' + (calNewsWriters.indexOf(p.name) !== -1 ? 'checked' : '') + '><span><b>' + escapeHtml(p.name) + '</b></span></label>').join('');
+  extraNames.forEach((name) => { html += row(name); });
+  html += filtered.map((p) => row(p.name)).join('');
   if (!html) { html = '<p class="cal-ev-att-empty">' + (pressOfficerPool.length ? 'Eşleşen kişi yok.' : 'Henüz admin tarafından işaretlenmiş basın görevlisi yok.') + '</p>'; }
   box.innerHTML = html;
 }
@@ -1046,19 +1060,13 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
       '<div class="cal-ev-form-row"><label for="cef-yer">Yer / Mekân</label><input type="text" id="cef-yer" class="form-control" value="' + escapeHtml(ev ? ev.yer : '') + '" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>' +
       '<div class="cal-ev-form-row"><label for="cef-birim">Düzenleyen Birim</label><select id="cef-birim" class="form-control"><option value="">—</option>' + facultyOptionsHtml(ev ? ev.birim : '') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-planlayan">Planlayan / Sorumlu</label><input type="text" id="cef-planlayan" class="form-control" value="' + escapeHtml(ev ? ev.planlayan : '') + '" placeholder="Etkinliği planlayan kişi/birim"></div>' +
-      '<div class="cal-ev-form-row"><label for="cef-gorevliSearch">Basın Görevlisi <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>' +
-        '<input type="text" class="cal-ev-att-search" id="cef-gorevliSearch" placeholder="İsim ara…"><div class="cal-ev-att-box" id="cef-gorevliBox"></div></div>' +
-      '<div class="cal-ev-form-row"><label for="cef-haberYazanlariSearch">Haberi Yazan(lar) <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(etkinlik gerçekleştikten sonra, haberi kim/kimler yazdıysa işaretlenir)</span></label>' +
-        '<input type="text" class="cal-ev-att-search" id="cef-haberYazanlariSearch" placeholder="İsim ara…"><div class="cal-ev-att-box" id="cef-haberYazanlariBox"></div></div>' +
-      '<div class="cal-ev-form-row"><label for="cef-haberMetni">Haber Metni <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(yayınlanan/yazılan son haber metni, arşiv amaçlı buraya girilir)</span></label>' +
-        '<textarea id="cef-haberMetni" class="form-control" rows="4" placeholder="Haber Metni Üretici ile oluşturduğunuz veya elle yazdığınız son metni buraya yapıştırın…">' + escapeHtml(ev ? ev.haberMetni : '') + '</textarea></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-personSearch">Basın Görevlisi / Haberi Yazan <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından — her kişi için ayrı ayrı işaretlenebilir)</span></label>' +
+        '<input type="text" class="cal-ev-att-search" id="cef-personSearch" placeholder="İsim ara…"><div class="cal-ev-att-box cal-ev-role-box" id="cef-personBox"></div></div>' +
       '<div class="cal-ev-form-row"><label for="cef-attSearch">Katılımcılar <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>' +
         '<label class="cal-ev-il-toggle"><input type="checkbox" id="cef-attIncludeIl"> İl Protokolünü de dahil et</label>' +
         '<input type="text" class="cal-ev-att-search" id="cef-attSearch" placeholder="İsim veya unvan ara…"><div class="cal-ev-att-box" id="cef-attendeeBox"></div></div>' +
-      '<div class="cal-ev-form-row"><label for="cef-arsiv">Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="cef-arsiv" class="form-control" value="' + escapeHtml(ev ? ev.arsiv : '') + '" placeholder="https://drive.google.com/..."></div>' +
       '<div class="cal-ev-form-row"><label for="cef-haberKaynagi">Haber Kaynağı <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="cef-haberKaynagi" class="form-control"><option value="">(Belirtilmedi)</option>' + ['İHA', 'AA', 'DHA', 'ANKA'].map((k) => '<option value="' + k + '"' + (ev && ev.haberKaynagi === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
-      '<label class="cal-ev-form-check"><input type="checkbox" id="cef-locked"' + (ev && ev.locked ? ' checked' : '') + '> 🔒 Kilitli — sürüklenip taşınamasın / boyutlandırılamasın</label>' +
     '</form>';
 
   const actions = [];
@@ -1113,12 +1121,9 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
         planlayan: form.querySelector('#cef-planlayan').value.trim(),
         gorevli: calPressStaff.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
         haberYazanlari: calNewsWriters.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
-        haberMetni: (form.querySelector('#cef-haberMetni')?.value || '').trim(),
         katilimcilar: calAttendees.slice(),
-        arsiv: safeLinkUrl(form.querySelector('#cef-arsiv').value),
         haberKaynagi: form.querySelector('#cef-haberKaynagi').value,
-        not: form.querySelector('#cef-not').value.trim(),
-        locked: form.querySelector('#cef-locked').checked
+        not: form.querySelector('#cef-not').value.trim()
       };
       const ref = EVENTS[id];
       const logLabel = id
@@ -1138,13 +1143,11 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
   // Pickerlar önce (boş/eski önbellekle) render edilir, havuzlar tazelendikçe (bu modal hâlâ
   // AÇIKSA -- modalToken kontrolü ana sitedeki gorevliLoadToken yarış-durumu korumasının aynısı)
   // yeniden çizilir.
-  renderPressStaffPicker(bodyEl, calPressStaff);
-  renderNewsWriterPicker(bodyEl, calNewsWriters);
+  renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters);
   renderAttendeePicker(bodyEl, calAttendees);
   loadPressOfficerPool().then(() => {
     if (modalToken !== openEventModalToken) { return; }
-    renderPressStaffPicker(bodyEl, calPressStaff);
-    renderNewsWriterPicker(bodyEl, calNewsWriters);
+    renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters);
   });
   loadPeoplePool().then(() => {
     if (modalToken !== openEventModalToken) { return; }
@@ -1152,8 +1155,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
   });
 
   bodyEl.addEventListener('input', (e) => {
-    if (e.target.id === 'cef-gorevliSearch') { renderPressStaffPicker(bodyEl, calPressStaff); }
-    else if (e.target.id === 'cef-haberYazanlariSearch') { renderNewsWriterPicker(bodyEl, calNewsWriters); }
+    if (e.target.id === 'cef-personSearch') { renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters); }
     else if (e.target.id === 'cef-attSearch') { renderAttendeePicker(bodyEl, calAttendees); }
   });
 
@@ -1201,13 +1203,13 @@ function openEventModal(id, presetDate, presetTime, presetEndTime) {
       });
       return;
     }
-    if (t.classList.contains('cal-ev-gorevli-cb')) {
+    if (t.classList.contains('cal-ev-role-basin')) {
       const name = t.dataset.name || '';
       if (t.checked) { if (calPressStaff.indexOf(name) === -1) { calPressStaff.push(name); } }
       else { const idx = calPressStaff.indexOf(name); if (idx !== -1) { calPressStaff.splice(idx, 1); } }
       return;
     }
-    if (t.classList.contains('cal-ev-haberyazani-cb')) {
+    if (t.classList.contains('cal-ev-role-haber')) {
       const name = t.dataset.name || '';
       if (t.checked) { if (calNewsWriters.indexOf(name) === -1) { calNewsWriters.push(name); } }
       else { const idx = calNewsWriters.indexOf(name); if (idx !== -1) { calNewsWriters.splice(idx, 1); } }
@@ -1240,6 +1242,8 @@ function bindCalMainBody() {
   });
 
   body.addEventListener('click', (e) => {
+    const lockEl = e.target.closest('[data-lock-evid]');
+    if (lockEl) { e.stopPropagation(); toggleEventLock(lockEl.dataset.lockEvid); return; }
     const evidEl = e.target.closest('[data-evid]');
     if (evidEl) {
       const act = evidEl.dataset.act;
