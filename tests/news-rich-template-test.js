@@ -51,6 +51,17 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
+	// protokol.html artık halka açık DEĞİL: eski bağımsız sayfa kaldırıldı, adı
+	// panelin içindeki sayfaya geçti ve giriş ZORUNLU oldu (kullanıcı isteği).
+	// app.js'in fonksiyonlarına erişebilmek için giriş yapmış bir kullanıcı şart;
+	// aksi halde shell.js giris.html'e yönlendirir ve app.js hiç yüklenmez.
+	await page.addInitScript(() => {
+		window.__mockAuthUser = { uid: 'testUid', email: 'test@test.com', emailVerified: true };
+		window.__mockUserProfile = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
+		if (window.__mockOnceSnapshot === undefined) {
+			window.__mockOnceSnapshot = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
+		}
+	});
 	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 

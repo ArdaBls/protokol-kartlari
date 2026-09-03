@@ -48,6 +48,17 @@ async function newPage(browser, width, height, mobile) {
 	// location.href yönlendirmesi yapıyor. protokol.html'de kart ızgarası+header GÖRÜNÜR
 	// kalıyor, takvim/admin ise (bu dosyada aşağıda) doğrudan DOM manipülasyonuyla (gate
 	// fonksiyonlarını bypass ederek) açılıyor -- tek bir sayfa örneğinde hepsi test edilebiliyor.
+	// protokol.html artık halka açık DEĞİL: eski bağımsız sayfa kaldırıldı, adı
+	// panelin içindeki sayfaya geçti ve giriş ZORUNLU oldu (kullanıcı isteği).
+	// app.js'in fonksiyonlarına erişebilmek için giriş yapmış bir kullanıcı şart;
+	// aksi halde shell.js giris.html'e yönlendirir ve app.js hiç yüklenmez.
+	await page.addInitScript(() => {
+		window.__mockAuthUser = { uid: 'testUid', email: 'test@test.com', emailVerified: true };
+		window.__mockUserProfile = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
+		if (window.__mockOnceSnapshot === undefined) {
+			window.__mockOnceSnapshot = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
+		}
+	});
 	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(250);
 	return page;

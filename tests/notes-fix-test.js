@@ -51,6 +51,17 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
+	// protokol.html artık halka açık DEĞİL: eski bağımsız sayfa kaldırıldı, adı
+	// panelin içindeki sayfaya geçti ve giriş ZORUNLU oldu (kullanıcı isteği).
+	// app.js'in fonksiyonlarına erişebilmek için giriş yapmış bir kullanıcı şart;
+	// aksi halde shell.js giris.html'e yönlendirir ve app.js hiç yüklenmez.
+	await page.addInitScript(() => {
+		window.__mockAuthUser = { uid: 'testUid', email: 'test@test.com', emailVerified: true };
+		window.__mockUserProfile = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
+		if (window.__mockOnceSnapshot === undefined) {
+			window.__mockOnceSnapshot = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
+		}
+	});
 	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
@@ -85,7 +96,11 @@ function serve() {
 
 	// --- NOT 2: ölü CSS'in gerçekten kaldırıldığını ve kalan class'ların (bulk-cb/news-cb/cal-hrline) etkilenmediğini doğrula ---
 	const cssTest = await page.evaluate(() => {
-		const sheets = Array.from(document.styleSheets);
+		// SADECE protokol'un kendi style.css'i taranir. Bu sayfa artik admin panelinin
+		// derlenmis CSS'ini de yukluyor ve onda (Gentelella kokenli) .btn-success gibi
+		// siniflar VAR -- tum stylesheet'leri tarayinca 'style.css'ten silindi mi?'
+		// sorusu yanlis cevap veriyordu. Testin niyeti style.css oldugu icin ona daraltildi.
+		const sheets = Array.from(document.styleSheets).filter((s) => (s.href || '').includes('style.css'));
 		let allRules = [];
 		sheets.forEach(s => { try { allRules = allRules.concat(Array.from(s.cssRules).map(r => r.cssText || '')); } catch(e) {} });
 		const text = allRules.join('\n');

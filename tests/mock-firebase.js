@@ -12,6 +12,22 @@
 		};
 	}
 
+	// OPT-IN veri kaynagi. window.__mockData bir nesne ise, anahtarlari "yol parcasi"
+	// olarak degerlendirilir: istenen yol o parcayi ICERIYORSA karsiligi dondurulur.
+	// "users/<uid>" gibi tekil kullanici yollari icin __mockUserProfile ayrica
+	// desteklenir. HICBIRI set edilmezse null doner -- yani eski davranis birebir korunur.
+	function mockValueFor(path) {
+		var m = path.match(/(^|\/)users\/([^/]+)$/);
+		if (m && window.__mockUserProfile !== undefined) return window.__mockUserProfile;
+		var data = window.__mockData;
+		if (!data) return null;
+		var keys = Object.keys(data);
+		for (var i = 0; i < keys.length; i++) {
+			if (path.indexOf(keys[i]) !== -1) return data[keys[i]];
+		}
+		return null;
+	}
+
 	function makeRef(path) {
 		var listeners = [];
 		var self = {
@@ -23,8 +39,11 @@
 				// hic cagirma -- gercek Firebase'in internet yokken sessizce beklemede kalmasini
 				// taklit eder. Diger tum testler bu bayragi hic set etmedigi icin etkilenmez.
 				if (window.__mockSimulateOfflineHang && path.indexOf("users/") === 0) return cb;
-				// Anında boş veriyle çağır (gerçek Firebase de ilk bağlanışta mevcut veriyi verir)
-				try { cb(makeSnapshot(null)); } catch (e) { console.error("mock on() callback error", e); }
+				// Anında veriyle çağır (gerçek Firebase de ilk bağlanışta mevcut veriyi verir).
+				// Varsayilan HALA null -- mevcut testlerin hicbiri window.__mockData set
+				// etmedigi icin davranislari degismez. __mockData set edilmisse, yolu
+				// ICEREN ilk anahtarin degeri dondurulur (bkz. mockValueFor).
+				try { cb(makeSnapshot(mockValueFor(path))); } catch (e) { console.error("mock on() callback error", e); }
 				return cb;
 			},
 			once: function () {
@@ -91,8 +110,10 @@
 				setTimeout(function () { cb({ uid: "offlineTestUid", email: "offline@test.com" }); }, 0);
 				return;
 			}
-			// Duman testi: oturum açmamış (misafir) durumu simüle et
-			setTimeout(function () { cb(null); }, 0);
+			// Varsayilan: oturum açmamış (misafir). window.__mockAuthUser set edilmisse
+			// o kullanici ile giris yapilmis gibi davranilir -- yeni smoke-test'in
+			// "giris yapmis kullanici" turu icin (mevcut testler bu bayragi set etmiyor).
+			setTimeout(function () { cb(window.__mockAuthUser || null); }, 0);
 		},
 		signInWithEmailAndPassword: function (email, pass) {
 			return Promise.reject({ code: "auth/mock", message: "Mock ortamda giriş devre dışı." });
@@ -101,7 +122,8 @@
 			return Promise.reject({ code: "auth/mock", message: "Mock ortamda kayıt devre dışı." });
 		},
 		signOut: function () { return Promise.resolve(); },
-		currentUser: null
+		// Getter: __mockAuthUser sonradan (addInitScript ile) set edilse bile dogru deger okunur.
+		get currentUser() { return window.__mockAuthUser || null; }
 	};
 
 	function mockDatabase() {

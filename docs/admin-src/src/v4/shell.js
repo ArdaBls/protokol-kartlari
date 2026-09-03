@@ -418,14 +418,14 @@ export function syncShellUser() {
         // AYNI güvenli-dönüş deseni, sadece aynı origin'e izin verir). Auth sayfalarının
         // (giris.html vb.) body'sinde data-shell="admin" YOK, mountShell() onlarda hiç
         // çalışmıyor -- yönlendirme döngüsü riski yok.
-        // İSTİSNA: Analitik (dashboard-2) protokol.html'in salt-okunur listesini kendi
-        // app.js'iyle gömüyor -- o zaten misafirlerin görüntülemesine izin veriyor
-        // (protokol.html'in kendi "giriş yapmadan devam et" mantığı). Bu sayfada zorla
-        // giris.html'e yönlendirmek o özelliği bozar, kullanıcı isteğiyle kaldırıldı.
+        // NOT: Burada eskiden Protokol Kartları sayfası (dashboard-2) için bir
+        // İSTİSNA vardı -- misafirler listeyi giriş yapmadan görebilsin diye.
+        // Kullanıcı isteğiyle KALDIRILDI: "panele kayıt olup girmeden bir şey
+        // görsünler istemiyorum, ziyaretçi sadece giriş sayfasını görsün, kayıt
+        // olsun ve panele ulaşsın." Artık bu sayfa da diğer tüm panel sayfaları
+        // gibi giriş istiyor.
         applyGuestShellUser();
-        if (document.body.dataset.page !== 'dashboard-2') {
-          window.location.href = 'giris.html?returnTo=' + encodeURIComponent(window.location.href);
-        }
+        window.location.href = 'giris.html?returnTo=' + encodeURIComponent(window.location.href);
         return;
       }
       firebase.database().ref('users/' + user.uid).once('value').then((snap) => {

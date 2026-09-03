@@ -1,74 +1,208 @@
 <!DOCTYPE html>
-<!--
-	=====================================================================
-	OMÜ Protokol Kartları · Etkinlik Takvimi ve Haber Aracı
-	Copyright (c) 2026 Arda Bilasa. Tüm hakları saklıdır.
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Protokol Kartları | Protokol</title>
+<link rel="icon" href="/images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Kullanıcı isteği: protokol.html'in TÜM içeriği (kartlar, arama, aksiyon
+     butonları, takvim, tüm modaller -- eski admin paneli dahil) bu sayfanın
+     içinde BİREBİR çalışsın -- style.css ve app.js aynen dahil edildi. -->
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="description" content="Protokol Kartları — Protokol Kartları. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Protokol Kartları">
+<meta property="og:description" content="Protokol Kartları — Protokol Kartları. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:image" content="/images/android-chrome-512x512.svg">
+<meta property="og:site_name" content="Protokol">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
+  <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
+  <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
+  <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
+  <script type="module" crossorigin src="/js/main-v4-DjtwAs5W.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-rEyMcjxc.css">
+</head>
+<body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Anasayfa|index.html > Protokol Kartları">
 
-	Bu yazılımın kaynak kodu, arayüz tasarımı, CSS düzeni ve JavaScript
-	mantığı 5846 sayılı Fikir ve Sanat Eserleri Kanunu ile korunmaktadır.
-	Hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz,
-	dağıtılamaz, uyarlanamaz veya türev çalışma üretiminde kullanılamaz.
-	İzinsiz kullanım tespit edildiğinde yasal yollara başvurulur.
-	İletişim / izin talebi: bilasaarda@gmail.com
-	=====================================================================
--->
-<html lang="tr">
-	<head>
-		<meta charset="UTF-8">
-		<script>
-		(function(){
-			// Sayfa hicbir sey boyamadan ONCE tema uygulanir -- aksi halde koyu tema tercih
-			// eden kullanicida ilk anda hep acik/varsayilan tema gorunup bir anlik "yanlis
-			// tema flaşı" (FOUC) olusurdu. Bu yuzden <style>'dan ONCE, <head>'in en basina
-			// konuldu (uygulamanin asil <script>'i </body> sonunda, cok gec kalirdi).
-			try {
-				var saved = localStorage.getItem("omuProtokolTema");
-				var dark = saved ? (saved === "dark") : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-				if (dark) document.documentElement.setAttribute("data-theme", "dark");
-			} catch (e) { /* localStorage erisilemezse (gizli sekme kisitlamasi vb.) sessizce acik temada kal */ }
-		})();
-		</script>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-		<title>OMÜ Protokol Kartları</title>
-		<link rel="manifest" href="manifest.json">
-		<meta name="theme-color" content="#16233d">
-		<meta name="mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Roboto:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-		<link rel="apple-touch-icon" href="icon-192.png">
-		<link rel="apple-touch-icon" href="icon-512.png">
-		<link rel="stylesheet" href="style.css">
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-		<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
-		<script>
-		(function(){
-			// Eruda: iPhone'da (Mac/Xcode olmadan) SAYFANIN KENDI ICINDE calisan bir gelistirici
-			// konsolu. "Alttaki gitmeyen dikdortgen"in gercekte HANGI element oldugunu (kendi
-			// CSS'imiz mi, iOS'un home indicator cizgisi mi) sadece gercek cihazda incelemek
-			// mumkun -- bu yuzden opsiyonel. NORMAL KULLANICI HICBIR SEY GORMEZ: sadece URL'ye
-			// ?debug=1 eklenirse yuklenir, ve o secim cihazda hatirlanir (?debug=0 ile kapatilir).
-			try {
-				var p = new URLSearchParams(location.search);
-				if (p.has("debug")) localStorage.setItem("omuProtokolDebug", p.get("debug") === "0" ? "0" : "1");
-				if (localStorage.getItem("omuProtokolDebug") === "1") {
-					var s = document.createElement("script");
-					s.src = "https://cdn.jsdelivr.net/npm/eruda";
-					s.onload = function(){ try { eruda.init(); } catch(e){} };
-					document.head.appendChild(s);
-				}
-			} catch (e) { /* localStorage erisilemezse sessizce atla -- debug konsolu opsiyonel */ }
-		})();
-		</script>
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="sidebar-brand" href="index.html">
+        <img class="brand-icon" src="../images/favicon.png" alt="">
+        <div class="brand-name">Protokol</div>
+      </a>
+      <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-label">Genel</div>
+      
+    <a class="nav-link" href="index.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="10" width="7" height="11" rx="1.5"/></svg>
+      <span class="nav-text">Operasyonlar</span>
+      
+    </a>
+  
+    <a class="nav-link active" href="protokol.html" aria-current="page">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7a2 2 0 012-2h4l2 2h7a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+      <span class="nav-text">Protokol Kartları</span>
+      
+    </a>
+  
+    <a class="nav-link" href="takvim.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v6M16 4v6"/></svg>
+      <span class="nav-text">Takvim</span>
+      
+    </a>
+  
+    <a class="nav-link" href="harita.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="nav-text">Harita</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Uygulamalar</div>
+      
+    <a class="nav-link" href="yapilacaklar.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="14" rx="1.5"/><rect x="11" y="3" width="6" height="9" rx="1.5"/><rect x="19" y="3" width="2" height="6" rx="0.5"/></svg>
+      <span class="nav-text">Yapılacaklar Listesi</span>
+      
+    </a>
+  
+    <a class="nav-link" href="bildirimler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+      <span class="nav-text">Bildirimler</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Haberler</div>
+      
+    <a class="nav-link" href="tum-haberler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span class="nav-text">Tüm haberler</span>
+      
+    </a>
+  
+    <a class="nav-link" href="haber-detayi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/></svg>
+      <span class="nav-text">Haber detayı</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Yönetim</div>
+      
+    <a class="nav-link" href="kisiler.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+      <span class="nav-text">Kişiler</span>
+      
+    </a>
+  
+    <a class="nav-link" href="kullanici-yonetimi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-text">Kullanıcı yönetimi</span>
+      
+    </a>
+  
+    <a class="nav-link" href="profil.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-text">Profiliniz</span>
+      
+    </a>
+  
+    <a class="nav-link" href="ayarlar.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+      <span class="nav-text">Ayarlar</span>
+      
+    </a>
+  
+    <a class="nav-link" href="yardim-merkezi.html">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>
+      <span class="nav-text">Yardım merkezi</span>
+      
+    </a>
+  
+    </div>
+  
+    <div class="nav-group">
+      <div class="nav-label">Geliştirici Araçları</div>
+      
+      <div class="nav-tree">
+        <button type="button" class="nav-link nav-toggle" aria-expanded="false">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          <span class="nav-text">UI kütüphanesi</span>
+          
+          <svg class="nav-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
+        </button>
+        <div class="nav-sub"><div class="nav-sub-inner"><a class="nav-sublink" href="form-genel.html">Genel</a><a class="nav-sublink" href="gelismis-kontroller.html">Gelişmiş kontroller</a><a class="nav-sublink" href="form-dogrulama.html">Doğrulama</a><a class="nav-sublink" href="form-sihirbaz.html">Sihirbaz</a><a class="nav-sublink" href="tablolar.html">Tablolar</a><a class="nav-sublink" href="grafik-galerisi.html">Grafik galerisi</a><a class="nav-sublink" href="bilesenler.html">Bileşenler</a><a class="nav-sublink" href="widgetlar.html">Widget'lar</a><a class="nav-sublink" href="tipografi.html">Tipografi</a><a class="nav-sublink" href="ikonlar.html">İkonlar</a></div></div>
+      </div>
+    
+    </div>
+  </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar">Z</div>
+          <div class="sidebar-user-info">
+            <div class="name">Ziyaretçi</div>
+            <div class="role">—</div>
+          </div>
+          <button class="more-btn" aria-label="More options">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+  
 
-	</head>
-	<body class="is-readonly" data-page="protokol">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Protokol Kartları</span></nav>
+      </div>
+      <div class="search-box">
+        <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+        <input type="text" placeholder="Sayfa ara veya komut çalıştır…" aria-label="Komut paletini aç">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+          <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+        </a>
+        <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">Z</button>
+      </div>
+    </header>
+  
+<main id="main-content" tabindex="-1" class="main">
+<div class="page-wrapper">
+
 
 		<!-- Faz 8: SVG ikon sprite -- admin panelinde emoji yerine gercek stroke ikonlari
 		     kullanmak icin (referans: duguntakvimi-main/yonetim.html). Kullanim:
@@ -98,30 +232,26 @@
 
 		<div id="testModeBanner">Paylaşımlı Test Ortamı Açık — Şuanda sahte bir veri seti kullanılıyor.</div>
 
-								<div class="loading-overlay" id="loadingOverlay">
+								<!-- Kullanıcı isteği: "Yetkiler kontrol ediliyor…" yazısı hiç görünmesin --
+			 element null-check'siz kullanıldığı için DOM'da duruyor, sadece
+			 görsel olarak gizli. -->
+		<div class="loading-overlay" id="loadingOverlay" style="display:none">
 			<div aria-label="Yükleniyor" role="img" class="simple-spinner"></div>
 			<p class="loading-label" id="loadingLabel">Yükleniyor…</p>
 		</div>
 
-		<header>
-			<div style="max-width:1040px;margin:0 auto;">
-				<div class="header-top-row">
-					<div class="header-left">
-						<div class="eyebrow"><span class="eyebrow-full">OMÜ Basın ve Halkla İlişkiler</span><span class="eyebrow-short">OMÜ Basın</span></div>
-						<h1>Protokol Kartları</h1>
-					</div>
-					<div class="header-top-right">
-						<button type="button" id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()" aria-label="Karanlık/aydınlık modu değiştir" title="Görünümü değiştir">🌙</button>
-						<div class="notif-bell-wrap" id="notifBellWrap" style="display:none;">
-							<button type="button" class="theme-toggle" id="notifBellBtn" onclick="toggleNotifCenter()" aria-label="Bildirimler" title="Bildirimler">🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span></button>
-							<div class="notif-dropdown" id="notifDropdown"></div>
-						</div>
-						<div class="header-auth" id="headerAuth"></div>
-					</div>
-				</div>
-			</div>
-		</header>
+		<!-- Kullanıcı isteği: header (branding, tema düğmesi, bildirim zili,
+		     hesap menüsü) tamamen kaldırıldı -- admin panelinin kendi topbar'ı
+		     zaten bunları karşılıyor. #headerAuth null-check'siz kullanıldığı
+		     için (renderAuthUI()) gizli bir iskelet olarak kalıyor. -->
+		<div class="header-auth" id="headerAuth" style="display:none"></div>
 
+		<!-- 942x43 / 942x59 ölçüleri artık SATIR İÇİ değil, _pages.scss'te SADECE
+		     geniş ekranda (min-width:1260px) uygulanıyor. Satır içi sabit genişlik
+		     mobilde style.css'in kendi duyarlı kurallarını eziyordu: 390px'lik
+		     telefonda arama çubuğu ve liste anahtarı ekranın dışına taşıp
+		     kırpılıyordu (body{overflow-x:hidden} taşmayı gizlediği için yatay
+		     kaydırma bile çıkmıyor, içerik sadece görünmez oluyordu). -->
 		<div class="list-switch-wrap">
 			<div class="list-switch" id="listSwitch">
 				<button data-list="il">İl Protokol Sırası</button>
@@ -142,13 +272,20 @@
 					<button data-mode="pasif">Arşiv</button>
 					<button data-mode="silindi" class="edit-only">Silinenler</button>
 				</div>
-				
+
+				<!-- 2'li / 3'lü / 4'lü kart görünümü (kullanıcı isteğiyle GERİ ALINDI).
+				     Daha önce controlbar'ın DIŞINA çıkarılıp style="display:none" ile
+				     gizlenmişti; satır içi stil, style.css'in bu anahtarı mobilde
+				     görünür yapan medya sorgusunu (@media ...{ .mobile-layout-toggle
+				     {display:flex} }) ezdiği için ekran küçülünce de hiç çıkmıyordu.
+				     protokol.html'deki ASIL yerine (statusToggle ile countLabel arası)
+				     geri kondu; masaüstünde style.css zaten display:none tutuyor. -->
 				<div class="mobile-layout-toggle" id="mobileLayoutToggle">
 					<button data-col="2">2'li</button>
 					<button data-col="3">3'lü</button>
 					<button data-col="4" class="active">4'lü</button>
 				</div>
-				
+
 				<div class="count" id="countLabel">Veriler İndiriliyor...</div>
 			</div>
 		</div>
@@ -189,15 +326,12 @@
 					<div class="empty-sub">Arama veya filtre ölçütünüzü değiştirmeyi deneyin.</div>
 				</div>
 			</div>
-			<!-- Sağ ray: takvim kapalı hâlde burada durur, tıklanınca tam ekran açılır -->
-			<aside class="calendar-rail" id="calendarRail">
-				<button type="button" class="cal-rail-btn" onclick="openCalendar()">
-					<span class="cal-rail-icon">🗓️</span>
-					<span class="cal-rail-label">Etkinlik Takvimi</span>
-					<span class="cal-rail-count" id="calRailCount">yükleniyor…</span>
-				</button>
-				<div class="cal-rail-next" id="calRailNext"></div>
-			</aside>
+			<!-- Kullanıcı isteği: sağdaki "Etkinlik Takvimi" rayı ve "sıradaki
+			     etkinlik" göstergesi kaldırıldı -- admin panelinde zaten gerçek
+			     bir Takvim sekmesi var, buradaki protokol verisinde takvime
+			     gerek yok. #calRailNext null-check'siz kullanıldığı için
+			     (bkz. app.js) gizli bir iskelet olarak kalıyor. -->
+			<div id="calRailNext" style="display:none"></div>
 		</div>
 
 		<!-- ================= TELİF VE YASAL BİLDİRİM ================= -->
@@ -207,8 +341,9 @@
 				<button type="button" class="foot-link" onclick="openLegalModal('terms')">Kullanım Şartları</button>
 				<span class="foot-sep">·</span>
 				<button type="button" class="foot-link" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
-				<span class="foot-sep">·</span>
-				<button type="button" class="foot-link" onclick="replayOnboarding()">Kullanım Rehberi</button>
+				<!-- "Kullanım Rehberi" bağlantısı kaldırıldı: hedefi olan #onboardingModalBg
+				     bu sayfada bilerek yok (bkz. aşağıdaki açıklama), buton tıklansa da
+				     hiçbir şey yapmayacaktı -- ölü buton bırakmamak için silindi. -->
 			</p>
 			<p class="foot-note">Bu uygulamanın kaynak kodu, arayüz tasarımı ve içeriği telif hakkıyla korunmaktadır; hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz veya dağıtılamaz.</p>
 			<p class="foot-version">Sürüm <span id="footVersion"></span></p>
@@ -220,8 +355,18 @@
 		     düğmeler. Metin gittiği için erişilebilirlik aria-label/title ile sağlanıyor.
 		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
 		<div class="mobile-glass-nav" id="mobileGlassNav">
-			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi"><svg class="ikon"><use href="#i-takvim"/></svg></button>
-			<button type="button" class="admin-fab" id="adminFab" onclick="openAdminPanel()" aria-label="Admin Paneli" title="Admin Paneli"><svg class="ikon"><use href="#i-panel"/></svg></button>
+			<!-- "Etkinlik Takvimi" FAB'ı kaldırıldı (kullanıcı isteği): openCalendar()
+			     bu sayfada PAGE !== "takvim" olduğu için takvim.html'e (eski genel
+			     siteye) yönlendirip kullanıcıyı panelden dışarı atıyordu; panelin
+			     kendi Takvim sayfası zaten sol menüde var. app.js'teki
+			     calOriginRect() #calendarFab'ı null kontrollü kullandığı için
+			     (fab && fab.offsetParent!==null) kaldırmak güvenli.
+			     Tepside SADECE faculty-fab kaldı ve tepsi sağa alındı (_pages.scss). -->
+			<!-- "Admin Paneli" FAB'ı kaldırıldı: openAdminPanel() bu sayfada
+			     PAGE !== "admin" olduğu için location.href="admin.html" yapıyordu ve
+			     admin.html artık hiç YOK -> 404. Ayrıca kullanıcı zaten yönetim
+			     panelinin İÇİNDE olduğundan ikinci bir panele geçiş anlamsız.
+			     app.js:155 adminFab'ı null kontrollü kullandığı için güvenli. -->
 			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()" aria-label="Fakülte Filtrele" title="Fakülte Filtrele"><svg class="ikon"><use href="#i-arama"/></svg><span class="fab-count" id="facultyFabCount" style="display:none;"></span></button>
 		</div>
 		<div class="faculty-sheet-backdrop" id="facultySheetBackdrop" onclick="closeFacultySheet()"></div>
@@ -1006,23 +1151,19 @@
 			</div>
 		</div>
 
-		<!-- Kullanım Rehberi (Onboarding) -->
-		<div class="modal-bg" id="onboardingModalBg" style="z-index:115;">
-			<div class="modal" style="max-width:440px; text-align:center;">
-				<button class="close-x" onclick="skipOnboarding()" aria-label="Kapat">✕</button>
-				<div id="onboardingStepIcon" style="font-size:38px; margin-bottom:8px;">🗂️</div>
-				<h2 id="onboardingStepTitle">—</h2>
-				<p class="hint" id="onboardingStepText">—</p>
-				<div class="onboarding-dots" id="onboardingDots"></div>
-				<div class="modal-actions" style="justify-content:space-between;">
-					<button class="btn btn-ghost" type="button" onclick="skipOnboarding()">Atla</button>
-					<div style="display:flex; gap:8px;">
-						<button class="btn btn-ghost" type="button" id="onboardingPrevBtn" onclick="onboardingStep(-1)" style="display:none;">Geri</button>
-						<button class="btn btn-primary" type="button" id="onboardingNextBtn" onclick="onboardingStep(1)">İleri</button>
-					</div>
-				</div>
-			</div>
-		</div>
+		<!-- Kullanım Rehberi (Onboarding) BİLEREK YOK.
+		     app.js'teki maybeShowOnboarding() ilk ziyarette (localStorage'da
+		     "omuProtokolOnboardingSeen" yoksa) #onboardingModalBg'ye "open" ekliyordu.
+		     Bu modal TAM EKRAN bir .modal-bg katmanı olduğu için admin panelinin
+		     içinde: (1) tüm tıklamaları yutuyordu -- "Sıralamayı Düzenle" dahil
+		     hiçbir butona basılamıyordu, (2) app.js'in merkezi kaydırma-kilidi
+		     gözlemcisi ".modal-bg.open" gördüğü için body'ye "scroll-locked"
+		     (position:fixed) ekleyip SAYFA KAYDIRMAYI tamamen durduruyordu.
+		     Zaten app.js'in kendi yorumu da bunun "sadece protokol.html'de"
+		     olduğunu söylüyor -- halka açık sitenin tanıtım turu, yönetim
+		     panelinin içinde anlamsız. Eleman tamamen çıkarıldı; hem
+		     maybeShowOnboarding() hem openOnboarding() null kontrollü olduğu için
+		     app.js'e DOKUNULMADAN güvenle kaldırılabiliyor. -->
 
 		<!-- PIN ile Hızlı Hesap Değiştir -->
 		<div class="modal-bg" id="pinSwitchModalBg" style="z-index:118;">
@@ -1062,6 +1203,17 @@
 
 		<div id="toastContainer"></div>
 
-		<script src="app.js"></script>
-	</body>
+
+</div>
+
+    <footer class="footer">
+      <span>© 2026 Arda Bilasa. Tüm hakları saklıdır.</span>
+      <span>Firebase v9.23.0</span>
+    </footer>
+  
+</main>
+
+<script src="app.js"></script>
+
+</body>
 </html>

@@ -16,14 +16,16 @@ export const NAV = [
       // düz (tek tıkla açılan) sekmeler olarak yan yana kondu -- Operasyonlar
       // (index.html, ana ekran) en üstte.
       { key: 'dashboard',   href: 'index.html',  text: 'Operasyonlar', icon: 'dashboard' },
-      { key: 'dashboard-2', href: 'analitik.html', text: 'Analitik', icon: 'charts' },
-      // Kullanıcı isteği: admin paneli artık sitenin ana giriş noktası, protokol.html
-      // (ana sayfadaki gerçek, halka açık protokol kartları sayfası -- KENDİSİ HİÇ
-      // DEĞİŞMEDİ) buradan erişilebilir olmalı. Kök-domain'e göre MUTLAK yol (/protokol.html)
-      // kullanılıyor; her iki sayfa da artık aynı kökte yayınlansa da mutlak yol zararsız
-      // ve niyeti daha açık ifade ediyor. Yeni sekmede açılır: editör admin panelindeki
-      // yerini kaybetmeden ana siteye göz atabilsin.
-      { key: 'protokol-kartlari', href: '/protokol.html', text: 'Protokol Kartları', icon: 'files', target: '_blank' },
+      // Kullanıcı isteği: ayrı duran halka açık protokol.html sayfası TAMAMEN
+      // kaldırıldı; yerini panelin içindeki bu sayfa aldı (aynı app.js/style.css ile
+      // protokol kartlarının tamamını çalıştırıyor). Bu yüzden hem eskiden yeni
+      // sekmede /protokol.html açan ayrı "Protokol Kartları" sekmesi silindi
+      // (artık gideceği ayrı bir sayfa yok), hem de bu sekmenin adı
+      // "Analitik" -> "Protokol Kartları", adresi analitik.html -> protokol.html oldu.
+      // İç anahtar (key / data-page) BİLEREK 'dashboard-2' kaldı: hem sekme
+      // vurgulaması hem de _pages.scss'teki sayfaya özel tüm kurallar bu anahtara
+      // bağlı; gereksiz yere hepsini değiştirmemek için dokunulmadı.
+      { key: 'dashboard-2', href: 'protokol.html', text: 'Protokol Kartları', icon: 'files' },
       { key: 'calendar', href: 'takvim.html', text: 'Takvim', icon: 'calendar' },
       { key: 'map',      href: 'harita.html',      text: 'Harita', icon: 'map' }
     ]

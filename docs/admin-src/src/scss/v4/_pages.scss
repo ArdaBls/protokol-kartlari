@@ -805,53 +805,6 @@ body[data-page="dashboard-2"] header.topbar::after {
 }
 
 
-// Kullanıcı isteği: liste anahtarı 942x43, kontrol çubuğu 942x59 olacak.
-// Bu ölçüler ESKİDEN satır içi style="width:942px..." ile veriliyordu; satır içi
-// stil hiçbir medya sorgusuyla ezilemediği için MOBİLDE de 942px kalıyordu ve
-// 390px'lik telefonda arama çubuğu + liste anahtarı ekranın dışına taşıyordu
-// (body{overflow-x:hidden} taşmayı görünmez kıldığı için yatay kaydırma bile
-// çıkmıyor, içerik sessizce kırpılıyordu -- kullanıcı "mobilde de sorunsuz
-// işlemeli" dedi). Artık ölçü SADECE 942px'in gerçekten sığdığı genişlikte
-// uygulanıyor: 942 + sidebar 252 + page-wrapper yan boşluğu 48 = 1242px,
-// güvenlik payıyla 1260px. Bunun altında style.css'in KENDİ duyarlı kuralları
-// (örn. .controlbar'ın grid'e dönmesi) yeniden devreye giriyor.
-@media (min-width: 1260px) {
-  body[data-page="dashboard-2"] .list-switch-wrap {
-    width: 942px;
-    height: 43px;
-    box-sizing: border-box;
-  }
-  body[data-page="dashboard-2"] .controlbar {
-    width: 942px;
-    height: 59px;
-    box-sizing: border-box;
-  }
-}
-
-// Kullanıcı isteği: Analitik'teki alt "liquid glass" tepsisinde SADECE
-// faculty-fab (fakülte filtresi) kalsın ve tepsi ortada değil, ekranın SAĞINDA
-// dursun. calendar-fab ve admin-fab zaten analitik.html'den kaldırıldı.
-//
-// style.css'in kendi kuralı .mobile-glass-nav'ı ortalıyor
-// (left:50%; transform:translateX(-50%)); burada SADECE bu sayfada sağa
-// sabitleniyor. Cam görünüm (backdrop-filter, kenarlık, gölge, ::after parlaklığı)
-// style.css'ten AYNEN geliyor -- hiçbiri ezilmiyor.
-body[data-page="dashboard-2"] .mobile-glass-nav {
-  left: auto;
-  right: 16px;
-  transform: none;
-}
-
-// Tepside tek düğme kaldı ve o düğme (.faculty-fab) yalnızca "Üniversite
-// Protokol Sırası" listesinde .active-list alarak görünüyor (app.js:1357).
-// İl listesindeyken düğme display:none olduğu için tepsi BOŞ bir cam hap
-// olarak ekranda kalırdı; bu yüzden görünür çocuğu olmayan tepsi tamamen
-// gizleniyor. style.css zaten :has() kullandığı için (bkz. body:has(#modalBg.open)
-// kuralları) tarayıcı desteği bu proje için sorun değil.
-body[data-page="dashboard-2"] .mobile-glass-nav:not(:has(.faculty-fab.active-list)) {
-  display: none !important;
-}
-
 // ── KAYDIRMA HATASI (kullanıcı bildirimi: "imleç içerikteyken tekerlek
 //    kaydırmıyor, topbarın üstündeyken çalışıyor") ──
 // _tokens.scss html ve body'ye overscroll-behavior-y:none veriyor (iOS rubber-band
@@ -876,4 +829,67 @@ body[data-page="dashboard-2"] .mobile-glass-nav:not(:has(.faculty-fab.active-lis
 html:has(body[data-page="dashboard-2"]),
 body[data-page="dashboard-2"] {
   overscroll-behavior-y: auto;
+}
+
+// ── HİZALAMA: liste anahtarı ile kontrol çubuğu aynı genişlikte olsun ──
+// Kullanıcı: "list-switch, controlbar ile aynı boyutta değil ve onunla birlikte
+// site küçülüp büyürken hareket etmiyor."
+//
+// style.css'te .list-switch-wrap / .controls / .actions-row / .grid'in HEPSİ aynı
+// kalıba sahip: max-width:1040px; margin:… auto; padding:0 20px. Normal blok
+// akışında bu dördü otomatik olarak eşit genişlikte ve hizalı olur.
+// AMA admin kabuğundaki .page-wrapper "display:flex; flex-direction:column"
+// olduğu için bu sarmalayıcılar birer FLEX ÖĞESİ oluyor ve flex öğesinde yan
+// margin:auto "genişliği doldur"u değil "içeriğe göre daral"ı tetikliyor
+// (shrink-to-fit). Sonuç: .list-switch-wrap içeriği kadar (359px) daralırken
+// .controls farklı bir genişlikte kalıyordu, sol kenarları da tutmuyordu.
+//
+// Çözüm: bu sayfada .page-wrapper'ı normal blok akışına döndür. .page-wrapper
+// hâlâ .main'in flex ÖĞESİ (flex:1 1 auto) olduğu için yapışkan footer deseni
+// bozulmuyor -- değişen sadece KENDİ çocuklarının nasıl dizildiği.
+// Böylece 942px gibi sabit bir ölçüye de gerek kalmıyor: dördü birlikte,
+// 1040px'e kadar büyüyüp ekranla birlikte küçülüyor.
+body[data-page="dashboard-2"] .page-wrapper {
+  display: block;
+}
+
+// ── AKSİYON BUTONLARI: arka plan ──
+// Kullanıcı: "butonları yalnızca arka plandan ayıran şey yazıların rengi,
+// buton arka planı koyalım zarif olsun."
+// style.css'in .btn-ghost'u background:var(--card) veriyor; ama bu sayfanın
+// zemini admin panelinin --body-bg'si ve ikisi neredeyse aynı tonda olduğu için
+// butonlar düz yazı gibi görünüyordu. Burada sadece BU sayfadaki aksiyon
+// satırına, style.css'in KENDİ değişkenleriyle (yani açık/koyu temada
+// kendiliğinden doğru çalışan) hafif bir yüzey + belirgin kenarlık + yumuşak
+// gölge veriliyor. Renk paleti değişmiyor, sadece kontrast kazanıyor.
+body[data-page="dashboard-2"] .actions-row .btn-ghost {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+body[data-page="dashboard-2"] .actions-row .btn-ghost:hover {
+  background: var(--surface-pill);
+  border-color: var(--brass);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 10%);
+}
+body[data-page="dashboard-2"] .actions-row .btn-ghost:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+// "Toplu Çöpe At" .btn-danger-outline sınıfında; yukarıdaki .btn-ghost kuralı onu
+// kapsamıyordu ve tek başına arka plansız kalıp diğerleriyle tutarsız duruyordu.
+// Tehlike kimliği (kırmızımsı metin/kenarlık) korunarak aynı yüzey/gölge dili veriliyor.
+body[data-page="dashboard-2"] .actions-row .btn-danger-outline {
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+body[data-page="dashboard-2"] .actions-row .btn-danger-outline:hover {
+  box-shadow: 0 3px 8px rgb(0 0 0 / 10%);
+}
+body[data-page="dashboard-2"] .actions-row .btn-danger-outline:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }

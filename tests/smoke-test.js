@@ -48,7 +48,7 @@ function serve() {
 	const server = await serve();
 	const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 	const context = await browser.newContext();
-	const page = await context.newPage();
+	let page = await context.newPage();
 
 	const consoleErrors = [];
 	const pageErrors = [];
@@ -78,21 +78,75 @@ function serve() {
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '', contentType: 'text/css' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
 
-	// index.html artık admin paneline yönlendiren bir kök yönlendirme dosyası (kullanıcı isteği:
-	// admin paneli sitenin yeni ana giriş noktası) -- app.js'in gerçek işlevselliğini taşıyan
-	// sayfa artık protokol.html (index.html ile birebir aynı app.js/style.css'i paylaşıyordu).
+	// AYNI yönlendirmeleri yeni bir sayfaya da kurmak için (2. tur ayrı sayfada
+	// çalışıyor: addInitScript SADECE kendisinden sonraki gezinmelere uygulandığı
+	// ve 1. tur zaten gezinmiş olduğu için misafir/girişli turları karıştırmamak adına).
+	async function yonlendirmeleriKur(p) {
+		await p.route('**/firebasejs/**/firebase-app-compat.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-firebase.js'), contentType: 'application/javascript' }));
+		await p.route('**/firebasejs/**/firebase-database-compat.js', (route) => route.fulfill({ body: '// no-op', contentType: 'application/javascript' }));
+		await p.route('**/firebasejs/**/firebase-auth-compat.js', (route) => route.fulfill({ body: '// no-op', contentType: 'application/javascript' }));
+		await p.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js'), contentType: 'application/javascript' }));
+		await p.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '', contentType: 'text/css' }));
+		await p.route('**://fonts.gstatic.com/**', (route) => route.abort());
+	}
+
+	// protokol.html ARTIK ayrı, halka açık bir sayfa değil: admin panelinin İÇİNDEKİ
+	// sayfa (eski analitik.html) bu adı devraldı ve eski bağımsız sayfa silindi.
+	// Kullanıcı isteğiyle giriş de ZORUNLU: "panele kayıt olup girmeden bir şey
+	// görsünler istemiyorum." Bu yüzden test iki turlu:
+
+	// 1. TUR -- MİSAFİR: giris.html'e yönlendirilmeli ve hiçbir kart görmemeli.
+	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load', timeout: 30000 });
+	await page.waitForTimeout(1500);
+	const misafirUrl = page.url();
+	const misafirKontrol = {
+		misafirGirisSayfasinaYonlendirildi: /giris\.html/.test(misafirUrl),
+		misafirKartGormuyor: (await page.$$('.grid .card')).length === 0
+	};
+	console.log('=== 1. TUR: MİSAFİR ===');
+	console.log(JSON.stringify(Object.assign({ url: misafirUrl }, misafirKontrol), null, 2));
+
+	// 2. TUR -- GİRİŞ YAPMIŞ ADMIN: asıl işlevsellik burada doğrulanır.
+	// AYRI sayfa: addInitScript yalnızca kendisinden SONRAKİ gezinmelere uygulanır,
+	// 1. tur zaten gezindiği için misafir/girişli durumları ayrı tutmak en temizi.
+	// Ayri BAGLAM (context): 1. turun oturum/depolama durumu 2. tura sizmasin.
+	const context2 = await browser.newContext();
+	page = await context2.newPage();
+	page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+	page.on('pageerror', (err) => { pageErrors.push(err.message + '\n' + (err.stack || '')); });
+	page.on('requestfailed', (req) => { failedRequests.push(req.url() + ' :: ' + (req.failure() && req.failure().errorText)); });
+	page.on('response', (res) => { if (res.status() >= 400) failedRequests.push(res.url() + ' :: HTTP ' + res.status()); });
+	page.on('request', (req) => { allRequests.push(req.method() + ' ' + req.url()); });
+	await yonlendirmeleriKur(page);
+	await page.addInitScript(() => {
+		window.__mockAuthUser = { uid: 'smokeUid', email: 'smoke@test.com', emailVerified: true };
+		// app.js users/{uid}.on("value") ile okur:
+		window.__mockUserProfile = { role: 'admin', firstName: 'Duman', lastName: 'Test', email: 'smoke@test.com' };
+		// shell.js users/{uid}.once("value") ile okur:
+		window.__mockOnceSnapshot = { role: 'admin', firstName: 'Duman', lastName: 'Test', email: 'smoke@test.com' };
+		const kisiler = {};
+		for (let i = 1; i <= 6; i++) {
+			kisiler['k' + i] = { name: 'Test Kişi ' + i, title: 'Dekan', unit: 'Ondokuz Mayıs Üniversitesi', status: 'aktif', sira: 2, faculties: ['Fen Fakültesi'] };
+		}
+		window.__mockData = { universiteProtokolVerileri: kisiler, ilProtokolVerileri: kisiler, etkinlikler: {} };
+	});
 	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load', timeout: 30000 });
 
 	// Uygulamanın render olması için kısa bekleme
-	await page.waitForTimeout(1500);
+	await page.waitForTimeout(2500);
 
 	const checks = await page.evaluate(() => {
 		const out = {};
 		out.title = document.title;
 		out.hasFirebaseMock = typeof window.firebase !== 'undefined';
-		out.bodyReadonly = document.body.classList.contains('is-readonly');
-		out.cardGridExists = !!document.querySelector('#grid, #cardGrid, .card-grid');
-		out.calendarRailExists = !!document.getElementById('calendarOverlay') || !!document.querySelector('[id*="cal" i]');
+		// Admin girisi cozuldugunde is-readonly KALKMALI (yani false olmali).
+		out.yetkiCozuldu = !document.body.classList.contains('is-readonly');
+		out.cardGridExists = !!document.querySelector('#grid, #cardGrid, .card-grid, .grid');
+		out.kartlarRenderOldu = document.querySelectorAll('.grid .card').length > 0;
+		// Panel kabugu (sol menu + topbar) bu sayfada da yuklenmis olmali.
+		out.adminKabuguVar = !!document.querySelector('header.topbar') && !!document.querySelector('.sidebar');
+		// Sortable/Fuse app.js'in ihtiyac duydugu global kutuphaneler.
+		out.sortableYuklu = typeof window.Sortable !== 'undefined';
 		out.hasPeopleArrayFn = typeof window.render === 'function' || typeof render === 'function';
 		out.functionsDefined = {};
 		['render', 'openEditModal', 'saveForm', 'generateNewsText', 'attachEventsListener', 'renderCalendarRail', 'renderWeekView', 'renderMonthView', 'renderListView', 'openCalendar', 'closeCalendar', 'requireEdit', 'requireAdmin', 'applyPermissions', 'openLegalModal', 'fillNewsTemplateSelect'].forEach((fn) => {
@@ -128,7 +182,8 @@ function serve() {
 	await page.screenshot({ path: path.join(TESTS_DIR, 'smoke-screenshot.png'), fullPage: false });
 
 
-	const __boolFails = collectBooleanFailures(checks, []);
+	// Misafir turunun sonuclari da basari kriterine dahil edilir.
+	const __boolFails = collectBooleanFailures(Object.assign({}, checks, misafirKontrol), []);
 	const __allPassed = pageErrors.length === 0 && __boolFails.length === 0;
 	console.log('ALL_TESTS_PASSED:', __allPassed);
 	if (__boolFails.length) console.log('BASARISIZ ALANLAR:', JSON.stringify(__boolFails));
