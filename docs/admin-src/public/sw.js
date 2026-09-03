@@ -13,7 +13,7 @@
 // Sürüm numarası: her önemli değişiklikte veya ikon/önbellek şeması değişiminde
 // artırılmalı (eski iki sürüm şeması -- omu-protokol-vX / protokol-admin-vX --
 // artık TEK bir şemada birleşti).
-const CACHE_NAME = "protokol-v3.67.0";
+const CACHE_NAME = "protokol-v3.68.0";
 
 const OFFLINE_URL = "./cevrimdisi.html";
 
@@ -23,7 +23,6 @@ const APP_SHELL = [
   "./protokol.html",
   "./style.css",
   "./app.js",
-  "./manifest.json",
   "./site.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

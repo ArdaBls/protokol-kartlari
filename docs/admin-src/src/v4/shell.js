@@ -559,7 +559,7 @@ export function syncShellUser() {
  * Ayrıca izinli olmayan bir sayfanın adresi ELLE yazılırsa erisim-engellendi.html'e
  * yönlendirilir. Bu bir kolaylık/işaret; asıl yetki sınırı Firebase kurallarıdır.
  * Yalnızca NAV'da TANINAN bir anahtar için yönlendirme yapılır -- menüde hiç yer
- * almayan sayfalar (bakim.html, tanitim.html, giriş ekranları vb.) etkilenmez.
+ * almayan sayfalar (404.html, giriş ekranları vb.) etkilenmez.
  */
 function applyRoleNav(role) {
   const tamYetkili = role === 'admin' || role === 'owner';

@@ -1,26 +1,24 @@
 {
-  "name": "Protokol",
+  "name": "OMÜ Protokol Kartları",
   "short_name": "Protokol",
-  "description": "OMÜ Protokol Kartları.",
+  "description": "OMÜ etkinlikleri için protokol kartları ve yönetim paneli.",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "images/android-chrome-192x192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "images/android-chrome-512x512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
-  "theme_color": "#1ABB9C",
-  "background_color": "#f5f7fb",
+  "theme_color": "#16233d",
+  "background_color": "#16233d",
   "display": "standalone",
   "orientation": "any",
-  "scope": "./",
-  "start_url": "index.html",
+  "scope": "/",
+  "start_url": "/index.html",
   "id": "protokol",
   "lang": "tr",
   "categories": ["productivity", "business"],
   "shortcuts": [
-    { "name": "Panolar", "url": "index.html" },
-    { "name": "Takvim", "url": "takvim.html" },
-    { "name": "Ayarlar", "url": "ayarlar.html" }
+    { "name": "Protokol Kartları", "url": "/protokol.html" },
+    { "name": "Takvim", "url": "/takvim.html" },
+    { "name": "Ayarlar", "url": "/ayarlar.html" }
   ]
 }
