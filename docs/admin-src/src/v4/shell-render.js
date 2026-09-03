@@ -82,36 +82,12 @@ export const NAV = [
       { key: 'settings',        href: 'ayarlar.html',         text: 'Ayarlar',            icon: 'settings' },
       { key: 'faq',             href: 'yardim-merkezi.html',              text: 'Yardım merkezi',     icon: 'help' }
     ]
-  },
-  {
-    label: 'Geliştirici Araçları',
-    items: [
-      {
-        text: 'UI kütüphanesi', icon: 'ui',
-        children: [
-          { key: 'forms',           href: 'form-genel.html',            text: 'Genel' },
-          { key: 'form-advanced',   href: 'gelismis-kontroller.html',   text: 'Gelişmiş kontroller' },
-          { key: 'form-validation', href: 'form-dogrulama.html', text: 'Doğrulama' },
-          { key: 'form-wizards',    href: 'form-sihirbaz.html',    text: 'Sihirbaz' },
-          { key: 'tables-dynamic',  href: 'tablolar.html',  text: 'Tablolar' },
-          { key: 'echarts',         href: 'grafik-galerisi.html',         text: 'Grafik galerisi' },
-          { key: 'ui',              href: 'bilesenler.html', text: 'Bileşenler' },
-          { key: 'widgets',         href: 'widgetlar.html',          text: 'Widget\'lar' },
-          { key: 'typography',      href: 'tipografi.html',       text: 'Tipografi' },
-          { key: 'icons',           href: 'ikonlar.html',            text: 'İkonlar' }
-        ]
-      }
-    ]
   }
 ];
 
 export const ICONS = {
   dashboard: '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="10" width="7" height="11" rx="1.5"/></svg>',
-  forms:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h4"/></svg>',
-  tables:    '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M9 10v9M15 10v9"/></svg>',
-  charts:    '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19V5M8 19v-8M12 19V9M16 19v-5M20 19v-9"/></svg>',
   calendar:  '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v6M16 4v6"/></svg>',
-  ui:        '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
   pages:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/></svg>',
   media:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
   users:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>',

@@ -12,15 +12,28 @@
    artik bir aile ADI yazmiyor -- degisiklik maliyetini sifira indiren sey tam da bu.
    Buraya yeni bir font-family eklemeden once o ailenin GERCEKTEN yuklendiginden emin ol. */
 			:root{
-			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
-			/* Faz 7 v5 (kullanıcı isteği, 31 Ağustos 2026): açık tema, sitenin İLK yapıldığındaki
-			   orijinal krem paletine geri döndürüldü (bu oturumda önce #DECDBE'ye, sonra
-			   #F1F0F6 lavanta-beyazına denendi -- kullanıcı ikisini de değil, en baştaki
-			   hâlini istedi). Koyu tema (aşağıda), kullanıcının "harika oldu / o güzel"
-			   dediği hâliyle DOKUNULMADAN kaldı. */
-			--paper: #f3efe6; --card: #fbf9f4; --ink: #1b1b1b; --muted: #6b6f76;
+			/* PALET GOCU (3 Eylul 2026, /impeccable critique bulgusu): bu sayfa daha once
+			   lacivert #16233d / pirinc #b8923f / krem #f3efe6 kullaniyordu -- panelin
+			   geri kalani (Operasyonlar, Takvim, Kullanici Yonetimi) ise teal #1ABB9C /
+			   soguk gri paletiyle calisiyordu. Ikisi ayni urunmus gibi gorunmuyordu.
+			   DESIGN.md'nin Miras Palet Kurali'nca lacivert/pirinc/krem EMEKLI edildi;
+			   --navy/--navy-2/--brass/--brass-light artik teal/teal-koyu DEGERLERINI
+			   TASIYOR (degisken ADLARI korunuyor ki asagidaki ~110 secici tek satir
+			   degismeden gecsin -- koyu temanin kendi kurallariyla AYNI teknik).
+			   ONEMLI: --navy/--brass ARTIK BIR VURGU/ARKAPLAN rengi -- METIN rengi
+			   olarak kullanilan tum seciciler (isim, baslik) asagida --ink'e tasindi,
+			   yoksa her kisi kartindaki isim parlak tealle yazilirdi (DESIGN.md'nin
+			   "Tek Ses Kurali"nı ihlal eder: teal ekranın en fazla %10'unda gorunur). */
+			--navy: #1ABB9C; --navy-2: #169f85; --brass: #1ABB9C; --brass-light: #1ABB9C;
+			/* Faz 7 v5'te (31 Ağustos 2026) acik temanin krem zemine geri donduruldugu
+			   kararı, palet gocuyle birlikte SUPERSEDE edildi: zemin artik panelin soguk
+			   gri "zemin/yuzey" tokenlarina esitleniyor (DESIGN.md, kullanıcı onayı: "Tek
+			   palet -- panel olanı kazansın"). Koyu tema --paper/--card DEGERLERI ise
+			   kullanıcının "harika oldu / o güzel" dediği hâliyle BİLEREK dokunulmadan
+			   kaldı -- yalnizca vurgu ailesi (brass-text/accent-soft) tealle degisti. */
+			--paper: #f5f7fb; --card: #ffffff; --ink: #1b1b1b; --muted: #6b6f76;
 			--ok: #2f6f4e; --ok-bg: #e3efe6; --off: #5f636b; --off-bg: #eceae5;
-			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #7c5c1f;
+			--warn: #a8631a; --warn-bg: #f7ecd9; --brass-text: #0e6754;
 			--border: #dcd6c7; --border-soft: #e7e1d3; --divider: #e2dccb; --divider-soft: #ddd5c2; --divider-faint: #eee6d4;
 			--surface-hover: #f0ece0; --surface-input: #faf8f2; --surface-pill: #efeadd; --surface-subtle: #f4f1e8;
 			--surface-hover-2: #ece7d9; --surface-hover-3: #e3ded2; --danger-bg: #fdf2f2; --today: #c2410c;
@@ -42,11 +55,12 @@
 			   baglayarak cozer. JS calismadan once veya visualViewport desteklenmiyorsa
 			   1vh'a duser (eski davranis, zararsiz fallback). */
 			--vh: 1vh;
-			/* Faz 8 (admin panel görsel yenileme): kart/nav vurgu tonu için tema-duyarlı
-			   çift -- açık temada lacivert (--navy) hem arka plan hem metin olarak okunaklı,
-			   koyu temada ise kart zemini zaten lacivert tonlarında olduğundan pirinç
-			   (--brass-light) kullanılır -- ak-num'daki aynı desenin genelleştirilmiş hâli. */
-			--accent-ink: var(--navy); --accent-soft: rgba(22,35,61,.07);
+			/* Faz 8 (admin panel görsel yenileme), 3 Eylül 2026'da palet göçüyle güncellendi:
+			   kart/nav vurgu tonu için tema-duyarlı bir çift -- açık temada --navy, koyu
+			   temada --brass-light okunuyordu. İkisi de artık AYNI teal değerini taşıyor
+			   (bkz. :root'un başındaki PALET GÖÇÜ notu), yani bu çift artık yalnızca
+			   değişken adı farkı; iki temada da aynı tonu görünür kılıyor. */
+			--accent-ink: var(--navy); --accent-soft: rgba(26,187,156,.06);
 			}
 
 			/* Karanlik mod (data-theme="dark") -- ayni degisken adlarini FARKLI degerlerle
@@ -58,7 +72,7 @@
 			[data-theme="dark"]{
 			--paper: #1F1F2B; --card: #252535; --ink: #e9e4d7; --muted: #9a9486;
 			--ok: #6fcf97; --ok-bg: #1f3327; --off: #a5a099; --off-bg: #34322c;
-			--warn: #e0954a; --warn-bg: #3a2c1a; --brass-text: #d9b568;
+			--warn: #e0954a; --warn-bg: #3a2c1a; --brass-text: #5fd3bd;
 			--border: #3a3a53; --border-soft: #2b2b3e; --divider: #303046; --divider-soft: #2b2b3e; --divider-faint: #262637;
 			--surface-hover: #2b2b41; --surface-input: #23232f; --surface-pill: #27273a; --surface-subtle: #212132;
 			--surface-hover-2: #2d2d44; --surface-hover-3: #33334c; --danger-bg: #3a2020; --today: #e2661c;
@@ -67,7 +81,7 @@
 			/* WCAG hesabi (contrast.js, tests disi scratchpad): #ff6b6b -> card/danger-bg/paper/warn-bg
 			   uzerinde 4.87-5.92:1, #d9b568 -> ayni fonlarda 6.92-8.42:1 (esik 4.5:1). */
 			--danger-text: #ff6b6b; --warn-text-alt: #d9b568;
-			--accent-ink: var(--brass-light); --accent-soft: rgba(228,200,119,.14);
+			--accent-ink: var(--brass-light); --accent-soft: rgba(26,187,156,.14);
 			}
 
 			*{box-sizing:border-box;}
@@ -98,7 +112,7 @@
 			     env(safe-area-inset-bottom) da ekliyor (centikli/home-indicator'lu cihazlarda
 			     FAB daha da yukari kayiyor) -- bu yuzden ayni payi buraya da eklemek gerekiyor,
 			     yoksa home-indicator'lu iPhone'larda 60px yetersiz kalip footer yine ortulebilir. */
-			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); min-height:calc(var(--vh, 1vh) * 100); padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); overflow-x:hidden; max-width:100%; }
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(26,187,156,.10), transparent), var(--paper); color:var(--ink); min-height:calc(var(--vh, 1vh) * 100); padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); overflow-x:hidden; max-width:100%; }
 
 			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
 			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
@@ -109,7 +123,7 @@
 				user-select: none;
 			}
 
-			header{ background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #24406e 100%); color:#f3efe6; padding:28px 20px 24px; position:relative; overflow:hidden; }
+			header{ background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 60%, #0e6754 100%); color:#f3efe6; padding:28px 20px 24px; position:relative; overflow:hidden; }
 			header::after{ content:""; position:absolute; inset:0; background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 40px); pointer-events:none; }
 			/* .header-top-row: h1 artik eyebrow'un ALTINDA, ayni sol sutunda (.header-left)
 			   -- bu sutun satirin solunda, sagdaki tema/.header-auth (Cikis dahil) ile
@@ -185,9 +199,9 @@
 			.bulk-cb { accent-color:var(--danger-accent); }
 			.news-cb { accent-color:var(--news); }
 
-			.photo-wrap{ position:relative; width:100%; aspect-ratio:1/1; background:linear-gradient(135deg,#243b63,#16233d); overflow:hidden; }
+			.photo-wrap{ position:relative; width:100%; aspect-ratio:1/1; background:linear-gradient(135deg,#1a2332,#12303a); overflow:hidden; }
 			.photo-wrap img{ width:100%; height:100%; object-fit:cover; object-position:center top; display:block; position:relative; z-index:2; pointer-events:none; }
-			.avatar-fallback{ position:absolute; inset:0; z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:inherit; font-size:38px; color:#f3efe6; background: radial-gradient(circle at 30% 20%, rgba(184,146,63,.5), transparent 60%), linear-gradient(135deg,#2a4270,#152036); letter-spacing:.02em; pointer-events:none; }
+			.avatar-fallback{ position:absolute; inset:0; z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:inherit; font-size:38px; color:#f3efe6; background: radial-gradient(circle at 30% 20%, rgba(26,187,156,.5), transparent 60%), linear-gradient(135deg,#1a2332,#12303a); letter-spacing:.02em; pointer-events:none; }
 			.status-chip{ position:absolute; top:10px; right:10px; font-family:inherit; font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; z-index:3; backdrop-filter: blur(2px); pointer-events:none;}
 			.status-chip.aktif{ background:var(--ok-bg); color:var(--ok); }
 			.status-chip.pasif{ background:var(--off-bg); color:var(--off); }
@@ -208,7 +222,7 @@
 			.freshness-badge.yellow{ background:var(--warn-bg); color:var(--warn); }
 			.freshness-badge.red{ background:var(--danger-bg); color:var(--danger-text); }
 			.info{ padding:12px 14px 14px; display:flex; flex-direction:column; flex:1; }
-			.name{ font-family:inherit; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			.name{ font-family:inherit; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:inherit; font-weight:500; }
 			.title{ font-size:13px; color:var(--ink); font-weight:600; margin:0 0 2px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.unit{ font-size:12px; color:var(--muted); margin:0 0 8px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
@@ -219,7 +233,7 @@
 			.note{ font-size:11px; color:var(--muted); font-style:italic; margin-top:5px; margin-bottom:10px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.empty{ max-width:1040px; margin:60px auto; text-align:center; color:var(--muted); font-family:inherit; padding:0 20px; }
 			.empty-icon{ font-size:32px; margin-bottom:8px; opacity:.55; }
-			.empty-title{ font-family:inherit; font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+			.empty-title{ font-family:inherit; font-size:16px; font-weight:600; color:var(--ink); margin-bottom:4px; }
 			.empty-sub{ font-size:13px; color:var(--muted); max-width:360px; margin:0 auto; line-height:1.5; }
 
 			/* --- AKSİYON BUTONLARI HİZALAMA --- */
@@ -229,7 +243,7 @@
 			
 			.btn{ font-family:inherit; font-weight:600; font-size:14px; border-radius:9px; padding:10px 16px; cursor:pointer; border:1px solid transparent; transition: background 0.2s;}
 			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
-			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); }
+			.btn-ghost{ background:var(--card); color:var(--ink); border-color:var(--border); }
 			.btn-danger{ background:var(--danger-accent); color:#fff; }
 			.btn-danger-outline{ background:var(--card); color:var(--danger-text); border-color:#e3c7c7; }
 			.btn-news { background: var(--news); color: #fff; }
@@ -255,7 +269,7 @@
 			   ustte kimi altta gorunmesine yol aciyordu (grid ayni satiri esitliyor ama
 			   icerigin kendisi esit yukseklikte degil). auto, kalan tum bosluga yayilip
 			   butonu HER ZAMAN kartin en altina sabitler. */
-			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; }
+			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:12px; font-weight:600; color:var(--ink); padding:7px 10px; cursor:pointer; pointer-events:auto; }
 			@media (hover: hover) and (pointer: fine){ .card-edit:hover{ background:var(--paper); } }
 			
 			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:inherit; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
@@ -266,14 +280,14 @@
 			.reorder-header-bar { display:flex; justify-content:space-between; align-items:center; gap:20px; width: 100%; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow); }
 			.rank-lock-hint { font-family:inherit; font-size:13px; color:var(--muted); line-height:1.5; margin:0; flex:1; }
 			.reorder-toolbar { display:flex; gap:8px; flex-shrink:0; }
-			.reorder-toolbar button { font-family:inherit; font-size:12px; font-weight:600; color:var(--navy); background:var(--paper); border:none; border-radius:7px; padding:8px 12px; cursor:pointer; transition: background 0.2s; }
+			.reorder-toolbar button { font-family:inherit; font-size:12px; font-weight:600; color:var(--ink); background:var(--paper); border:none; border-radius:7px; padding:8px 12px; cursor:pointer; transition: background 0.2s; }
 			.reorder-toolbar button:hover { background:var(--brass-light); }
-			.az-sort-btn { font-family:inherit; font-weight:600; font-size:11px; color:var(--navy); background:var(--paper); border:none; border-radius:6px; padding:5px 9px; cursor:pointer; white-space:nowrap; }
+			.az-sort-btn { font-family:inherit; font-weight:600; font-size:11px; color:var(--ink); background:var(--paper); border:none; border-radius:6px; padding:5px 9px; cursor:pointer; white-space:nowrap; }
 			.az-sort-btn:hover { background:var(--brass-light); }
 
 			/* --- AKORDİYON & DÖRDERLİ (WRAP) DİZİLİM --- */
 			details.rank-group { width: 100%; background:var(--card); border:1px solid var(--border-soft); border-radius:12px; overflow:hidden; }
-			details.rank-group > summary { list-style:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:8px; font-family:inherit; font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--navy); user-select:none; }
+			details.rank-group > summary { list-style:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:8px; font-family:inherit; font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); user-select:none; }
 			details.rank-group > summary::-webkit-details-marker { display:none; }
 			details.rank-group > summary::before { content:"▸"; color:var(--brass); font-size:15px; transition:transform .15s; }
 			details.rank-group[open] > summary::before { transform:rotate(90deg); }
@@ -287,7 +301,7 @@
 			}
 			@media (max-width: 800px) { .reorder-row { width: calc(33.333% - 8px); } }
 			@media (max-width: 550px) { .reorder-row { width: calc(50% - 6px); } }
-			.reorder-row.dragging { opacity:.5; transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.15); border-color:var(--navy); z-index: 99; }
+			.reorder-row.dragging { opacity:.5; transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.15); border-color:var(--ink); z-index: 99; }
 			
 			.internal-order-badge {
 				position: absolute; top: -8px; right: -8px; background: var(--navy); color: #fff;
@@ -296,12 +310,12 @@
 			}
 
 			.drag-handle-mini { cursor:grab; color:var(--muted); font-size:18px; padding:4px; width: 100%; text-align: center; background: var(--surface-subtle); border-radius: 6px; margin-bottom: 12px; touch-action:none; }
-			.drag-handle-mini:active { cursor:grabbing; background: var(--surface-hover-3); color: var(--navy); }
+			.drag-handle-mini:active { cursor:grabbing; background: var(--surface-hover-3); color: var(--ink); }
 			
-			.row-thumb { width:54px; height:54px; border-radius:50%; overflow:hidden; background:linear-gradient(135deg,#2a4270,#152036); display:flex; align-items:center; justify-content:center; color:#f3efe6; font-family:inherit; font-size:16px; margin-bottom: 10px; }
+			.row-thumb { width:54px; height:54px; border-radius:50%; overflow:hidden; background:linear-gradient(135deg,#1a2332,#12303a); display:flex; align-items:center; justify-content:center; color:#f3efe6; font-family:inherit; font-size:16px; margin-bottom: 10px; }
 			.row-thumb img { width:100%; height:100%; object-fit:cover; }
 			.row-text { display:flex; flex-direction:column; text-align: center; width: 100%; }
-			.row-name { font-family:inherit; font-weight:600; font-size:13px; color:var(--navy); line-height: 1.2; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+			.row-name { font-family:inherit; font-weight:600; font-size:13px; color:var(--ink); line-height: 1.2; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 			.row-title { font-size:11px; color:var(--muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 			/* Modallar */
@@ -337,7 +351,7 @@
 			   davranışına dönüldü -- kısa formlarda görsel fark yok (zaten ortada), uzun formlarda
 			   artık üstten (X/başlık dahil) erişilebilir ve kaydırılabilir. */
 			}
-			.rank-reference .rr-title{ font-family:inherit; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
+			.rank-reference .rr-title{ font-family:inherit; font-size:14px; color:var(--ink); margin-bottom:10px; font-weight:600; flex-shrink:0; }
 			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
 			.rank-reference .rr-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 7px; border-radius:7px; background:var(--surface-input); }
 			.rank-reference .rr-num{ font-family:inherit; font-weight:700; width:22px; height:22px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -357,7 +371,7 @@
 			.successor-panel.open{ position:absolute; top:0; right:auto; bottom:0; left:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
-			.successor-panel h3{ font-family:inherit; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
+			.successor-panel h3{ font-family:inherit; font-size:15px; color:var(--ink); margin:0 0 4px; padding-right:20px; }
 			/* Mobilde iki formu ayni anda gostermek (soldaki eski kayit + sagdaki yeni atama)
 			   karisikliga yol aciyordu; dar ekranda successor panel acikken soldaki form
 			   GORSEL olarak tamamen gizlenir (durumu/editIndex korunur, Vazgec ile geri doner). */
@@ -382,7 +396,7 @@
 			.history-panel.open{ position:absolute; top:0; left:auto; bottom:0; right:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.history-panel.open .history-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
-			.history-panel h3{ font-family:inherit; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
+			.history-panel h3{ font-family:inherit; font-size:15px; color:var(--ink); margin:14px 0 8px; padding-right:20px; }
 			.history-panel h3:first-child{ margin-top:0; }
 			.modal-bg.hide-behind-panel .modal-center-wrap > .modal{ display:none !important; }
 			.hg-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 8px; border-radius:7px; background:var(--surface-input); margin-bottom:5px; }
@@ -416,7 +430,7 @@
 			.faculty-multiselect .fm-group.fm-hidden, .faculty-multiselect .fm-item.fm-hidden{ display:none; }
 			.faculty-multiselect .fm-group{ margin-top:6px; }
 			.faculty-multiselect .fm-group:first-child{ margin-top:0; }
-			.faculty-multiselect .fm-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
+			.faculty-multiselect .fm-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--ink); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
 			.faculty-multiselect .fm-group-title:hover{ background:var(--surface-hover); }
 			.faculty-multiselect .fm-group-title::-webkit-details-marker{ display:none; }
 			.faculty-multiselect .fm-group-title::after{ content:"▸"; font-size:10px; color:var(--muted); transition:transform .15s ease; }
@@ -442,7 +456,7 @@
 			.main-layout.with-sidebar .faculty-sidebar{ display:flex; flex-direction:column; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,.12); font-family:inherit; }
 			.calendar-rail{ display:flex; }
 			}
-			.fs-scope .fs-title{ font-family:inherit; font-size:14px; color:var(--navy); font-weight:600; margin-bottom:8px; }
+			.fs-scope .fs-title{ font-family:inherit; font-size:14px; color:var(--ink); font-weight:600; margin-bottom:8px; }
 			.fs-scope .fs-central-list{ display:flex; flex-direction:column; gap:4px; margin-bottom:6px; }
 			.fs-scope .fs-item{ display:flex; align-items:center; gap:8px; font-size:13px; padding:5px 7px; border-radius:7px; background:var(--surface-input); cursor:pointer; }
 			.fs-scope .fs-item:hover{ background:var(--surface-hover); }
@@ -452,7 +466,7 @@
 			.fs-scope .fs-clear-btn:hover{ background:var(--surface-hover); color:var(--ink); }
 			.fs-scope .fs-group{ margin-top:8px; }
 			.fs-scope .fs-group:first-of-type{ margin-top:0; }
-			.fs-scope .fs-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
+			.fs-scope .fs-group-title{ list-style:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--ink); text-transform:uppercase; letter-spacing:.03em; padding:5px 4px; display:flex; align-items:center; justify-content:space-between; border-radius:6px; }
 			.fs-scope .fs-group-title:hover{ background:var(--surface-hover); }
 			.fs-scope .fs-group-title::-webkit-details-marker{ display:none; }
 			.fs-scope .fs-group-title::after{ content:"▸"; font-size:10px; color:var(--muted); transition:transform .15s ease; }
@@ -465,16 +479,16 @@
 			.cal-rail-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:16px 12px; border:1px solid var(--border-soft); border-radius:16px; background:var(--card); box-shadow:0 8px 30px rgba(0,0,0,.12); cursor:pointer; font-family:inherit; }
 			.cal-rail-btn:hover{ background:var(--surface-hover); border-color:var(--brass-light); }
 			.cal-rail-icon{ font-size:26px; line-height:1; }
-			.cal-rail-label{ font-family:inherit; font-size:14px; font-weight:600; color:var(--navy); }
+			.cal-rail-label{ font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); }
 			.cal-rail-count{ font-size:12px; color:var(--muted); }
 			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
 			.cal-rail-next{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:12px; }
-			.cal-rail-next h4{ margin:0 0 8px; font-family:inherit; font-size:13px; color:var(--navy); font-weight:600; }
+			.cal-rail-next h4{ margin:0 0 8px; font-family:inherit; font-size:13px; color:var(--ink); font-weight:600; }
 			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid var(--surface-hover); cursor:pointer; }
 			.cal-next-item:first-of-type{ border-top:none; }
 			.cal-next-item:hover .cal-next-name{ color:var(--brass-text); }
 			.cal-next-date{ flex-shrink:0; width:34px; text-align:center; background:var(--surface-subtle); border-radius:7px; padding:3px 0; }
-			.cal-next-date .d{ display:block; font-size:14px; font-weight:700; color:var(--navy); line-height:1.1; }
+			.cal-next-date .d{ display:block; font-size:14px; font-weight:700; color:var(--ink); line-height:1.1; }
 			.cal-next-date .m{ display:block; font-size:9px; color:var(--muted); text-transform:uppercase; }
 			.cal-next-name{ font-size:12px; font-weight:600; color:var(--ink); line-height:1.3; }
 			.cal-next-meta{ font-size:11px; color:var(--muted); }
@@ -488,7 +502,7 @@
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
 			/* Faz 7 v5: opaklık .035'ten orijinal .10'a geri döndürüldü -- açık tema orijinal
 			   krem palete dönünce (yukarıda) bu gradyan artık site geneliyle tutarlı. */
-			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:inherit; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(26,187,156,.10), transparent), var(--paper); display:none; font-family:inherit; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
 			/* Denetim maddesi #4: modern tarayicilarda dvh, --vh JS degiskenine (visualViewport
 			   izleyen, resize olayina bagli) gore daha DOGRU/aninda tepki verir (araç çubuğu
 			   animasyonu sirasinda JS henuz --vh'i guncellemeden bir kare "eski" boyut kalabiliyor).
@@ -515,7 +529,7 @@
 
 			/* ---- Mini ay takvimi (sol ray) ---- */
 			.cal-mini-head{ display:flex; align-items:center; justify-content:space-between; gap:1px; margin-bottom:8px; }
-			.cal-mini-title{ flex:1; text-align:center; font-family:inherit; font-size:14px; font-weight:600; color:var(--navy); white-space:nowrap; }
+			.cal-mini-title{ flex:1; text-align:center; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
 			.cal-mini-head .cal-iconbtn{ width:21px; height:21px; font-size:13px; }
 			.cal-mini-head .cal-iconbtn::after{ inset:-6px; }
 			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu.
@@ -550,17 +564,17 @@
 			/* iPhone centik/Dynamic Island: takvim tam ekran oldugu icin (position:fixed;inset:0)
 			   ust bar dogrudan centigin altinda kalip "Kapat" ve "Bugun" butonlarina dokunulamiyordu. */
 			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:calc(16px + env(safe-area-inset-top,0px)) 18px 16px; border-bottom:1px solid var(--divider-faint); background:transparent; }
-			.cal-month-label{ font-family:inherit; font-size:21px; font-weight:600; color:var(--navy); }
+			.cal-month-label{ font-family:inherit; font-size:21px; font-weight:600; color:var(--ink); }
 			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
 			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.cal-iconbtn::after{ content:""; position:absolute; inset:-8px; }
-			.cal-iconbtn:hover{ background:var(--surface-subtle); color:var(--navy); }
+			.cal-iconbtn:hover{ background:var(--surface-subtle); color:var(--ink); }
 			.cal-textbtn{ background:var(--card); border:1px solid var(--border); color:var(--ink); border-radius:7px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
 			.cal-textbtn:hover{ background:var(--surface-subtle); }
 			.cal-spacer{ flex:1; }
 			.cal-viewtabs{ display:flex; gap:2px; background:rgba(22,35,61,.07); border-radius:8px; padding:2px; }
 			.cal-viewbtn{ background:none; border:none; color:var(--muted); border-radius:6px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
-			.cal-viewbtn.active{ background:var(--card); color:var(--navy); box-shadow:0 1px 2px rgba(22,35,61,.16); }
+			.cal-viewbtn.active{ background:var(--card); color:var(--ink); box-shadow:0 1px 2px rgba(22,35,61,.16); }
 			.cal-addbtn{ background:var(--navy); border:none; color:#f3efe6; border-radius:7px; padding:6px 13px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
 			.cal-addbtn:hover{ background:var(--navy-2); }
 			.cal-addbtn .ab-short{ display:none; }
@@ -616,7 +630,7 @@
 			.cal-daycol{ position:relative; border-right:1px solid oklch(0 0 0 / 8%); background:transparent; }
 			.cal-daycol:last-child{ border-right:none; }
 			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
-			.cal-daycol.is-today{ background:rgba(184,146,63,.11); }
+			.cal-daycol.is-today{ background:rgba(26,187,156,.11); }
 			/* Eskiden sabit #e6dfcd (eski sicak paletten kalma, koyu temada hic tanimlanmamisti,
 			   yeni acik temada da uyumsuz kaliyordu), sonra --divider-faint token'ina baglandi --
 			   ama o krem tona (--paper) COK yakin oldugu icin acik temada cizgiler neredeyse hic
@@ -679,8 +693,8 @@
 			.cal-resize-ghost{ z-index:2; }
 			/* Faz 9 Part D: bos izgarada surukleyerek yeni etkinlik SECERKEN gosterilen kutu --
 			   henuz bir .cal-block olmadigi icin event rengi yok, notr/brass kesikli cerceve. */
-			.cal-create-select{ position:absolute; left:2px; right:2px; z-index:2; border-radius:8px; border:1.5px dashed var(--brass); background:rgba(184,146,63,.18); color:var(--navy); font-size:11px; font-weight:600; font-family:inherit; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px; pointer-events:none; overflow:hidden; }
-			[data-theme="dark"] .cal-create-select{ color:var(--brass-light); background:rgba(217,181,104,.16); }
+			.cal-create-select{ position:absolute; left:2px; right:2px; z-index:2; border-radius:8px; border:1.5px dashed var(--brass); background:rgba(26,187,156,.18); color:var(--ink); font-size:11px; font-weight:600; font-family:inherit; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px; pointer-events:none; overflow:hidden; }
+			[data-theme="dark"] .cal-create-select{ background:rgba(26,187,156,.16); }
 			/* Kullanıcı isteği (31 Ağustos 2026): bırakılan saat aralığı onaylanana kadar modal
 			   açılmaz -- bu bekleme sırasında ghost hafifçe nabız atar (calCreatePulse), "bir
 			   onay bekliyor" hissi versin diye. */
@@ -693,7 +707,7 @@
 			.cal-create-confirm-bar{ position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:96; display:flex; align-items:center; gap:8px; padding:9px 10px 9px 16px; border-radius:999px; background:var(--navy); border:1px solid rgba(255,255,255,.14); box-shadow:0 12px 30px rgba(0,0,0,.35); font-family:inherit; max-width:calc(100vw - 24px); animation:fadeIn .15s ease; }
 			.cal-create-confirm-bar .ccb-time{ font-family:inherit; font-size:12px; font-weight:600; color:var(--brass-light); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 			.cal-create-confirm-bar button{ border:none; border-radius:999px; padding:7px 13px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap; transition:background .15s, transform .15s; }
-			.cal-create-confirm-bar .ccb-confirm{ background:var(--brass-light); color:var(--navy); }
+			.cal-create-confirm-bar .ccb-confirm{ background:var(--brass-light); color:var(--ink); }
 			.cal-create-confirm-bar .ccb-confirm:hover{ background:#f0dca0; }
 			.cal-create-confirm-bar .ccb-cancel{ background:rgba(255,255,255,.12); color:#fff; }
 			.cal-create-confirm-bar .ccb-cancel:hover{ background:rgba(255,255,255,.22); }
@@ -770,7 +784,7 @@
 			.cal-mday.other{ background:rgba(22,35,61,.05); }
 			.cal-mday.other .cal-mdaynum{ color:var(--muted); }
 			.cal-mday.weekend{ background:rgba(22,35,61,.035); }
-			.cal-mday.today{ background:rgba(184,146,63,.11); }
+			.cal-mday.today{ background:rgba(26,187,156,.11); }
 			.cal-mdayhead{ display:flex; align-items:center; justify-content:space-between; height:21px; flex-shrink:0; }
 			.cal-mdaynum{ font-size:12px; font-weight:600; color:var(--ink); padding:0 3px; }
 			.cal-mday.today .cal-mdaynum{ background:var(--today); color:#fff; border-radius:50%; width:21px; height:21px; display:flex; align-items:center; justify-content:center; font-size:12px; }
@@ -782,10 +796,10 @@
 				.cal-mdayadd{ opacity:0; }
 				.cal-mday:hover .cal-mdayadd{ opacity:1; }
 			}
-			.cal-mdayadd:hover{ background:var(--surface-hover); color:var(--navy); }
+			.cal-mdayadd:hover{ background:var(--surface-hover); color:var(--ink); }
 			body.is-readonly .cal-mdayadd{ display:none; }
 			.cal-more{ font-size:11px; color:var(--muted); font-weight:600; padding:1px 5px; cursor:pointer; background:none; border:none; text-align:left; font-family:inherit; }
-			.cal-more:hover{ color:var(--navy); }
+			.cal-more:hover{ color:var(--ink); }
 
 			/* ---- Yıl görünümü ---- */
 			/* overscroll-behavior:contain EKSIKTI -- projedeki DIGER kaydirilabilir katmanlarin
@@ -798,7 +812,7 @@
 			.cal-year-grid{ max-width:1040px; margin:0 auto; width:100%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; overscroll-behavior:contain; align-content:start; }
 			.cal-year-month{ border:1px solid var(--divider); border-radius:10px; padding:10px; }
 			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; grid-template-columns:repeat(7,minmax(0,1fr)); }
-			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
+			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); cursor:pointer; padding:0 2px 8px; }
 			.cal-year-month-title:hover{ text-decoration:underline; }
 			.cal-year-day{ position:relative; min-width:0; height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; border:none; background:none; border-radius:5px; cursor:pointer; color:var(--ink); font-family:inherit; padding:0; }
 			.cal-year-day:hover{ background:var(--surface-hover-2); }
@@ -810,7 +824,7 @@
 			/* ---- Liste görünümü ---- */
 			.cal-list{ max-width:780px; margin:0 auto; width:100%; display:flex; flex-direction:column; padding:18px 16px 60px; }
 			.cal-list-wrap{ flex:1; min-height:0; overflow-y:auto; }
-			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:inherit; font-size:13px; color:var(--navy); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid var(--divider); }
+			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:inherit; font-size:13px; color:var(--ink); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid var(--divider); }
 			.cal-list-daysep:first-child{ margin-top:0; }
 			.cal-list-daysep .dow{ font-family:inherit; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; }
 			.cal-list-daysep.is-today{ color:var(--today); }
@@ -848,7 +862,7 @@
 			   USTUNE (durum cubugunun/cetigin ARKASINA) kadar cikiyordu (kullanici: "ustteki gorev
 			   cubuguna kadar cikiyor duzenle listesinin en ustu"). */
 			.cal-peek-head{ flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:calc(16px + env(safe-area-inset-top, 0px)) 18px 12px; border-bottom:1px solid var(--border-soft); }
-			.cal-peek-head h3{ margin:0; font-family:inherit; font-size:17px; color:var(--navy); font-weight:600; line-height:1.3; }
+			.cal-peek-head h3{ margin:0; font-family:inherit; font-size:17px; color:var(--ink); font-weight:600; line-height:1.3; }
 			/* min-height:0 KRITIK: flex item'lar varsayilan olarak icerigin altina KUCULMEZ (min-height:auto),
 			   yani .cal-peek-body uzun icerikle .cal-peek'in (height:calc(var(--vh,1vh)*100) ile sabitli)
 			   kendi sinirini ASIP tasabiliyordu -- kendi ICINDE kaymak yerine, panelin TAMAMI (flex-shrink:0
@@ -898,8 +912,8 @@
 			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
 			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
 			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
-			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:var(--warn-text-alt); border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:inherit; white-space:nowrap; }
-			.ev-now-btn:hover{ background:rgba(184,146,63,.26); }
+			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(26,187,156,.14); color:var(--warn-text-alt); border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:inherit; white-space:nowrap; }
+			.ev-now-btn:hover{ background:rgba(26,187,156,.26); }
 			.ev-now-btn:active{ transform:scale(.94); }
 
 			/* Detay panelindeki büyük "şimdi başlat / şimdi bitir" tuşu */
@@ -943,13 +957,13 @@
 			/* Faz 6 (kullanici istegi): tepsi dugmelerinden etiket metni kaldirildi, ikisi de
 			   sadece ikon tasiyan esit capli DAIRE. width==height + border-radius:50% ile tam
 			   daire; 48px dokunma hedefi icin asgari onerilen boyutun uzerinde. */
-			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
+			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--ink); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .calendar-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
 			/* Sadece admin rolu icin: tepsinin tam ortasinda admin.html'e goturen 3. dugme.
 			   Gorunurluk .active-list class'i ile JS'ten kontrol edilir (renderAuthUI()) --
 			   faculty-fab'daki ayni desen, rol degisince tek satirla acilip kapanir. */
-			.admin-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
+			.admin-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--ink); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .admin-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .admin-fab.active-list{ display:flex; } }
 			.calendar-fab:hover, .admin-fab:hover, .faculty-fab:hover{ background:rgba(255,255,255,.55); }
@@ -975,10 +989,10 @@
 			/* ---------- TAKVİM SONU ---------- */
 			/* Mobil/tablet (<1050px): sol panel yerine alttan yukarı açılan filtre çekmecesi */
 			/* .calendar-fab ile ayni daire olcusu -- ikisi tepside esit gorunsun. */
-			.faculty-fab{ display:none; position:relative; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--navy); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
+			.faculty-fab{ display:none; position:relative; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--ink); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .faculty-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			/* Secili fakulte sayisi rozeti: dairenin sag-ust kosesinden disari tasar. */
-			.faculty-fab .fab-count{ position:absolute; top:-2px; right:-2px; background:var(--brass); color:var(--navy); border-radius:50%; min-width:18px; height:18px; font-size:10px; font-weight:700; align-items:center; justify-content:center; padding:0 3px; box-shadow:0 0 0 2px rgba(255,255,255,.65); }
+			.faculty-fab .fab-count{ position:absolute; top:-2px; right:-2px; background:var(--brass); color:var(--ink); border-radius:50%; min-width:18px; height:18px; font-size:10px; font-weight:700; align-items:center; justify-content:center; padding:0 3px; box-shadow:0 0 0 2px rgba(255,255,255,.65); }
 			[data-theme="dark"] .faculty-fab .fab-count{ box-shadow:0 0 0 2px rgba(28,28,38,.85); }
 			.faculty-sheet-backdrop{ position:fixed; inset:0; background:rgba(22,35,61,.55); z-index:80; display:none; }
 			.faculty-sheet-backdrop.open{ display:block; }
@@ -987,7 +1001,7 @@
 			.faculty-sheet.dragging{ transition:none; }
 			.fsheet-handle-wrap{ display:flex; justify-content:center; padding:10px 0 6px; cursor:grab; touch-action:none; }
 			.fsheet-handle{ width:42px; height:5px; border-radius:3px; background:var(--border); }
-			.fsheet-header{ display:flex; align-items:center; justify-content:space-between; padding:0 18px 10px; border-bottom:1px solid var(--divider-faint); font-family:inherit; font-size:15px; color:var(--navy); font-weight:600; flex-shrink:0; }
+			.fsheet-header{ display:flex; align-items:center; justify-content:space-between; padding:0 18px 10px; border-bottom:1px solid var(--divider-faint); font-family:inherit; font-size:15px; color:var(--ink); font-weight:600; flex-shrink:0; }
 			.fsheet-close{ background:none; border:none; font-size:16px; color:var(--muted); cursor:pointer; padding:4px; }
 			.fsheet-body{ overflow-y:auto; padding:14px 18px 18px; -webkit-overflow-scrolling:touch; font-family:inherit; overscroll-behavior:contain; }
 			.fsheet-footer{ padding:10px 18px calc(14px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--divider-faint); flex-shrink:0; }
@@ -1016,9 +1030,9 @@
 			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:inherit; position:relative; overflow-x:hidden; }
 			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
 			   metni dar ekranda bu alana kadar uzayip X'in ALTINA/UZERINE biniyordu. */
-			.modal h2{ font-family:inherit; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
+			.modal h2{ font-family:inherit; font-size:20px; color:var(--ink); margin:0 0 4px; padding-right:26px; }
 			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
-			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px; }
 			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; background:var(--surface-input); color:var(--ink); }
 			/* iOS Safari'nin native input[type=date] kontrolu bazen width:100%'u yok sayip kendi
 			   intrinsik genisligini dayatiyor (input[type=file]'daki v2.3.7 vakasiyla ayni aile).
@@ -1060,7 +1074,7 @@
 			   tam genislik oldugu icin sola tasacak yer olmadigindan) AYNI "kenardan cikinti"
 			   fikri UST kenara tasinir. */
 			#modalBg .history-toggle{ position:absolute; top:40px; left:-32px; width:32px; height:44px; background:var(--card); border:1px solid var(--border-soft); border-right:none; border-radius:10px 0 0 10px; display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--muted); cursor:pointer; box-shadow:-3px 0 10px rgba(0,0,0,.12); }
-			#modalBg .history-toggle:hover{ color:var(--navy); }
+			#modalBg .history-toggle:hover{ color:var(--ink); }
 			@media (max-width: 899px){
 				#modalBg .history-toggle{ top:22px; left:14px; width:22px; height:22px; border-radius:6px; border:1px solid var(--border-soft); box-shadow:none; font-size:13px; }
 			}
@@ -1084,7 +1098,7 @@
 			.foot-copy{ margin:0 0 6px; font-size:13px; color:var(--ink); }
 			.foot-copy strong{ font-weight:600; }
 			.foot-links{ margin:0 0 8px; display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; }
-			.foot-link{ background:none; border:none; padding:0; font-family:inherit; font-size:12px; color:var(--navy); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+			.foot-link{ background:none; border:none; padding:0; font-family:inherit; font-size:12px; color:var(--ink); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
 			.foot-link:hover{ color:var(--brass-text); }
 			.foot-sep{ color:var(--border); }
 			.foot-note{ margin:0; font-size:11px; line-height:1.6; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto; }
@@ -1093,7 +1107,7 @@
 			.legal-tabs{ display:flex; gap:6px; margin-bottom:12px; }
 			.legal-tabs .btn{ flex:1; font-size:13px; padding:8px 10px; }
 			.legal-body{ max-height:52vh; overflow-y:auto; padding-right:6px; font-size:13px; line-height:1.7; color:var(--ink); overscroll-behavior:contain; }
-			.legal-body h3{ font-family:inherit; font-size:15px; margin:16px 0 6px; color:var(--navy); }
+			.legal-body h3{ font-family:inherit; font-size:15px; margin:16px 0 6px; color:var(--ink); }
 			.legal-body h3:first-child{ margin-top:0; }
 			.legal-body p{ margin:0 0 8px; }
 			.legal-body ul{ margin:0 0 10px; padding-left:18px; }
@@ -1176,12 +1190,12 @@
 				.af-signin{ text-align:center; }
 				/* Giris/Kayit gecis linki artik kucuk bir yuvarlak "pill" cip -- sade metin
 				   yerine dokunsal bir hedef (kart genelindeki yuvarlak dile uyum). */
-				.af-signin a{ display:inline-block; margin-top:2px; padding:5px 14px; border-radius:999px; border:1px solid rgba(217,181,104,.4); color:var(--brass-light); cursor:pointer; font-weight:600; transition:background .15s, border-color .15s; }
-				.af-signin a:hover{ background:rgba(217,181,104,.12); border-color:var(--brass-light); text-decoration:none; }
+				.af-signin a{ display:inline-block; margin-top:2px; padding:5px 14px; border-radius:999px; border:1px solid rgba(26,187,156,.4); color:var(--brass-light); cursor:pointer; font-weight:600; transition:background .15s, border-color .15s; }
+				.af-signin a:hover{ background:rgba(26,187,156,.12); border-color:var(--brass-light); text-decoration:none; }
 				.af-flex{ display:flex; width:100%; gap:6px; }
 				.af-form label{ position:relative; display:block; }
 				.af-input{ background:rgba(255,255,255,.08); color:#fff; width:100%; padding:19px 10px 6px; outline:0; border:1px solid rgba(255,255,255,.15); border-radius:16px; font-size:14px; font-family:inherit; box-shadow:inset 0 2px 6px rgba(0,0,0,.18); transition:border-color .15s, box-shadow .15s; }
-				.af-input:focus{ border-color:rgba(217,181,104,.55); }
+				.af-input:focus{ border-color:rgba(26,187,156,.55); }
 				.af-input + span{ color:rgba(255,255,255,.5); position:absolute; left:11px; top:0; font-size:.9em; cursor:text; transition:.2s ease; pointer-events:none; }
 				.af-input:placeholder-shown + span{ top:13px; font-size:.9em; }
 				.af-input:focus + span, .af-input:valid + span{ color:var(--brass-light); top:0; font-size:.7em; font-weight:600; }
@@ -1211,7 +1225,7 @@
 				.af-form label:has(> input[type="password"]) .af-input{ padding-left:2.5em; }
 				.af-form label:has(> input[type="email"]) .af-input + span,
 				.af-form label:has(> input[type="password"]) .af-input + span{ left:2.5em; }
-				.af-submit{ border:none; outline:0; padding:12px; border-radius:999px; color:var(--navy); font-weight:700; font-size:15px; background:var(--brass-light); cursor:pointer; transition:background .2s, transform .15s; margin-top:4px; }
+				.af-submit{ border:none; outline:0; padding:12px; border-radius:999px; color:var(--ink); font-weight:700; font-size:15px; background:var(--brass-light); cursor:pointer; transition:background .2s, transform .15s; margin-top:4px; }
 				.af-submit:hover{ background:#f0dca0; } .af-submit:active{ transform:scale(.98); } .af-submit:disabled{ opacity:.6; cursor:not-allowed; }
 				.af-error{ color:#ff9a9a; font-size:13px; min-height:16px; margin:0; }
 				@keyframes afPulse{ from{ transform:scale(.9); opacity:1;} to{ transform:scale(1.8); opacity:0;} }
@@ -1234,7 +1248,7 @@
 				.header-profile-wrap{ position:relative; display:flex; }
 				.header-profile-btn{ display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.1); color:#f3efe6; border:1px solid rgba(255,255,255,.25); padding:5px 12px 5px 5px; border-radius:20px; cursor:pointer; font-family:inherit; font-weight:600; font-size:13px; white-space:nowrap; transition:background .15s; }
 				.header-profile-btn:hover, .header-profile-btn[aria-expanded="true"]{ background:rgba(255,255,255,.18); }
-				.hp-avatar{ width:26px; height:26px; border-radius:50%; background:var(--brass-light); color:var(--navy); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+				.hp-avatar{ width:26px; height:26px; border-radius:50%; background:var(--brass-light); color:var(--ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
 				.header-profile-btn.editor .hp-avatar{ background:#6fbf8f; }
 				.header-profile-btn.pending .hp-avatar{ background:#c99a3f; }
 				.header-profile-btn.owner .hp-avatar{ background:#9b7fe0; }
@@ -1282,7 +1296,7 @@
 				.loading-overlay.open{ display:flex; }
 				.loading-overlay .loading-label{ font-family:inherit; font-size:13px; color:var(--muted); font-weight:600; }
 
-				.simple-spinner { width: 3.5em; height: 3.5em; border: 5px solid var(--surface-hover-3); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
+				.simple-spinner { width: 3.5em; height: 3.5em; border: 5px solid var(--surface-hover-3); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.8s linear infinite; }
 				@keyframes spin { to { transform: rotate(360deg); } }
 
 				/* === YETKİ BAZLI GİZLEME === */
@@ -1309,13 +1323,13 @@
 				.admin-log-row .al-top{ display:flex; justify-content:space-between; gap:10px; }
 				/* min-width:0 + overflow-wrap: "kim yaptı" alani genelde e-posta -- bosluksuz
 				   uzun bir dize .al-top'u/karti disariya tasirmasin diye (.au-email ile ayni aile). */
-				.admin-log-row .al-by{ color:var(--navy); font-weight:600; min-width:0; overflow-wrap:break-word; word-break:break-word; }
+				.admin-log-row .al-by{ color:var(--ink); font-weight:600; min-width:0; overflow-wrap:break-word; word-break:break-word; }
 				.admin-log-row .al-action{ color:var(--ink); }
 				/* "kim yaptı" (al-by, lacivert/kalın) ile "kime yapıldı" (al-target, altın rozet) birbirine karışmasın diye ayrı stiller */
-				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:var(--warn-text-alt); font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
+				.admin-log-row .al-target{ display:inline-block; background:rgba(26,187,156,.16); color:var(--warn-text-alt); font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
 				.admin-log-row .al-time{ font-family:inherit; color:var(--muted); font-size:11px; font-weight:500; white-space:nowrap; }
 				/* Hangi alanın değiştiği ("Protokol Sırası: 2. sıradan 4. sıraya düşürüldü") alt satırlar hâlinde listelenir */
-				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:12px; line-height:1.55; color:var(--muted); }
+				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(26,187,156,.4); font-size:12px; line-height:1.55; color:var(--muted); }
 				.admin-log-row .al-detail b{ color:var(--ink); font-weight:600; }
 
 			/* Veri Sözlüğü (Faz 10) -- birim/unvan öneri havuzu, admin-log-row ile aynı kart
@@ -1415,7 +1429,7 @@
 			body[data-page="admin"] #adminPanelBg{
 				align-items:stretch; justify-content:stretch; padding:0; backdrop-filter:none; overflow-y:hidden;
 				background:
-					radial-gradient(900px 480px at 8% -8%, rgba(184,146,63,.14), transparent 60%),
+					radial-gradient(900px 480px at 8% -8%, rgba(26,187,156,.14), transparent 60%),
 					radial-gradient(900px 520px at 96% 108%, rgba(22,35,61,.10), transparent 55%),
 					var(--paper);
 			}
@@ -1467,8 +1481,7 @@
 			.admin-kpi-icon{ width:26px; height:26px; border-radius:7px; display:grid; place-items:center; flex:none; background:var(--surface-hover); color:var(--muted); margin-bottom:8px; }
 			.admin-kpi-icon .ikon{ width:14px; height:14px; stroke-width:2; }
 			.admin-kpi-icon.accent{ background:var(--accent-soft); color:var(--accent-ink); }
-			.ak-num{ font-family:inherit; font-size:25px; font-weight:600; color:var(--navy); line-height:1.1; }
-			[data-theme="dark"] .ak-num{ color:var(--brass-light); }
+			.ak-num{ font-family:inherit; font-size:25px; font-weight:600; color:var(--ink); line-height:1.1; }
 			.ak-label{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
 			.admin-kpi.ak-warn .ak-num{ color:var(--warn); }
 			.admin-kpi.ak-warn .admin-kpi-icon{ background:var(--warn-bg); color:var(--warn); }
@@ -1565,10 +1578,10 @@
 			.tmr-info{ display:flex; align-items:center; gap:10px; min-width:0; }
 			.tmr-icon{ font-size:17px; flex-shrink:0; }
 			.tmr-text{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
-			.test-mode-title{ font-size:13px; font-weight:600; color:var(--navy); white-space:nowrap; }
+			.test-mode-title{ font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; }
 			.tmr-hint{ font-size:11.5px; color:var(--muted); display:inline-flex; align-items:center; gap:5px; }
 			.tmr-more{ border:none; background:none; padding:0; font-size:12px; color:var(--muted); cursor:help; line-height:1; }
-			.tmr-more:hover{ color:var(--navy); }
+			.tmr-more:hover{ color:var(--ink); }
 			.ios-switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
 			.ios-switch input{ opacity:0; width:0; height:0; }
 			.ios-switch-slider{ position:absolute; cursor:pointer; inset:0; background:var(--border); transition:.2s; border-radius:24px; }
@@ -1752,31 +1765,19 @@
 				.foot-link{ padding:8px 4px; }
 			}
 
-			/* Karanlik modda METIN olarak kullanilan var(--navy) secicileri: --navy degiskeni
-			   BILEREK sabit kaldigi icin (yukarida :root sonrasindaki [data-theme=dark] bloguna
-			   bkz.), bu secicilerin rengi burada TEK TEK altin/brass tonuna cevrilir -- aksi
-			   halde koyu lacivert yazi koyu kartin (var(--card)/var(--paper)) uzerinde okunmaz
-			   olurdu. Navy'nin ARKA PLAN olarak kullanildigi yerlere (header, butonlar, brass
-			   zeminli .af-submit/.calendar-fab/.faculty-fab-count) DOKUNULMADI -- onlar zaten
-			   koyu bir zemin oldugu icin her iki temada da calisiyor. */
-			[data-theme="dark"] .name, [data-theme="dark"] .empty-title,
-			[data-theme="dark"] .btn-ghost, [data-theme="dark"] .card-edit,
-			[data-theme="dark"] .reorder-toolbar button, [data-theme="dark"] .az-sort-btn,
-			[data-theme="dark"] details.rank-group > summary, [data-theme="dark"] .drag-handle-mini:active,
-			[data-theme="dark"] .row-name, [data-theme="dark"] .rank-reference .rr-title,
-			[data-theme="dark"] .successor-panel h3, [data-theme="dark"] .history-panel h3, [data-theme="dark"] .faculty-multiselect .fm-group-title,
-			[data-theme="dark"] .fs-scope .fs-title, [data-theme="dark"] .fs-scope .fs-group-title,
-			[data-theme="dark"] .cal-rail-label, [data-theme="dark"] .cal-rail-next h4,
-			[data-theme="dark"] .cal-next-date .d, [data-theme="dark"] .cal-mini-title,
-			[data-theme="dark"] .cal-month-label, [data-theme="dark"] .cal-iconbtn:hover,
-			[data-theme="dark"] .cal-viewbtn.active, [data-theme="dark"] .cal-mdayadd:hover,
-			[data-theme="dark"] .cal-more:hover, [data-theme="dark"] .cal-year-month-title,
-			[data-theme="dark"] .cal-list-daysep, [data-theme="dark"] .cal-peek-head h3,
-			[data-theme="dark"] .fsheet-header, [data-theme="dark"] .modal h2,
-			[data-theme="dark"] .field label, [data-theme="dark"] .foot-link,
-			[data-theme="dark"] .legal-body h3, [data-theme="dark"] .admin-log-row .al-by,
-			[data-theme="dark"] .test-mode-title
-				{ color: var(--brass-light); }
+			/* PALET GOCU (3 Eylul 2026) ile bu blok TAMAMEN SILINDI. Burada ~40 secici
+			   (.name, .btn-ghost, .card-edit, .modal h2, .field label vb.) koyu temada
+			   TEK TEK color:var(--brass-light) ile eziliyordu -- sebep: --navy/--brass
+			   o zaman SABIT koyu lacivert/pirinc degerlerdi ve koyu kartin uzerinde
+			   okunmuyordu, bu yuzden metin rolundeki her secici burada elle altin
+			   tonuna donduruluyordu. Artik --navy/--brass TEAL degeri tasiyor VE bu
+			   ~40 secicinin HEPSININ kendi taban kurali zaten color:var(--ink) --
+			   yani bu blok TAM OLARAK cift/celisen bir kural haline geldi: --brass-light
+			   de teal oldugu icin koyu temada TUM bu metinler (isim, buton yazisi,
+			   modal basligi) parlak teal ile boyaniyordu -- gercek, ekranda dogrulanmis
+			   bir regresyondu. Duzeltme: blok silindi, her secici artik SADECE kendi
+			   taban kuralindaki var(--ink)'i kullanıyor (zaten koyu temada doğru
+			   #e9e4d7 degerine cozuluyor, ayrica ezmeye gerek yok). */
 
 			.header-top-right{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:0; }
 			/* Yuvarlak, avatar/profil butonuyla AYNI aile -- header'in tum sag-ust kontrolleri
@@ -1878,8 +1879,7 @@
 			.dash-alert-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:16px; }
 			.dash-alert-card{ background:var(--surface-subtle); border:1px solid var(--divider-soft); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
 			.dash-alert-card.ak-warn{ background:var(--warn-bg); border-color:transparent; }
-			.dash-alert-num{ font-family:inherit; font-size:26px; font-weight:600; color:var(--navy); line-height:1.1; }
-			[data-theme="dark"] .dash-alert-num{ color:var(--brass-light); }
+			.dash-alert-num{ font-family:inherit; font-size:26px; font-weight:600; color:var(--ink); line-height:1.1; }
 			.dash-alert-card.ak-warn .dash-alert-num{ color:var(--warn); }
 			.dash-alert-label{ font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
 			.dash-alert-card.ak-warn .dash-alert-label{ color:var(--warn); }

@@ -919,6 +919,89 @@ body[data-page="dashboard-2"] .actions-right {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+// /impeccable critique bulgusu (3 Eylül 2026): eylem satırı 9 butonu tek sırada,
+// gruplama olmadan diziyordu -- günlük eylem (Yeni Kişi Ekle) ile nadir/masabaşı
+// eylem (JSON İndir) yan yana ayırt edilemiyordu. İnce bir dikey ayraç üç kümeyi
+// (günlük · haber çıktısı · masabaşı/toplu) görsel olarak ayırır; DOM/JS'e
+// dokunulmadı, yalnızca var olan .actions-left akışına eklenen boş bir <span>.
+body[data-page="dashboard-2"] .actions-divider {
+  align-self: stretch;
+  flex: 0 0 1px;
+  width: 1px;
+  margin: 4px 2px;
+  background: var(--border-color);
+}
+// Mobilde .actions-left/.actions-right 2 sütunlu grid'e döner (bkz. yukarıdaki
+// grid-template-columns kuralı) -- ayraç orada bir grid HÜCRESİ olarak butonların
+// arasına düşüp düzeni bozar, bu yüzden dar ekranda tamamen kaldırılır.
+@media (max-width: 600px) {
+  body[data-page="dashboard-2"] .actions-divider {
+    display: none;
+  }
+}
+
+// Kullanıcı isteği (3 Eylül 2026): iki eylem butonu (silme ikonu genişleyen
+// dairesel buton, artı ikonlu "ekle" butonu) DESIGN.md'nin teal/nötr
+// paletine ve "ölçülü ve sessiz" karakterine, Tek Ses Kuralı'na uyacak
+// şekilde tasarlandı -- parlak yabancı renk veya döner ikon animasyonu yok,
+// yalnızca ikon/metin genişleme etkileşimi.
+//
+// "+ Yeni Kişi Ekle": metin HER ZAMAN görünür (Add Item butonundaki gibi
+// hover'da gizlenmiyor) -- bu, sahada aceleyle kullanan telefon kullanıcısı
+// için birincil eylem, asla belirsiz kalmamalı. Hover'da yalnızca artı ikonu
+// 90° döner (klasik "ekle" ipucu), zaten var olan .btn-primary:hover arka
+// plan koyulaşmasına ek bir katman.
+body[data-page="dashboard-2"] .aib-add-icon {
+  transition: transform 150ms ease;
+}
+body[data-page="dashboard-2"] .aib-add:hover .aib-add-icon,
+body[data-page="dashboard-2"] .aib-add:focus-visible .aib-add-icon {
+  transform: rotate(90deg);
+}
+
+// "Toplu Çöpe At": dairesel ikondan genişleyen pile dönen davranış yalnızca
+// MASAÜSTÜNDE çalışır (fare + gerçek hover desteği olan cihazlarda --
+// @media(hover:hover) burada rastgele bir tercih değil, projede zaten
+// kullanılan aynı teknik). DOKUNMATİKTE bu davranış tamamen
+// KAPALI: dokunmatik ekranlarda hover hiç tetiklenmez, yani metin sonsuza
+// kadar gizli kalırdı -- "Toplu Çöpe At" tüm kayıtları etkileyen bir mod
+// geçişi olduğu için bu kabul edilemez bir risk. Dokunmatikte buton normal
+// ikon+metin haliyle sabit kalır (aşağıdaki taban kural zaten bunu yapıyor,
+// media query'ye hiç girmiyor).
+@media (hover: hover) and (pointer: fine) {
+  body[data-page="dashboard-2"] .aib-danger {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 999px;
+    overflow: hidden;
+    transition: width 160ms ease, border-radius 160ms ease, background 120ms, border-color 120ms, color 120ms;
+  }
+  body[data-page="dashboard-2"] .aib-danger .aib-text {
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 160ms ease, opacity 100ms, margin-left 160ms ease;
+  }
+  body[data-page="dashboard-2"] .aib-danger:hover,
+  body[data-page="dashboard-2"] .aib-danger:focus-visible {
+    width: auto;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    background: var(--danger-accent);
+    border-color: var(--danger-accent);
+    color: #fff;
+  }
+  body[data-page="dashboard-2"] .aib-danger:hover .aib-text,
+  body[data-page="dashboard-2"] .aib-danger:focus-visible .aib-text {
+    max-width: 160px;
+    opacity: 1;
+    margin-left: 6px;
+  }
+}
+
 @media (pointer: coarse) {
   // ── 2) Kart üzerindeki "Düzenle" dokunma hedefi ──
   // Ölçülen: 62x20 px -- önerilen 44x44'ün yarısından küçük, üstelik

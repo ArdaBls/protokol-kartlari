@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -114,12 +114,19 @@
 		<!-- AKSİYON BUTONLARI -->
 		<div class="actions-row" id="actionsRow">
 			<div class="actions-left" id="actionsLeftWrap">
-				<button class="btn btn-primary edit-only" id="addBtn" onclick="openAddModal()">+ Yeni Kişi Ekle</button>
+				<button class="btn btn-primary edit-only aib-add" id="addBtn" onclick="openAddModal()">
+					<svg class="aib-add-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+					<span>Yeni Kişi Ekle</span>
+				</button>
 				<button class="btn btn-ghost edit-only" id="reorderBtn" onclick="toggleReorderMode()">Sıralamayı Düzenle</button>
-				
+
+				<span class="actions-divider" aria-hidden="true"></span>
+
 				<button class="btn btn-ghost" id="newsModeBtn" onclick="toggleNewsMode()">Haber Çıktısı Al</button>
 				<button class="btn btn-news" id="executeNewsBtn" style="display:none;" onclick="generateNewsText()">Taslağı Oluştur (0)</button>
 				<button class="btn btn-ghost" id="cancelNewsBtn" style="display:none;" onclick="toggleNewsMode()">İptal</button>
+
+				<span class="actions-divider" aria-hidden="true"></span>
 
 				<button class="btn btn-ghost edit-only" id="bulkVerifyBtn" onclick="bulkVerifyList(true)" title="Ekranda görünen aktif kayıtların tümünü şimdi doğrulanmış olarak işaretler">Hepsini Doğrula</button>
 				<button class="btn btn-ghost edit-only" id="bulkUnverifyBtn" onclick="bulkVerifyList(false)" title="Ekranda görünen aktif kayıtların tümünü doğrulanmadı olarak işaretler">Hepsini Doğrulanmadı İşaretle</button>
@@ -129,7 +136,10 @@
 			</div>
 			
 			<div class="actions-right">
-				<button class="btn btn-danger-outline edit-only" id="bulkDeleteModeBtn" onclick="toggleBulkDeleteMode()">Toplu Çöpe At</button>
+				<button class="btn btn-danger-outline edit-only aib-danger" id="bulkDeleteModeBtn" onclick="toggleBulkDeleteMode()">
+					<svg class="aib-icon" viewBox="0 0 448 512" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"/></svg>
+					<span class="aib-text">Toplu Çöpe At</span>
+				</button>
 				<button class="btn btn-danger" id="executeBulkDeleteBtn" style="display:none;" onclick="openBulkConfirmModal()">Seçilenleri Çöpe At (0)</button>
 				<button class="btn btn-ghost" id="cancelBulkDeleteBtn" style="display:none;" onclick="toggleBulkDeleteMode()">İptal</button>
 				

@@ -515,9 +515,8 @@ const deviceUsage = (echarts, el, t) => donut(echarts, el, t, [
 // Legend HTML'de sabit DEĞİL -- kişi sayısı ve isimleri veriye göre değiştiği
 // için chart, kendi kapsayıcısındaki .donut-legend ve .donut-center-label
 // .num'u da JS'ten dolduruyor. Bu, PAYLAŞILAN 'device-usage' anahtarından
-// AYRI bir anahtar (bkz. charts map) -- analitik.html/grafik-galerisi.html
-// hâlâ orijinal sahte iOS/Android/Desktop donut'unu kullanıyor, o sayfalar
-// etkilenmesin diye.
+// AYRI bir anahtar (bkz. charts map) -- o anahtarı kullanan başka bir grafik
+// (şablonun orijinal sahte iOS/Android/Desktop donut'u) etkilenmesin diye.
 function editorActivityShare(echarts, el, t) {
   const chart = echarts.init(el);
   const basePalette = [t.primary, t.azure, t.yellow, t.purple, t.green, t.blue];

@@ -1,4 +1,4 @@
-// Operasyonlar sayfasındaki "Tasks" kartı — gerçek Firebase verisi.
+// Operasyonlar sayfasındaki "Görevler" kartı — gerçek Firebase verisi.
 // Kullanıcı isteği: siteye kayıtlı (editor/admin/owner) herkes görev
 // ekleyebilsin/silebilsin, işlemler loglansın. Kanban panosundaki auth/role
 // ve atomik update+log deseni birebir tekrar kullanılıyor (bkz. kanban.js).

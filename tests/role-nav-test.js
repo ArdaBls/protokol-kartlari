@@ -29,7 +29,7 @@ const EDITOR_GORMELI = [
 	'Profiliniz', 'Ayarlar', 'Yardım merkezi'
 ];
 // Editöre KAPALI olması gerekenler.
-const EDITOR_GORMEMELI = ['Bildirimler', 'Kişiler', 'Kullanıcı yönetimi', 'UI kütüphanesi'];
+const EDITOR_GORMEMELI = ['Bildirimler', 'Kişiler', 'Kullanıcı yönetimi'];
 
 function serve() {
 	const server = http.createServer((req, res) => {
@@ -103,8 +103,9 @@ async function gorunurSekmeler(page) {
 		sonuc.admin = {
 			sekmeSayisi: sekmeler.length,
 			hepsiGorunuyor: EDITOR_GORMELI.concat(EDITOR_GORMEMELI).every((t) => sekmeler.includes(t)),
-			// admin icin HICBIR sekme gizlenmemeli -- menude 24 baglanti var.
-			hicbiriGizlenmedi: sekmeler.length >= 20,
+			// admin icin HICBIR sekme gizlenmemeli -- menude 13 baglanti var
+			// (Geliştirici Araçları demo grubu 2026-09-03'te tamamen silindi).
+			hicbiriGizlenmedi: sekmeler.length >= 13,
 			hatasiz: hatalar.length === 0
 		};
 		await ctx.close();

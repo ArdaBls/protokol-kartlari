@@ -4,7 +4,6 @@
 import './scss/v4/main.scss';
 import { mountShell } from './v4/shell.js';
 import { initCharts, initPhotoCounter, initProtocolCounter } from './v4/charts.js';
-import { initTables } from './v4/tables.js';
 import { openMenu, DEFAULT_CARD_MENU } from './v4/menus.js';
 import { initCommandPalette } from './v4/command-palette.js';
 import { initPageActions } from './v4/page-actions.js';
@@ -13,7 +12,6 @@ mountShell();
 initCharts();
 initPhotoCounter();
 initProtocolCounter();
-initTables();
 initCommandPalette();
 initPageActions();
 
@@ -51,9 +49,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 // present first, which only that page's <head> loads.)
 if (document.querySelector('.settings-content')) {
   import('./v4/settings.js').then((m) => m.initSettings());
-}
-if (document.querySelector('[data-date-range], [data-rich-text], [data-multi-select]')) {
-  import('./v4/form-controls.js').then((m) => m.initFormControls());
 }
 if (document.querySelector('[data-task-list]')) {
   import('./v4/tasks-widget.js').then((m) => m.initTasksWidget());
