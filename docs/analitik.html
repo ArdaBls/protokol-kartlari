@@ -35,8 +35,8 @@
   <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
   <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
   <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-DR_Lwmkm.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-C6D0ZPzW.css">
+  <script type="module" crossorigin src="/js/main-v4-BD0dYo40.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CsiBaq2q.css">
 </head>
 <body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Anasayfa|index.html > Analitik">
 
@@ -252,7 +252,13 @@
 		     için (renderAuthUI()) gizli bir iskelet olarak kalıyor. -->
 		<div class="header-auth" id="headerAuth" style="display:none"></div>
 
-		<div class="list-switch-wrap" style="width:942px;height:43px;box-sizing:border-box">
+		<!-- 942x43 / 942x59 ölçüleri artık SATIR İÇİ değil, _pages.scss'te SADECE
+		     geniş ekranda (min-width:1260px) uygulanıyor. Satır içi sabit genişlik
+		     mobilde style.css'in kendi duyarlı kurallarını eziyordu: 390px'lik
+		     telefonda arama çubuğu ve liste anahtarı ekranın dışına taşıp
+		     kırpılıyordu (body{overflow-x:hidden} taşmayı gizlediği için yatay
+		     kaydırma bile çıkmıyor, içerik sadece görünmez oluyordu). -->
+		<div class="list-switch-wrap">
 			<div class="list-switch" id="listSwitch">
 				<button data-list="il">İl Protokol Sırası</button>
 				<button data-list="universite" class="active">Üniversite Protokol Sırası</button>
@@ -261,7 +267,7 @@
 
 		<!-- KONTROL ÇUBUĞU (Arama Artık Seçim Modlarında Aktif) -->
 		<div class="controls">
-			<div class="controlbar" style="width:942px;height:59px;box-sizing:border-box">
+			<div class="controlbar">
 				<div class="search-wrap input-wrap">
 					<input id="search" name="protokolSearch" type="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" placeholder="İsim, unvan veya birim ara…" oninput="render()" onclick="this.select()" onfocus="this.select()">
 					<button id="clearSearchBtn" class="clear-btn" onclick="clearSearch()" aria-label="Aramayı temizle">✕</button>
@@ -336,8 +342,9 @@
 				<button type="button" class="foot-link" onclick="openLegalModal('terms')">Kullanım Şartları</button>
 				<span class="foot-sep">·</span>
 				<button type="button" class="foot-link" onclick="openLegalModal('privacy')">Gizlilik Politikası</button>
-				<span class="foot-sep">·</span>
-				<button type="button" class="foot-link" onclick="replayOnboarding()">Kullanım Rehberi</button>
+				<!-- "Kullanım Rehberi" bağlantısı kaldırıldı: hedefi olan #onboardingModalBg
+				     bu sayfada bilerek yok (bkz. aşağıdaki açıklama), buton tıklansa da
+				     hiçbir şey yapmayacaktı -- ölü buton bırakmamak için silindi. -->
 			</p>
 			<p class="foot-note">Bu uygulamanın kaynak kodu, arayüz tasarımı ve içeriği telif hakkıyla korunmaktadır; hak sahibinin yazılı izni olmadan kopyalanamaz, çoğaltılamaz veya dağıtılamaz.</p>
 			<p class="foot-version">Sürüm <span id="footVersion"></span></p>
@@ -350,7 +357,11 @@
 		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
 		<div class="mobile-glass-nav" id="mobileGlassNav">
 			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi"><svg class="ikon"><use href="#i-takvim"/></svg></button>
-			<button type="button" class="admin-fab" id="adminFab" onclick="openAdminPanel()" aria-label="Admin Paneli" title="Admin Paneli"><svg class="ikon"><use href="#i-panel"/></svg></button>
+			<!-- "Admin Paneli" FAB'ı kaldırıldı: openAdminPanel() bu sayfada
+			     PAGE !== "admin" olduğu için location.href="admin.html" yapıyordu ve
+			     admin.html artık hiç YOK -> 404. Ayrıca kullanıcı zaten yönetim
+			     panelinin İÇİNDE olduğundan ikinci bir panele geçiş anlamsız.
+			     app.js:155 adminFab'ı null kontrollü kullandığı için güvenli. -->
 			<button type="button" class="faculty-fab" id="facultyFab" onclick="openFacultySheet()" aria-label="Fakülte Filtrele" title="Fakülte Filtrele"><svg class="ikon"><use href="#i-arama"/></svg><span class="fab-count" id="facultyFabCount" style="display:none;"></span></button>
 		</div>
 		<div class="faculty-sheet-backdrop" id="facultySheetBackdrop" onclick="closeFacultySheet()"></div>
@@ -1135,23 +1146,19 @@
 			</div>
 		</div>
 
-		<!-- Kullanım Rehberi (Onboarding) -->
-		<div class="modal-bg" id="onboardingModalBg" style="z-index:115;">
-			<div class="modal" style="max-width:440px; text-align:center;">
-				<button class="close-x" onclick="skipOnboarding()" aria-label="Kapat">✕</button>
-				<div id="onboardingStepIcon" style="font-size:38px; margin-bottom:8px;">🗂️</div>
-				<h2 id="onboardingStepTitle">—</h2>
-				<p class="hint" id="onboardingStepText">—</p>
-				<div class="onboarding-dots" id="onboardingDots"></div>
-				<div class="modal-actions" style="justify-content:space-between;">
-					<button class="btn btn-ghost" type="button" onclick="skipOnboarding()">Atla</button>
-					<div style="display:flex; gap:8px;">
-						<button class="btn btn-ghost" type="button" id="onboardingPrevBtn" onclick="onboardingStep(-1)" style="display:none;">Geri</button>
-						<button class="btn btn-primary" type="button" id="onboardingNextBtn" onclick="onboardingStep(1)">İleri</button>
-					</div>
-				</div>
-			</div>
-		</div>
+		<!-- Kullanım Rehberi (Onboarding) BİLEREK YOK.
+		     app.js'teki maybeShowOnboarding() ilk ziyarette (localStorage'da
+		     "omuProtokolOnboardingSeen" yoksa) #onboardingModalBg'ye "open" ekliyordu.
+		     Bu modal TAM EKRAN bir .modal-bg katmanı olduğu için admin panelinin
+		     içinde: (1) tüm tıklamaları yutuyordu -- "Sıralamayı Düzenle" dahil
+		     hiçbir butona basılamıyordu, (2) app.js'in merkezi kaydırma-kilidi
+		     gözlemcisi ".modal-bg.open" gördüğü için body'ye "scroll-locked"
+		     (position:fixed) ekleyip SAYFA KAYDIRMAYI tamamen durduruyordu.
+		     Zaten app.js'in kendi yorumu da bunun "sadece protokol.html'de"
+		     olduğunu söylüyor -- halka açık sitenin tanıtım turu, yönetim
+		     panelinin içinde anlamsız. Eleman tamamen çıkarıldı; hem
+		     maybeShowOnboarding() hem openOnboarding() null kontrollü olduğu için
+		     app.js'e DOKUNULMADAN güvenle kaldırılabiliyor. -->
 
 		<!-- PIN ile Hızlı Hesap Değiştir -->
 		<div class="modal-bg" id="pinSwitchModalBg" style="z-index:118;">

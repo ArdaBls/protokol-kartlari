@@ -804,3 +804,26 @@ body[data-page="dashboard-2"] header.topbar::after {
   content: none !important;
 }
 
+
+// Kullanıcı isteği: liste anahtarı 942x43, kontrol çubuğu 942x59 olacak.
+// Bu ölçüler ESKİDEN satır içi style="width:942px..." ile veriliyordu; satır içi
+// stil hiçbir medya sorgusuyla ezilemediği için MOBİLDE de 942px kalıyordu ve
+// 390px'lik telefonda arama çubuğu + liste anahtarı ekranın dışına taşıyordu
+// (body{overflow-x:hidden} taşmayı görünmez kıldığı için yatay kaydırma bile
+// çıkmıyor, içerik sessizce kırpılıyordu -- kullanıcı "mobilde de sorunsuz
+// işlemeli" dedi). Artık ölçü SADECE 942px'in gerçekten sığdığı genişlikte
+// uygulanıyor: 942 + sidebar 252 + page-wrapper yan boşluğu 48 = 1242px,
+// güvenlik payıyla 1260px. Bunun altında style.css'in KENDİ duyarlı kuralları
+// (örn. .controlbar'ın grid'e dönmesi) yeniden devreye giriyor.
+@media (min-width: 1260px) {
+  body[data-page="dashboard-2"] .list-switch-wrap {
+    width: 942px;
+    height: 43px;
+    box-sizing: border-box;
+  }
+  body[data-page="dashboard-2"] .controlbar {
+    width: 942px;
+    height: 59px;
+    box-sizing: border-box;
+  }
+}
