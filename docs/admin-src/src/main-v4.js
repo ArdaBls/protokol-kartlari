@@ -24,6 +24,24 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     const swPath = `${import.meta.env.BASE_URL}sw.js`;
     navigator.serviceWorker.register(swPath).catch(() => { /* ignore */ });
+
+    // ESKİ/ÖLÜ service worker kayıtlarını temizle.
+    //
+    // Site bir zamanlar /admin/ önekiyle yayınlanıyordu ve o dönemden kalma
+    // "/admin/sw.js" kaydı hâlâ bazı tarayıcılarda AKTİF duruyor (kullanıcının
+    // tarayıcısında iki kayıt görüldü: "/" ve "/admin/"). O script artık
+    // sunucuda YOK (404) ve kendi önbelleğinden bayat sayfa servis edebilir --
+    // tuhaf, açıklaması zor davranışların (eski sürümün geri gelmesi gibi)
+    // kaynağı olabilir. Kapsamı bu sayfanın kökü OLMAYAN her kaydı kaldırıyoruz;
+    // güncel kayıt (BASE_URL kapsamı) dokunulmadan kalır.
+    navigator.serviceWorker.getRegistrations().then((kayitlar) => {
+      const guncelKapsam = new URL(swPath, location.href).href.replace(/sw\.js$/, '');
+      kayitlar.forEach((kayit) => {
+        if (kayit.scope !== guncelKapsam) {
+          kayit.unregister().catch(() => { /* ignore */ });
+        }
+      });
+    }).catch(() => { /* ignore */ });
   });
 }
 
