@@ -17,6 +17,12 @@
 	// "users/<uid>" gibi tekil kullanici yollari icin __mockUserProfile ayrica
 	// desteklenir. HICBIRI set edilmezse null doner -- yani eski davranis birebir korunur.
 	function mockValueFor(path) {
+		// users/{uid}/<alan> -- ornegin onay-bekliyor.html'in canli dinledigi
+		// users/{uid}/role. Profil nesnesinden ilgili alan dondurulur.
+		var alan = path.match(/(^|\/)users\/[^/]+\/([^/]+)$/);
+		if (alan && window.__mockUserProfile !== undefined && window.__mockUserProfile !== null) {
+			return window.__mockUserProfile[alan[2]] !== undefined ? window.__mockUserProfile[alan[2]] : null;
+		}
 		var m = path.match(/(^|\/)users\/([^/]+)$/);
 		if (m && window.__mockUserProfile !== undefined) return window.__mockUserProfile;
 		var data = window.__mockData;
@@ -28,6 +34,16 @@
 		return null;
 	}
 
+	// Kayitli TUM canli dinleyiciler. window.__mockRefresh() cagrilinca hepsi
+	// GUNCEL mockValueFor(path) degeriyle yeniden tetiklenir -- "yonetici rolu
+	// onayladi, canli dinleyici sayfayi gecirdi" gibi akislari test edebilmek icin.
+	var tumDinleyiciler = [];
+	window.__mockRefresh = function () {
+		tumDinleyiciler.forEach(function (d) {
+			try { d.cb(makeSnapshot(mockValueFor(d.path))); } catch (e) { console.error(e); }
+		});
+	};
+
 	function makeRef(path) {
 		var listeners = [];
 		var self = {
@@ -38,6 +54,7 @@
 				// window.__mockSimulateOfflineHang acikken VE "users/" yolunda callback'i BILEREK
 				// hic cagirma -- gercek Firebase'in internet yokken sessizce beklemede kalmasini
 				// taklit eder. Diger tum testler bu bayragi hic set etmedigi icin etkilenmez.
+				tumDinleyiciler.push({ path: path, cb: cb });
 				if (window.__mockSimulateOfflineHang && path.indexOf("users/") === 0) return cb;
 				// Anında veriyle çağır (gerçek Firebase de ilk bağlanışta mevcut veriyi verir).
 				// Varsayilan HALA null -- mevcut testlerin hicbiri window.__mockData set

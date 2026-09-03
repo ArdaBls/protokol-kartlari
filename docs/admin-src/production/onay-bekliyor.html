@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hesabınız onay bekliyor | Protokol</title>
+<link rel="icon" href="/images/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<!-- data-shell="admin" BİLEREK YOK: bu sayfa panel kabuğunu yüklemez, dolayısıyla
+     shell.js'in giriş/rol yönlendirmesi burada çalışmaz. Aksi halde "onay bekleyeni
+     buraya yönlendir" kuralı kendi kendini tetikleyip döngü yaratırdı. -->
+<body>
+
+<div class="error-page">
+  <div class="error-content">
+    <div class="error-code">⏳</div>
+    <div class="error-title">Talebiniz alındı</div>
+    <div class="error-message">
+      Kayıt talebiniz alındı ve yöneticinin onayını bekliyor. Onay verildiğinde
+      sisteme giriş yapabileceksiniz. Onaylandığınız anda bu sayfa
+      <strong>kendiliğinden</strong> panele geçer — sayfayı açık bırakabilirsiniz.
+    </div>
+    <div class="error-message" id="durum" style="display:none"></div>
+    <div class="error-actions">
+      <button type="button" id="cikis" class="btn btn-outline">Çıkış yap</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// Onay bekleyen kullanıcı sayfası.
+//
+// İki iş yapar:
+//  1. users/{uid}/role alanını CANLI dinler -- yönetici rolü "editor"/"admin"/
+//     "owner" yapar yapmaz kullanıcı elle yenilemeye gerek kalmadan panele girer.
+//  2. Oturum yoksa giriş sayfasına, rol zaten onaylıysa panele gönderir; yani
+//     bu sayfa yanlışlıkla açılsa bile kullanıcı burada takılı kalmaz.
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const auth = firebase.auth();
+
+// shell.js ile AYNI liste olmalı -- burada tekrar yazılmasının sebebi bu sayfanın
+// panel kabuğunu (ve dolayısıyla shell.js'i) bilerek yüklememesi.
+const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
+
+const durumEl = document.getElementById('durum');
+function durumGoster(metin) {
+  durumEl.textContent = metin;
+  durumEl.style.display = '';
+}
+
+document.getElementById('cikis').addEventListener('click', () => {
+  auth.signOut().then(() => { window.location.href = 'giris.html'; })
+    .catch(() => durumGoster('Çıkış yapılamadı, lütfen tekrar deneyin.'));
+});
+
+let rolRef = null;
+auth.onAuthStateChanged((user) => {
+  if (rolRef) { rolRef.off(); rolRef = null; }
+  if (!user) { window.location.replace('giris.html'); return; }
+  rolRef = firebase.database().ref('users/' + user.uid + '/role');
+  rolRef.on('value', (snap) => {
+    const rol = snap.val();
+    if (ONAYLI_ROLLER.indexOf(rol) !== -1) {
+      // Onaylandı -- panele geç.
+      window.location.replace('index.html');
+    }
+  }, (err) => {
+    // Kurallar okumayı engelliyorsa kullanıcıyı sessizce bekletmek yerine bilgilendir.
+    console.error('Rol okunamadı:', err);
+    durumGoster('Durum bilgisi alınamadı. Onaylandıysanız çıkış yapıp tekrar giriş yapmayı deneyin.');
+  });
+});
+</script>
+
+</body>
+</html>

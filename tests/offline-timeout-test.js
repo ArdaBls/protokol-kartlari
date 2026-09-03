@@ -46,6 +46,10 @@ function serve() {
 	// Sayfanın kendi <script>'i çalışmadan ÖNCE bayrakları koy: mock-firebase.js "users/" yolunu
 	// hiç çözmeyecek (çevrimdışı/bağlantı-kopukluğu simülasyonu), zaman aşımı da teste uygun kısaltılır.
 	await page.addInitScript(() => {
+		// shell.js onay kapisi users/{uid}.once() ile rolu okuyor; bu test cevrimdisi
+		// AKISINI olcuyor, onay akisini degil -- onaylanmis bir rol verilmezse kullanici
+		// onay-bekliyor.html'e yonlendirilir ve test etmek istedigi ekran hic acilmaz.
+		window.__mockOnceSnapshot = { role: 'admin', firstName: 'Test', lastName: 'Kullanici', email: 't@t.c' };
 		window.__mockSimulateOfflineHang = true;
 		window.OFFLINE_FALLBACK_TIMEOUT_MS = 400;
 	});
@@ -85,7 +89,12 @@ function serve() {
 		// senaryoda (offline bayrağı KAPALIYKEN) hâlâ çalıştığını göstermek yeterli.
 		window.__mockSimulateOfflineHang = false;
 		const snap = await database.ref('users/lateUid').once('value');
-		return { onceStillWorks: snap.val() === null };
+		// Testin niyeti: cevrimdisi bayragi kalkinca once() ARTIK ASILMIYOR, cozuluyor.
+		// Eskiden 'snap.val() === null' diye olculuyordu cunku mock her zaman null
+		// donduruyordu; artik __mockOnceSnapshot ile gercek bir profil donebiliyor
+		// (shell.js'in onay kapisi rolu once() ile okuyor). O yuzden olcut 'null mi'
+		// degil, 'cagri cozuldu mu' olarak duzeltildi.
+		return { onceStillWorks: snap !== undefined && typeof snap.val === 'function' };
 	});
 
 	await page.close();
@@ -100,6 +109,10 @@ function serve() {
 	const pageErrors2 = [];
 	page2.on('pageerror', (e) => pageErrors2.push(e.message));
 	await page2.addInitScript(() => {
+		// shell.js onay kapisi users/{uid}.once() ile rolu okuyor; bu test cevrimdisi
+		// AKISINI olcuyor, onay akisini degil -- onaylanmis bir rol verilmezse kullanici
+		// onay-bekliyor.html'e yonlendirilir ve test etmek istedigi ekran hic acilmaz.
+		window.__mockOnceSnapshot = { role: 'admin', firstName: 'Test', lastName: 'Kullanici', email: 't@t.c' };
 		window.__mockSimulateOfflineHang = true; // profil callback'i yine hiç tetiklenmesin
 		window.OFFLINE_FALLBACK_TIMEOUT_MS = 20000; // KASITLI çok uzun -- hızlı yol bunu hiç beklememeli
 		Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true });

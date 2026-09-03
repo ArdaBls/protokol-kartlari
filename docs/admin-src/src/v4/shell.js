@@ -417,6 +417,14 @@ function perdeyiKaldir() {
   document.documentElement.classList.remove('auth-bekliyor');
 }
 
+/**
+ * Panele girebilen roller. Bunların DIŞINDAKİ herkes (özellikle yeni kayıtların
+ * varsayılanı olan "pending") onay-bekliyor.html'e yönlendirilir.
+ * onay-bekliyor.html kendi içinde AYNI listeyi tutuyor -- o sayfa panel kabuğunu
+ * bilerek yüklemediği için bu modülü import edemiyor.
+ */
+const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
+
 export function syncShellUser() {
   ensureFirebase().then(() => {
     if (!window.firebase || !firebase.auth) { perdeyiKaldir(); applyGuestShellUser(); return; }
@@ -446,6 +454,15 @@ export function syncShellUser() {
         const u = snap.val() || {};
         const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';
         const role = u.role || 'pending';
+        // ONAY KAPISI (kullanıcı isteği: "ben onay verene kadar siteyi görmesin,
+        // beklemeye düşsün"). Kayıt olan herkes users/{uid}.role = "pending" ile
+        // başlıyor; yönetici rolü editor/admin/owner yapana kadar panelin HİÇBİR
+        // sayfasını göremez, onay-bekliyor.html'e düşer. O sayfa panel kabuğunu
+        // yüklemediği için (data-shell yok) burası orada tekrar çalışmaz -- döngü olmaz.
+        if (ONAYLI_ROLLER.indexOf(role) === -1) {
+          window.location.replace('onay-bekliyor.html');
+          return;
+        }
         applyRoleNav(role);
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');
