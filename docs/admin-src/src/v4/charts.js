@@ -20,7 +20,7 @@ const tokens = () => {
   };
 };
 
-const fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+const fontFamily = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif";
 
 function baseOption(t) {
   return {

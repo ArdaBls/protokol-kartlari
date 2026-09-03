@@ -1,6 +1,6 @@
 // Admin paneli — tasarım tokenları
 // DNA: Dark sidebar · Teal #1ABB9C · Light #f9fafb
-// Font: Inter · 14px base · line-height 1.4286
+// Font: Plus Jakarta Sans · 14px base · line-height 1.4286
 // Radius: 4/6/8 · Shadows: near-invisible
 
 :root {
@@ -71,7 +71,7 @@
   --shadow: rgba(30,38,51,0.04) 0 2px 4px 0;
   --shadow-card: 0 0 0 1px var(--border-translucent), rgba(30,38,51,0.04) 0 2px 4px 0;
 
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'SF Mono', Monaco, Consolas, 'Liberation Mono', monospace;
   --font-size: 0.875rem;
   --line-height: 1.4286;
@@ -125,7 +125,7 @@
 // Tarayicilar button/input/select/textarea ogelerine KENDI varsayilan fontunu
 // verir ve bunlar govdeden miras ALMAZ. Olcum sonucu: 31 sayfanin 13'unde
 // sinifsiz <button> ogeleri (kapat carpisi, cip silme, grafik sekmeleri, tablo
-// sayfalama, ikon hucreleri) Inter yerine Arial ile render ediliyordu.
+// sayfalama, ikon hucreleri) govde fontu yerine Arial ile render ediliyordu.
 // .btn sinifinda zaten "font: inherit" vardi, bu yuzden gozden kaciyordu.
 // font-size BILEREK ezilmiyor -- her denetimin kendi boyutu korunuyor,
 // yalnizca AILE birlestiriliyor.

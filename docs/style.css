@@ -1,11 +1,15 @@
 /* TIPOGRAFI (3 Eylul 2026, /impeccable typeset)
    Bu dosya eskiden Fraunces (isimler), Roboto (govde) ve JetBrains Mono (tarih/meta)
    istiyordu -- toplam 87 font-family bildirimi. Protokol sayfasi panelin ICINE
-   tasindiginda o uc font ARTIK YUKLENMIYOR (sayfalar yalnizca Inter yukluyor):
-   kisi adlari tarayicinin varsayilan serifine (Windowsta Times), tarihler Couriere
-   dusuyordu. Bu bir tasarim tercihi degil, eksik font goruntusuydu.
-   Kullanici karari: her sey Inter olsun. Tum bildirimler font-family:inherit yapildi,
-   yani govdeden (panelin Interi) miras aliniyor.
+   tasindiginda o uc font ARTIK YUKLENMIYOR: kisi adlari tarayicinin varsayilan
+   serifine (Windowsta Times), tarihler Couriere dusuyordu. Bu bir tasarim tercihi
+   degil, eksik font goruntusuydu.
+   Kullanici karari: tum site TEK aile kullansin. Bu dosyadaki 87 bildirimin hepsi
+   font-family:inherit yapildi, yani govdeden miras aliniyor; ailenin kendisi TEK
+   yerde -- admin-src/src/scss/v4/_tokens.scss icindeki --font degiskeninde -- tanimli.
+   3 Eylul 2026: aile Inter'den Plus Jakarta Sans'a gecirildi (kullanici bes aday
+   arasindan secti). Bu dosyada TEK SATIR degismesi gerekmedi, cunku hicbir kural
+   artik bir aile ADI yazmiyor -- degisiklik maliyetini sifira indiren sey tam da bu.
    Buraya yeni bir font-family eklemeden once o ailenin GERCEKTEN yuklendiginden emin ol. */
 			:root{
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
