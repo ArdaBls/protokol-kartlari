@@ -9,10 +9,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
-<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. etkinlikler
-     düğümü herkese açık okunur (.read:true) -- bu sayfa girişsiz de çalışır. -->
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config.
+     GÜVENLİK KURALLARI GÜNCEL DEĞİL: etkinlikler artık herkese açık DEĞİL, okuma
+     giriş yapmış editor/admin/owner rolüyle sınırlı (bkz. firebase-database-rules.json).
+     Sayfanın kendi script'i (harita.js) bu yüzden firebase.auth() ile oturum bekliyor
+     -- ama firebase-auth-compat.js BURADA HİÇ YÜKLENMİYORDU, "firebase.auth is not
+     a function" hatasıyla script en baştan çöküyor ve noktalar/fakülte listesi hiç
+     render edilmiyordu (3 Eylül 2026'da bulundu/düzeltildi). -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="map" data-breadcrumb="Anasayfa|index.html > Harita">

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Erişiminiz kısıtlandı | Protokol</title>
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<!-- data-shell="admin" BİLEREK YOK: onay-bekliyor.html ile AYNI sebep -- bu sayfa
+     panel kabuğunu yüklemez, dolayısıyla shell.js'in erişim kapısı burada tekrar
+     çalışmaz ve döngü oluşmaz. -->
+<body>
+
+<div class="error-page">
+  <div class="error-content">
+    <div class="error-code">🚫</div>
+    <div class="error-title">Erişiminiz kısıtlandı</div>
+    <div class="error-message">
+      Hesabınıza panel erişimi bir yönetici tarafından kısıtlanmıştır. Bir hata
+      olduğunu düşünüyorsanız yöneticinizle iletişime geçin. Erişiminiz
+      geri verildiğinde bu sayfa <strong>kendiliğinden</strong> panele geçer
+      — sayfayı açık bırakabilirsiniz.
+    </div>
+    <div class="error-message" id="durum" style="display:none"></div>
+    <div class="error-actions">
+      <button type="button" id="cikis" class="btn btn-outline">Çıkış yap</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// Erişimi kısıtlanmış (blocked) kullanıcı sayfası -- onay-bekliyor.html'in
+// aynı deseni: users/{uid}/blocked alanını CANLI dinler, false olur olmaz
+// kullanıcı elle yenilemeye gerek kalmadan panele döner.
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const auth = firebase.auth();
+
+const durumEl = document.getElementById('durum');
+function durumGoster(metin) {
+  durumEl.textContent = metin;
+  durumEl.style.display = '';
+}
+
+document.getElementById('cikis').addEventListener('click', () => {
+  auth.signOut().then(() => { window.location.href = 'giris.html'; })
+    .catch(() => durumGoster('Çıkış yapılamadı, lütfen tekrar deneyin.'));
+});
+
+let blockedRef = null;
+auth.onAuthStateChanged((user) => {
+  if (blockedRef) { blockedRef.off(); blockedRef = null; }
+  if (!user) { window.location.replace('giris.html'); return; }
+
+  blockedRef = firebase.database().ref('users/' + user.uid + '/blocked');
+  blockedRef.on('value', (snap) => {
+    if (snap.val() !== true) {
+      // Erişim geri verildi -- panele geç (shell.js oradaki onay kapısını
+      // ayrıca kontrol edecek, ör. rol hâlâ "pending" ise onay-bekliyor.html'e
+      // yönlendirir; bu sayfa yalnızca "blocked" bayrağından sorumlu).
+      window.location.replace('index.html');
+    }
+  }, (err) => {
+    console.error('Erişim durumu okunamadı:', err);
+    durumGoster('Durum bilgisi alınamadı. Erişiminiz geri verildiyse çıkış yapıp tekrar giriş yapmayı deneyin.');
+  });
+});
+</script>
+
+</body>
+</html>

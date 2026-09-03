@@ -164,6 +164,18 @@ function namesForEvent(e) {
   return Array.from(set);
 }
 
+// Yalnızca "gorevli" (basın görevlisi olarak atanan) alanını döner --
+// namesForEvent'in aksine haberYazanlari'nı KATMAZ. Kullanıcı isteği:
+// tahmini fotoğraf sayacı yalnızca basın görevlisi olarak gidilen
+// etkinliklerde artsın; bir kişi yalnızca haber yazarı olarak atandıysa
+// (fotoğraf makinesiyle gitmemiş sayılır) o etkinlik sayaca dahil edilmez.
+function gorevliNamesForEvent(e) {
+  if (!e) {return [];}
+  const set = new Set();
+  String(e.gorevli || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((n) => set.add(n));
+  return Array.from(set);
+}
+
 function editorEventActivity(echarts, el, t) {
   const chart = echarts.init(el);
   const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
@@ -308,16 +320,22 @@ function editorEventActivity(echarts, el, t) {
 //  Tahmini çekilen fotoğraf sayacı — Operasyonlar sayfası
 // ────────────────────────
 // Kullanıcı isteği: "bir kişi bir etkinliğe basın görevlisi olarak gittiyse
-// fotoğraf makinesiyle gitmiştir" -- o kişinin toplam görevli olduğu etkinlik
-// sayısı × kişiye özel ortalama fotoğraf oranı, TÜM bilinen kişiler için
-// toplanıp TEK bir büyük sayı olarak gösterilir (kim ne kadar çekmiş -- panelde
-// AYRI AYRI gösterilmiyor, sadece toplam). Listede olmayan kişiler sayaca dahil
-// EDİLMEZ (kullanıcı isteği: "sadece bilinenleri say") -- yeni biri eklendikçe
-// bu tabloya elle eklenecek. Bu tablo herkese açık JS bundle'ında -- kullanıcı
+// fotoğraf makinesiyle gitmiştir" -- o kişinin yalnızca BASIN GÖREVLİSİ
+// (gorevli alanı) olarak atandığı etkinlik sayısı × kişiye özel ortalama
+// fotoğraf oranı, TÜM bilinen kişiler için toplanıp TEK bir büyük sayı
+// olarak gösterilir (kim ne kadar çekmiş -- panelde AYRI AYRI gösterilmiyor,
+// sadece toplam). SADECE haber yazarı olarak atandığı etkinlikler SAYILMAZ
+// (3 Eylül 2026'da düzeltildi: eskiden namesForEvent kullanılıyordu, o da
+// haberYazanlari'nı katıyordu -- yalnızca haber yazan biri fotoğraf makinesiyle
+// gitmemiş sayılır, artık gorevliNamesForEvent kullanılıyor). Listede olmayan
+// kişiler sayaca dahil EDİLMEZ (kullanıcı isteği: "sadece bilinenleri say")
+// -- yeni biri eklendikçe bu tabloya elle eklenecek. Bu tablo herkese açık
+// JS bundle'ında -- kullanıcı
 // bunun bilinçli tercihi olduğunu onayladı ("herkes görsün").
 const PHOTO_RATE_TABLE = {
   'Arda Bilasa': 350,
-  'Berk Can Dereci': 800
+  'Berk Can Dereci': 800,
+  'Nurdan Gürbüz': 400
 };
 
 function initPhotoCounter() {
@@ -333,7 +351,7 @@ function initPhotoCounter() {
     const events = snap.val() || {};
     let total = 0;
     Object.keys(events).forEach((id) => {
-      namesForEvent(events[id]).forEach((name) => {
+      gorevliNamesForEvent(events[id]).forEach((name) => {
         if (PHOTO_RATE_TABLE[name] !== undefined) {total += PHOTO_RATE_TABLE[name];}
       });
     });

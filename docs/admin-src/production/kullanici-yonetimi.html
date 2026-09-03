@@ -63,10 +63,11 @@
               <th>Kullanıcı</th>
               <th style="width:170px">Rol</th>
               <th style="width:150px">Basın görevlisi</th>
+              <th style="width:110px">Erişim</th>
             </tr>
           </thead>
           <tbody id="users-rows">
-            <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:24px">Yükleniyor…</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">Yükleniyor…</td></tr>
           </tbody>
         </table>
       </div>
@@ -100,11 +101,11 @@ const rowsEl = document.getElementById('users-rows');
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let currentUid = null;
-let users = {}; // uid -> { firstName, lastName, email, role, basinGorevlisi, createdAt }
+let users = {}; // uid -> { firstName, lastName, email, role, basinGorevlisi, blocked, createdAt }
 let filterText = '', filterRole = '';
 
 function setState(html) {
-  rowsEl.innerHTML = `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:24px">${html}</td></tr>`;
+  rowsEl.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">${html}</td></tr>`;
 }
 
 function fullNameOf(u) {
@@ -164,6 +165,12 @@ function render() {
             İşaretle
           </label>
         </td>
+        <td>
+          ${(isSelf || role === 'owner')
+            ? `<div class="access-toggle is-disabled" title="${isSelf ? 'Kendi erişiminizi buradan kısıtlayamazsınız.' : 'Kurucunun erişimi bu ekrandan kısıtlanamaz.'}"></div>`
+            : `<div class="access-toggle${u.blocked ? ' on' : ''}" data-access-toggle data-uid="${uid}" role="switch" aria-checked="${u.blocked ? 'true' : 'false'}" tabindex="0" title="${u.blocked ? 'Erişimi geri ver' : 'Erişimi kısıtla'}"></div>`
+          }
+        </td>
       </tr>
     `;
   }).join('');
@@ -214,11 +221,40 @@ async function toggleBasinGorevlisi(uid, checked) {
   }
 }
 
+async function toggleBlocked(uid, nextBlocked) {
+  if (uid === currentUid) { showToast('Kendi erişiminizi buradan kısıtlayamazsınız.', { variant: 'error' }); render(); return; }
+  if (users[uid] && users[uid].role === 'owner') { showToast('Kurucunun erişimi bu ekrandan kısıtlanamaz.', { variant: 'error' }); render(); return; }
+  try {
+    await database.ref('users/' + uid + '/blocked').set(nextBlocked);
+    if (users[uid]) { users[uid].blocked = nextBlocked; }
+    showToast(nextBlocked ? `${fullNameOf(users[uid])}: erişimi kısıtlandı.` : `${fullNameOf(users[uid])}: erişimi geri verildi.`, { variant: 'success' });
+    render();
+  } catch (err) {
+    console.error('Erişim durumu güncellenemedi:', err);
+    showToast('Erişim durumu güncellenemedi.', { variant: 'error' });
+    render();
+  }
+}
+
 rowsEl.addEventListener('change', (e) => {
   const roleSelect = e.target.closest('[data-role-select]');
   const basinToggle = e.target.closest('[data-basin-toggle]');
   if (roleSelect) { setUserRole(roleSelect.dataset.uid, roleSelect.value); }
   else if (basinToggle) { toggleBasinGorevlisi(basinToggle.dataset.uid, basinToggle.checked); }
+});
+
+// .access-toggle gerçek bir <input type="checkbox"> değil (Kullanıcı isteği
+// üzerine seçilen görsel bileşen bir <div>'e dayanıyor) -- bu yüzden 'change'
+// yerine click/klavye ile kendi tıklama mantığımızı bağlıyoruz. role="switch"
+// + tabindex ile klavyeden de (Enter/Boşluk) erişilebilir.
+rowsEl.addEventListener('click', (e) => {
+  const accessToggle = e.target.closest('[data-access-toggle]');
+  if (accessToggle) { toggleBlocked(accessToggle.dataset.uid, !accessToggle.classList.contains('on')); }
+});
+rowsEl.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') { return; }
+  const accessToggle = e.target.closest('[data-access-toggle]');
+  if (accessToggle) { e.preventDefault(); toggleBlocked(accessToggle.dataset.uid, !accessToggle.classList.contains('on')); }
 });
 
 document.getElementById('users-search').addEventListener('input', (e) => { filterText = e.target.value; render(); });

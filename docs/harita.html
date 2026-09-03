@@ -9,10 +9,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
-<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. etkinlikler
-     düğümü herkese açık okunur (.read:true) -- bu sayfa girişsiz de çalışır. -->
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config.
+     GÜVENLİK KURALLARI GÜNCEL DEĞİL: etkinlikler artık herkese açık DEĞİL, okuma
+     giriş yapmış editor/admin/owner rolüyle sınırlı (bkz. firebase-database-rules.json).
+     Sayfanın kendi script'i (harita.js) bu yüzden firebase.auth() ile oturum bekliyor
+     -- ama firebase-auth-compat.js BURADA HİÇ YÜKLENMİYORDU, "firebase.auth is not
+     a function" hatasıyla script en baştan çöküyor ve noktalar/fakülte listesi hiç
+     render edilmiyordu (3 Eylül 2026'da bulundu/düzeltildi). -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -29,12 +35,12 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/harita-jaTQd1CJ.js"></script>
+  <script type="module" crossorigin src="/js/harita-BGzpSd-_.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-yaVqGfSs.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-U5BDP0_L.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-C6ceJqcB.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-C8zbFy9d.css">
 </head>
 <body data-shell="admin" data-page="map" data-breadcrumb="Anasayfa|index.html > Harita">
 

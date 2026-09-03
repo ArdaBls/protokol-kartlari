@@ -518,6 +518,16 @@ export function syncShellUser() {
         const u = snap.val() || {};
         const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';
         const role = u.role || 'pending';
+        // ERİŞİM KAPISI (kullanıcı isteği: "bazen kişinin siteye girmesini
+        // istemeyebilirim" -- Kullanıcı Yönetimi'ndeki toggle ile ayarlanır).
+        // ONAY KAPISI'NDAN ÖNCE kontrol edilir: rolü onaylı bile olsa engellenen
+        // bir hesap panele giremez. erisim-kisitlandi.html de onay-bekliyor.html
+        // gibi data-shell YÜKLEMEZ (döngü olmaz) ve engel kalkınca canlı olarak
+        // kendiliğinden panele döner.
+        if (u.blocked === true) {
+          window.location.replace('erisim-kisitlandi.html');
+          return;
+        }
         // ONAY KAPISI (kullanıcı isteği: "ben onay verene kadar siteyi görmesin,
         // beklemeye düşsün"). Kayıt olan herkes users/{uid}.role = "pending" ile
         // başlıyor; yönetici rolü editor/admin/owner yapana kadar panelin HİÇBİR

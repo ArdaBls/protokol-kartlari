@@ -44,7 +44,7 @@
     </form>
 
     <div class="auth-footer">
-      <span id="lock-not-user">Bu kullanıcı</span> değil misiniz? <a href="giris.html">Başka biri olarak giriş yapın</a>
+      <span id="lock-not-user">Bu kullanıcı</span> değil misiniz? <a href="giris.html" id="lock-switch-user">Başka biri olarak giriş yapın</a>
     </div>
   </div>
 </div>
@@ -111,6 +111,17 @@ auth.onAuthStateChanged((user) => {
     welcomeEl.textContent = 'Tekrar hoş geldiniz';
     avatarEl.textContent = '?';
   });
+});
+
+// GÜVENLİK: "Başka biri olarak giriş yapın" düz bir <a href="giris.html"> idi --
+// Firebase oturumu navigasyondan ETKİLENMEZ (localStorage/IndexedDB'de kalıcı),
+// bu yüzden giris.html açılınca kendi onAuthStateChanged'i ("if(user) yönlendir")
+// hâlâ AÇIK olan aynı oturumu görüp şifre sormadan doğrudan panele geri
+// atıyordu -- kilit ekranı fiilen atlanabiliyordu. Önce signOut() ile oturum
+// gerçekten kapatılır, ancak O TAMAMLANDIKTAN SONRA giris.html'e gidilir.
+document.getElementById('lock-switch-user').addEventListener('click', (e) => {
+  e.preventDefault();
+  auth.signOut().finally(() => { window.location.href = 'giris.html'; });
 });
 
 form.addEventListener('submit', (e) => {

@@ -243,6 +243,43 @@ table.table tbody tr:hover { background: var(--bg-surface-secondary); }
 }
 .toggle.on::after { transform: translateX(16px); }
 
+// Erişim kısıtlama anahtarı (Kullanıcı Yönetimi). Aynı görsel dil ve boyut
+// olarak .toggle'ı temel alır, ama AYRI bir sınıfta durur: main-v4.js'te
+// .toggle için delege edilmiş global bir tıklama dinleyicisi var (bkz.
+// "Toggle switches" bölümü) ve o yalnızca .on sınıfını çevirip bırakıyor --
+// buraya Firebase'e yazan KENDİ tıklama mantığımızı bağlamamız gerektiği
+// için aynı sınıfı kullanırsak iki dinleyici üst üste binip anahtarı
+// çift-çevirerek görsel durumu anında geri alırdı.
+// Kapalı hâlde nötr, AÇIK (erişim kısıtlı) hâlde kırmızı -- teal burada
+// yanlış olurdu: teal "aktif/olumlu" anlamına geliyor, bu anahtar tam
+// tersini (erişimi KAPATMA) işaretliyor; kırmızı zaten "durum" rengi
+// ailesinde (--danger-accent, .btn-danger).
+.access-toggle {
+  width: 36px; height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 150ms;
+}
+.access-toggle.on { background: var(--red); }
+.access-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; inset-inline-start: 2px;
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: transform 150ms;
+}
+.access-toggle.on::after { transform: translateX(16px); }
+.access-toggle.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 // ────────────────────────
 //  TOAST
 // ────────────────────────
