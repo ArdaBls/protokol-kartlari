@@ -44,10 +44,13 @@
         </div>
       </div>
 
-      <div class="auth-actions">
-        <label class="form-check">
-          <input type="checkbox" checked> Beni hatırla
-        </label>
+      <!-- "Beni hatırla" kutusu kaldırıldı (kullanıcı isteği: "çalışmıyor zaten").
+           Gerçekten de hiçbir yere bağlı değildi: ne id/name'i vardı ne de giriş
+           kodunda okunuyordu -- işaretlenmesi ya da kaldırılması hiçbir şeyi
+           değiştirmiyordu. Firebase Auth zaten varsayılan olarak "local" kalıcılık
+           kullanıyor, yani oturum tarayıcı kapansa da sürüyor; kutunun vaat ettiği
+           davranış fiilen HEP açık. Yanıltıcı bir kontrol bırakmamak için silindi. -->
+      <div class="auth-actions" style="justify-content:flex-end">
         <a href="sifremi-unuttum.html">Şifremi unuttum</a>
       </div>
 

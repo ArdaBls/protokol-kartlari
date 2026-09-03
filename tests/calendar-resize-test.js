@@ -78,6 +78,12 @@ async function dragResizeHandle(page, evid, targetClientY, edge) {
 	// PAGE!=="takvim" ise buildTakvimUrl()'e yönlendiriyor (app.js:3780) -- index.html'den
 	// çağrılırsa context navigasyonla yok olur (calendar-lock-undo-test.js'te de AYNI
 	// önceden-var-olan sorun gözlemlendi, bu dosyaya özel değil).
+	// Pre-paint oturum kapısı (bkz. vite.config.js) localStorage'da Firebase izi
+	// arıyor; yoksa sayfa boyanmadan giris.html'e gidiyor. Testte gerçek SDK
+	// olmadığı için izi elle bırakıyoruz.
+	await page.addInitScript(() => {
+		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
+	});
 	await page.goto(`http://localhost:${PORT}/takvim.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 

@@ -56,6 +56,12 @@ function serve() {
 	await page.route('**Sortable.min.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js') }));
 	await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
+	// Pre-paint oturum kapısı (bkz. vite.config.js) localStorage'da Firebase izi
+	// arıyor; yoksa sayfa boyanmadan giris.html'e gidiyor. Testte gerçek SDK
+	// olmadığı için izi elle bırakıyoruz.
+	await page.addInitScript(() => {
+		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
+	});
 	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 
 	// Overlay açılana kadar kısa bir bekleme (onAuthStateChanged setTimeout(0) ile tetiklenip
@@ -100,6 +106,8 @@ function serve() {
 	const pageErrors2 = [];
 	page2.on('pageerror', (e) => pageErrors2.push(e.message));
 	await page2.addInitScript(() => {
+		// Pre-paint oturum kapısı için Firebase izi (bkz. yukarıdaki not).
+		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
 		window.__mockSimulateOfflineHang = true; // profil callback'i yine hiç tetiklenmesin
 		window.OFFLINE_FALLBACK_TIMEOUT_MS = 20000; // KASITLI çok uzun -- hızlı yol bunu hiç beklememeli
 		Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true });

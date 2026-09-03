@@ -5,7 +5,7 @@
 // file), render it from the same string templates. Either way, mountShell()
 // always wires up runtime behavior (mobile drawer, theme toggle).
 
-import { renderShell } from './shell-render.js';
+import { renderShell, EDITOR_NAV_KEYS } from './shell-render.js';
 import { openMenu } from './menus.js';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
@@ -432,6 +432,7 @@ export function syncShellUser() {
         const u = snap.val() || {};
         const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';
         const role = u.role || 'pending';
+        applyRoleNav(role);
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');
         if (nameEl) {nameEl.textContent = name;}
@@ -444,6 +445,68 @@ export function syncShellUser() {
       });
     });
   }).catch(() => applyGuestShellUser());
+}
+
+/**
+ * Rol bazlı yan menü süzgeci.
+ *
+ * admin/owner  -> hiçbir şey gizlenmez (kullanıcı: "admine, kurucuya yani bana
+ *                 soldaki sekmelerin hepsi görülebilecek").
+ * diğer roller -> yalnızca EDITOR_NAV_KEYS'teki sekmeler görünür.
+ *
+ * Boşalan grup başlıkları ("Geliştirici Araçları" gibi) ve içinde görünür alt
+ * bağlantı kalmayan açılır menüler de gizlenir, yoksa ekranda başlığı olup
+ * altı boş bölümler kalırdı.
+ *
+ * Ayrıca izinli olmayan bir sayfanın adresi ELLE yazılırsa erisim-engellendi.html'e
+ * yönlendirilir. Bu bir kolaylık/işaret; asıl yetki sınırı Firebase kurallarıdır.
+ * Yalnızca NAV'da TANINAN bir anahtar için yönlendirme yapılır -- menüde hiç yer
+ * almayan sayfalar (bakim.html, tanitim.html, giriş ekranları vb.) etkilenmez.
+ */
+function applyRoleNav(role) {
+  const tamYetkili = role === 'admin' || role === 'owner';
+  if (tamYetkili) {return;}
+
+  const izinli = new Set(EDITOR_NAV_KEYS);
+
+  // 1) İzinsiz sekmeleri gizle.
+  document.querySelectorAll('[data-nav-key]').forEach((el) => {
+    if (!izinli.has(el.dataset.navKey)) {
+      el.hidden = true;
+      el.style.display = 'none';
+    }
+  });
+
+  // 2) İçinde görünür alt bağlantı kalmayan açılır menüleri (nav-tree) gizle.
+  document.querySelectorAll('.nav-tree').forEach((tree) => {
+    const gorunurAlt = tree.querySelector('.nav-sublink:not([hidden])');
+    if (!gorunurAlt) {
+      tree.hidden = true;
+      tree.style.display = 'none';
+    }
+  });
+
+  // 3) Tamamen boşalan grupları (başlık dahil) gizle.
+  document.querySelectorAll('.nav-group').forEach((group) => {
+    const gorunur = group.querySelector('.nav-link:not([hidden]), .nav-tree:not([hidden])');
+    if (!gorunur) {
+      group.hidden = true;
+      group.style.display = 'none';
+    }
+  });
+
+  // 4) Doğrudan adres yazılarak izinsiz bir sayfaya girilmişse geri çevir.
+  const sayfaAnahtari = document.body.dataset.page;
+  if (sayfaAnahtari && !izinli.has(sayfaAnahtari)) {
+    // Seçici içine anahtar gömmek yerine (kaçış gerektirir) elemanlar taranıyor.
+    const navdaVarMi = Array.prototype.some.call(
+      document.querySelectorAll('[data-nav-key]'),
+      (el) => el.dataset.navKey === sayfaAnahtari
+    );
+    if (navdaVarMi) {
+      window.location.replace('erisim-engellendi.html');
+    }
+  }
 }
 
 /**

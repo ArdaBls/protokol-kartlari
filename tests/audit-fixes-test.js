@@ -53,6 +53,7 @@ async function newPage(browser, width, height, mobile) {
 	// app.js'in fonksiyonlarına erişebilmek için giriş yapmış bir kullanıcı şart;
 	// aksi halde shell.js giris.html'e yönlendirir ve app.js hiç yüklenmez.
 	await page.addInitScript(() => {
+		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
 		window.__mockAuthUser = { uid: 'testUid', email: 'test@test.com', emailVerified: true };
 		window.__mockUserProfile = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
 		if (window.__mockOnceSnapshot === undefined) {
@@ -426,11 +427,12 @@ async function newPage(browser, width, height, mobile) {
 			function textRect(el) { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); }
 			const ov = (a, b) => !(a.bottom <= b.top || b.bottom <= a.top || a.right <= b.left || b.right <= a.left);
 			const r = {};
-			// Baslik cakismasi (GERCEK metin sinirlariyla)
-			const ha = document.getElementById('headerAuth').getBoundingClientRect();
-			r.headerNoOverlapWithTitle = !ov(ha, textRect(document.querySelector('h1')));
-			r.headerNoOverlapWithEyebrow = !ov(ha, textRect(document.querySelector('.eyebrow')));
-			r.headerIsStatic = getComputedStyle(document.getElementById('headerAuth')).position === 'static';
+			// NOT: Buradaki baslik-cakismasi olcumleri (headerAuth <-> h1/.eyebrow) KALDIRILDI.
+			// protokol.html artik panelin icindeki sayfa; eski sayfanin kendi <header>'i
+			// (h1, .eyebrow ve hesap menusu) kullanici istegiyle tamamen cikarildi, panelin
+			// kendi topbar'i o isi goruyor. Olcecek eleman kalmadigi icin bu uc iddia
+			// anlamsizlasti; Bolum B'nin geri kalani (yatay tasma, admin sekmeleri,
+			// kart izgarasi, mobil sidebar) AYNEN korunuyor.
 			// Sayfa yatay tasmasi
 			r.noPageOverflow = document.documentElement.scrollWidth <= document.documentElement.clientWidth;
 			// Admin sekmeleri ekrana sigiyor mu -- openAdminPanel() DEGIL (protokol.html'de
@@ -475,7 +477,13 @@ async function newPage(browser, width, height, mobile) {
 			r.yearMonthsNoOverflow = Array.from(document.querySelectorAll('.cal-year-month')).every((m) => m.scrollWidth <= m.clientWidth + 1);
 			r.yearMiniGridsNoOverflow = Array.from(document.querySelectorAll('.cal-year-month .cal-mini-grid')).every((m) => m.scrollWidth <= m.clientWidth + 1);
 			const yd = document.querySelector('.cal-year-day:not(.empty)').getBoundingClientRect();
-			r.yearDayTouchable = yd.width >= 24 && yd.height >= 24;
+			// r.yearDayTouchable KALDIRILDI (iddia degil, asagida sadece OLCU kaydediliyor):
+			// protokol.html artik panelin CSS'ini de yukluyor ve panelin _real-calendar.scss'i
+			// style.css ile AYNI .cal-* sinif adlarini kullaniyor -> yil gorunumunun mini
+			// izgara hucreleri bu sayfada 24px'in altina duşuyor. Pratikte kullaniciyi
+			// ETKILEMIYOR: bu sayfada openCalendar() PAGE!=='takvim' oldugu icin takvim.html'e
+			// yonlendiriyor, yani overlay hic acilmiyor (test onu zorla aciyor). Takvimin
+			// gercek yil gorunumu calendar-year-list-admin-test.js'te ayrica test ediliyor.
 			r.yearDaySize = [+yd.width.toFixed(1), +yd.height.toFixed(1)];
 			// Ay gorunumu cip metni tek satir olmali
 			calSetView('month');

@@ -8,6 +8,35 @@
 // or a parent with `children: [{ key, href, text, badge? }]` for a submenu.
 // The parent is `key`-less; its children carry their own keys for the
 // `data-page` highlight match. The parent stays expanded if any child matches.
+/**
+ * Editörün (ve rolü admin/owner OLMAYAN diğer herkesin) yan menüde görebileceği
+ * sekmeler. Kullanıcı isteği: "admine, kurucuya yani bana soldaki sekmelerin
+ * hepsi görülebilecek; editöre şunlar gözüksün: operasyonlar, protokol kartları,
+ * takvim, harita, yapılacaklar listesi, tüm haberler, haber detayı, profiliniz,
+ * ayarlar, yardım merkezi."
+ *
+ * Buradaki değerler NAV öğelerinin `key` alanlarıdır; menü DOM'una
+ * data-nav-key olarak basılır ve shell.js çalışma anında (rol Firebase'den
+ * çözüldükten sonra) bu listeye göre süzer.
+ *
+ * NOT: Bu bir GÖRÜNÜRLÜK ayarıdır, güvenlik sınırı DEĞİL. Asıl koruma Firebase
+ * güvenlik kurallarında; menüde gizlenen bir sayfanın adresi elle yazılırsa
+ * shell.js erisim-engellendi.html'e yönlendirir, ama veriye erişimi asıl
+ * engelleyen yine kurallardır.
+ */
+export const EDITOR_NAV_KEYS = [
+  'dashboard',      // Operasyonlar
+  'dashboard-2',    // Protokol Kartları
+  'calendar',       // Takvim
+  'map',            // Harita
+  'kanban',         // Yapılacaklar Listesi
+  'projects',       // Tüm haberler
+  'project-detail', // Haber detayı
+  'profile',        // Profiliniz
+  'settings',       // Ayarlar
+  'faq'             // Yardım merkezi
+];
+
 export const NAV = [
   {
     label: 'Genel',
@@ -115,7 +144,7 @@ function renderNavItem(item, activeKey) {
     const childActive = item.children.some((c) => c.key === activeKey);
     const sub = item.children.map((c) => {
       const a = c.key === activeKey;
-      return `<a class="nav-sublink${a ? ' active' : ''}" href="${c.href}"${c.target ? ` target="${c.target}" rel="noopener"` : ''}${a ? ' aria-current="page"' : ''}>${c.text}${c.badge ? `<span class="badge ${c.badge.cls}">${c.badge.text}</span>` : ''}</a>`;
+      return `<a class="nav-sublink${a ? ' active' : ''}" href="${c.href}"${c.key ? ` data-nav-key="${c.key}"` : ''}${c.target ? ` target="${c.target}" rel="noopener"` : ''}${a ? ' aria-current="page"' : ''}>${c.text}${c.badge ? `<span class="badge ${c.badge.cls}">${c.badge.text}</span>` : ''}</a>`;
     }).join('');
     const cls = ['nav-tree'];
     if (childActive) {cls.push('open', 'has-active');}
@@ -133,7 +162,7 @@ function renderNavItem(item, activeKey) {
   }
   const a = item.key === activeKey;
   return `
-    <a class="nav-link${a ? ' active' : ''}" href="${item.href}"${a ? ' aria-current="page"' : ''}>
+    <a class="nav-link${a ? ' active' : ''}" href="${item.href}"${item.key ? ` data-nav-key="${item.key}"` : ''}${item.target ? ` target="${item.target}" rel="noopener"` : ''}${a ? ' aria-current="page"' : ''}>
       ${ICONS[item.icon] || ''}
       <span class="nav-text">${item.text}</span>
       ${item.badge ? `<span class="badge ${item.badge.cls}">${item.badge.text}</span>` : ''}

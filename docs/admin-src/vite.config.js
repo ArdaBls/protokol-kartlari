@@ -206,6 +206,31 @@ function shellInjectionPlugin() {
         const parsed = parseShellAttrs(bodyTag[1]);
         if (!parsed) return out;
 
+        // Pre-paint OTURUM KAPISI (yalnızca data-shell="admin" sayfalarda -- bu
+        // noktaya sadece onlar ulaşıyor, giriş/kayıt ekranları yukarıda eleniyor).
+        //
+        // Kullanıcı bildirimi: "protokol.sbs'yi aratıp entera basınca kısa bir süre
+        // arkadaki panel görünüyor ve sonra giris.html'e atıyor." Sebep: giriş
+        // kontrolü shell.js'te Firebase auth'un ASENKRON çözülmesini bekliyor;
+        // o ana kadar sayfa çoktan boyanmış oluyor.
+        //
+        // Bu script <head>'de, gövde boyanmadan ÖNCE çalışır ve Firebase'in oturumu
+        // sakladığı yeri (compat SDK: localStorage'da "firebase:authUser:" ile
+        // başlayan anahtar; sessionStorage kalıcılığı seçilmişse orada) SENKRON
+        // yoklar. Hiç oturum izi yoksa daha ilk pikselden önce giriş sayfasına
+        // gider -- panel bir an bile görünmez.
+        //
+        // Anahtar adı API anahtarını içerdiğinden gömülmüyor, önekle taranıyor.
+        // Bu bir PARLAMA (FOUC) düzeltmesidir, güvenlik sınırı DEĞİL: token'ın
+        // geçerliliğine yine shell.js'in asenkron kontrolü ve Firebase kuralları
+        // karar verir (bayat bir kayıt varsa panel kısa süre görünüp yine atılır).
+        const authGate = '<script>(function(){try{' +
+          'var f=function(s){try{for(var i=0;i<s.length;i++){if(s.key(i).indexOf("firebase:authUser:")===0){return true;}}}catch(e){}return false;};' +
+          'if(f(window.localStorage)||f(window.sessionStorage)){return;}' +
+          'location.replace("giris.html?returnTo="+encodeURIComponent(location.href));' +
+          '}catch(e){}})();<\/script>';
+        out = out.replace(/<\/head>/i, `${authGate}\n</head>`);
+
         const { sidebar, topbar, footer } = renderShell(parsed);
         const skipLink = `<a class="skip-link" href="#main-content">Skip to main content</a>`;
 
