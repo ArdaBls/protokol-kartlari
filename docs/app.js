@@ -6223,7 +6223,7 @@ function renderNewsPlaceholderFields(){
 	let html="";
 	NEWS_PLACEHOLDER_FIELDS.forEach(function(f){
 		const used=tokens.some(function(t){ return t===f.ph || t.indexOf(f.ph)===0; }); if(!used) return;
-		html+=`<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">${f.label}</label><input type="text" id="${newsPlaceholderInputId(f.ph)}" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">`;
+		html+=`<label style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">${f.label}</label><input type="text" id="${newsPlaceholderInputId(f.ph)}" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-size:14px; margin-bottom:12px; box-sizing:border-box;">`;
 	});
 	wrap.innerHTML=html;
 	if(newsEventContext){

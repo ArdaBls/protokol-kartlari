@@ -36,8 +36,8 @@
   <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
   <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
   <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-k03i3fPc.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-BQHShT2z.css">
+  <script type="module" crossorigin src="/js/main-v4-DloYHRwd.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-Cfcou9nB.css">
 </head>
 <body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Anasayfa|index.html > Protokol Kartları">
 
@@ -832,22 +832,22 @@
 
 				<!-- Iki mod: mevcut sablon akisi (varsayilan) / yapay zekaya hazir komut olusturma. Uygulama hicbir AI servisine baglanmaz. -->
 				<div style="display:flex; gap:8px; margin-bottom:14px;">
-					<button type="button" id="newsModeTemplateBtn" onclick="setNewsOutputMode('template')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--news); color:#fff; font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; cursor:pointer;">Şablonla Oluştur</button>
-					<button type="button" id="newsModePromptBtn" onclick="setNewsOutputMode('prompt')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--card); color:var(--news); font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; cursor:pointer;">Yapay Zekaya Hazırla</button>
+					<button type="button" id="newsModeTemplateBtn" onclick="setNewsOutputMode('template')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--news); color:#fff; font-weight:600; font-size:13px; cursor:pointer;">Şablonla Oluştur</button>
+					<button type="button" id="newsModePromptBtn" onclick="setNewsOutputMode('prompt')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--news); background:var(--card); color:var(--news); font-weight:600; font-size:13px; cursor:pointer;">Yapay Zekaya Hazırla</button>
 				</div>
 
 				<div id="newsTemplateModePanel">
 					<p class="hint">Seçtiğiniz kişilerin protokol sırası ve unvanlarına göre otomatik oluşturulan metin:</p>
 
-					<label for="newsTemplateSelect" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
-					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;"></select>
+					<label for="newsTemplateSelect" style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Şablonu</label>
+					<select id="newsTemplateSelect" onchange="onNewsTemplateChange()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;"></select>
 
 					<div id="newsPlaceholderFields"></div>
 
-					<label for="newsLocationInput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
-					<input type="text" id="newsLocationInput" value="Törene" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box;">
+					<label for="newsLocationInput" style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Etkinlik / Yer İfadesi</label>
+					<input type="text" id="newsLocationInput" value="Törene" oninput="generateNewsText()" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-size:14px; margin-bottom:12px; box-sizing:border-box;">
 
-					<label style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:6px;">Katılımcı Grubu</label>
+					<label style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:6px;">Katılımcı Grubu</label>
 					<div id="newsCategoryGroup" style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:14px;">
 						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="öğrenci" onchange="generateNewsText()"> Öğrenci</label>
 						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="akademisyen" onchange="generateNewsText()"> Akademisyen</label>
@@ -856,7 +856,7 @@
 						<label style="display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer;"><input type="checkbox" class="newsCatCb" value="davetli" onchange="generateNewsText()"> Davetli</label>
 					</div>
 
-					<textarea id="newsOutputText" rows="6" style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); font-family:'Roboto', sans-serif; font-size:14px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical;"></textarea>
+					<textarea id="newsOutputText" rows="6" style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); font-size:14px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical;"></textarea>
 					<div class="modal-actions" style="margin-top:0;">
 						<button class="btn btn-news" onclick="copyNewsText()" style="width:100%;">Panoya Kopyala</button>
 					</div>
@@ -865,22 +865,22 @@
 				<div id="newsPromptPanel" style="display:none;">
 					<p class="hint">Yapay zekaya yapıştıracağınız, kurallar ve bağlam içeren hazır bir komut oluşturulur. Uygulama bu metni hiçbir yapay zeka servisine göndermez.</p>
 
-					<label for="newsPromptCategorySelect" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
-					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;">
+					<label for="newsPromptCategorySelect" style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Haber Türü</label>
+					<select id="newsPromptCategorySelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--border); font-size:14px; margin-bottom:12px; background:var(--surface-input); color:var(--ink); box-sizing:border-box;">
 						<option value="mezuniyet">Mezuniyet Töreni</option>
 						<option value="genel" selected>Q1 / Genel Etkinlik (Taslak Var)</option>
 						<option value="diger">Diğer</option>
 					</select>
 
-					<label for="newsRawInput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Ham Notlarınız</label>
-					<textarea id="newsRawInput" rows="6" placeholder="Konuşma metni, katılımcı listesi, etkinlik açıklaması vb. buraya yapıştırın..." style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto',sans-serif; font-size:14px; margin-bottom:12px; box-sizing:border-box; resize:vertical;"></textarea>
+					<label for="newsRawInput" style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Ham Notlarınız</label>
+					<textarea id="newsRawInput" rows="6" placeholder="Konuşma metni, katılımcı listesi, etkinlik açıklaması vb. buraya yapıştırın..." style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); font-size:14px; margin-bottom:12px; box-sizing:border-box; resize:vertical;"></textarea>
 
 					<div class="modal-actions" style="margin-top:0; margin-bottom:12px;">
 						<button class="btn btn-news" onclick="buildNewsPrompt()" style="width:100%;">Komut Oluştur</button>
 					</div>
 
-					<label for="newsPromptOutput" style="font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Oluşturulan Komut</label>
-					<textarea id="newsPromptOutput" rows="8" readonly style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); font-family:'Roboto', sans-serif; font-size:13px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical; background:var(--surface-input);"></textarea>
+					<label for="newsPromptOutput" style="font-weight:600; font-size:13px; color:var(--muted); display:block; margin-bottom:4px;">Oluşturulan Komut</label>
+					<textarea id="newsPromptOutput" rows="8" readonly style="width:100%; padding:14px; border-radius:8px; border:1px solid var(--border); font-size:13px; line-height:1.5; color:var(--ink); margin-bottom:15px; resize:vertical; background:var(--surface-input);"></textarea>
 					<div class="modal-actions" style="margin-top:0;">
 						<button class="btn btn-news" onclick="copyNewsPrompt()" style="width:100%;">Panoya Kopyala</button>
 					</div>

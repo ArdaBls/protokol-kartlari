@@ -977,3 +977,17 @@ body[data-page="dashboard-2"] .actions-right {
     min-height: 44px;
   }
 }
+
+// ── Harita: Leaflet'in kendi yazı tipini dayatması ──
+// Leaflet'in CSS'i .leaflet-container'a 'Helvetica Neue', zoom denetimlerine ise
+// 'Lucida Console' veriyor. İkisi de bizim yüklediğimiz aile DEĞİL, yani harita
+// üzerindeki her metin panelin geri kalanından farklı bir fontta çıkıyordu
+// (ölçüldü: harita.html'de 7 + 4 öğe). Üçüncü taraf kütüphane varsayılanı,
+// bilinçli bir tercih değil -- panelin ailesine bağlanıyor.
+.leaflet-container,
+.leaflet-container .leaflet-control,
+.leaflet-container .leaflet-control a,
+.leaflet-popup-content,
+.leaflet-tooltip {
+  font-family: var(--font);
+}

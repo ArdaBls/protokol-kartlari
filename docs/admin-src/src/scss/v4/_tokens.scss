@@ -121,6 +121,18 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+// FORM DENETIMLERI FONT MIRASI.
+// Tarayicilar button/input/select/textarea ogelerine KENDI varsayilan fontunu
+// verir ve bunlar govdeden miras ALMAZ. Olcum sonucu: 31 sayfanin 13'unde
+// sinifsiz <button> ogeleri (kapat carpisi, cip silme, grafik sekmeleri, tablo
+// sayfalama, ikon hucreleri) Inter yerine Arial ile render ediliyordu.
+// .btn sinifinda zaten "font: inherit" vardi, bu yuzden gozden kaciyordu.
+// font-size BILEREK ezilmiyor -- her denetimin kendi boyutu korunuyor,
+// yalnizca AILE birlestiriliyor.
+button, input, select, textarea, optgroup {
+  font-family: inherit;
+}
+
 // iOS'ta yukarı/aşağı esnek kaydırma (rubber-band) sayfa sınırlarının dışına taşıp durum
 // çubuğu/çentik arkasında sayfa içeriğinin "görünmesine" (aslında html/body arkaplanının
 // o alana kadar uzanmamasına) yol açıyordu. overscroll-behavior tüm sayfa esnemesini
