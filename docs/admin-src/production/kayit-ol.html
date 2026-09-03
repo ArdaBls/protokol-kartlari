@@ -28,11 +28,24 @@
     <div id="signup-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
 
     <form id="signup-form">
+      <!-- Kullanıcı isteği: "kayıt ekranında isim, soyisim ayrı şekilde yazılsın ve
+           sisteme doğru entegre edilsin." Eskiden tek bir "Ad soyad" kutusu vardı ve
+           İLK BOŞLUKTAN bölünüyordu: iki adı olanlarda ("Ali Berk Dereci") soyad
+           yanlış çıkıyor, tek kelime yazanda soyad boş kalıyordu. Artık iki ayrı
+           zorunlu alan var ve veritabanındaki firstName/lastName ile birebir eşleşiyor. -->
       <div class="form-group">
-        <label class="form-label" for="name">Ad soyad</label>
+        <label class="form-label" for="firstName">Ad</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>
-          <input type="text" id="name" class="form-control" placeholder="Ad Soyad" required>
+          <input type="text" id="firstName" class="form-control" placeholder="Örn. Arda" autocomplete="given-name" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="lastName">Soyad</label>
+        <div class="input-group">
+          <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>
+          <input type="text" id="lastName" class="form-control" placeholder="Örn. Bilasa" autocomplete="family-name" required>
         </div>
       </div>
 
@@ -127,21 +140,31 @@ function hideError() {
   errorEl.style.display = 'none';
 }
 
+// Kayıt işlemi sürerken bu bayrak açık kalır -- aşağıdaki açıklamaya bakın.
+let kayitSuruyor = false;
+
 // Zaten giriş yapılmışsa tekrar formu göstermeden hedefe yönlendir.
+//
+// KRİTİK: kayıt SÜRERKEN bu yönlendirme çalışmamalı. createUserWithEmailAndPassword()
+// başarılı olur olmaz kullanıcı OTURUM AÇMIŞ sayılır ve onAuthStateChanged hemen
+// tetiklenir; burada koşulsuz yönlendirme yapılırsa sayfa, hemen ardından gelen
+// users/{uid} yazımı BİTMEDEN kapanıyor ve yazma iptal oluyordu. Sonuç: Auth
+// hesabı var, veritabanı kaydı yok -- yani "yetim hesap". Kullanıcının bildirdiği
+// "kayıt oldu ama Kullanıcı Yönetimi'nde görünmüyor, onaylayamıyorum" durumunun
+// sebebi tam olarak buydu (canlı veritabanında kaydın hiç oluşmadığı doğrulandı).
 auth.onAuthStateChanged((user) => {
-  if (user) { window.location.href = returnTo; }
+  if (user && !kayitSuruyor) { window.location.href = returnTo; }
 });
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   hideError();
-  const fullName = document.getElementById('name').value.trim();
-  const spaceIdx = fullName.indexOf(' ');
-  const firstName = spaceIdx === -1 ? fullName : fullName.slice(0, spaceIdx);
-  const lastName = spaceIdx === -1 ? '' : fullName.slice(spaceIdx + 1).trim();
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
 
+  kayitSuruyor = true; // otomatik yonlendirme, DB yazimi bitene kadar beklesin
   submitBtn.disabled = true;
   const originalLabel = submitBtn.textContent;
   submitBtn.textContent = 'Kaydediliyor…';
@@ -149,13 +172,21 @@ form.addEventListener('submit', (e) => {
   // İki adım (auth hesabı + users/{uid} kaydı) app.js'teki handleSignup ile AYNI şema:
   // rol her zaman "pending" başlar, bir admin/kurucu onaylayana kadar düzenleme yetkisi yok.
   auth.createUserWithEmailAndPassword(email, password).then((cred) => {
-    return database.ref('users/' + cred.user.uid).set({
-      firstName, lastName, email, role: 'pending',
-      createdAt: firebase.database.ServerValue.TIMESTAMP
-    });
+    // Adı ÖNCE Auth profiline yaz. Sebep: kayıt iki adımlı (önce Auth hesabı,
+    // sonra veritabanı kaydı) ve ikinci adım koparsa ortada isimsiz bir 'yetim
+    // hesap' kalıyordu -- yönetici listesinde '(isim yok)' olarak çıkıyordu.
+    // displayName Auth tarafında durduğu için, shell.js'in yetim onarımı ismi
+    // oradan geri okuyup kaydı doğru isimle oluşturabiliyor.
+    return cred.user.updateProfile({ displayName: (firstName + ' ' + lastName).trim() })
+      .catch(() => { /* isim yazılamasa bile kayıt akışı sürsün */ })
+      .then(() => database.ref('users/' + cred.user.uid).set({
+        firstName, lastName, email, role: 'pending',
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      }));
   }).then(() => {
     window.location.href = returnTo;
   }).catch((err) => {
+    kayitSuruyor = false;
     console.error('Kayıt başarısız:', err);
     showError(messageFor(err));
     submitBtn.disabled = false;

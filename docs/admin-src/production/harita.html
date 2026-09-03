@@ -191,6 +191,20 @@ import('leaflet').then(({ default: LeafletLib }) => {
 });
 
 function loadEvents() {
+  // OTURUM HAZIR OLANA KADAR BEKLE.
+  // Bu sayfa eskiden etkinlikleri sayfa açılır açılmaz okuyordu; etkinlikler
+  // düğümü o zaman herkese açıktı (".read": true) ve sorun çıkmıyordu. Okuma
+  // artık onaylı rol istediği için, Firebase Auth oturumu geri YÜKLEMEDEN atılan
+  // istek PERMISSION_DENIED alıyor ve sayfa "Etkinlikler yüklenemedi." deyip
+  // bir daha denemiyordu (kullanıcı bildirimi: haritadaki daireler hiç çıkmıyor).
+  // onAuthStateChanged ilk kez OTURUM ÇÖZÜLDÜKTEN sonra tetiklenir -- doğru an budur.
+  firebase.auth().onAuthStateChanged((user) => {
+    if (!user) { return; } // giriş yoksa shell.js zaten giris.html'e yönlendiriyor
+    etkinlikleriOku();
+  });
+}
+
+function etkinlikleriOku() {
   database.ref('etkinlikler').once('value').then((snap) => {
     allEvents = Object.values(snap.val() || {});
     populateYearSelect();

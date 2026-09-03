@@ -499,8 +499,14 @@ export function syncShellUser() {
         // yazmaya zaten izin veriyor (kendi kaydına, yalnızca 'pending' rolüyle,
         // yalnızca rol daha önce yokken) -- app.js'te de AYNI onarım deseni var.
         if (!snap.exists()) {
+          // İsim Auth profilinden (displayName) geri okunuyor -- kayıt akışı onu
+          // veritabanı yazımından ÖNCE yazıyor, bu yüzden yazma koptuğunda bile
+          // isim elimizde kalıyor ve kullanıcı listede '(isim yok)' diye görünmüyor.
+          const ad = (user.displayName || '').trim();
+          const bosluk = ad.lastIndexOf(' ');
           const onarim = {
-            firstName: '', lastName: '',
+            firstName: bosluk === -1 ? ad : ad.slice(0, bosluk),
+            lastName: bosluk === -1 ? '' : ad.slice(bosluk + 1),
             email: user.email || '',
             role: 'pending',
             createdAt: firebase.database.ServerValue.TIMESTAMP
@@ -560,6 +566,18 @@ function applyRoleNav(role) {
   if (tamYetkili) {return;}
 
   const izinli = new Set(EDITOR_NAV_KEYS);
+
+  // 0) Sağ üstteki bildirim zilini gizle.
+  // Zil bildirimler.html'e gidiyor ve o sayfa yalnızca admin/owner'a açık; editörde
+  // görünür kalınca tıklayan 403'e (erisim-engellendi.html) düşüyordu -- kullanıcı
+  // bildirimi: "bildirimler sayfası gözükmeye devam ediyor ve basınca 403'e atıyor,
+  // hem sekmeyi hem de sağ üstteki zil simgesini kaldıralım". Sekme zaten aşağıdaki
+  // data-nav-key süzgeciyle gizleniyor; zil menüde olmadığı için ayrıca ele alınıyor.
+  const zil = document.querySelector('.topbar-right a.tb-btn[href="bildirimler.html"]');
+  if (zil) {
+    zil.hidden = true;
+    zil.style.display = 'none';
+  }
 
   // 1) İzinsiz sekmeleri gizle.
   document.querySelectorAll('[data-nav-key]').forEach((el) => {

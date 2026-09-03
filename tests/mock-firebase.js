@@ -34,6 +34,31 @@
 		return null;
 	}
 
+	// OPT-IN yetki reddi simulasyonu: window.__mockDenyPaths bir dizi ise, o
+	// oneklerle BASLAYAN her yol icin gercek Firebase gibi PERMISSION_DENIED
+	// uretilir. Gercek kurallarda "users" yalnizca admin/owner'a acik oldugu icin
+	// editor davranisini test etmenin tek dogru yolu bu.
+	// Eslesme VARSAYILAN OLARAK TAM YOL uzerinden. Gercek kurallar da boyle:
+	// "users" listesi yalnizca admin/owner'a kapali ama "users/{uid}" HERKESE kendi
+	// kaydi icin acik. Alt agaci da reddetmek icin girdinin sonuna "/*" eklenir.
+	function yolReddedildiMi(path) {
+		var liste = window.__mockDenyPaths;
+		if (!liste || !liste.length) { return false; }
+		for (var i = 0; i < liste.length; i++) {
+			var girdi = liste[i];
+			if (girdi.slice(-2) === "/*") {
+				var kok = girdi.slice(0, -2);
+				if (path === kok || path.indexOf(kok + "/") === 0) { return true; }
+			} else if (path === girdi) { return true; }
+		}
+		return false;
+	}
+	function reddetHatasi(path) {
+		var e = new Error("permission_denied at /" + path + ": Client doesn't have permission to access the desired data.");
+		e.code = "PERMISSION_DENIED";
+		return e;
+	}
+
 	// Kayitli TUM canli dinleyiciler. window.__mockRefresh() cagrilinca hepsi
 	// GUNCEL mockValueFor(path) degeriyle yeniden tetiklenir -- "yonetici rolu
 	// onayladi, canli dinleyici sayfayi gecirdi" gibi akislari test edebilmek icin.
@@ -54,6 +79,11 @@
 				// window.__mockSimulateOfflineHang acikken VE "users/" yolunda callback'i BILEREK
 				// hic cagirma -- gercek Firebase'in internet yokken sessizce beklemede kalmasini
 				// taklit eder. Diger tum testler bu bayragi hic set etmedigi icin etkilenmez.
+				if (yolReddedildiMi(path)) {
+					var hataCb = arguments[2];
+					if (typeof hataCb === "function") { setTimeout(function () { hataCb(reddetHatasi(path)); }, 0); }
+					return cb;
+				}
 				tumDinleyiciler.push({ path: path, cb: cb });
 				if (window.__mockSimulateOfflineHang && path.indexOf("users/") === 0) return cb;
 				// Anında veriyle çağır (gerçek Firebase de ilk bağlanışta mevcut veriyi verir).
@@ -64,6 +94,7 @@
 				return cb;
 			},
 			once: function () {
+				if (yolReddedildiMi(path)) { return Promise.reject(reddetHatasi(path)); }
 				// Once YOLA GORE cozmeyi dene (__mockData / __mockUserProfile). Boylece
 				// ayni sayfada farkli yollar farkli veri dondurebiliyor -- ornegin
 				// bildirimler.html hem users/ hem logs/* okuyor, kullanici-yonetimi.html

@@ -79,8 +79,11 @@ auth.onAuthStateChanged((user) => {
   const kullaniciRef = firebase.database().ref('users/' + user.uid);
   kullaniciRef.once('value').then((snap) => {
     if (!snap.exists()) {
+      const ad = (user.displayName || '').trim();
+      const bosluk = ad.lastIndexOf(' ');
       return kullaniciRef.set({
-        firstName: '', lastName: '',
+        firstName: bosluk === -1 ? ad : ad.slice(0, bosluk),
+        lastName: bosluk === -1 ? '' : ad.slice(bosluk + 1),
         email: user.email || '',
         role: 'pending',
         createdAt: firebase.database.ServerValue.TIMESTAMP

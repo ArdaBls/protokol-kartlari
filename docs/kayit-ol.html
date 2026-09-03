@@ -26,11 +26,11 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/kayit-ol-2RIJUFY1.js"></script>
+  <script type="module" crossorigin src="/js/kayit-ol-CqU8cO5h.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-DnqNZkl1.js">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-Bw1gBIdv.js">
   <link rel="stylesheet" crossorigin href="/assets/main-v4-CIEAxfB6.css">
 </head>
 <body>
@@ -48,11 +48,24 @@
     <div id="signup-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
 
     <form id="signup-form">
+      <!-- Kullanıcı isteği: "kayıt ekranında isim, soyisim ayrı şekilde yazılsın ve
+           sisteme doğru entegre edilsin." Eskiden tek bir "Ad soyad" kutusu vardı ve
+           İLK BOŞLUKTAN bölünüyordu: iki adı olanlarda ("Ali Berk Dereci") soyad
+           yanlış çıkıyor, tek kelime yazanda soyad boş kalıyordu. Artık iki ayrı
+           zorunlu alan var ve veritabanındaki firstName/lastName ile birebir eşleşiyor. -->
       <div class="form-group">
-        <label class="form-label" for="name">Ad soyad</label>
+        <label class="form-label" for="firstName">Ad</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>
-          <input type="text" id="name" class="form-control" placeholder="Ad Soyad" required>
+          <input type="text" id="firstName" class="form-control" placeholder="Örn. Arda" autocomplete="given-name" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="lastName">Soyad</label>
+        <div class="input-group">
+          <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>
+          <input type="text" id="lastName" class="form-control" placeholder="Örn. Bilasa" autocomplete="family-name" required>
         </div>
       </div>
 

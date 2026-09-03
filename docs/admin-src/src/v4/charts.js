@@ -139,6 +139,23 @@ function withAlpha(color, hexAlpha) {
 // Bir etkinlikte "aktif" sayılan kişiler: basın görevlisi (gorevli) VEYA haber
 // yazan (haberYazanlari) -- kullanıcı isteği: "haber yazan yada basın görevlisi
 // olarak" ikisi de sayılsın. Aynı kişi ikisinde birden geçiyorsa TEK sayılır.
+// Grafiklerdeki kişi listesi normalde users/ düğümünden (rolü editor/admin/owner
+// olanlar) çıkarılıyor. Ama users/ SADECE admin/owner'a açık; editör bu grafiği
+// açtığında PERMISSION_DENIED alıp grafiği hiç göremiyordu. Kullanıcı isteği:
+// "Editör Aktivitesi kısmını editörlerin de görmesini istiyorum, burada küçük bir
+// yarış yapılıyor ve bunu görmek herkese motivasyon verir."
+//
+// Çözüm kural gevşetmek DEĞİL (o, editörlere tüm e-postaları açardı): isimler
+// zaten etkinliklerin içinde (gorevli / haberYazanlari). users/ okunamadığında
+// liste doğrudan etkinliklerden türetiliyor -- grafik aynı, ek veri erişimi yok.
+function isimleriEtkinliklerdenCikar(events) {
+  const set = new Set();
+  Object.keys(events || {}).forEach((id) => {
+    namesForEvent(events[id]).forEach((n) => set.add(n));
+  });
+  return Array.from(set);
+}
+
 function namesForEvent(e) {
   if (!e) {return [];}
   const set = new Set();
@@ -184,13 +201,15 @@ function editorEventActivity(echarts, el, t) {
     const users = latestUsers;
     const events = latestEvents;
 
-    const names = [];
+    let names = [];
     Object.keys(users).forEach((uid) => {
       const u = users[uid];
       if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
       const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
       if (full && names.indexOf(full) === -1) {names.push(full);}
     });
+    // users/ okunamadıysa (editör rolü) isimleri etkinliklerden türet.
+    if (!names.length) { names = isimleriEtkinliklerdenCikar(events); }
 
     if (!names.length) { renderEmpty('Editor/admin/owner rolünde kullanıcı yok.'); return; }
 
@@ -270,10 +289,12 @@ function editorEventActivity(echarts, el, t) {
   if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
   if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
   firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
-    // "users" düğümü sadece admin/owner'a açık (bkz. Firebase kuralı) -- editor
-    // rolündeki biri bu grafiği açarsa PERMISSION_DENIED alır, bu BEKLENEN bir
-    // durum, hata değil -- kullanıcıya net bir mesajla anlatılır.
-    renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+    // "users" düğümü sadece admin/owner'a açık -- editör PERMISSION_DENIED alır.
+    // ESKİDEN burada grafik boş gösteriliyordu. Artık boş bir liste ile devam
+    // ediliyor: draw() isimleri etkinliklerden türetip grafiği yine çiziyor,
+    // böylece editör de kendi aktivitesini görebiliyor (kullanıcı isteği).
+    latestUsers = {};
+    draw();
   });
   firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
     console.error('editorEventActivity grafiği yüklenemedi:', err);
@@ -531,13 +552,15 @@ function editorActivityShare(echarts, el, t) {
     const users = latestUsers;
     const events = latestEvents;
 
-    const names = [];
+    let names = [];
     Object.keys(users).forEach((uid) => {
       const u = users[uid];
       if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
       const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
       if (full && names.indexOf(full) === -1) {names.push(full);}
     });
+    // users/ okunamadıysa (editör rolü) isimleri etkinliklerden türet.
+    if (!names.length) { names = isimleriEtkinliklerdenCikar(events); }
 
     const counts = {};
     names.forEach((n) => { counts[n] = 0; });
@@ -597,7 +620,10 @@ function editorActivityShare(echarts, el, t) {
   if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
   if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
   firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
-    renderEmpty('Bu grafiği yalnızca yönetici/kurucu rolündekiler görebilir.');
+    // Yukarıdaki grafikle aynı gerekçe: editörde users/ okunamaz, isimler
+    // etkinliklerden türetilir ve grafik yine çizilir.
+    latestUsers = {};
+    draw();
   });
   firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
     console.error('editorActivityShare grafiği yüklenemedi:', err);
