@@ -17,3 +17,9 @@ yerel-notlar/firebase-database-rules.json
 # migrate-people-to-object.js'in ürettiği örnek çıktılar GERÇEK KİŞİSEL VERİ içerebilir (fotoğraf dahil) -- asla commit edilmez.
 scripts/*-migrated.json
 scripts/*.output.json
+# Impeccable (tasarim denetim skill'i) calisma ciktilari. README yalnizca birkac
+# alt yolu yoksaymayi oneriyor ama burada KLASORUN TAMAMI yoksayiliyor: .impeccable/
+# altina ekran goruntusu yaziliyor ve bu projenin ekranlarinda GERCEK KISISEL VERI
+# var (protokol kartlarindaki isimler ve fotograflar). Daha once bu repoda PII
+# commit'lenmesi olayi yasandigi icin burada temkinli taraf seciliyor.
+.impeccable/
