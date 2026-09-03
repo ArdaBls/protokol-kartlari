@@ -206,30 +206,36 @@ function shellInjectionPlugin() {
         const parsed = parseShellAttrs(bodyTag[1]);
         if (!parsed) return out;
 
-        // Pre-paint OTURUM KAPISI (yalnızca data-shell="admin" sayfalarda -- bu
-        // noktaya sadece onlar ulaşıyor, giriş/kayıt ekranları yukarıda eleniyor).
+        // Pre-paint OTURUM PERDESİ (yalnızca data-shell="admin" sayfalarda --
+        // giriş/kayıt ekranları yukarıda eleniyor, onlara enjekte edilmiyor).
         //
         // Kullanıcı bildirimi: "protokol.sbs'yi aratıp entera basınca kısa bir süre
         // arkadaki panel görünüyor ve sonra giris.html'e atıyor." Sebep: giriş
         // kontrolü shell.js'te Firebase auth'un ASENKRON çözülmesini bekliyor;
         // o ana kadar sayfa çoktan boyanmış oluyor.
         //
-        // Bu script <head>'de, gövde boyanmadan ÖNCE çalışır ve Firebase'in oturumu
-        // sakladığı yeri (compat SDK: localStorage'da "firebase:authUser:" ile
-        // başlayan anahtar; sessionStorage kalıcılığı seçilmişse orada) SENKRON
-        // yoklar. Hiç oturum izi yoksa daha ilk pikselden önce giriş sayfasına
-        // gider -- panel bir an bile görünmez.
+        // ÖNEMLİ -- ÖNCEKİ (HATALI) YAKLAŞIM: Bu iş ilk denemede localStorage'da
+        // "firebase:authUser:" önekli anahtar aranarak yapılmıştı ve SONSUZ
+        // YÖNLENDİRME DÖNGÜSÜNE yol açtı: Firebase v9 oturumu varsayılan olarak
+        // IndexedDB'de (indexedDBLocalPersistence) tutuyor, localStorage'da değil.
+        // Yani giriş yapmış kullanıcıda bile anahtar bulunamıyor, kapı "oturum yok"
+        // deyip giris.html'e atıyor, giriş sayfası oturumu görüp panele geri
+        // gönderiyor ve site sürekli yeniden yükleniyordu. IndexedDB asenkron
+        // olduğu için boyama öncesi SENKRON okunamaz -- bu yüzden "oturum var mı"
+        // sorusunu pre-paint aşamasında cevaplamaya çalışmaktan tamamen vazgeçildi.
         //
-        // Anahtar adı API anahtarını içerdiğinden gömülmüyor, önekle taranıyor.
-        // Bu bir PARLAMA (FOUC) düzeltmesidir, güvenlik sınırı DEĞİL: token'ın
-        // geçerliliğine yine shell.js'in asenkron kontrolü ve Firebase kuralları
-        // karar verir (bayat bir kayıt varsa panel kısa süre görünüp yine atılır).
-        const authGate = '<script>(function(){try{' +
-          'var f=function(s){try{for(var i=0;i<s.length;i++){if(s.key(i).indexOf("firebase:authUser:")===0){return true;}}}catch(e){}return false;};' +
-          'if(f(window.localStorage)||f(window.sessionStorage)){return;}' +
-          'location.replace("giris.html?returnTo="+encodeURIComponent(location.href));' +
+        // YENİ YAKLAŞIM: yönlendirme kararı yine SADECE shell.js'te (Firebase
+        // cevabıyla) veriliyor; burada yapılan tek şey, karar verilene kadar
+        // gövdeyi görünmez tutmak. Böylece ne panel parlaması ne de döngü olur.
+        // Perde shell.js tarafından (hem girişli hem misafir yolunda) kaldırılır;
+        // JS hiç çalışmazsa sayfa sonsuza dek boş kalmasın diye 4 saniyelik bir
+        // emniyet zamanlayıcısı da perdeyi kendiliğinden açar.
+        const authVeil = '<style>html.auth-bekliyor body{visibility:hidden!important}</style>' +
+          '<script>(function(){try{' +
+          'var d=document.documentElement;d.classList.add("auth-bekliyor");' +
+          'setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);' +
           '}catch(e){}})();<\/script>';
-        out = out.replace(/<\/head>/i, `${authGate}\n</head>`);
+        out = out.replace(/<\/head>/i, `${authVeil}\n</head>`);
 
         const { sidebar, topbar, footer } = renderShell(parsed);
         const skipLink = `<a class="skip-link" href="#main-content">Skip to main content</a>`;

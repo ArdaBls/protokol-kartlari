@@ -119,9 +119,6 @@ function serve() {
 	page.on('request', (req) => { allRequests.push(req.method() + ' ' + req.url()); });
 	await yonlendirmeleriKur(page);
 	await page.addInitScript(() => {
-		// Pre-paint oturum kapısı localStorage'da Firebase izi arıyor -- SADECE bu
-		// (girişli) turda bırakılıyor; 1. tur bilerek izsiz, çünkü misafir davranışını test ediyor.
-		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"smokeUid"}'); } catch (e) { /* yok say */ }
 		window.__mockAuthUser = { uid: 'smokeUid', email: 'smoke@test.com', emailVerified: true };
 		// app.js users/{uid}.on("value") ile okur:
 		window.__mockUserProfile = { role: 'admin', firstName: 'Duman', lastName: 'Test', email: 'smoke@test.com' };

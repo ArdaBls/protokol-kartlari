@@ -60,12 +60,6 @@ function serve() {
 	// gerçek bir location.href yönlendirmesi yapıyor (bkz. app.js:4182), bu test o zaman
 	// güncellenmemişti. Modal/kişi düzenleme testi (Senaryo 2) DOM'u her sayfada aynı olduğu
 	// için (sadece CSS ile gizleniyor) takvim.html'de de sorunsuz çalışır.
-	// Pre-paint oturum kapısı (bkz. vite.config.js) localStorage'da Firebase izi
-	// arıyor; yoksa sayfa boyanmadan giris.html'e gidiyor. Testte gerçek SDK
-	// olmadığı için izi elle bırakıyoruz.
-	await page.addInitScript(() => {
-		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
-	});
 	await page.goto(`http://localhost:${PORT}/takvim.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(500);
 

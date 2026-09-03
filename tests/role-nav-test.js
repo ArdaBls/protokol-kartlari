@@ -62,9 +62,6 @@ async function sayfaAc(browser, rol, hedef) {
 	await page.route('**://fonts.gstatic.com/**', (r) => r.abort());
 	if (rol) {
 		await page.addInitScript(({ rol }) => {
-			// Pre-paint oturum kapısı localStorage'da Firebase izi arıyor -- mock
-			// ortamda gerçek SDK yok, o yüzden izi elle bırakıyoruz.
-			try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
 			window.__mockAuthUser = { uid: 'testUid', email: 'test@test.com', emailVerified: true };
 			window.__mockUserProfile = { role: rol, firstName: 'Test', lastName: 'Kullanıcı' };
 			window.__mockOnceSnapshot = { role: rol, firstName: 'Test', lastName: 'Kullanıcı' };

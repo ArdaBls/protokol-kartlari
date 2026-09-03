@@ -403,9 +403,23 @@ function applyGuestShellUser() {
  * çağrılır. Giriş yoksa güvenli bir "Ziyaretçi" varsayılanı gösterir, hatada
  * sayfayı KIRMAZ.
  */
+/**
+ * Pre-paint "oturum perdesi"ni kaldırır (bkz. vite.config.js -> authVeil).
+ *
+ * Panel sayfaları, giriş durumu belli olana kadar gövdeyi görünmez tutuyor;
+ * böylece giriş yapmamış birine panel bir an bile görünmüyor (kullanıcı
+ * bildirimi: "kısa bir süre arkadaki panel gözüküyor"). Karar verildiği anda
+ * perde HER yolda kaldırılmalı -- aksi halde sayfa boş kalır. Yönlendirme
+ * yapılan yolda çağrılmasına gerek yok (zaten başka bir belgeye gidiliyor) ama
+ * yönlendirme herhangi bir sebeple gerçekleşmezse diye yine de güvenli.
+ */
+function perdeyiKaldir() {
+  document.documentElement.classList.remove('auth-bekliyor');
+}
+
 export function syncShellUser() {
   ensureFirebase().then(() => {
-    if (!window.firebase || !firebase.auth) { applyGuestShellUser(); return; }
+    if (!window.firebase || !firebase.auth) { perdeyiKaldir(); applyGuestShellUser(); return; }
     try {
       if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
     } catch (_e) { /* zaten başlatılmış olabilir */ }
@@ -439,12 +453,14 @@ export function syncShellUser() {
         if (roleEl) {roleEl.textContent = ROLE_LABEL[role] || role;}
         applyAvatar(document.querySelector('.sidebar-user .avatar'), name, u.avatarUrl);
         applyAvatar(document.querySelector('.tb-avatar'), name, u.avatarUrl);
+        perdeyiKaldir();
       }).catch((err) => {
         console.error('Shell: kullanıcı verisi okunamadı:', err);
+        perdeyiKaldir();
         applyGuestShellUser();
       });
     });
-  }).catch(() => applyGuestShellUser());
+  }).catch(() => { perdeyiKaldir(); applyGuestShellUser(); });
 }
 
 /**

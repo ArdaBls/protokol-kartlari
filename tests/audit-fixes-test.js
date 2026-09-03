@@ -53,7 +53,6 @@ async function newPage(browser, width, height, mobile) {
 	// app.js'in fonksiyonlarına erişebilmek için giriş yapmış bir kullanıcı şart;
 	// aksi halde shell.js giris.html'e yönlendirir ve app.js hiç yüklenmez.
 	await page.addInitScript(() => {
-		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
 		window.__mockAuthUser = { uid: 'testUid', email: 'test@test.com', emailVerified: true };
 		window.__mockUserProfile = { role: 'admin', firstName: 'Test', lastName: 'Kullanıcı' };
 		if (window.__mockOnceSnapshot === undefined) {

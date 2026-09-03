@@ -52,12 +52,6 @@ function serve() {
 	await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
 	// index.html DEĞİL, takvim.html -- çok sayfalı mimari geçişinden sonra openCalendar()
 	// PAGE!=="takvim" iken gerçek bir location.href yönlendirmesi yapıyor (bkz. app.js).
-	// Pre-paint oturum kapısı (bkz. vite.config.js) localStorage'da Firebase izi
-	// arıyor; yoksa sayfa boyanmadan giris.html'e gidiyor. Testte gerçek SDK
-	// olmadığı için izi elle bırakıyoruz.
-	await page.addInitScript(() => {
-		try { window.localStorage.setItem('firebase:authUser:testKey:[DEFAULT]', '{"uid":"testUid"}'); } catch (e) { /* yok say */ }
-	});
 	await page.goto(`http://localhost:${PORT}/takvim.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
