@@ -70,6 +70,28 @@ let rolRef = null;
 auth.onAuthStateChanged((user) => {
   if (rolRef) { rolRef.off(); rolRef = null; }
   if (!user) { window.location.replace('giris.html'); return; }
+
+  // "Yetim hesap" onarımı (aynısı shell.js'te de var, açıklaması orada).
+  // Kayıt akışında Auth hesabı oluşup users/{uid} yazımı başarısız olduysa
+  // kullanıcı bu sayfada sonsuza kadar bekler ve yöneticinin listesinde HİÇ
+  // görünmez -- yani onaylanması imkânsız hale gelir. Kayıt yoksa "pending"
+  // olarak yazılıyor; böylece Kullanıcı Yönetimi'nde onay bekleyen olarak çıkar.
+  const kullaniciRef = firebase.database().ref('users/' + user.uid);
+  kullaniciRef.once('value').then((snap) => {
+    if (!snap.exists()) {
+      return kullaniciRef.set({
+        firstName: '', lastName: '',
+        email: user.email || '',
+        role: 'pending',
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+    return null;
+  }).catch((err) => {
+    console.error('Hesap kaydı oluşturulamadı:', err);
+    durumGoster('Hesap kaydınız oluşturulamadı. Lütfen yöneticinize bu ekranı bildirin.');
+  });
+
   rolRef = firebase.database().ref('users/' + user.uid + '/role');
   rolRef.on('value', (snap) => {
     const rol = snap.val();

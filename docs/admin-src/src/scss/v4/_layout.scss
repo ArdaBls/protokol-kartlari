@@ -454,6 +454,20 @@
   border: 1.5px solid white;
   border-radius: 50%;
 }
+// Onay bekleyen kayıt sayacı (zil butonunun köşesindeki kırmızı rozet).
+// .dot yalnızca "bir şey var" diyor; burada SAYI gösteriliyor, çünkü yönetici
+// kaç kişinin onay beklediğini bir bakışta görmek istiyor.
+.tb-btn .tb-count {
+  position: absolute; top: 1px; inset-inline-end: 1px;
+  min-width: 15px; height: 15px; padding: 0 3px;
+  background: var(--red); color: #fff;
+  border: 1.5px solid var(--bg-surface, #fff);
+  border-radius: 999px;
+  font-size: 9.5px; font-weight: var(--font-weight-bold); line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+}
+
 .tb-avatar {
   width: 28px; height: 28px;
   border-radius: 50%;

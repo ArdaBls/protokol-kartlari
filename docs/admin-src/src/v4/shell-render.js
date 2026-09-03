@@ -263,6 +263,9 @@ export function renderTopbar(breadcrumb) {
         </button>
         <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+          <!-- Onay bekleyen kayıt sayısı. Yalnızca admin/owner'da ve sayı > 0 iken
+               görünür; shell.js users/ düğümünü canlı dinleyip günceller. -->
+          <span class="tb-count" id="tb-onay-rozeti" hidden></span>
         </a>
         <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">Z</button>
       </div>

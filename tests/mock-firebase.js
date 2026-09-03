@@ -64,10 +64,17 @@
 				return cb;
 			},
 			once: function () {
-				// Varsayilan: bos (mevcut 16 testin hicbiri bunu set etmiyor, davranis degismez).
-				// window.__mockOnceSnapshot set edilmisse onun yerine dondurulur -- saveSuccessor()
-				// gibi "yazmadan once fresh() oku" yapan fonksiyonlari test edebilmek icin gerekli:
-				// aksi halde her .once() bos donup people'i [] ile eziyordu.
+				// Once YOLA GORE cozmeyi dene (__mockData / __mockUserProfile). Boylece
+				// ayni sayfada farkli yollar farkli veri dondurebiliyor -- ornegin
+				// bildirimler.html hem users/ hem logs/* okuyor, kullanici-yonetimi.html
+				// users/ listesini okuyor. Eskiden once() yolu HIC dikkate almayip her
+				// zaman ayni __mockOnceSnapshot'i donduruyordu.
+				var yolaGore = mockValueFor(path);
+				if (yolaGore !== null && yolaGore !== undefined) {
+					return Promise.resolve(makeSnapshot(yolaGore));
+				}
+				// Geri donus: window.__mockOnceSnapshot (mevcut testlerin dayandigi davranis --
+				// hicbiri __mockData set etmedigi icin yukaridaki dal onlarda calismaz).
 				return Promise.resolve(makeSnapshot(window.__mockOnceSnapshot !== undefined ? window.__mockOnceSnapshot : null));
 			},
 			off: function () { listeners = []; },

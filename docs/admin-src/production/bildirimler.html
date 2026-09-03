@@ -114,6 +114,7 @@ function render() {
           <span class="notif-text">${e.target ? `<strong>${escapeHtml(e.target)}</strong> ` : ''}${escapeHtml(headline)}${detail ? ` — ${escapeHtml(detail)}` : ''}</span>
         </span>
         <span class="notif-time">${timeStr}</span>
+        ${e._bekleyen ? '<a class="btn btn-outline" style="height:26px;padding:0 10px;font-size:12px;white-space:nowrap" href="kullanici-yonetimi.html?filtre=pending">Onayla</a>' : ''}
       </div>
     `;
   }).join('');
@@ -131,14 +132,41 @@ document.getElementById('notif-tabs').addEventListener('click', (e) => {
 function loadLogs() {
   setState('Yükleniyor…');
   Promise.all([
+    database.ref('users').once('value'),
     database.ref('logs/il').limitToLast(50).once('value'),
     database.ref('logs/universite').limitToLast(50).once('value'),
     database.ref('logs/etkinlik').limitToLast(50).once('value'),
     database.ref('logs/hesap').limitToLast(50).once('value'),
     database.ref('logs/dictionary').limitToLast(50).once('value')
-  ]).then((snaps) => {
+  ]).then((tumSnaps) => {
+    const kullanicilar = tumSnaps[0].val() || {};
+    const snaps = tumSnaps.slice(1);
     const lists = ['il', 'universite', 'etkinlik', 'hesap', 'dictionary'];
-    ENTRIES = snaps.flatMap((snap, i) => Object.values(snap.val() || {}).map((e) => ({ ...e, _list: lists[i] })))
+    const loglar = snaps.flatMap((snap, i) => Object.values(snap.val() || {}).map((e) => ({ ...e, _list: lists[i] })));
+    // Rolü editor/admin/owner OLMAYAN her kayıt 'onay bekliyor' demektir.
+    const ONAYLI = ['editor', 'admin', 'owner'];
+    const bekleyenKayitlari = Object.keys(kullanicilar)
+      .filter((uid) => ONAYLI.indexOf(kullanicilar[uid] && kullanicilar[uid].role) === -1)
+      .map((uid) => {
+        const k = kullanicilar[uid] || {};
+        const isim = ((k.firstName || '') + ' ' + (k.lastName || '')).trim() || '(isim girilmemiş)';
+        return {
+          _list: 'hesap',
+          _bekleyen: true,
+          by: isim,
+          email: k.email || '',
+          target: k.email || isim,
+          action: 'Yeni kayıt talebi · onay bekliyor',
+          timestamp: k.createdAt || 0
+        };
+      });
+    // Onay bekleyen KAYIT TALEPLERİ de bu listeye giriyor (kullanıcı isteği:
+    // "yeni kullanıcı onay bekliyor diye bildirim gelmeli, kişinin tüm bilgileri:
+    // ismi, hangi e-postayla, hangi saatte kayıt yapıp onay beklediği").
+    // logs/hesap'a yazılamıyor çünkü log yazma yetkisi editor/admin/owner'da;
+    // kayıt olan kişi ise henüz 'pending'. Bu yüzden kayıtlar doğrudan users/
+    // düğümünden türetiliyor -- bu sayfa zaten yalnızca admin/owner'a açık.
+    ENTRIES = loglar.concat(bekleyenKayitlari)
       .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
       .slice(0, 100);
     if (!ENTRIES.length) { setState('Henüz kayıt yok.'); return; }

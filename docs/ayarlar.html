@@ -27,12 +27,12 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/ayarlar-DcUFsdYL.js"></script>
+  <script type="module" crossorigin src="/js/ayarlar-UXfZ3ST4.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-ClmDJi93.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-rEyMcjxc.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-DnqNZkl1.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CIEAxfB6.css">
 </head>
 <body data-shell="admin" data-page="settings" data-breadcrumb="Anasayfa|index.html > Ayarlar">
 
@@ -191,6 +191,9 @@
         </button>
         <a class="tb-btn" href="bildirimler.html" title="Bildirimler" aria-label="Bildirimler">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>
+          <!-- Onay bekleyen kayıt sayısı. Yalnızca admin/owner'da ve sayı > 0 iken
+               görünür; shell.js users/ düğümünü canlı dinleyip günceller. -->
+          <span class="tb-count" id="tb-onay-rozeti" hidden></span>
         </a>
         <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">Z</button>
       </div>

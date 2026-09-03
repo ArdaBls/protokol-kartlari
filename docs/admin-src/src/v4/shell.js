@@ -425,6 +425,37 @@ function perdeyiKaldir() {
  */
 const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
 
+/**
+ * Topbar'daki zil butonuna "onay bekleyen kayıt sayısı" rozetini bağlar.
+ *
+ * Kullanıcı isteği: "yeni kullanıcı onay bekliyor diye bana bildirim gelmeli,
+ * sağ üstteki bildirim butonundan ve uygulamalar kısmındaki bildirim yerinden."
+ * Buradaki kısım sağ üstteki buton; Bildirimler sayfası kendi listesini
+ * users/ düğümünden ayrıca üretiyor (bkz. bildirimler.html).
+ *
+ * users/ düğümünü CANLI dinler -- yeni bir kayıt geldiğinde yönetici sayfayı
+ * yenilemeden rozet artar. Yalnızca admin/owner içindir: kurallar zaten
+ * users/ listesini sadece onlara açıyor, editörde istek boşuna reddedilirdi.
+ */
+function onayBekleyenRozetiniBagla(role) {
+  if (role !== 'admin' && role !== 'owner') { return; }
+  const rozet = document.getElementById('tb-onay-rozeti');
+  if (!rozet) { return; }
+  firebase.database().ref('users').on('value', (snap) => {
+    const hepsi = snap.val() || {};
+    const bekleyen = Object.keys(hepsi).filter((uid) => {
+      const r = hepsi[uid] && hepsi[uid].role;
+      return ONAYLI_ROLLER.indexOf(r) === -1;
+    }).length;
+    rozet.textContent = bekleyen > 99 ? '99+' : String(bekleyen);
+    rozet.hidden = bekleyen === 0;
+    const zil = rozet.closest('.tb-btn');
+    if (zil) {
+      zil.setAttribute('title', bekleyen ? bekleyen + ' hesap onay bekliyor' : 'Bildirimler');
+    }
+  }, (err) => console.error('Onay bekleyen sayısı okunamadı:', err));
+}
+
 export function syncShellUser() {
   ensureFirebase().then(() => {
     if (!window.firebase || !firebase.auth) { perdeyiKaldir(); applyGuestShellUser(); return; }
@@ -451,6 +482,33 @@ export function syncShellUser() {
         return;
       }
       firebase.database().ref('users/' + user.uid).once('value').then((snap) => {
+        // "YETİM HESAP" ONARIMI.
+        //
+        // Kayıt akışı (kayit-ol.html) önce Firebase Auth hesabını yaratıyor, SONRA
+        // users/{uid} kaydını yazıyor. İkinci adım herhangi bir sebeple başarısız
+        // olursa (kural reddi, ağ kopması, sekmenin kapatılması) ortada Auth
+        // hesabı OLAN ama veritabanı kaydı OLMAYAN bir kullanıcı kalıyor. Bu
+        // kullanıcı sonsuza dek görünmez oluyordu: Kullanıcı Yönetimi listesi
+        // users/ düğümünden beslendiği için orada çıkmıyor, dolayısıyla
+        // onaylanamıyor da (kullanıcı bildirimi: "kullanıcı yönetim sekmesinde
+        // bu kullanıcının onay beklediği gözükmüyor, hesabı onaylayamadım" --
+        // canlı veritabanında gerçekten kaydı yoktu, e-posta yalnızca
+        // Authentication tarafında duruyordu).
+        //
+        // Kayıt yoksa burada "pending" olarak yeniden yazılıyor. Kurallar bu
+        // yazmaya zaten izin veriyor (kendi kaydına, yalnızca 'pending' rolüyle,
+        // yalnızca rol daha önce yokken) -- app.js'te de AYNI onarım deseni var.
+        if (!snap.exists()) {
+          const onarim = {
+            firstName: '', lastName: '',
+            email: user.email || '',
+            role: 'pending',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+          };
+          firebase.database().ref('users/' + user.uid).set(onarim)
+            .catch((err) => console.error('Yetim hesap onarımı başarısız:', err));
+          // Rol zaten "pending" -- aşağıdaki onay kapısı bekleme sayfasına gönderecek.
+        }
         const u = snap.val() || {};
         const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Kullanıcı';
         const role = u.role || 'pending';
@@ -464,6 +522,7 @@ export function syncShellUser() {
           return;
         }
         applyRoleNav(role);
+        onayBekleyenRozetiniBagla(role);
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');
         if (nameEl) {nameEl.textContent = name;}

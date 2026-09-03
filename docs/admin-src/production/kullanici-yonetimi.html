@@ -224,6 +224,17 @@ rowsEl.addEventListener('change', (e) => {
 document.getElementById('users-search').addEventListener('input', (e) => { filterText = e.target.value; render(); });
 document.getElementById('filter-role').addEventListener('change', (e) => { filterRole = e.target.value; render(); });
 
+// Bildirimler sayfasındaki "Onayla" bağlantısı buraya ?filtre=pending ile geliyor --
+// yönetici listeyi elle süzmek zorunda kalmasın, doğrudan onay bekleyenleri görsün.
+const _filtreParam = new URLSearchParams(location.search).get('filtre');
+if (_filtreParam) {
+  const _sel = document.getElementById('filter-role');
+  if (_sel && Array.prototype.some.call(_sel.options, (o) => o.value === _filtreParam)) {
+    _sel.value = _filtreParam;
+    filterRole = _filtreParam;
+  }
+}
+
 document.getElementById('export-btn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(users, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -239,14 +250,17 @@ document.getElementById('export-btn').addEventListener('click', () => {
 
 function loadUsers() {
   setState('Yükleniyor…');
-  database.ref('users').once('value').then((snap) => {
+  // once() DEĞİL on(): yeni bir kayıt geldiğinde liste KENDİLİĞİNDEN tazelensin.
+  // Eskiden tek seferlik okunuyordu; yönetici sayfayı elle yenilemedikçe yeni
+  // 'onay bekliyor' kaydını göremiyordu (kullanıcı bildirimi).
+  database.ref('users').on('value', (snap) => {
     users = snap.val() || {};
     if (!Object.keys(users).length) { setState('Henüz kayıtlı kullanıcı yok.'); }
     updateStats();
     render();
-  }).catch((err) => {
+  }, (err) => {
     console.error('Kullanıcılar yüklenemedi:', err);
-    setState('Kullanıcılar yüklenemedi.');
+    setState('Kullanıcılar yüklenemedi: ' + (err && err.code ? err.code : 'bilinmeyen hata') + '. Yetkiniz varsa sayfayı yenileyin.');
   });
 }
 
