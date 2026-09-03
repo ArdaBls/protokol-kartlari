@@ -62,8 +62,8 @@
             <tr>
               <th>Kullanıcı</th>
               <th style="width:170px">Rol</th>
-              <th style="width:150px">Basın görevlisi</th>
-              <th style="width:110px">Erişim</th>
+              <th style="width:150px;text-align:center">Basın görevlisi</th>
+              <th style="width:110px;text-align:center">Erişim</th>
             </tr>
           </thead>
           <tbody id="users-rows">
@@ -159,7 +159,7 @@ function render() {
           </div>
         </td>
         <td>${roleCell}</td>
-        <td>
+        <td style="text-align:center">
           <label class="check-toggle" title="${u.basinGorevlisi ? 'Basın görevlisi işaretini kaldır' : 'Basın görevlisi olarak işaretle'}">
             <input type="checkbox" data-basin-toggle data-uid="${uid}" aria-label="${escapeHtml(fullNameOf(u))} — basın görevlisi" ${u.basinGorevlisi ? 'checked' : ''}>
             <svg viewBox="0 0 64 64" height="1.4em" width="1.4em" aria-hidden="true">

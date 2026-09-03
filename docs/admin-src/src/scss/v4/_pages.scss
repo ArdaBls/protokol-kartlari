@@ -831,6 +831,22 @@ body[data-page="dashboard-2"] {
   overscroll-behavior-y: auto;
 }
 
+// ── AYNI KAYDIRMA HATASI, TAKVİM SAYFASI (kullanıcı bildirimi, 4 Eylül 2026:
+//    "cal-card içinde aşağı yukarı scroll yapamıyorum, ama sol panel
+//    üstündeyken yapabiliyorum") ──
+// Takvim'in kendi saat ızgarası (.cal-tg-scroll) dikey taştığında kendi içinde
+// kaydırılıyor; kullanıcı ızgaranın alt/üst sınırına ulaştığında kaydırmanın
+// SAYFAYA devretmesini (chain) bekliyor. Yukarıdaki dashboard-2 notundaki AYNI
+// mekanizma: html/body'nin site geneli overscroll-behavior-y:none'ı (iOS
+// rubber-band düzeltmesi) bu devretmeyi engelliyor -- soldaki kenar çubuğu
+// (.sidebar-nav) çalışıyor gibi görünmesinin sebebi ORANIN kendi ayrı, site
+// genelinden etkilenmeyen bir kaydırma kutusu olması, takvim kartının ise
+// devretmeye ihtiyaç duyması. Aynı sayfa-özel istisna burada da uygulanıyor.
+html:has(body[data-page="calendar"]),
+body[data-page="calendar"] {
+  overscroll-behavior-y: auto;
+}
+
 // ── HİZALAMA: liste anahtarı ile kontrol çubuğu aynı genişlikte olsun ──
 // Kullanıcı: "list-switch, controlbar ile aynı boyutta değil ve onunla birlikte
 // site küçülüp büyürken hareket etmiyor."

@@ -256,6 +256,7 @@ table.table tbody tr:hover { background: var(--bg-surface-secondary); }
 // ailesinde (--danger-accent, .btn-danger).
 .access-toggle {
   width: 36px; height: 20px;
+  margin: 0 auto;
   background: #d1d5db;
   border-radius: 10px;
   position: relative;

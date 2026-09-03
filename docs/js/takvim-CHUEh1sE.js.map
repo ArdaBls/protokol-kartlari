@@ -1,0 +1,1 @@
+{"version":3,"mappings":";sDACoC,mBAAE,gBAA/B,mDAAuB,mCAAQ,mBAAqB","names":[],"ignoreList":[],"sources":["../../admin-src/production/takvim.html?html-proxy&index=2.js"],"sourcesContent":["\nimport('/src/v4/calendar.js').then(({ initCalendar }) => { initCalendar(); });\n"],"file":"takvim-CHUEh1sE.js"}

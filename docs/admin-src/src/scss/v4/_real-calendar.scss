@@ -55,7 +55,12 @@
 .cal-multiday-handle-l { left: 0; }
 .cal-multiday-handle-r { right: 0; }
 
-.cal-tg-scroll { flex: 1; min-height: 0; overflow: auto; position: relative; overscroll-behavior: contain; }
+// overscroll-behavior BİLEREK contain DEĞİL: kullanıcı bildirimi (4 Eylül
+// 2026) -- ızgara sınırına ulaşınca kaydırmanın sayfaya devretmesi (chain)
+// gerekiyordu, contain bunu bloke ediyordu (bkz. _pages.scss'teki
+// body[data-page="calendar"] notu, AYNI kaydırma zinciri hatasının ikinci
+// katmanı). auto varsayılanı devretmeye izin verir.
+.cal-tg-scroll { flex: 1; min-height: 0; overflow: auto; position: relative; overscroll-behavior: auto; }
 .cal-tg-body { display: grid; position: relative; user-select: none; }
 .cal-gutter { border-right: 1px solid var(--border-color-light); position: relative; }
 .cal-hourlab { position: absolute; right: 7px; font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); transform: translateY(-50%); }
