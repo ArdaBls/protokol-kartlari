@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Yapay Zeka | Protokol</title>
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="ai-chat" data-breadcrumb="Anasayfa|index.html > Yapay Zeka">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Kişiye özel</div>
+        <h1 class="page-title">Yapay Zeka</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="card ai-chat-card">
+    <div class="card-header">
+      <div class="ai-chat-privacy-note">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        Bu sohbeti yalnızca siz görebilirsiniz.
+      </div>
+    </div>
+    <div class="ai-chat-body" id="ai-chat-body">
+      <div id="ai-chat-messages"></div>
+      <div class="ai-chat-empty" id="ai-chat-empty" hidden>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        <div class="empty-title">Henüz mesaj yok</div>
+        <div class="empty-desc">Bir şey sor, başlayalım.</div>
+      </div>
+    </div>
+    <form class="ai-chat-form" id="ai-chat-form">
+      <textarea id="ai-chat-input" class="form-control" placeholder="Bir şey yazın… (Enter ile gönder, Shift+Enter ile yeni satır)" rows="1" required></textarea>
+      <button type="submit" class="btn btn-primary" id="ai-chat-send">Gönder</button>
+    </form>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+import { showToast } from '/src/v4/toast.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+// FAZ 1 (taslak): gerçek Gemini bağlantısı henüz yok. Kullanıcı mesajından
+// ~600ms sonra sabit bir yer tutucu cevap push edilir, "taslak:true" alanıyla
+// işaretlenir. Bir sonraki adımda bu fonksiyonun içi gerçek Gemini API
+// isteğiyle değiştirilecek -- geri kalan her şey (Firebase yazma/okuma, UI,
+// izolasyon) değişmeden kalacak.
+const TASLAK_CEVAPLAR = [
+  'Bu bir taslak cevaptır — gerçek Gemini bağlantısı bir sonraki adımda eklenecek.',
+  'Şimdilik yer tutucu bir yanıt gösteriyorum, yakında gerçek yapay zeka devreye girecek.',
+  'Mesajınız kaydedildi. Gerçek Gemini cevabı bir sonraki güncellemede gelecek.'
+];
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let currentUid = null;
+const messagesEl = document.getElementById('ai-chat-messages');
+const emptyEl = document.getElementById('ai-chat-empty');
+const bodyEl = document.getElementById('ai-chat-body');
+const form = document.getElementById('ai-chat-form');
+const input = document.getElementById('ai-chat-input');
+const sendBtn = document.getElementById('ai-chat-send');
+
+function timeLabel(ts) {
+  if (!ts) {return '';}
+  return new Date(ts).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function render(mesajlar) {
+  const entries = Object.keys(mesajlar).sort();
+  if (!entries.length) {
+    messagesEl.innerHTML = '';
+    emptyEl.hidden = false;
+    return;
+  }
+  emptyEl.hidden = true;
+  messagesEl.innerHTML = entries.map((key) => {
+    const m = mesajlar[key] || {};
+    const rol = m.rol === 'asistan' ? 'assistant' : 'user';
+    const taslakRozeti = m.taslak ? '<span class="ai-msg-badge-draft">TASLAK</span>' : '';
+    return `
+      <div class="ai-msg ${rol}">
+        <div class="ai-msg-bubble">${taslakRozeti}<span class="ai-msg-text">${escapeHtml(m.metin || '')}</span></div>
+        <div class="ai-msg-time">${timeLabel(m.zaman)}</div>
+      </div>
+    `;
+  }).join('');
+  bodyEl.scrollTop = bodyEl.scrollHeight;
+}
+
+function sohbetRef() {
+  return database.ref('yapayZekaMesajlari/' + currentUid);
+}
+
+function gonder(metin) {
+  const temiz = metin.trim();
+  if (!temiz || !currentUid) {return;}
+  sendBtn.disabled = true;
+  input.disabled = true;
+  sohbetRef().push({ rol: 'kullanici', metin: temiz, zaman: firebase.database.ServerValue.TIMESTAMP })
+    .then(() => {
+      input.value = '';
+      input.style.height = 'auto';
+      // Yer tutucu cevap -- FAZ 1 kapsamı, bkz. yukarıdaki not.
+      setTimeout(() => {
+        const cevap = TASLAK_CEVAPLAR[Math.floor(Math.random() * TASLAK_CEVAPLAR.length)];
+        sohbetRef().push({ rol: 'asistan', metin: cevap, taslak: true, zaman: firebase.database.ServerValue.TIMESTAMP })
+          .catch((err) => console.error('Taslak cevap yazılamadı:', err));
+      }, 600);
+    })
+    .catch((err) => {
+      console.error('Mesaj gönderilemedi:', err);
+      showToast('Mesaj gönderilemedi.', { variant: 'error' });
+    })
+    .finally(() => {
+      sendBtn.disabled = false;
+      input.disabled = false;
+      input.focus();
+    });
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  gonder(input.value);
+});
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    gonder(input.value);
+  }
+});
+
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+auth.onAuthStateChanged((user) => {
+  if (!user) {return;}
+  currentUid = user.uid;
+  sohbetRef().on('value', (snap) => {
+    render(snap.val() || {});
+  }, (err) => {
+    console.error('Sohbet yüklenemedi:', err);
+    showToast('Sohbet geçmişi yüklenemedi.', { variant: 'error' });
+  });
+});
+</script>
+
+</body>
+</html>

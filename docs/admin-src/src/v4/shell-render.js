@@ -34,7 +34,8 @@ export const EDITOR_NAV_KEYS = [
   'project-detail', // Haber detayı
   'profile',        // Profiliniz
   'settings',       // Ayarlar
-  'faq'             // Yardım merkezi
+  'faq',            // Yardım merkezi
+  'ai-chat'         // Yapay Zeka
 ];
 
 export const NAV = [
@@ -63,7 +64,8 @@ export const NAV = [
     label: 'Uygulamalar',
     items: [
       { key: 'kanban',        href: 'yapilacaklar.html',        text: 'Yapılacaklar Listesi',       icon: 'kanban' },
-      { key: 'notifications', href: 'bildirimler.html', text: 'Bildirimler',  icon: 'bell' }
+      { key: 'notifications', href: 'bildirimler.html', text: 'Bildirimler',  icon: 'bell' },
+      { key: 'ai-chat',       href: 'yapay-zeka.html',  text: 'Yapay Zeka',   icon: 'chat' }
     ]
   },
   {

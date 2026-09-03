@@ -847,6 +847,14 @@ body[data-page="calendar"] {
   overscroll-behavior-y: auto;
 }
 
+// Yapay Zeka sohbet gövdesi (.ai-chat-body) da aynı sebeple aynı istisnayı
+// gerektiriyor: kendi içinde kaydırılan bir kutu, sınırına ulaşınca sayfaya
+// devretmesi gerekiyor.
+html:has(body[data-page="ai-chat"]),
+body[data-page="ai-chat"] {
+  overscroll-behavior-y: auto;
+}
+
 // ── HİZALAMA: liste anahtarı ile kontrol çubuğu aynı genişlikte olsun ──
 // Kullanıcı: "list-switch, controlbar ile aynı boyutta değil ve onunla birlikte
 // site küçülüp büyürken hareket etmiyor."
