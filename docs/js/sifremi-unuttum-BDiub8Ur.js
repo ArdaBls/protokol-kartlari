@@ -1,0 +1,1 @@
+import"./main-v4-2ycFawQb.js";var e=document.getElementById("reset-form");e.addEventListener("submit",t=>{t.preventDefault(),t.stopPropagation();const n=document.getElementById("email").value.trim();n&&(document.getElementById("reset-email").textContent=n,e.hidden=!0,document.querySelector(".auth-divider").hidden=!0,document.getElementById("reset-success").hidden=!1)});

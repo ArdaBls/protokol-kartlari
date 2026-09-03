@@ -35,8 +35,8 @@
   <script type="module" crossorigin src="/js/rolldown-runtime-_5RX-BWT.js"></script>
   <script type="module" crossorigin src="/js/toast-CBtjS_PZ.js"></script>
   <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BD0dYo40.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-CsiBaq2q.css">
+  <script type="module" crossorigin src="/js/main-v4-2ycFawQb.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CYycLoC8.css">
 </head>
 <body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Anasayfa|index.html > Analitik">
 
@@ -356,7 +356,13 @@
 		     düğmeler. Metin gittiği için erişilebilirlik aria-label/title ile sağlanıyor.
 		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
 		<div class="mobile-glass-nav" id="mobileGlassNav">
-			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi"><svg class="ikon"><use href="#i-takvim"/></svg></button>
+			<!-- "Etkinlik Takvimi" FAB'ı kaldırıldı (kullanıcı isteği): openCalendar()
+			     bu sayfada PAGE !== "takvim" olduğu için takvim.html'e (eski genel
+			     siteye) yönlendirip kullanıcıyı panelden dışarı atıyordu; panelin
+			     kendi Takvim sayfası zaten sol menüde var. app.js'teki
+			     calOriginRect() #calendarFab'ı null kontrollü kullandığı için
+			     (fab && fab.offsetParent!==null) kaldırmak güvenli.
+			     Tepside SADECE faculty-fab kaldı ve tepsi sağa alındı (_pages.scss). -->
 			<!-- "Admin Paneli" FAB'ı kaldırıldı: openAdminPanel() bu sayfada
 			     PAGE !== "admin" olduğu için location.href="admin.html" yapıyordu ve
 			     admin.html artık hiç YOK -> 404. Ayrıca kullanıcı zaten yönetim

@@ -827,3 +827,53 @@ body[data-page="dashboard-2"] header.topbar::after {
     box-sizing: border-box;
   }
 }
+
+// Kullanıcı isteği: Analitik'teki alt "liquid glass" tepsisinde SADECE
+// faculty-fab (fakülte filtresi) kalsın ve tepsi ortada değil, ekranın SAĞINDA
+// dursun. calendar-fab ve admin-fab zaten analitik.html'den kaldırıldı.
+//
+// style.css'in kendi kuralı .mobile-glass-nav'ı ortalıyor
+// (left:50%; transform:translateX(-50%)); burada SADECE bu sayfada sağa
+// sabitleniyor. Cam görünüm (backdrop-filter, kenarlık, gölge, ::after parlaklığı)
+// style.css'ten AYNEN geliyor -- hiçbiri ezilmiyor.
+body[data-page="dashboard-2"] .mobile-glass-nav {
+  left: auto;
+  right: 16px;
+  transform: none;
+}
+
+// Tepside tek düğme kaldı ve o düğme (.faculty-fab) yalnızca "Üniversite
+// Protokol Sırası" listesinde .active-list alarak görünüyor (app.js:1357).
+// İl listesindeyken düğme display:none olduğu için tepsi BOŞ bir cam hap
+// olarak ekranda kalırdı; bu yüzden görünür çocuğu olmayan tepsi tamamen
+// gizleniyor. style.css zaten :has() kullandığı için (bkz. body:has(#modalBg.open)
+// kuralları) tarayıcı desteği bu proje için sorun değil.
+body[data-page="dashboard-2"] .mobile-glass-nav:not(:has(.faculty-fab.active-list)) {
+  display: none !important;
+}
+
+// ── KAYDIRMA HATASI (kullanıcı bildirimi: "imleç içerikteyken tekerlek
+//    kaydırmıyor, topbarın üstündeyken çalışıyor") ──
+// _tokens.scss html ve body'ye overscroll-behavior-y:none veriyor (iOS rubber-band
+// düzeltmesi). Diğer panel sayfalarında bu zararsız. AMA Analitik'te style.css de
+// yükleniyor ve o, html/body'ye overflow-x:hidden koyuyor -- CSS kuralına göre bir
+// eksen "visible" değilse DİĞER eksen otomatik "auto" olur, yani body burada
+// KENDİ BAŞINA bir kaydırma kutusuna dönüşüyor. body'nin kendi içeriği taşmadığı
+// için (scrollHeight == clientHeight) kaydırmayı görüntü alanına DEVRETMESİ
+// gerekir; overscroll-behavior-y:none tam olarak bu devretmeyi (scroll chaining)
+// engellediğinden tekerlek olayı yutuluyor ve sayfa hiç kaymıyor. Topbar
+// position:fixed olduğu, yani body'nin kaydırma kutusunun DIŞINDA kaldığı için
+// orada tekerlek doğrudan görüntü alanına gidiyor ve çalışıyor -- bildirilen
+// belirtinin birebir açıklaması.
+//
+// Bu projede AYNI hata daha önce yaşanmış: style.css:62'deki 2026-08-24 tarihli
+// not, html/body'ye site genelinde overscroll-behavior-y:none konduğunda
+// "Android 16'da SADECE sıçramayı değil TÜM DİKEY KAYDIRMAYI devre dışı
+// bıraktığını" yazıp kuralı kaldırdıklarını söylüyor.
+//
+// Çözüm: kuralı SADECE bu sayfada etkisizleştir. Diğer admin sayfalarının
+// iOS rubber-band düzeltmesine DOKUNULMUYOR.
+html:has(body[data-page="dashboard-2"]),
+body[data-page="dashboard-2"] {
+  overscroll-behavior-y: auto;
+}

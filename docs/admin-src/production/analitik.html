@@ -171,7 +171,13 @@
 		     düğmeler. Metin gittiği için erişilebilirlik aria-label/title ile sağlanıyor.
 		     Mobil/tablet: sol panel yerine alttan yukarı açılan filtre çekmecesi (bottom sheet). -->
 		<div class="mobile-glass-nav" id="mobileGlassNav">
-			<button type="button" class="calendar-fab" id="calendarFab" onclick="openCalendar()" aria-label="Etkinlik Takvimi" title="Etkinlik Takvimi"><svg class="ikon"><use href="#i-takvim"/></svg></button>
+			<!-- "Etkinlik Takvimi" FAB'ı kaldırıldı (kullanıcı isteği): openCalendar()
+			     bu sayfada PAGE !== "takvim" olduğu için takvim.html'e (eski genel
+			     siteye) yönlendirip kullanıcıyı panelden dışarı atıyordu; panelin
+			     kendi Takvim sayfası zaten sol menüde var. app.js'teki
+			     calOriginRect() #calendarFab'ı null kontrollü kullandığı için
+			     (fab && fab.offsetParent!==null) kaldırmak güvenli.
+			     Tepside SADECE faculty-fab kaldı ve tepsi sağa alındı (_pages.scss). -->
 			<!-- "Admin Paneli" FAB'ı kaldırıldı: openAdminPanel() bu sayfada
 			     PAGE !== "admin" olduğu için location.href="admin.html" yapıyordu ve
 			     admin.html artık hiç YOK -> 404. Ayrıca kullanıcı zaten yönetim
