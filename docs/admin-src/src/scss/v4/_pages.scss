@@ -893,3 +893,87 @@ body[data-page="dashboard-2"] .actions-row .btn-danger-outline:active {
   transform: translateY(1px);
   box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
+
+// ════════════════════════════════════════════════════════════
+//  UYARLAMA (/impeccable adapt) — dokunmatik ve dar ekran
+// ════════════════════════════════════════════════════════════
+// PRODUCT.md: saha (telefon, etkinlik anı) ve masabaşı EŞİT ağırlıkta.
+// Ölçüm: 320/390/768/1440px'te panelin beş ana sayfası tarandı.
+//
+// Eşik ekran genişliğine değil GİRİŞ YÖNTEMİNE bağlanıyor (pointer: coarse):
+// dokunmatik ekranlı bir dizüstü 1440px'tir ama yine de parmakla kullanılır;
+// genişliğe bakan bir kural onu kaçırır.
+
+// ── 1) Dar ekranda taşan aksiyon butonları (320px'te 8px kırpılıyordu) ──
+// Kök sebep: .actions-left / .actions-right "grid-template-columns: 1fr 1fr".
+// "1fr" aslında "minmax(auto, 1fr)" demek ve auto tabanı MIN-CONTENT'tir --
+// "Hepsini Doğrulanmadı İşaretle" gibi uzun etiketli bir buton kendi
+// min-content genişliğinin altına inemeyince rayı şişiriyordu. Ölçülen:
+// 256px'lik kapsayıcıda 113px + 175px + 8px = 296px sütun (40px taşma).
+// body{overflow-x:hidden} taşmayı gizlediği için yatay kaydırma bile
+// çıkmıyor, butonların sağ kenarı sessizce kırpılıyordu.
+// minmax(0, 1fr) rayın min-content'in ALTINA inmesine izin verir; metin
+// zaten sarmalandığı için kırpılma olmadan sığıyor.
+body[data-page="dashboard-2"] .actions-left,
+body[data-page="dashboard-2"] .actions-right {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+@media (pointer: coarse) {
+  // ── 2) Kart üzerindeki "Düzenle" dokunma hedefi ──
+  // Ölçülen: 62x20 px -- önerilen 44x44'ün yarısından küçük, üstelik
+  // ekrandaki her kartta (24 adet) tekrarlıyor ve sahadaki BİRİNCİL eylem.
+  // Kullanıcı kararı: butonu büyüt (kartların bir miktar uzaması kabul edildi).
+  // min-height kullanılıyor ki 3'lü/4'lü yoğun görünümlerin kendi küçültülmüş
+  // padding/font kuralları korunsun -- yalnızca dokunma yüksekliği garanti altına alınır.
+  body[data-page="dashboard-2"] .card-edit {
+    min-height: 44px;
+  }
+
+  // ── 3) Panel üst çubuğundaki simge butonları ──
+  // 32x32 (menü/tema/bildirim/avatar). Fare için yeterli, parmak için değil.
+  // Görsel boyut BÜYÜTÜLMÜYOR -- yalnızca basılabilir alan büyütülüyor, böylece
+  // üst çubuğun yoğun düzeni ve hizası aynen korunuyor.
+  .topbar .tb-btn,
+  .topbar .tb-avatar,
+  .topbar .sidebar-toggle {
+    position: relative;
+  }
+  .topbar .tb-btn::after,
+  .topbar .tb-avatar::after,
+  .topbar .sidebar-toggle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    // Görünmez; yalnızca dokunma alanını genişletir.
+    // Üst çubuk öğeleri arasında ~8px boşluk var, 44px alanlar hafifçe
+    // örtüşebilir; z-index sırası DOM sırasını izlediği için en sağdaki
+    // (avatar) üstte kalır ve yanlış hedefe basma riski taşımaz.
+    pointer-events: auto;
+  }
+
+  // ── 4) Aksiyon satırı, durum sekmeleri ve arama kutusu ──
+  // Ölçülen: aksiyon butonları 159x32, durum sekmeleri (Aktif/Arşiv/Silinenler)
+  // 97x29 ve 77x24, arama kutusu 300x38. Genişlikleri yeterli, EKSİK OLAN YÜKSEKLİK.
+  // Bunlar sahadaki birincil kontroller (Yeni Kişi, Sıralamayı Düzenle, Haber
+  // Çıktısı, liste filtreleri) -- kart butonuyla aynı karar burada da uygulanıyor.
+  // Yalnızca min-height veriliyor: yazı tipi, dolgu ve renkler olduğu gibi kalıyor.
+  body[data-page="dashboard-2"] .actions-row .btn,
+  body[data-page="dashboard-2"] #statusToggle button,
+  body[data-page="dashboard-2"] .list-switch button,
+  body[data-page="dashboard-2"] #search {
+    min-height: 44px;
+  }
+
+  // ── 4) Takvim detay panelindeki alt butonlar ──
+  // Ölçümde 322x15 px görüldü: yatayda geniş ama dikeyde ezilmiş.
+  // Sebep flex kısıtı; min-height ezilmeyi kesin olarak durduruyor.
+  .cal-peek-foot .btn,
+  .cal-quick-btn {
+    min-height: 44px;
+  }
+}
