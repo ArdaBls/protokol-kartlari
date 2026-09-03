@@ -246,7 +246,12 @@ function editorEventActivity(echarts, el, t) {
       return {
         name,
         type: 'line',
-        stack: 'total',
+        // NOT: stack:'total' KULLANMA -- bu satırlar birbirinden bağımsız kişi
+        // sayıları, kümülatif parçalar değil. Stack'liyken 0 olan biri, bir
+        // önceki kişinin toplamının üstüne yığılıp o kişinin çizgisiyle aynı
+        // yükseklikte görünüyordu (tooltip doğru ham değeri -- 0 -- gösterse
+        // de çizgi yanlış yerde duruyordu). Kullanıcı bulgusu: "Nur ağustosta
+        // 0 iken Arda'nın çizgisine biniyor, üstüne gelince 0 yazıyor".
         smooth: true,
         showSymbol: false,
         lineStyle: { color, width: 1.5 },
