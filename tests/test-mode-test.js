@@ -156,7 +156,6 @@ function serve() {
 		const debugLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test debug işlemi');
 		return {
 			bannerVisible: document.getElementById('testModeBanner').style.display === 'flex',
-			switchChecked: document.getElementById('testModeSwitch').checked === true,
 			personWentToTest: !!personSet,
 			personDidNotTouchReal: !realPersonSet,
 			eventLogWentToTest: !!eventLog && eventLog.path === 'test/logs/etkinlik',
@@ -178,7 +177,6 @@ function serve() {
 		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi 2');
 		return {
 			bannerHidden: document.getElementById('testModeBanner').style.display === 'none',
-			switchUnchecked: document.getElementById('testModeSwitch').checked === false,
 			personWentToReal: !!personSet,
 			eventLogWentToReal: !!eventLog && eventLog.path === 'logs/etkinlik'
 		};

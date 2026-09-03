@@ -31,6 +31,8 @@
     <!-- ── SECTION NAV ── -->
     <aside class="settings-nav">
       <a class="settings-nav-link active" href="#account"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg> Hesap</a>
+      <a class="settings-nav-link" href="#test-mode"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2h4M7 2v3.5L4 12a1.5 1.5 0 001.4 2h5.2a1.5 1.5 0 001.4-2L9 5.5V2"/></svg> Test Modu</a>
+      <a class="settings-nav-link" href="#json"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h6l4 4v8a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M9 2v4h4"/></svg> JSON</a>
       <div class="settings-nav-sep"></div>
       <a class="settings-nav-link danger" href="#danger"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 12h.01"/></svg> Tehlikeli bölge</a>
     </aside>
@@ -82,6 +84,56 @@
             <button type="submit" class="btn btn-primary">Değişiklikleri kaydet</button>
           </div>
         </form>
+      </section>
+
+      <!-- TEST MODU (kullanıcı isteği: eskiden protokol.html'in "Admin Panel" modalının
+           içinde kenarda duruyordu -- ayarları unutmak/bulmakta zorlanmak kolaydı, bkz.
+           bu oturumdaki "testModuAcik açık kalmış" olayı. Tek yetkili kaynak burası. -->
+      <section class="settings-section" id="test-mode">
+        <h2 class="settings-section-title">Test Modu</h2>
+        <p class="settings-section-desc">Paylaşımlı bir test ortamı -- açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) gerçek verinin yerine geçici bir kopyasını görür.</p>
+        <div class="danger-row">
+          <div>
+            <div class="label">Paylaşımlı Test Ortamı</div>
+            <div class="desc">Açıkken gerçek İl/Üniversite/Etkinlik verisinin TAZE bir kopyası ayrı bir test alanına klonlanır; yapılan hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca site otomatik olarak gerçek veriye döner.</div>
+          </div>
+          <div class="access-toggle" id="testModeToggle" role="switch" aria-checked="false" tabindex="0" title="Test modunu aç/kapat"></div>
+        </div>
+        <div class="settings-hint" id="test-mode-status" style="margin-top:10px">Durum kontrol ediliyor…</div>
+      </section>
+
+      <!-- JSON (kullanıcı isteği: protokol.html'deki İl/Üniversite JSON İndir/Yükle
+           butonları buraya taşındı ve oradan tamamen kaldırıldı -- tek yetkili kaynak
+           burası. Takvim (etkinlikler) için de aynı desende eklendi. Her kategori
+           kendi Yükle/İndir çiftini taşır, birbirinden bağımsızdır. -->
+      <section class="settings-section" id="json">
+        <h2 class="settings-section-title">JSON</h2>
+        <p class="settings-section-desc">Her kategori için ayrı yedek indirme ve JSON'dan geri yükleme. Geri yükleme İKİ modu destekler: Birleştir (eşleşen kayıtlar güncellenir, yeni olanlar eklenir) ve Tamamen Geri Yükle (mevcut tüm kayıtlar silinir, geri alınamaz).</p>
+
+        <div class="danger-row">
+          <div><div class="label">İl Protokolü</div><div class="desc">İl Protokol Sırası listesinin JSON yedeği</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" data-json-upload="il">JSON Yükle</button>
+            <input type="file" id="json-file-il" accept="application/json" hidden>
+            <button type="button" class="btn btn-outline btn-sm" data-json-download="il">JSON İndir</button>
+          </div>
+        </div>
+        <div class="danger-row">
+          <div><div class="label">Üniversite Protokolü</div><div class="desc">Üniversite Protokol Sırası listesinin JSON yedeği</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" data-json-upload="universite">JSON Yükle</button>
+            <input type="file" id="json-file-universite" accept="application/json" hidden>
+            <button type="button" class="btn btn-outline btn-sm" data-json-download="universite">JSON İndir</button>
+          </div>
+        </div>
+        <div class="danger-row">
+          <div><div class="label">Takvim</div><div class="desc">Etkinlik takviminin JSON yedeği -- geri yükleme her zaman TAMAMEN GERİ YÜKLE olarak çalışır</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" data-json-upload="takvim">JSON Yükle</button>
+            <input type="file" id="json-file-takvim" accept="application/json" hidden>
+            <button type="button" class="btn btn-outline btn-sm" data-json-download="takvim">JSON İndir</button>
+          </div>
+        </div>
       </section>
 
       <!-- DANGER -->
@@ -147,6 +199,22 @@ function fillSettingsForm() {
   applyAvatarPreview(name, u.avatarUrl);
 }
 
+// Test Modu ve JSON bölümleri eskiden protokol.html'in Admin Panel modalında
+// admin-only'ydi (bkz. o dosyadaki .admin-only sınıfı) -- editöre kapalı kalması
+// kuralı burada da korunuyor: kurumsal veriyi toplu değiştirebilen bir araç,
+// PRODUCT.md'nin "protokol sıralaması kurumsal olarak bağlayıcıdır" kısıtına göre
+// yalnızca admin/owner'a açık olmalı.
+function applyJsonSectionAccess(role) {
+  const tamYetkili = role === 'admin' || role === 'owner';
+  ['test-mode', 'json'].forEach((id) => {
+    const section = document.getElementById(id);
+    const navLink = document.querySelector(`.settings-nav-link[href="#${id}"]`);
+    if (section) { section.hidden = !tamYetkili; }
+    if (navLink) { navLink.hidden = !tamYetkili; }
+  });
+  if (tamYetkili) { initTestModeSection(); initJsonSection(); }
+}
+
 auth.onAuthStateChanged((user) => {
   if (!user) { window.location.href = 'giris.html'; return; }
   currentUid = user.uid;
@@ -154,6 +222,7 @@ auth.onAuthStateChanged((user) => {
   database.ref('users/' + currentUid).once('value').then((snap) => {
     currentData = snap.val() || {};
     fillSettingsForm();
+    applyJsonSectionAccess(currentData.role || 'pending');
   }).catch((err) => {
     console.error('Ayarlar yüklenemedi:', err);
     showToast('Ayarlar yüklenemedi.', { variant: 'error' });
@@ -281,6 +350,287 @@ exportBtn.addEventListener('click', () => {
     exportBtn.textContent = originalLabel;
   });
 });
+
+// ── Ortak indirme yardımcısı (app.js'teki downloadFile() ile aynı desen) ──
+function downloadFile(content, fileName, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+// ── TEST MODU (kullanıcı isteği: eskiden protokol.html'in Admin Panel modalında
+//    kenarda duran testModeSwitch buraya taşındı, tek yetkili kaynak burası) ──
+function initTestModeSection() {
+  const toggle = document.getElementById('testModeToggle');
+  const statusEl = document.getElementById('test-mode-status');
+  let busy = false;
+
+  database.ref('ayarlar/testModuAcik').on('value', (snap) => {
+    const on = !!snap.val();
+    toggle.classList.toggle('on', on);
+    toggle.setAttribute('aria-checked', on ? 'true' : 'false');
+    statusEl.textContent = on
+      ? 'Açık — site şu anda paylaşımlı test verisini gösteriyor.'
+      : 'Kapalı — site gerçek veriyi gösteriyor.';
+  }, (err) => {
+    console.error('Test modu durumu okunamadı:', err);
+    statusEl.textContent = 'Durum okunamadı.';
+  });
+
+  // app.js'teki cloneRealDataToTestMode() ile AYNI davranış: test/ dalı ilk
+  // açıldığında boşsa site boş görünür -- açılış anında gerçek verinin TAZE
+  // bir kopyası test/'e yazılır. Bunu atlarsak eski/boş bir test kopyası
+  // gösterilebilirdi (bu davranış app.js'te zaten çözülmüş, burada AYNEN
+  // tekrarlanıyor -- ayrı bir kaynak, tek yetkili davranış).
+  async function cloneRealDataToTestMode() {
+    const paths = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'basinGorevlileri'];
+    const snaps = await Promise.all(paths.map((p) => database.ref(p).once('value')));
+    await Promise.all(paths.map((p, i) => database.ref('test/' + p).set(snaps[i].val())));
+  }
+
+  async function toggleTestMode() {
+    if (busy) { return; }
+    const next = !toggle.classList.contains('on');
+    if (next && !confirm('Paylaşımlı Test Ortamı açılacak. Siteyi ziyaret eden HERKES (sahadaki ekip dahil) gerçek verinin yerine geçici bir kopyasını görecek. Devam edilsin mi?')) { return; }
+    busy = true;
+    try {
+      if (next) { showToast('Test ortamı hazırlanıyor…', { variant: 'info' }); await cloneRealDataToTestMode(); }
+      await database.ref('ayarlar/testModuAcik').set(next);
+      showToast(next ? 'Test modu açıldı.' : 'Test modu kapatıldı.', { variant: 'success' });
+    } catch (err) {
+      console.error('Test modu değiştirilemedi:', err);
+      showToast('Test modu değiştirilemedi.', { variant: 'error' });
+    } finally {
+      busy = false;
+    }
+  }
+  toggle.addEventListener('click', toggleTestMode);
+  toggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTestMode(); }
+  });
+}
+
+// ── JSON: İl/Üniversite Protokolü + Takvim (kullanıcı isteği: protokol.html'deki
+//    kart listesi JSON İndir/Yükle butonları buraya taşındı ve oradan kaldırıldı) ──
+function initJsonSection() {
+  const VALID_STATUS = { aktif: 1, pasif: 1, silindi: 1 };
+  // cleanRank/cleanDate: app.js'in importJSON()'undaki AYNI koruma -- doğrulanmadan
+  // kabul edilirse rank:null -> Number(null)=0 olup kişiyi Rektör'ün üstüne çıkarır,
+  // rank:"abc" -> NaN olup TÜM içe aktarmayı sessizce bozar.
+  function cleanRank(v, fallback) {
+    if (v === undefined || v === null || v === '') { return fallback === undefined ? '' : fallback; }
+    const n = Number(v);
+    return (isNaN(n) || n < 0) ? (fallback === undefined ? '' : fallback) : n;
+  }
+  function cleanDate(v) {
+    const s = String(v === undefined || v === null ? '' : v).trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+  }
+  // app.js'in importJSON()'undaki AYNI koruma: yedek dosyasından gelen görev
+  // geçmişi doğrulanmadan yazılırsa bilinmeyen alanlar veritabanına sızabilir;
+  // yalnızca bilinen üç alan (unvan zorunlu, tarihler formatlanmış) kabul edilir.
+  function sanitizeGorevGecmisi(arr) {
+    return arr.map((g) => {
+      if (!g || typeof g !== 'object') { return null; }
+      const unvan = String(g.unvan === undefined || g.unvan === null ? '' : g.unvan).trim();
+      if (!unvan) { return null; }
+      return { unvan, baslangic: cleanDate(g.baslangic), bitis: cleanDate(g.bitis) };
+    }).filter(Boolean);
+  }
+
+  // ── İl / Üniversite Protokolü: ikisi de AYNI şema, yalnızca Firebase yolu farklı ──
+  function registerPeopleCategory(key, dbPathName, fileLabel) {
+    const downloadBtn = document.querySelector(`[data-json-download="${key}"]`);
+    const uploadBtn = document.querySelector(`[data-json-upload="${key}"]`);
+    const fileInput = document.getElementById(`json-file-${key}`);
+
+    downloadBtn.addEventListener('click', () => {
+      downloadBtn.disabled = true;
+      database.ref(dbPathName).once('value').then((snap) => {
+        downloadFile(JSON.stringify(snap.val() || {}, null, 2), `${fileLabel}.json`, 'application/json');
+        showToast('JSON yedeği indirildi.', { variant: 'success' });
+      }).catch((err) => {
+        console.error('JSON indirilemedi:', err);
+        showToast('JSON indirilemedi.', { variant: 'error' });
+      }).finally(() => { downloadBtn.disabled = false; });
+    });
+
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if (!file) { return; }
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        let parsed;
+        try { parsed = JSON.parse(ev.target.result); } catch (err) { showToast('Dosya hatalı veya bozuk!', { variant: 'error' }); return; }
+        // Hem eski dizi-tabanlı bir yedeği hem de push-ID'li nesne formatını kabul et.
+        const data = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === 'object' ? Object.values(parsed) : null);
+        if (!data) { showToast('Format hatalı.', { variant: 'error' }); return; }
+
+        const fullRestoreWanted = confirm(
+          'İçe Aktarma Modu\n\n' +
+          'TAMAM: Tamamen Geri Yükle — mevcut listedeki TÜM kayıtlar SİLİNİR, sadece bu dosyadaki kayıtlar kalır (GERİ ALINAMAZ).\n' +
+          'İPTAL: Birleştir (varsayılan) — eşleşen kayıtlar güncellenir, yeni olanlar eklenir, listedeki diğer kayıtlara dokunulmaz.'
+        );
+
+        let skipped = 0;
+        try {
+          if (fullRestoreWanted) {
+            const existingSnap = await database.ref(dbPathName).once('value');
+            const existingCount = Object.keys(existingSnap.val() || {}).length;
+            if (!confirm(`TAMAMEN GERİ YÜKLE seçildi. Mevcut ${existingCount} kayıt SİLİNECEK ve yerine bu dosyadaki kayıtlar yazılacak. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?`)) {
+              showToast('İçe aktarma iptal edildi.', { variant: 'warning' }); return;
+            }
+            const fresh = {};
+            data.forEach((item) => {
+              if (!item || typeof item !== 'object' || !item.name || !item.title) { skipped++; return; }
+              const id = database.ref(dbPathName).push().key;
+              const status = (item.status && VALID_STATUS[item.status]) ? item.status : 'aktif';
+              const record = {
+                prefix: item.prefix ? String(item.prefix) : '', name: String(item.name).trim(), title: String(item.title).trim(),
+                unit: item.unit ? String(item.unit) : '', status, rank: cleanRank(item.rank),
+                photo: item.photo ? String(item.photo) : '', start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
+              };
+              const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
+              if (Array.isArray(item.faculties)) { record.faculties = item.faculties.map(String); }
+              if (Array.isArray(item.gorevGecmisi)) { record.gorevGecmisi = sanitizeGorevGecmisi(item.gorevGecmisi); }
+              fresh[id] = record;
+            });
+            if (!Object.keys(fresh).length) { showToast('İçe aktarılacak geçerli kayıt yok.', { variant: 'error' }); return; }
+            await database.ref(dbPathName).set(fresh);
+            showToast(`${Object.keys(fresh).length} kayıtla liste tamamen değiştirildi.${skipped ? ' ' + skipped + ' geçersiz satır atlandı.' : ''}`, { variant: 'success' });
+          } else {
+            const existingSnap = await database.ref(dbPathName).once('value');
+            const existing = existingSnap.val() || {};
+            const patch = {};
+            let matchCount = 0, newCount = 0;
+            data.forEach((item) => {
+              if (!item || typeof item !== 'object' || !item.name || !item.title) { skipped++; return; }
+              const name = String(item.name).trim(), title = String(item.title).trim();
+              const status = (item.status && VALID_STATUS[item.status]) ? item.status : 'aktif';
+              const existingId = Object.keys(existing).find((id) => String(existing[id].name || '').trim() === name && String(existing[id].title || '').trim() === title);
+              if (existingId) {
+                matchCount++;
+                patch[existingId + '/rank'] = (() => { const r = cleanRank(item.rank, existing[existingId].rank); return r === '' ? null : r; })();
+                patch[existingId + '/status'] = status;
+                if (item.prefix) { patch[existingId + '/prefix'] = String(item.prefix); }
+                if (item.unit !== undefined && item.unit !== null) { patch[existingId + '/unit'] = String(item.unit); }
+                if (Array.isArray(item.faculties)) { patch[existingId + '/faculties'] = item.faculties.map(String); }
+              } else {
+                newCount++;
+                const newId = database.ref(dbPathName).push().key;
+                const record = {
+                  prefix: item.prefix ? String(item.prefix) : '', name, title, unit: item.unit ? String(item.unit) : '',
+                  status, rank: cleanRank(item.rank), photo: item.photo ? String(item.photo) : '',
+                  start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
+                };
+                const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
+                if (Array.isArray(item.faculties)) { record.faculties = item.faculties.map(String); }
+                if (Array.isArray(item.gorevGecmisi)) { record.gorevGecmisi = sanitizeGorevGecmisi(item.gorevGecmisi); }
+                patch[newId] = record;
+              }
+            });
+            if (!Object.keys(patch).length) { showToast('İçe aktarılacak geçerli kayıt yok.', { variant: 'error' }); return; }
+            await database.ref(dbPathName).update(patch);
+            showToast(`${matchCount} kayıt güncellendi. ${newCount} kayıt eklendi.${skipped ? ' ' + skipped + ' geçersiz satır atlandı.' : ''}`, { variant: 'success' });
+          }
+        } catch (err) {
+          console.error('JSON içe aktarılamadı:', err);
+          showToast('JSON içe aktarılamadı.', { variant: 'error' });
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+  registerPeopleCategory('il', 'ilProtokolVerileri', 'İl-Protokol-Listesi');
+  registerPeopleCategory('universite', 'universiteProtokolVerileri', 'Üniversite-Protokol-Listesi');
+
+  // ── Takvim: app.js'teki exportEventsJSON()/importEventsJSON() ile AYNI şema ve
+  //    doğrulama, standalone (app.js'in in-memory calEvents/currentUser'ına bağlı
+  //    değil) -- her zaman TAMAMEN GERİ YÜKLE (mevcut akışla aynı, birleştirme yok). ──
+  const calDownloadBtn = document.querySelector('[data-json-download="takvim"]');
+  const calUploadBtn = document.querySelector('[data-json-upload="takvim"]');
+  const calFileInput = document.getElementById('json-file-takvim');
+
+  calDownloadBtn.addEventListener('click', () => {
+    calDownloadBtn.disabled = true;
+    database.ref('etkinlikler').once('value').then((snap) => {
+      const etkinlikler = snap.val() || {};
+      const payload = { yedekTarihi: new Date().toISOString(), kayitSayisi: Object.keys(etkinlikler).length, etkinlikler };
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      downloadFile(JSON.stringify(payload, null, 2), `Etkinlik-Takvimi-Yedek-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`, 'application/json');
+      showToast('Etkinlik JSON yedeği indirildi.', { variant: 'success' });
+    }).catch((err) => {
+      console.error('Etkinlikler indirilemedi:', err);
+      showToast('Etkinlikler indirilemedi.', { variant: 'error' });
+    }).finally(() => { calDownloadBtn.disabled = false; });
+  });
+
+  calUploadBtn.addEventListener('click', () => calFileInput.click());
+  calFileInput.addEventListener('change', () => {
+    const file = calFileInput.files && calFileInput.files[0];
+    calFileInput.value = '';
+    if (!file) { return; }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      let parsed;
+      try { parsed = JSON.parse(ev.target.result); } catch (err) { showToast('Dosya hatalı veya bozuk!', { variant: 'error' }); return; }
+      const raw = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.etkinlikler && typeof parsed.etkinlikler === 'object') ? parsed.etkinlikler : parsed;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { showToast('Format hatalı.', { variant: 'error' }); return; }
+
+      function parseKeyValid(tarih) { return /^\d{4}-\d{2}-\d{2}$/.test(String(tarih || '')); }
+      const clean = {}; let kept = 0, skipped = 0;
+      Object.keys(raw).forEach((rawKey) => {
+        const item = raw[rawKey];
+        if (!item || typeof item !== 'object' || !item.ad || !parseKeyValid(item.tarih)) { skipped++; return; }
+        const key = /^[A-Za-z0-9_-]+$/.test(rawKey) ? rawKey : database.ref('etkinlikler').push().key;
+        clean[key] = {
+          ad: String(item.ad).trim(), tur: item.tur ? String(item.tur) : 'diger', durum: item.durum ? String(item.durum) : 'planlandi',
+          tarih: String(item.tarih), saat: item.saat ? String(item.saat) : '', bitisSaat: item.bitisSaat ? String(item.bitisSaat) : '',
+          yer: item.yer ? String(item.yer) : '', birim: item.birim ? String(item.birim) : '',
+          planlayan: item.planlayan ? String(item.planlayan) : '', gorevli: item.gorevli ? String(item.gorevli) : '',
+          haberYazanlari: item.haberYazanlari ? String(item.haberYazanlari) : '', haberMetni: item.haberMetni ? String(item.haberMetni) : '',
+          katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter((a) => a && typeof a === 'object').map((a) => ({ prefix: String(a.prefix || ''), name: String(a.name || ''), title: String(a.title || ''), rank: (a.rank !== undefined && a.rank !== null) ? a.rank : '', kaynak: a.kaynak === 'il' ? 'il' : 'universite' })),
+          locked: !!item.locked,
+          rozetler: Array.isArray(item.rozetler) ? item.rozetler.map(String) : [],
+          haberKaynagi: ['İHA', 'AA', 'DHA', 'ANKA'].indexOf(item.haberKaynagi) !== -1 ? item.haberKaynagi : '',
+          arsiv: item.arsiv ? String(item.arsiv) : '', not: item.not ? String(item.not) : '',
+          olusturan: item.olusturan ? String(item.olusturan) : '', olusturmaTs: item.olusturmaTs || firebase.database.ServerValue.TIMESTAMP,
+          guncellemeTs: firebase.database.ServerValue.TIMESTAMP
+        };
+        kept++;
+      });
+      if (!kept) { showToast('Yedekte geçerli etkinlik bulunamadı.', { variant: 'error' }); return; }
+
+      try {
+        const existingSnap = await database.ref('etkinlikler').once('value');
+        const existingCount = Object.keys(existingSnap.val() || {}).length;
+        if (!confirm(`${kept} etkinlik içeren bu yedek, veritabanındaki MEVCUT TÜM ETKİNLİKLERİN (${existingCount} kayıt) YERİNE GEÇECEK. Bu işlem geri alınamaz. Devam edilsin mi?`)) { return; }
+        await database.ref('etkinlikler').set(clean);
+        if (currentUid) {
+          database.ref('logs/etkinlik').push({
+            by: ((currentData.firstName || '') + ' ' + (currentData.lastName || '')).trim() || currentEmail,
+            email: currentEmail, action: `Etkinlik takvimi JSON yedekten geri yüklendi (${kept} kayıt${skipped ? ', ' + skipped + ' geçersiz satır atlandı' : ''})`,
+            target: '', timestamp: firebase.database.ServerValue.TIMESTAMP
+          }).catch((err) => console.error('Log yazılamadı:', err));
+        }
+        showToast(`${kept} etkinlik geri yüklendi.${skipped ? ' ' + skipped + ' geçersiz satır atlandı.' : ''}`, { variant: 'success' });
+      } catch (err) {
+        console.error('Etkinlikler içe aktarılamadı:', err);
+        showToast('Etkinlikler içe aktarılamadı.', { variant: 'error' });
+      }
+    };
+    reader.readAsText(file);
+  });
+}
 
 // Section nav: scroll to anchor + set active.
 const navLinks = document.querySelectorAll('.settings-nav-link');

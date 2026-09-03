@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/ayarlar-Dk6DPzua.js"></script>
+  <script type="module" crossorigin src="/js/ayarlar-DUvUbkov.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
@@ -200,6 +200,8 @@
     <!-- ── SECTION NAV ── -->
     <aside class="settings-nav">
       <a class="settings-nav-link active" href="#account"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg> Hesap</a>
+      <a class="settings-nav-link" href="#test-mode"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2h4M7 2v3.5L4 12a1.5 1.5 0 001.4 2h5.2a1.5 1.5 0 001.4-2L9 5.5V2"/></svg> Test Modu</a>
+      <a class="settings-nav-link" href="#json"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h6l4 4v8a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M9 2v4h4"/></svg> JSON</a>
       <div class="settings-nav-sep"></div>
       <a class="settings-nav-link danger" href="#danger"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 12h.01"/></svg> Tehlikeli bölge</a>
     </aside>
@@ -251,6 +253,56 @@
             <button type="submit" class="btn btn-primary">Değişiklikleri kaydet</button>
           </div>
         </form>
+      </section>
+
+      <!-- TEST MODU (kullanıcı isteği: eskiden protokol.html'in "Admin Panel" modalının
+           içinde kenarda duruyordu -- ayarları unutmak/bulmakta zorlanmak kolaydı, bkz.
+           bu oturumdaki "testModuAcik açık kalmış" olayı. Tek yetkili kaynak burası. -->
+      <section class="settings-section" id="test-mode">
+        <h2 class="settings-section-title">Test Modu</h2>
+        <p class="settings-section-desc">Paylaşımlı bir test ortamı -- açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) gerçek verinin yerine geçici bir kopyasını görür.</p>
+        <div class="danger-row">
+          <div>
+            <div class="label">Paylaşımlı Test Ortamı</div>
+            <div class="desc">Açıkken gerçek İl/Üniversite/Etkinlik verisinin TAZE bir kopyası ayrı bir test alanına klonlanır; yapılan hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca site otomatik olarak gerçek veriye döner.</div>
+          </div>
+          <div class="access-toggle" id="testModeToggle" role="switch" aria-checked="false" tabindex="0" title="Test modunu aç/kapat"></div>
+        </div>
+        <div class="settings-hint" id="test-mode-status" style="margin-top:10px">Durum kontrol ediliyor…</div>
+      </section>
+
+      <!-- JSON (kullanıcı isteği: protokol.html'deki İl/Üniversite JSON İndir/Yükle
+           butonları buraya taşındı ve oradan tamamen kaldırıldı -- tek yetkili kaynak
+           burası. Takvim (etkinlikler) için de aynı desende eklendi. Her kategori
+           kendi Yükle/İndir çiftini taşır, birbirinden bağımsızdır. -->
+      <section class="settings-section" id="json">
+        <h2 class="settings-section-title">JSON</h2>
+        <p class="settings-section-desc">Her kategori için ayrı yedek indirme ve JSON'dan geri yükleme. Geri yükleme İKİ modu destekler: Birleştir (eşleşen kayıtlar güncellenir, yeni olanlar eklenir) ve Tamamen Geri Yükle (mevcut tüm kayıtlar silinir, geri alınamaz).</p>
+
+        <div class="danger-row">
+          <div><div class="label">İl Protokolü</div><div class="desc">İl Protokol Sırası listesinin JSON yedeği</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" data-json-upload="il">JSON Yükle</button>
+            <input type="file" id="json-file-il" accept="application/json" hidden>
+            <button type="button" class="btn btn-outline btn-sm" data-json-download="il">JSON İndir</button>
+          </div>
+        </div>
+        <div class="danger-row">
+          <div><div class="label">Üniversite Protokolü</div><div class="desc">Üniversite Protokol Sırası listesinin JSON yedeği</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" data-json-upload="universite">JSON Yükle</button>
+            <input type="file" id="json-file-universite" accept="application/json" hidden>
+            <button type="button" class="btn btn-outline btn-sm" data-json-download="universite">JSON İndir</button>
+          </div>
+        </div>
+        <div class="danger-row">
+          <div><div class="label">Takvim</div><div class="desc">Etkinlik takviminin JSON yedeği -- geri yükleme her zaman TAMAMEN GERİ YÜKLE olarak çalışır</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" data-json-upload="takvim">JSON Yükle</button>
+            <input type="file" id="json-file-takvim" accept="application/json" hidden>
+            <button type="button" class="btn btn-outline btn-sm" data-json-download="takvim">JSON İndir</button>
+          </div>
+        </div>
       </section>
 
       <!-- DANGER -->

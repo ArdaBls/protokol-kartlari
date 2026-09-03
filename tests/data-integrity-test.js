@@ -10,10 +10,9 @@
      "bitis girilmemis" ile ayni sayip 1 saatlik gibi ciziyordu -- kullanicinin onayladigi
      bilgi ekranda sessizce kayboluyordu. Artik gun sonuna kadar uzatilir.
 
-  3) YEDEKTEN GERI YUKLEMEDE GOREV GECMISI KAYBI: exportJSON() tum "people" nesnesini
-     (gorevGecmisi dahil) yaziyor, ama importJSON() hicbir dalda geri koymuyordu -- yani
-     felaket kurtarma yolunda, tam da en cok ihtiyac duyulan anda her kisinin gorev
-     gecmisi kaliciyor siliniyordu.
+  (3. senaryo -- yedekten geri yuklemede gorev gecmisi kaybi -- app.js'teki importJSON()
+  4 Eylul 2026'da ayarlar.html > JSON bolumune tasindi/kaldirildi; ayni regresyon testi
+  artik ayarlar-json-test.js icinde, yeni konumu hedefliyor.)
 */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -119,34 +118,7 @@ function serve() {
 		};
 	});
 
-	// --- 3) Yedekten tam geri yuklemede gorev gecmisi korunmali ---
-	const restoreHistory = await page.evaluate(async () => {
-		people = {
-			pid1: {
-				name: 'Gecmisi Olan Kisi', title: 'Rektor', prefix: 'Prof. Dr.', unit: 'Rektorluk',
-				status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: 'Onemli not',
-				gorevGecmisi: [
-					{ unvan: 'Dekan', baslangic: '2015-01-01', bitis: '2019-12-31' },
-					{ unvan: 'Bolum Baskani', baslangic: '2010-01-01', bitis: '2014-12-31' }
-				]
-			}
-		};
-		const exported = JSON.stringify(people, null, 2); // exportJSON() ile ayni icerik
-		const origConfirm = window.confirm;
-		window.confirm = () => true; // "Tamamen Geri Yukle" + onayi
-		importJSON({ target: { files: [new File([exported], 'yedek.json', { type: 'application/json' })], value: '' } });
-		await new Promise((r) => setTimeout(r, 900));
-		window.confirm = origConfirm;
-		const after = Object.values(people)[0] || {};
-		return {
-			recordCount: Object.keys(people).length,
-			historyCount: Array.isArray(after.gorevGecmisi) ? after.gorevGecmisi.length : 0,
-			firstUnvan: (after.gorevGecmisi && after.gorevGecmisi[0]) ? after.gorevGecmisi[0].unvan : null,
-			firstBaslangic: (after.gorevGecmisi && after.gorevGecmisi[0]) ? after.gorevGecmisi[0].baslangic : null
-		};
-	});
-
-	const out = { personDouble, eventDouble, midnight, restoreHistory };
+	const out = { personDouble, eventDouble, midnight };
 	console.log(JSON.stringify(out, null, 2));
 
 	const fails = [];
@@ -154,10 +126,6 @@ function serve() {
 	if (eventDouble.eventCount !== 1) fails.push('Etkinlik formu cift tiklamada ' + eventDouble.eventCount + ' kayit olusturdu (1 olmali)');
 	if (midnight.crossingEnd !== 1440) fails.push('Gece yarisini asan etkinlik gun sonuna (1440) kadar uzatilmadi: ' + midnight.crossingEnd);
 	if (midnight.noEndDurationMin !== 60) fails.push('Bitis saati girilmemis etkinligin varsayilan 60 dk suresi bozuldu: ' + midnight.noEndDurationMin);
-	if (restoreHistory.recordCount !== 1) fails.push('Geri yukleme sonrasi kayit sayisi 1 degil: ' + restoreHistory.recordCount);
-	if (restoreHistory.historyCount !== 2) fails.push('Geri yuklemede gorev gecmisi kayboldu (beklenen 2, gelen ' + restoreHistory.historyCount + ')');
-	if (restoreHistory.firstUnvan !== 'Dekan') fails.push('Gorev gecmisi icerigi bozuldu: ' + restoreHistory.firstUnvan);
-	if (restoreHistory.firstBaslangic !== '2015-01-01') fails.push('Gorev gecmisi tarihi bozuldu: ' + restoreHistory.firstBaslangic);
 
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));

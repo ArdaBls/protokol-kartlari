@@ -298,9 +298,8 @@
 
 				<button class="btn btn-ghost edit-only" id="bulkVerifyBtn" onclick="bulkVerifyList(true)" title="Ekranda görünen aktif kayıtların tümünü şimdi doğrulanmış olarak işaretler">Hepsini Doğrula</button>
 				<button class="btn btn-ghost edit-only" id="bulkUnverifyBtn" onclick="bulkVerifyList(false)" title="Ekranda görünen aktif kayıtların tümünü doğrulanmadı olarak işaretler">Hepsini Doğrulanmadı İşaretle</button>
-				<button class="btn btn-ghost admin-only" id="exportBtn" onclick="exportJSON()">JSON İndir</button>
-				<button class="btn btn-ghost admin-only" id="importBtn" onclick="document.getElementById('importFile').click()">JSON Yükle</button>
-				<input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">
+				<!-- Kullanıcı isteği (4 Eylül 2026): İl/Üniversite JSON İndir/Yükle buradan
+				     kaldırıldı, tek yetkili kaynak artık ayarlar.html > JSON bölümü. -->
 			</div>
 			
 			<div class="actions-right">
@@ -1023,19 +1022,11 @@
 						<div class="admin-kpi" id="akTestModeKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-test"/></svg></div><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
 						<div class="admin-kpi" id="akSaltOkunurKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-kilit"/></svg></div><span class="ak-num" id="akSaltOkunur">—</span><span class="ak-label">Salt-Okunur Kilit</span></div>
 					</div>
-					<div class="test-mode-row admin-glass">
-						<div class="tmr-info">
-							<span class="tmr-icon">🧪</span>
-							<div class="tmr-text">
-								<b class="test-mode-title">Paylaşımlı Test Ortamı</b>
-								<span class="tmr-hint">Açıkken herkes sahte veri görür<button type="button" class="tmr-more" title="Açtığında gerçek verinin (İl/Üniversite listeleri, etkinlikler, basın görevlileri) TAZE bir kopyası ayrı bir test alanına klonlanır; site o an SADECE bu kopyayı gösterir. Yaptığın hiçbir değişiklik gerçek veriye dokunmaz. Kapatınca gerçek veri hiç değişmediği için site otomatik olarak eski hâline döner. Anahtar paylaşımlı: açıkken siteyi ziyaret eden HERKES (sahadaki ekip dahil) bu deneme verisini görür, unutma!">ⓘ</button></span>
-							</div>
-						</div>
-						<label class="ios-switch">
-							<input type="checkbox" id="testModeSwitch" onchange="setTestMode(this.checked)">
-							<span class="ios-switch-slider"></span>
-						</label>
-					</div>
+					<!-- Kullanıcı isteği (4 Eylül 2026): Test Modu anahtarı buradan (Admin Panel
+					     modalının kenarından) kaldırıldı, tek yetkili kaynak artık ayarlar.html.
+					     KPI göstergesi (akTestModeKpi, yukarıda) durum ÖZETİ olarak kalıyor;
+					     app.js'teki ayarlar/testModuAcik canlı dinleyicisi ona yazmaya devam
+					     ediyor, sadece açma/kapama kontrolü buradan silindi. -->
 					<div class="admin-content-card admin-glass">
 						<h2 class="admin-main-title" id="adminMainTitle">Kontrol Paneli</h2>
 						<!-- Faz 9-10: dashboard/field-ops/editorial/hierarchy/integrity/dictionary artık
@@ -1101,7 +1092,7 @@
 							</div>
 							<div class="admin-content-card admin-glass">
 								<h2 class="admin-main-title" style="font-size:16px;">Birleşik Yedek</h2>
-								<p class="hint">İl + Üniversite + Etkinlik verilerini TEK bir JSON dosyasında indirir (arşiv/felaket kurtarma amaçlı). Bu sadece bir indirmedir -- geri yükleme için hâlâ ayrı "JSON Yükle" akışları (Kullanıcılar sekmesindeki değil, kart listesi ve takvim üstündeki mevcut butonlar) kullanılır.</p>
+								<p class="hint">İl + Üniversite + Etkinlik verilerini TEK bir JSON dosyasında indirir (arşiv/felaket kurtarma amaçlı). Bu sadece bir indirmedir -- kategori bazlı ayrı içe/dışa aktarma için Ayarlar &gt; JSON bölümü kullanılır.</p>
 								<button type="button" class="btn btn-primary" onclick="exportFullBackup()">Tam Yedek İndir</button>
 							</div>
 						</div>

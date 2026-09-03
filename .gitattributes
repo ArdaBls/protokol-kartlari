@@ -1,0 +1,11 @@
+# GitHub'ın dil istatistiği (Linguist), gerçek kaynak kodu ile derleme
+# çıktısını AYIRT ETMEZ -- docs/js/ ve docs/assets/ tamamen Vite'ın ürettiği
+# içerik-hash'li bundle'lar (docs/admin-src/src/ altındaki gerçek .js/.scss
+# kaynağından derlenir, elle DÜZENLENMEZ). Bunlardan biri (vendor-echarts)
+# tek başına 1.1 MB olduğu için repo istatistiklerinde "%100 JavaScript"
+# gibi görünmesine yol açıyordu -- oysa elle yazılan kod büyük ölçüde
+# HTML/SCSS/JS karışımı. linguist-generated=true bu yolları istatistikten
+# (ve varsayılan PR diff görünümünden) çıkarır, git geçmişini etkilemez.
+docs/js/** linguist-generated=true
+docs/assets/** linguist-generated=true
+*.map linguist-generated=true
