@@ -432,6 +432,17 @@ function initJsonSection() {
     const s = String(v === undefined || v === null ? '' : v).trim();
     return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
   }
+  // app.js'teki safePhotoUrl() ile AYNI koruma -- yalnızca http(s) veya boyutu
+  // sınırlı data:image/ kabul edilir. Bunsuz, yedekten gelen keyfi bir string
+  // (ör. "javascript:...") doğrudan kişi kartındaki <img src>'e yazılabilirdi.
+  const MAX_PHOTO_DATA_URL_LENGTH = 2 * 1024 * 1024;
+  function safePhotoUrl(u) {
+    const s = String(u === undefined || u === null ? '' : u).trim();
+    if (!s) { return ''; }
+    if (/^https?:\/\//i.test(s)) { return s; }
+    if (/^data:image\//i.test(s)) { return s.length <= MAX_PHOTO_DATA_URL_LENGTH ? s : ''; }
+    return '';
+  }
   // app.js'in importJSON()'undaki AYNI koruma: yedek dosyasından gelen görev
   // geçmişi doğrulanmadan yazılırsa bilinmeyen alanlar veritabanına sızabilir;
   // yalnızca bilinen üç alan (unvan zorunlu, tarihler formatlanmış) kabul edilir.
@@ -496,7 +507,7 @@ function initJsonSection() {
               const record = {
                 prefix: item.prefix ? String(item.prefix) : '', name: String(item.name).trim(), title: String(item.title).trim(),
                 unit: item.unit ? String(item.unit) : '', status, rank: cleanRank(item.rank),
-                photo: item.photo ? String(item.photo) : '', start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
+                photo: safePhotoUrl(item.photo), start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
               };
               const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
               if (Array.isArray(item.faculties)) { record.faculties = item.faculties.map(String); }
@@ -528,7 +539,7 @@ function initJsonSection() {
                 const newId = database.ref(dbPathName).push().key;
                 const record = {
                   prefix: item.prefix ? String(item.prefix) : '', name, title, unit: item.unit ? String(item.unit) : '',
-                  status, rank: cleanRank(item.rank), photo: item.photo ? String(item.photo) : '',
+                  status, rank: cleanRank(item.rank), photo: safePhotoUrl(item.photo),
                   start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
                 };
                 const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
@@ -591,7 +602,12 @@ function initJsonSection() {
       Object.keys(raw).forEach((rawKey) => {
         const item = raw[rawKey];
         if (!item || typeof item !== 'object' || !item.ad || !parseKeyValid(item.tarih)) { skipped++; return; }
-        const key = /^[A-Za-z0-9_-]+$/.test(rawKey) ? rawKey : database.ref('etkinlikler').push().key;
+        // __proto__ de /^[A-Za-z0-9_-]+$/'i gecer -- clean["__proto__"]=... yeni bir
+        // ozellik EKLEMEZ, clean nesnesinin PROTOTIPINI degistirir; o etkinlik
+        // Object.keys(clean)/JSON.stringify'da sessizce KAYBOLUR ("TAMAMEN GERI
+        // YUKLE" gibi geri alinamaz bir islemde fark edilmeden veri kaybi olur).
+        const isSafeKey = /^[A-Za-z0-9_-]+$/.test(rawKey) && rawKey !== '__proto__' && rawKey !== 'constructor' && rawKey !== 'prototype';
+        const key = isSafeKey ? rawKey : database.ref('etkinlikler').push().key;
         clean[key] = {
           ad: String(item.ad).trim(), tur: item.tur ? String(item.tur) : 'diger', durum: item.durum ? String(item.durum) : 'planlandi',
           tarih: String(item.tarih), saat: item.saat ? String(item.saat) : '', bitisSaat: item.bitisSaat ? String(item.bitisSaat) : '',

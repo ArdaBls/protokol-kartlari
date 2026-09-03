@@ -119,9 +119,14 @@ auth.onAuthStateChanged((user) => {
 // hâlâ AÇIK olan aynı oturumu görüp şifre sormadan doğrudan panele geri
 // atıyordu -- kilit ekranı fiilen atlanabiliyordu. Önce signOut() ile oturum
 // gerçekten kapatılır, ancak O TAMAMLANDIKTAN SONRA giris.html'e gidilir.
+// .finally() DEĞİL .then()/.catch(): signOut() reddedilirse .finally() yine de
+// navigasyonu yapardı -- oturum AÇIK kalırken kullanıcı giris.html'e gider ve
+// tam olarak düzeltilen açık yeniden üretilir. Başarısızlıkta navigasyon
+// YAPILMAZ, kullanıcı bilgilendirilir.
 document.getElementById('lock-switch-user').addEventListener('click', (e) => {
   e.preventDefault();
-  auth.signOut().finally(() => { window.location.href = 'giris.html'; });
+  auth.signOut().then(() => { window.location.href = 'giris.html'; })
+    .catch((err) => { console.error('Çıkış yapılamadı:', err); showError('Çıkış yapılamadı, lütfen tekrar deneyin.'); });
 });
 
 form.addEventListener('submit', (e) => {

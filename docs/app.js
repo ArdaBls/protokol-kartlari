@@ -3657,7 +3657,10 @@ function openAddModal(){ if (!requireEdit()) return; closeFacultySheet(); editIn
 							// Yedek dosyası dışarıdan geliyor, dolayısıyla anahtar da kullanıcı girdisi
 							// sayılır -- normal push()-key deseniyle eşleşmeyen anahtarlar burada
 							// yeni bir güvenli push()-key ile değiştirilir (stored-XSS önlemi).
-							const key = /^[A-Za-z0-9_-]+$/.test(rawKey) ? rawKey : database.ref(dbPath("etkinlikler")).push().key;
+							// __proto__ de bu deseni gecer -- clean["__proto__"]=... nesnenin
+							// PROTOTIPINI degistirir, o etkinlik Object.keys()'te sessizce kaybolur.
+							const isim_guvenli_mi = /^[A-Za-z0-9_-]+$/.test(rawKey) && rawKey !== "__proto__" && rawKey !== "constructor" && rawKey !== "prototype";
+							const key = isim_guvenli_mi ? rawKey : database.ref(dbPath("etkinlikler")).push().key;
 							clean[key] = {
 								ad: String(item.ad).trim(), tur: item.tur ? String(item.tur) : "diger", durum: item.durum ? String(item.durum) : "planlandi",
 								tarih: String(item.tarih), saat: item.saat ? String(item.saat) : "", bitisSaat: item.bitisSaat ? String(item.bitisSaat) : "",
