@@ -264,11 +264,20 @@ function editorEventActivity(echarts, el, t) {
     chart.setOption({
       ...baseOption(t),
       tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
+      // Kullanıcı isteği: 3'ten fazla kişi eklenince legend iki satıra sarıp
+      // (ECharts'ın varsayılan davranışı) sabit "bottom:40" grid boşluğunu aşıyor,
+      // ikinci satır grafiğin çizgileriyle üst üste biniyordu. type:'scroll' legend'i
+      // TEK satırda tutar (kaç kişi olursa olsun), taşarsa ok tuşlarıyla gezilir --
+      // böylece grid boşluğu her zaman yeterli kalır.
       legend: {
+        type: 'scroll',
         data: names,
         bottom: 0,
         itemGap: 16,
         textStyle: { color: t.textMuted, fontSize: 11 },
+        pageIconColor: t.textMuted,
+        pageIconInactiveColor: t.borderLight,
+        pageTextStyle: { color: t.textMuted, fontSize: 11 },
         icon: 'circle',
         itemWidth: 8,
         itemHeight: 8

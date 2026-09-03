@@ -70,6 +70,7 @@
   text-decoration: none;
   transition: background 120ms, color 120ms;
 }
+.settings-nav-link[hidden] { display: none; }
 .settings-nav-link:hover { background: var(--bg-surface-secondary); color: var(--text); text-decoration: none; }
 .settings-nav-link.active { background: var(--primary-lt); color: var(--primary); }
 .settings-nav-link svg { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
