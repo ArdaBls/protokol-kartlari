@@ -1,3 +1,12 @@
+/* TIPOGRAFI (3 Eylul 2026, /impeccable typeset)
+   Bu dosya eskiden Fraunces (isimler), Roboto (govde) ve JetBrains Mono (tarih/meta)
+   istiyordu -- toplam 87 font-family bildirimi. Protokol sayfasi panelin ICINE
+   tasindiginda o uc font ARTIK YUKLENMIYOR (sayfalar yalnizca Inter yukluyor):
+   kisi adlari tarayicinin varsayilan serifine (Windowsta Times), tarihler Couriere
+   dusuyordu. Bu bir tasarim tercihi degil, eksik font goruntusuydu.
+   Kullanici karari: her sey Inter olsun. Tum bildirimler font-family:inherit yapildi,
+   yani govdeden (panelin Interi) miras aliniyor.
+   Buraya yeni bir font-family eklemeden once o ailenin GERCEKTEN yuklendiginden emin ol. */
 			:root{
 			--navy: #16233d; --navy-2: #1f3358; --brass: #b8923f; --brass-light: #e4c877;
 			/* Faz 7 v5 (kullanıcı isteği, 31 Ağustos 2026): açık tema, sitenin İLK yapıldığındaki
@@ -85,7 +94,7 @@
 			     env(safe-area-inset-bottom) da ekliyor (centikli/home-indicator'lu cihazlarda
 			     FAB daha da yukari kayiyor) -- bu yuzden ayni payi buraya da eklemek gerekiyor,
 			     yoksa home-indicator'lu iPhone'larda 60px yetersiz kalip footer yine ortulebilir. */
-			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); font-family:'Roboto',system-ui,sans-serif; min-height:calc(var(--vh, 1vh) * 100); padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); overflow-x:hidden; max-width:100%; }
+			body{ background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); color:var(--ink); min-height:calc(var(--vh, 1vh) * 100); padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); overflow-x:hidden; max-width:100%; }
 
 			/* --- METİN SEÇİM (KOPYALAMA) KORUMASI --- */
 			/* İstenmeyen yerlerin mavi olmasını (seçilmesini) engeller */
@@ -117,15 +126,15 @@
 			   ustune binsin sorun olmaz"), tam donusum yerine bilincli bir tercih. */
 			.header-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:nowrap; }
 			.header-left{ display:flex; flex-direction:column; gap:4px; min-width:150px; flex-shrink:1; }
-			.eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
+			.eyebrow{ font-family:inherit; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light); display:flex; align-items:center; gap:8px; }
 			.eyebrow::before{content:"●"; font-size:8px; color:var(--brass-light);}
 			.eyebrow-short{ display:none; }
 			@media (max-width: 600px) { .eyebrow-full{ display:none; } .eyebrow-short{ display:inline; } }
-			h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0; letter-spacing:-.01em; }
+			h1{ font-family:inherit; font-weight:600; font-size:clamp(26px, 6vw, 36px); margin:0; letter-spacing:-.01em; }
 
 			.list-switch-wrap { max-width:1040px; margin: 16px auto; padding:0 20px; position:relative; z-index:10; }
 			.list-switch { display:flex; gap:8px; background:var(--card); border:1px solid var(--border-soft); border-radius:10px; padding:4px; box-shadow:var(--shadow); }
-			.list-switch button { flex:1; font-family:'Roboto',sans-serif; font-weight:700; font-size:13px; padding:9px 10px; border:none; border-radius:7px; background:transparent; color:var(--muted); cursor:pointer; transition: background 0.2s, color 0.2s; }
+			.list-switch button { flex:1; font-family:inherit; font-weight:700; font-size:13px; padding:9px 10px; border:none; border-radius:7px; background:transparent; color:var(--muted); cursor:pointer; transition: background 0.2s, color 0.2s; }
 			.list-switch button.active { background:var(--navy); color:#fff; }
 
 			.controls { max-width:1040px; margin: 0 auto 16px; padding:0 20px; position:relative; z-index:2; }
@@ -135,7 +144,7 @@
 			.input-wrap input, .input-wrap select { width:100%; padding-right:32px !important; }
 			.clear-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:var(--surface-pill); border:none; border-radius:50%; width:20px; height:20px; font-size:12px; color:var(--muted); cursor:pointer; display:none; align-items:center; justify-content:center; }
 			.clear-btn:hover { background:var(--surface-hover-3); color:var(--ink); }
-			#search { border:1px solid var(--border); background:var(--surface-input); border-radius:8px; padding:9px 32px 9px 12px; font-family:'Roboto',sans-serif; font-size:14px; color:var(--ink); outline:none; }
+			#search { border:1px solid var(--border); background:var(--surface-input); border-radius:8px; padding:9px 32px 9px 12px; font-family:inherit; font-size:14px; color:var(--ink); outline:none; }
 			#search:focus { border-color:var(--brass); }
 			/* type="search" (otomatik doldurma engeli icin secildi) WebKit'te YERLESIK bir temizle
 			   dugmesi getiriyor; projenin kendi #clearSearchBtn'i zaten var, ikisi yan yana
@@ -144,14 +153,14 @@
 			#search:disabled { background:var(--surface-hover); color:var(--muted); cursor:not-allowed; }
 
 			.toggle-group{ display:flex; background:var(--surface-pill); border-radius:8px; padding:3px; gap:2px; }
-			.toggle-group button{ border:none; background:transparent; padding:7px 12px; border-radius:6px; font-family:'Roboto',sans-serif; font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; }
+			.toggle-group button{ border:none; background:transparent; padding:7px 12px; border-radius:6px; font-family:inherit; font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; }
 			.toggle-group button.active{ background:var(--navy); color:#fff; }
 			.toggle-group button:disabled { opacity: 0.5; cursor: not-allowed; }
 			
-			.count{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); white-space:nowrap; margin-left:auto; }
+			.count{ font-family:inherit; font-size:12px; color:var(--muted); white-space:nowrap; margin-left:auto; }
 
 			.mobile-layout-toggle { display:none; background:var(--surface-pill); border-radius:8px; padding:3px; gap:2px; }
-			.mobile-layout-toggle button { border:none; background:transparent; padding:6px 10px; border-radius:6px; font-family:'Roboto',sans-serif; font-weight:600; font-size:11px; color:var(--muted); cursor:pointer; }
+			.mobile-layout-toggle button { border:none; background:transparent; padding:6px 10px; border-radius:6px; font-family:inherit; font-weight:600; font-size:11px; color:var(--muted); cursor:pointer; }
 			.mobile-layout-toggle button.active { background:var(--navy); color:#fff; }
 
 			/* --- GRID TASARIMI --- */
@@ -174,13 +183,13 @@
 
 			.photo-wrap{ position:relative; width:100%; aspect-ratio:1/1; background:linear-gradient(135deg,#243b63,#16233d); overflow:hidden; }
 			.photo-wrap img{ width:100%; height:100%; object-fit:cover; object-position:center top; display:block; position:relative; z-index:2; pointer-events:none; }
-			.avatar-fallback{ position:absolute; inset:0; z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:38px; color:#f3efe6; background: radial-gradient(circle at 30% 20%, rgba(184,146,63,.5), transparent 60%), linear-gradient(135deg,#2a4270,#152036); letter-spacing:.02em; pointer-events:none; }
-			.status-chip{ position:absolute; top:10px; right:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; z-index:3; backdrop-filter: blur(2px); pointer-events:none;}
+			.avatar-fallback{ position:absolute; inset:0; z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:inherit; font-size:38px; color:#f3efe6; background: radial-gradient(circle at 30% 20%, rgba(184,146,63,.5), transparent 60%), linear-gradient(135deg,#2a4270,#152036); letter-spacing:.02em; pointer-events:none; }
+			.status-chip{ position:absolute; top:10px; right:10px; font-family:inherit; font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; z-index:3; backdrop-filter: blur(2px); pointer-events:none;}
 			.status-chip.aktif{ background:var(--ok-bg); color:var(--ok); }
 			.status-chip.pasif{ background:var(--off-bg); color:var(--off); }
 			.status-chip.silindi{ background:var(--danger-bg); color:var(--danger-text); }
 			
-			.rank-badge{ position:absolute; top:10px; left:10px; z-index:4; width:26px; height:26px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+			.rank-badge{ position:absolute; top:10px; left:10px; z-index:4; width:26px; height:26px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-family:inherit; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
 
 			/* Veri güncellik rozeti: eski unvan/görev bilgisinin farkedilmeden kalması protokol
 			   sistemlerinde en sık yapılan hatalardan biri, bu yüzden her kartta görünür durur. */
@@ -190,23 +199,23 @@
 			   kartlarda -- ki en yaygın durum budur -- boşta alan kalmıyor ve auto-margin
 			   0'a çöküyor; rozet ile "Düzenle" butonu birbirine YAPIŞIK görünüyordu.
 			   Sabit alt boşluk, esnek alan olsun olmasın minimum ayrımı garantiler. */
-			.freshness-badge{ display:inline-flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:3px 7px; border-radius:999px; margin-top:6px; margin-bottom:10px; width:fit-content; }
+			.freshness-badge{ display:inline-flex; align-items:center; gap:4px; font-family:inherit; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:3px 7px; border-radius:999px; margin-top:6px; margin-bottom:10px; width:fit-content; }
 			.freshness-badge.green{ background:var(--ok-bg); color:var(--ok); }
 			.freshness-badge.yellow{ background:var(--warn-bg); color:var(--warn); }
 			.freshness-badge.red{ background:var(--danger-bg); color:var(--danger-text); }
 			.info{ padding:12px 14px 14px; display:flex; flex-direction:column; flex:1; }
-			.name{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:'Roboto', sans-serif; font-weight:500; }
+			.name{ font-family:inherit; font-weight:600; font-size:17px; line-height:1.2; margin:0 0 3px; color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+			.name span.prefix { color:var(--muted); font-size:0.9em; font-family:inherit; font-weight:500; }
 			.title{ font-size:13px; color:var(--ink); font-weight:600; margin:0 0 2px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			.unit{ font-size:12px; color:var(--muted); margin:0 0 8px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 			/* flex-wrap+gap: tarih ve "devam ediyor" dar kartlarda (ozellikle 3'lu mobil
 			   moda) sigmayinca birbirine yapismak yerine alt satira sarar. */
-			.meta{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); border-top:1px dashed var(--divider); padding-top:7px; display:flex; flex-wrap:wrap; gap:2px 8px; justify-content:space-between; }
+			.meta{ font-family:inherit; font-size:10px; color:var(--muted); border-top:1px dashed var(--divider); padding-top:7px; display:flex; flex-wrap:wrap; gap:2px 8px; justify-content:space-between; }
 			.meta span{ white-space:nowrap; }
 			.note{ font-size:11px; color:var(--muted); font-style:italic; margin-top:5px; margin-bottom:10px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-			.empty{ max-width:1040px; margin:60px auto; text-align:center; color:var(--muted); font-family:'Roboto',sans-serif; padding:0 20px; }
+			.empty{ max-width:1040px; margin:60px auto; text-align:center; color:var(--muted); font-family:inherit; padding:0 20px; }
 			.empty-icon{ font-size:32px; margin-bottom:8px; opacity:.55; }
-			.empty-title{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+			.empty-title{ font-family:inherit; font-size:16px; font-weight:600; color:var(--navy); margin-bottom:4px; }
 			.empty-sub{ font-size:13px; color:var(--muted); max-width:360px; margin:0 auto; line-height:1.5; }
 
 			/* --- AKSİYON BUTONLARI HİZALAMA --- */
@@ -214,7 +223,7 @@
 			.actions-left { display: flex; gap: 10px; flex-wrap: wrap; flex:1;}
 			.actions-right { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 			
-			.btn{ font-family:'Roboto',sans-serif; font-weight:600; font-size:14px; border-radius:9px; padding:10px 16px; cursor:pointer; border:1px solid transparent; transition: background 0.2s;}
+			.btn{ font-family:inherit; font-weight:600; font-size:14px; border-radius:9px; padding:10px 16px; cursor:pointer; border:1px solid transparent; transition: background 0.2s;}
 			.btn-primary{ background:var(--navy); color:#fff; } .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
 			.btn-ghost{ background:var(--card); color:var(--navy); border-color:var(--border); }
 			.btn-danger{ background:var(--danger-accent); color:#fff; }
@@ -242,25 +251,25 @@
 			   ustte kimi altta gorunmesine yol aciyordu (grid ayni satiri esitliyor ama
 			   icerigin kendisi esit yukseklikte degil). auto, kalan tum bosluga yayilip
 			   butonu HER ZAMAN kartin en altina sabitler. */
-			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; }
+			.card-edit{ width:100%; margin-top:auto; background:var(--card); border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:12px; font-weight:600; color:var(--navy); padding:7px 10px; cursor:pointer; pointer-events:auto; }
 			@media (hover: hover) and (pointer: fine){ .card-edit:hover{ background:var(--paper); } }
 			
-			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:'Roboto',sans-serif; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
+			.card-action-btn { flex:1; padding:8px; font-size:13px; pointer-events:auto; cursor:pointer; font-family:inherit; font-weight:600; border-radius:7px; border:none; transition:0.2s; }
 			.btn-restore-card { background: var(--ok-bg); color: var(--ok); } .btn-restore-card:hover { filter:brightness(.94); }
 			.btn-permdel-card { background: var(--danger-bg); color: var(--danger-text); } .btn-permdel-card:hover { filter:brightness(.94); }
 
 			/* --- REORDER (Sıralama) ÜST BİLGİ DÜZENİ --- */
 			.reorder-header-bar { display:flex; justify-content:space-between; align-items:center; gap:20px; width: 100%; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-soft); box-shadow: var(--shadow); }
-			.rank-lock-hint { font-family:'Roboto',sans-serif; font-size:13px; color:var(--muted); line-height:1.5; margin:0; flex:1; }
+			.rank-lock-hint { font-family:inherit; font-size:13px; color:var(--muted); line-height:1.5; margin:0; flex:1; }
 			.reorder-toolbar { display:flex; gap:8px; flex-shrink:0; }
-			.reorder-toolbar button { font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; color:var(--navy); background:var(--paper); border:none; border-radius:7px; padding:8px 12px; cursor:pointer; transition: background 0.2s; }
+			.reorder-toolbar button { font-family:inherit; font-size:12px; font-weight:600; color:var(--navy); background:var(--paper); border:none; border-radius:7px; padding:8px 12px; cursor:pointer; transition: background 0.2s; }
 			.reorder-toolbar button:hover { background:var(--brass-light); }
-			.az-sort-btn { font-family:'Roboto',sans-serif; font-weight:600; font-size:11px; color:var(--navy); background:var(--paper); border:none; border-radius:6px; padding:5px 9px; cursor:pointer; white-space:nowrap; }
+			.az-sort-btn { font-family:inherit; font-weight:600; font-size:11px; color:var(--navy); background:var(--paper); border:none; border-radius:6px; padding:5px 9px; cursor:pointer; white-space:nowrap; }
 			.az-sort-btn:hover { background:var(--brass-light); }
 
 			/* --- AKORDİYON & DÖRDERLİ (WRAP) DİZİLİM --- */
 			details.rank-group { width: 100%; background:var(--card); border:1px solid var(--border-soft); border-radius:12px; overflow:hidden; }
-			details.rank-group > summary { list-style:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--navy); user-select:none; }
+			details.rank-group > summary { list-style:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:8px; font-family:inherit; font-weight:700; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--navy); user-select:none; }
 			details.rank-group > summary::-webkit-details-marker { display:none; }
 			details.rank-group > summary::before { content:"▸"; color:var(--brass); font-size:15px; transition:transform .15s; }
 			details.rank-group[open] > summary::before { transform:rotate(90deg); }
@@ -278,17 +287,17 @@
 			
 			.internal-order-badge {
 				position: absolute; top: -8px; right: -8px; background: var(--navy); color: #fff;
-				width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: bold; font-family: 'JetBrains Mono', monospace;
+				width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: bold; font-family:inherit;
 				display: flex; align-items: center; justify-content: center; border: 2px solid #fff; z-index: 5; box-shadow: 0 2px 5px rgba(0,0,0,0.15);
 			}
 
 			.drag-handle-mini { cursor:grab; color:var(--muted); font-size:18px; padding:4px; width: 100%; text-align: center; background: var(--surface-subtle); border-radius: 6px; margin-bottom: 12px; touch-action:none; }
 			.drag-handle-mini:active { cursor:grabbing; background: var(--surface-hover-3); color: var(--navy); }
 			
-			.row-thumb { width:54px; height:54px; border-radius:50%; overflow:hidden; background:linear-gradient(135deg,#2a4270,#152036); display:flex; align-items:center; justify-content:center; color:#f3efe6; font-family:'Fraunces',serif; font-size:16px; margin-bottom: 10px; }
+			.row-thumb { width:54px; height:54px; border-radius:50%; overflow:hidden; background:linear-gradient(135deg,#2a4270,#152036); display:flex; align-items:center; justify-content:center; color:#f3efe6; font-family:inherit; font-size:16px; margin-bottom: 10px; }
 			.row-thumb img { width:100%; height:100%; object-fit:cover; }
 			.row-text { display:flex; flex-direction:column; text-align: center; width: 100%; }
-			.row-name { font-family:'Fraunces',serif; font-weight:600; font-size:13px; color:var(--navy); line-height: 1.2; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+			.row-name { font-family:inherit; font-weight:600; font-size:13px; color:var(--navy); line-height: 1.2; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 			.row-title { font-size:11px; color:var(--muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 			/* Modallar */
@@ -311,7 +320,7 @@
 			.modal-center-wrap{ position:relative; width:100%; max-width:460px; }
 			.rank-reference{ display:none; }
 			@media (min-width: 900px) {
-			.rank-reference{ display:flex; flex-direction:column; position:absolute; top:0; bottom:0; left:calc(100% + 16px); width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; overflow:hidden; }
+			.rank-reference{ display:flex; flex-direction:column; position:absolute; top:0; bottom:0; left:calc(100% + 16px); width:230px; max-height: 697.5px; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:inherit; overflow:hidden; }
 			/* ESKİDEN #modalBg (kişi düzenleme modalı) BİLEREK plain align-items:center kullanıyordu
 			   ("her zaman dikey tam ortada kilitli kalsın" isteği, v2.9.9) -- ama uzun formda (birçok
 			   fakülte checkbox'ı + tarih + foto + not alanı, pencere yüksekliği yetmediğinde) plain
@@ -324,10 +333,10 @@
 			   davranışına dönüldü -- kısa formlarda görsel fark yok (zaten ortada), uzun formlarda
 			   artık üstten (X/başlık dahil) erişilebilir ve kaydırılabilir. */
 			}
-			.rank-reference .rr-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
+			.rank-reference .rr-title{ font-family:inherit; font-size:14px; color:var(--navy); margin-bottom:10px; font-weight:600; flex-shrink:0; }
 			.rank-reference .rr-list{ display:flex; flex-direction:column; gap:5px; justify-content:space-between; flex:1; }
 			.rank-reference .rr-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 7px; border-radius:7px; background:var(--surface-input); }
-			.rank-reference .rr-num{ font-family:'JetBrains Mono',monospace; font-weight:700; width:22px; height:22px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+			.rank-reference .rr-num{ font-family:inherit; font-weight:700; width:22px; height:22px; border-radius:50%; background:var(--navy); border:2px solid var(--brass-light); color:#f3efe6; font-size:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.rank-reference .rr-info{ min-width:0; display:flex; flex-direction:column; }
 			.rank-reference .rr-info .rr-t{ font-weight:600; color:var(--ink); white-space:normal; line-height:1.3; }
 
@@ -339,12 +348,12 @@
 			   Vazgeç/Kaydet butonlarına biner. */
 			.successor-panel{ display:none; }
 			.successor-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
-			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
+			.successor-panel.open .successor-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:inherit; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
 			@media (min-width: 900px) {
 			.successor-panel.open{ position:absolute; top:0; right:auto; bottom:0; left:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.successor-panel.open .successor-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
-			.successor-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
+			.successor-panel h3{ font-family:inherit; font-size:15px; color:var(--navy); margin:0 0 4px; padding-right:20px; }
 			/* Mobilde iki formu ayni anda gostermek (soldaki eski kayit + sagdaki yeni atama)
 			   karisikliga yol aciyordu; dar ekranda successor panel acikken soldaki form
 			   GORSEL olarak tamamen gizlenir (durumu/editIndex korunur, Vazgec ile geri doner). */
@@ -364,12 +373,12 @@
 			   zaten yaptığı gibi küçük tekrar, erken soyutlamaya tercih ediliyor. */
 			.history-panel{ display:none; }
 			.history-panel.open{ display:flex; position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:55; background:rgba(22,35,61,.75); backdrop-filter:blur(4px); align-items:flex-start; justify-content:center; padding:calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain; }
-			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
+			.history-panel.open .history-panel-inner{ background:var(--card); border-radius:16px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:inherit; width:100%; max-width:420px; position:relative; overflow-x:hidden; }
 			@media (min-width: 900px) {
 			.history-panel.open{ position:absolute; top:0; left:auto; bottom:0; right:calc(100% + 16px); z-index:auto; background:none; backdrop-filter:none; padding:0; overflow:visible; align-items:flex-start; justify-content:flex-start; width:260px; flex-shrink:0; }
 			.history-panel.open .history-panel-inner{ max-width:none; width:100%; padding:16px; }
 			}
-			.history-panel h3{ font-family:'Fraunces',serif; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
+			.history-panel h3{ font-family:inherit; font-size:15px; color:var(--navy); margin:14px 0 8px; padding-right:20px; }
 			.history-panel h3:first-child{ margin-top:0; }
 			.modal-bg.hide-behind-panel .modal-center-wrap > .modal{ display:none !important; }
 			.hg-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 8px; border-radius:7px; background:var(--surface-input); margin-bottom:5px; }
@@ -377,7 +386,7 @@
 			.hg-row-text b{ color:var(--ink); }
 			.hg-row .btn{ flex-shrink:0; padding:4px 9px; font-size:11px; }
 			.hg-event-row{ font-size:12px; padding:5px 2px; border-bottom:1px solid var(--divider-faint); }
-			.hg-event-date{ color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:10px; }
+			.hg-event-date{ color:var(--muted); font-family:inherit; font-size:10px; }
 			.hg-event-tag{ padding:1px 8px; border-radius:20px; font-size:10px; font-weight:700; }
 			/* Gorev Gecmisi panelindeki "Guncel" satiri: tempGorevGecmisi'nin gercek bir elemani
 			DEGIL, formun o anki f_title/f_start/f_end degerlerinin salt-okunur bir yansimasi
@@ -426,16 +435,16 @@
 			.main-layout .main-content{ grid-column:2; min-width:0; }
 			.main-layout .calendar-rail{ grid-column:3; }
 			.main-layout .grid, .main-layout .empty{ max-width:none; margin:0; padding:0; }
-			.main-layout.with-sidebar .faculty-sidebar{ display:flex; flex-direction:column; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,.12); font-family:'Roboto',sans-serif; }
+			.main-layout.with-sidebar .faculty-sidebar{ display:flex; flex-direction:column; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; background:var(--card); border-radius:16px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,.12); font-family:inherit; }
 			.calendar-rail{ display:flex; }
 			}
-			.fs-scope .fs-title{ font-family:'Fraunces',serif; font-size:14px; color:var(--navy); font-weight:600; margin-bottom:8px; }
+			.fs-scope .fs-title{ font-family:inherit; font-size:14px; color:var(--navy); font-weight:600; margin-bottom:8px; }
 			.fs-scope .fs-central-list{ display:flex; flex-direction:column; gap:4px; margin-bottom:6px; }
 			.fs-scope .fs-item{ display:flex; align-items:center; gap:8px; font-size:13px; padding:5px 7px; border-radius:7px; background:var(--surface-input); cursor:pointer; }
 			.fs-scope .fs-item:hover{ background:var(--surface-hover); }
 			.fs-scope .fs-item input{ flex-shrink:0; }
 			.fs-scope .fs-item-sub{ color:var(--muted); font-size:11px; }
-			.fs-scope .fs-clear-btn{ width:100%; margin:2px 0 10px; padding:6px; border:1px solid var(--border); background:var(--surface-input); border-radius:7px; font-size:12px; color:var(--muted); cursor:pointer; font-family:'Roboto',sans-serif; }
+			.fs-scope .fs-clear-btn{ width:100%; margin:2px 0 10px; padding:6px; border:1px solid var(--border); background:var(--surface-input); border-radius:7px; font-size:12px; color:var(--muted); cursor:pointer; font-family:inherit; }
 			.fs-scope .fs-clear-btn:hover{ background:var(--surface-hover); color:var(--ink); }
 			.fs-scope .fs-group{ margin-top:8px; }
 			.fs-scope .fs-group:first-of-type{ margin-top:0; }
@@ -447,16 +456,16 @@
 
 			/* ================= ETKİNLİK TAKVİMİ (Notion Calendar tarzı saat ızgarası) ================= */
 			/* Sağ ray: kapalı hâlde sadece takvim düğmesi + sıradaki birkaç etkinlik durur. */
-			.calendar-rail{ display:none; flex-direction:column; gap:10px; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; font-family:'Roboto',sans-serif; }
+			.calendar-rail{ display:none; flex-direction:column; gap:10px; width:250px; position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; font-family:inherit; }
 			@media (min-width: 1050px) { .calendar-rail{ display:flex; } }
 			.cal-rail-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:16px 12px; border:1px solid var(--border-soft); border-radius:16px; background:var(--card); box-shadow:0 8px 30px rgba(0,0,0,.12); cursor:pointer; font-family:inherit; }
 			.cal-rail-btn:hover{ background:var(--surface-hover); border-color:var(--brass-light); }
 			.cal-rail-icon{ font-size:26px; line-height:1; }
-			.cal-rail-label{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); }
+			.cal-rail-label{ font-family:inherit; font-size:14px; font-weight:600; color:var(--navy); }
 			.cal-rail-count{ font-size:12px; color:var(--muted); }
 			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
 			.cal-rail-next{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:12px; }
-			.cal-rail-next h4{ margin:0 0 8px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; }
+			.cal-rail-next h4{ margin:0 0 8px; font-family:inherit; font-size:13px; color:var(--navy); font-weight:600; }
 			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid var(--surface-hover); cursor:pointer; }
 			.cal-next-item:first-of-type{ border-top:none; }
 			.cal-next-item:hover .cal-next-name{ color:var(--brass-text); }
@@ -475,7 +484,7 @@
 			clip-path kullanılıyor; scale ile büyütmek metni ezip bulanıklaştırıyordu. */
 			/* Faz 7 v5: opaklık .035'ten orijinal .10'a geri döndürüldü -- açık tema orijinal
 			   krem palete dönünce (yukarıda) bu gradyan artık site geneliyle tutarlı. */
-			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:'Roboto',sans-serif; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
+			.cal-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); z-index:90; background: radial-gradient(1200px 500px at 10% -10%, rgba(184,146,63,.10), transparent), var(--paper); display:none; font-family:inherit; color:var(--ink); will-change:clip-path,opacity; box-shadow:0 30px 90px rgba(22,35,61,.35); }
 			/* Denetim maddesi #4: modern tarayicilarda dvh, --vh JS degiskenine (visualViewport
 			   izleyen, resize olayina bagli) gore daha DOGRU/aninda tepki verir (araç çubuğu
 			   animasyonu sirasinda JS henuz --vh'i guncellemeden bir kare "eski" boyut kalabiliyor).
@@ -502,7 +511,7 @@
 
 			/* ---- Mini ay takvimi (sol ray) ---- */
 			.cal-mini-head{ display:flex; align-items:center; justify-content:space-between; gap:1px; margin-bottom:8px; }
-			.cal-mini-title{ flex:1; text-align:center; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); white-space:nowrap; }
+			.cal-mini-title{ flex:1; text-align:center; font-family:inherit; font-size:14px; font-weight:600; color:var(--navy); white-space:nowrap; }
 			.cal-mini-head .cal-iconbtn{ width:21px; height:21px; font-size:13px; }
 			.cal-mini-head .cal-iconbtn::after{ inset:-6px; }
 			/* Takvim sonsuz ileri/geri gidebilsin diye: istenen tarihe tek hamlede atlama kutusu.
@@ -537,7 +546,7 @@
 			/* iPhone centik/Dynamic Island: takvim tam ekran oldugu icin (position:fixed;inset:0)
 			   ust bar dogrudan centigin altinda kalip "Kapat" ve "Bugun" butonlarina dokunulamiyordu. */
 			.cal-topbar{ flex-shrink:0; display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:calc(16px + env(safe-area-inset-top,0px)) 18px 16px; border-bottom:1px solid var(--divider-faint); background:transparent; }
-			.cal-month-label{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--navy); }
+			.cal-month-label{ font-family:inherit; font-size:21px; font-weight:600; color:var(--navy); }
 			.cal-month-label .yr{ color:var(--muted); font-weight:400; }
 			.cal-iconbtn{ position:relative; background:none; border:1px solid transparent; color:var(--muted); border-radius:6px; width:27px; height:27px; font-size:15px; line-height:1; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 			.cal-iconbtn::after{ content:""; position:absolute; inset:-8px; }
@@ -599,7 +608,7 @@
 			   ama boş hücreler/saat etiketleri değil) -- tüm ızgara konteynerine uygulanır. */
 			.cal-tg-body{ display:grid; position:relative; -webkit-user-select:none; user-select:none; }
 			.cal-gutter{ border-right:1px solid oklch(0 0 0 / 8%); position:relative; background:transparent; }
-			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; transform:translateY(-50%); }
+			.cal-hourlab{ position:absolute; right:7px; font-size:10px; color:var(--muted); font-family:inherit; transform:translateY(-50%); }
 			.cal-daycol{ position:relative; border-right:1px solid oklch(0 0 0 / 8%); background:transparent; }
 			.cal-daycol:last-child{ border-right:none; }
 			.cal-daycol.is-weekend{ background:rgba(22,35,61,.035); }
@@ -623,7 +632,7 @@
 			.cal-nowline-full{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--today); z-index:6; pointer-events:none; transition:top .4s linear; }
 			.cal-nowline-full::before{ content:''; position:absolute; left:-5px; top:-5px; width:10px; height:10px; border-radius:50%; background:var(--today); box-shadow:0 0 0 3px rgba(194,65,12,.18); }
 			.cal-nowline::before{ content:""; position:absolute; left:-4px; top:-5px; width:8px; height:8px; border-radius:50%; background:var(--today); }
-			.cal-nowlabel{ position:absolute; z-index:7; font-size:10px; font-weight:600; font-family:'JetBrains Mono',monospace; color:#fff; background:var(--today); border-radius:4px; padding:1px 4px; transform:translateY(-50%); pointer-events:none; transition:top .4s linear; }
+			.cal-nowlabel{ position:absolute; z-index:7; font-size:10px; font-weight:600; font-family:inherit; color:#fff; background:var(--today); border-radius:4px; padding:1px 4px; transform:translateY(-50%); pointer-events:none; transition:top .4s linear; }
 
 			/* ---- Etkinlik bloğu -- Faz 6: doygun renkli zemin + beyaz metin (kullanıcı referans
 			   videosu, "post-it" hissi), yuvarlak köşeler, alt durum şeridi. Saat ızgarası/
@@ -631,7 +640,7 @@
 			.cal-block{ position:absolute; border-radius:10px; padding:4px 7px 7px; overflow:hidden; cursor:pointer; border:none; text-align:left; font-family:inherit; z-index:3; display:flex; flex-direction:column; gap:1px; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; box-shadow:0 1px 3px rgba(0,0,0,.18); }
 			.cal-block:hover{ filter:brightness(1.06); z-index:5; }
 			.cal-block .bt{ font-size:12px; font-weight:700; line-height:1.25; overflow:hidden; text-overflow:ellipsis; }
-			.cal-block .bh{ font-size:10px; opacity:.85; font-family:'JetBrains Mono',monospace; }
+			.cal-block .bh{ font-size:10px; opacity:.85; font-family:inherit; }
 			.cal-status-bar{ position:absolute; left:0; right:0; bottom:0; height:3px; opacity:.85; }
 			.cal-block.compact{ flex-direction:row; align-items:center; gap:5px; padding:1px 5px; border-radius:6px; }
 			.cal-block.compact .bt{ font-size:11px; }
@@ -666,7 +675,7 @@
 			.cal-resize-ghost{ z-index:2; }
 			/* Faz 9 Part D: bos izgarada surukleyerek yeni etkinlik SECERKEN gosterilen kutu --
 			   henuz bir .cal-block olmadigi icin event rengi yok, notr/brass kesikli cerceve. */
-			.cal-create-select{ position:absolute; left:2px; right:2px; z-index:2; border-radius:8px; border:1.5px dashed var(--brass); background:rgba(184,146,63,.18); color:var(--navy); font-size:11px; font-weight:600; font-family:'JetBrains Mono',monospace; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px; pointer-events:none; overflow:hidden; }
+			.cal-create-select{ position:absolute; left:2px; right:2px; z-index:2; border-radius:8px; border:1.5px dashed var(--brass); background:rgba(184,146,63,.18); color:var(--navy); font-size:11px; font-weight:600; font-family:inherit; display:flex; align-items:center; justify-content:center; text-align:center; padding:2px; pointer-events:none; overflow:hidden; }
 			[data-theme="dark"] .cal-create-select{ color:var(--brass-light); background:rgba(217,181,104,.16); }
 			/* Kullanıcı isteği (31 Ağustos 2026): bırakılan saat aralığı onaylanana kadar modal
 			   açılmaz -- bu bekleme sırasında ghost hafifçe nabız atar (calCreatePulse), "bir
@@ -677,8 +686,8 @@
 			   altına SABİT (position:fixed) konumlanır: ghost gece yarısına yakın/görünüm dışına
 			   düşse bile çubuk her zaman parmakla erişilebilir kalsın diye (mobil hassasiyet
 			   sorununun asıl kök nedeni buydu -- küçük/kaydırılan bir hedefe dokunmak zordu). */
-			.cal-create-confirm-bar{ position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:96; display:flex; align-items:center; gap:8px; padding:9px 10px 9px 16px; border-radius:999px; background:var(--navy); border:1px solid rgba(255,255,255,.14); box-shadow:0 12px 30px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; max-width:calc(100vw - 24px); animation:fadeIn .15s ease; }
-			.cal-create-confirm-bar .ccb-time{ font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--brass-light); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+			.cal-create-confirm-bar{ position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:96; display:flex; align-items:center; gap:8px; padding:9px 10px 9px 16px; border-radius:999px; background:var(--navy); border:1px solid rgba(255,255,255,.14); box-shadow:0 12px 30px rgba(0,0,0,.35); font-family:inherit; max-width:calc(100vw - 24px); animation:fadeIn .15s ease; }
+			.cal-create-confirm-bar .ccb-time{ font-family:inherit; font-size:12px; font-weight:600; color:var(--brass-light); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 			.cal-create-confirm-bar button{ border:none; border-radius:999px; padding:7px 13px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap; transition:background .15s, transform .15s; }
 			.cal-create-confirm-bar .ccb-confirm{ background:var(--brass-light); color:var(--navy); }
 			.cal-create-confirm-bar .ccb-confirm:hover{ background:#f0dca0; }
@@ -785,7 +794,7 @@
 			.cal-year-grid{ max-width:1040px; margin:0 auto; width:100%; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:18px 16px 60px; overflow-y:auto; overscroll-behavior:contain; align-content:start; }
 			.cal-year-month{ border:1px solid var(--divider); border-radius:10px; padding:10px; }
 			.cal-year-month .cal-mini-grid{ grid-auto-rows:26px; grid-template-columns:repeat(7,minmax(0,1fr)); }
-			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
+			.cal-year-month-title{ display:block; width:100%; text-align:left; background:none; border:none; font-family:inherit; font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; padding:0 2px 8px; }
 			.cal-year-month-title:hover{ text-decoration:underline; }
 			.cal-year-day{ position:relative; min-width:0; height:26px; display:flex; align-items:center; justify-content:center; font-size:10px; border:none; background:none; border-radius:5px; cursor:pointer; color:var(--ink); font-family:inherit; padding:0; }
 			.cal-year-day:hover{ background:var(--surface-hover-2); }
@@ -797,14 +806,14 @@
 			/* ---- Liste görünümü ---- */
 			.cal-list{ max-width:780px; margin:0 auto; width:100%; display:flex; flex-direction:column; padding:18px 16px 60px; }
 			.cal-list-wrap{ flex:1; min-height:0; overflow-y:auto; }
-			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:'Fraunces',serif; font-size:13px; color:var(--navy); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid var(--divider); }
+			.cal-list-daysep{ display:flex; align-items:baseline; gap:9px; font-family:inherit; font-size:13px; color:var(--navy); font-weight:600; margin:18px 0 6px; padding-bottom:6px; border-bottom:1px solid var(--divider); }
 			.cal-list-daysep:first-child{ margin-top:0; }
-			.cal-list-daysep .dow{ font-family:'Roboto',sans-serif; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; }
+			.cal-list-daysep .dow{ font-family:inherit; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; }
 			.cal-list-daysep.is-today{ color:var(--today); }
 			.cal-ev{ display:flex; gap:11px; align-items:flex-start; border-radius:8px; padding:9px 10px; cursor:pointer; border:none; background:none; text-align:left; font-family:inherit; width:100%; }
 			.cal-ev:hover{ background:rgba(22,35,61,.05); }
 			.cal-ev-dot{ flex-shrink:0; width:9px; height:9px; border-radius:3px; margin-top:4px; }
-			.cal-ev-time{ flex-shrink:0; width:44px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--muted); padding-top:2px; }
+			.cal-ev-time{ flex-shrink:0; width:44px; font-family:inherit; font-size:12px; font-weight:600; color:var(--muted); padding-top:2px; }
 			.cal-ev-main{ min-width:0; flex:1; }
 			.cal-ev-name{ display:block; font-size:14px; font-weight:600; color:var(--ink); }
 			.cal-ev-name.done{ color:var(--muted); text-decoration:line-through; }
@@ -829,13 +838,13 @@
 			   Bitir"/Duzenle/Sil) EKRAN DISINA tasip SAYFA kaydirmasiyla gorunur hale gelmesine
 			   (kullanici: "alttaki bitti duzenle sil gibi seyler de asagi yukari kaydirilabiliyor")
 			   yol aciyordu. height:calc(var(--vh,1vh)*100) ile diger katmanlarla AYNI desene alindi. */
-			.cal-peek{ position:fixed; top:0; right:0; height:calc(var(--vh, 1vh) * 100); width:400px; max-width:94vw; background:var(--card); box-shadow:-12px 0 44px rgba(0,0,0,.22); z-index:92; transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.8,.32,1); display:flex; flex-direction:column; font-family:'Roboto',sans-serif; }
+			.cal-peek{ position:fixed; top:0; right:0; height:calc(var(--vh, 1vh) * 100); width:400px; max-width:94vw; background:var(--card); box-shadow:-12px 0 44px rgba(0,0,0,.22); z-index:92; transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.8,.32,1); display:flex; flex-direction:column; font-family:inherit; }
 			.cal-peek.open{ transform:translateX(0); }
 			/* Basligin ustune centik/durum cubugu payi -- eskiden yoktu, panelin basligi ekranin EN
 			   USTUNE (durum cubugunun/cetigin ARKASINA) kadar cikiyordu (kullanici: "ustteki gorev
 			   cubuguna kadar cikiyor duzenle listesinin en ustu"). */
 			.cal-peek-head{ flex-shrink:0; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:calc(16px + env(safe-area-inset-top, 0px)) 18px 12px; border-bottom:1px solid var(--border-soft); }
-			.cal-peek-head h3{ margin:0; font-family:'Fraunces',serif; font-size:17px; color:var(--navy); font-weight:600; line-height:1.3; }
+			.cal-peek-head h3{ margin:0; font-family:inherit; font-size:17px; color:var(--navy); font-weight:600; line-height:1.3; }
 			/* min-height:0 KRITIK: flex item'lar varsayilan olarak icerigin altina KUCULMEZ (min-height:auto),
 			   yani .cal-peek-body uzun icerikle .cal-peek'in (height:calc(var(--vh,1vh)*100) ile sabitli)
 			   kendi sinirini ASIP tasabiliyordu -- kendi ICINDE kaymak yerine, panelin TAMAMI (flex-shrink:0
@@ -883,9 +892,9 @@
 				.field-row.date-pair-row .field{ flex:1 1 150px; }
 			}
 			.ev-time-wrap{ display:flex; gap:4px; align-items:stretch; }
-			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
+			.ev-time-wrap input[type=time]{ flex:1; min-width:0; padding:9px 8px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; background:var(--surface-input); color:var(--ink); box-sizing:border-box; }
 			/* Sahada: etkinlik o an bittiğinde tek dokunuşla o anki saati damgalar. */
-			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:var(--warn-text-alt); border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:'Roboto',sans-serif; white-space:nowrap; }
+			.ev-now-btn{ flex:0 0 auto; border:1px solid var(--brass); background:rgba(184,146,63,.14); color:var(--warn-text-alt); border-radius:8px; padding:0 7px; font-size:14px; line-height:1; cursor:pointer; font-family:inherit; white-space:nowrap; }
 			.ev-now-btn:hover{ background:rgba(184,146,63,.26); }
 			.ev-now-btn:active{ transform:scale(.94); }
 
@@ -974,11 +983,11 @@
 			.faculty-sheet.dragging{ transition:none; }
 			.fsheet-handle-wrap{ display:flex; justify-content:center; padding:10px 0 6px; cursor:grab; touch-action:none; }
 			.fsheet-handle{ width:42px; height:5px; border-radius:3px; background:var(--border); }
-			.fsheet-header{ display:flex; align-items:center; justify-content:space-between; padding:0 18px 10px; border-bottom:1px solid var(--divider-faint); font-family:'Fraunces',serif; font-size:15px; color:var(--navy); font-weight:600; flex-shrink:0; }
+			.fsheet-header{ display:flex; align-items:center; justify-content:space-between; padding:0 18px 10px; border-bottom:1px solid var(--divider-faint); font-family:inherit; font-size:15px; color:var(--navy); font-weight:600; flex-shrink:0; }
 			.fsheet-close{ background:none; border:none; font-size:16px; color:var(--muted); cursor:pointer; padding:4px; }
-			.fsheet-body{ overflow-y:auto; padding:14px 18px 18px; -webkit-overflow-scrolling:touch; font-family:'Roboto',sans-serif; overscroll-behavior:contain; }
+			.fsheet-body{ overflow-y:auto; padding:14px 18px 18px; -webkit-overflow-scrolling:touch; font-family:inherit; overscroll-behavior:contain; }
 			.fsheet-footer{ padding:10px 18px calc(14px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--divider-faint); flex-shrink:0; }
-			.fsheet-apply-btn{ width:100%; padding:11px; border:none; border-radius:10px; background:var(--navy); color:#f3efe6; font-weight:600; font-size:14px; cursor:pointer; font-family:'Roboto',sans-serif; }
+			.fsheet-apply-btn{ width:100%; padding:11px; border:none; border-radius:10px; background:var(--navy); color:#f3efe6; font-weight:600; font-size:14px; cursor:pointer; font-family:inherit; }
 			@media (max-width: 1049px) {
 			.faculty-fab.active-list{ display:flex; }
 			}
@@ -1000,13 +1009,13 @@
 			/* overflow-x:hidden guvenlik agi: dikey scroll zaten disaridaki .modal-bg'de (overflow-y:auto),
 			   burada sadece yatay eksen kilitleniyor -- ios Safari native input[type=date] kontrolu
 			   CSS genislik kisitlarina ragmen tasarsa bile karta gorsel olarak SIZMASIN diye. */
-			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:'Roboto',sans-serif; position:relative; overflow-x:hidden; }
+			.modal{ background:var(--card); border-radius:16px; max-width:460px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.35); font-family:inherit; position:relative; overflow-x:hidden; }
 			/* Kapat (X) butonu her zaman position:absolute; top:14px; right:16px -- baslik
 			   metni dar ekranda bu alana kadar uzayip X'in ALTINA/UZERINE biniyordu. */
-			.modal h2{ font-family:'Fraunces',serif; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
+			.modal h2{ font-family:inherit; font-size:20px; color:var(--navy); margin:0 0 4px; padding-right:26px; }
 			.modal .hint{ font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.4;}
 			.field{ margin-bottom:12px; } .field label{ display:block; font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px; }
-			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:'Roboto',sans-serif; font-size:14px; background:var(--surface-input); color:var(--ink); }
+			.field input[type=text], .field input[type=date], .field select, .field textarea{ width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; background:var(--surface-input); color:var(--ink); }
 			/* iOS Safari'nin native input[type=date] kontrolu bazen width:100%'u yok sayip kendi
 			   intrinsik genisligini dayatiyor (input[type=file]'daki v2.3.7 vakasiyla ayni aile).
 			   v2.9.14'te denenen max-width:100%+min-width:0 tek basina YETERSIZ kaldi -- kullanici
@@ -1062,7 +1071,7 @@
 			@keyframes fadeIn { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
 
 			#toastContainer { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
-			.toast { background:var(--navy); color:#fff; font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; padding:12px 20px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; opacity:0; }
+			.toast { background:var(--navy); color:#fff; font-family:inherit; font-size:13px; font-weight:500; padding:12px 20px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; opacity:0; }
 			.toast.show { transform: translateX(0); opacity:1; }
 			.toast.error { background: #b03a3a; }
 			.toast.warn { background: var(--warn); }
@@ -1080,7 +1089,7 @@
 			.legal-tabs{ display:flex; gap:6px; margin-bottom:12px; }
 			.legal-tabs .btn{ flex:1; font-size:13px; padding:8px 10px; }
 			.legal-body{ max-height:52vh; overflow-y:auto; padding-right:6px; font-size:13px; line-height:1.7; color:var(--ink); overscroll-behavior:contain; }
-			.legal-body h3{ font-family:'Fraunces',serif; font-size:15px; margin:16px 0 6px; color:var(--navy); }
+			.legal-body h3{ font-family:inherit; font-size:15px; margin:16px 0 6px; color:var(--navy); }
 			.legal-body h3:first-child{ margin-top:0; }
 			.legal-body p{ margin:0 0 8px; }
 			.legal-body ul{ margin:0 0 10px; padding-left:18px; }
@@ -1156,7 +1165,7 @@
 				   eşit olsun") -- kayıt formunun doğal yüksekliğine (~472px) sabit min-height
 				   verilip, daha kısa giriş formu justify-content:center ile o boşlukta ortalanır. */
 				.af-form{ display:flex; flex-direction:column; justify-content:center; gap:10px; max-width:350px; width:100%; min-height:472px; box-sizing:border-box; padding:28px; border-radius:28px; position:relative; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff; border:1px solid #2c3d61; box-shadow:0 20px 60px rgba(0,0,0,.35); }
-				.af-title{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; letter-spacing:-1px; position:relative; display:flex; align-items:center; padding-left:26px; color:var(--brass-light); margin:0; }
+				.af-title{ font-family:inherit; font-size:26px; font-weight:600; letter-spacing:-1px; position:relative; display:flex; align-items:center; padding-left:26px; color:var(--brass-light); margin:0; }
 				.af-title::before,.af-title::after{ position:absolute; content:""; height:14px; width:14px; border-radius:50%; left:0; background-color:var(--brass-light); }
 				.af-title::after{ animation: afPulse 1s linear infinite; }
 				.af-message,.af-signin{ font-size:14px; color:rgba(255,255,255,.65); margin:0; }
@@ -1167,7 +1176,7 @@
 				.af-signin a:hover{ background:rgba(217,181,104,.12); border-color:var(--brass-light); text-decoration:none; }
 				.af-flex{ display:flex; width:100%; gap:6px; }
 				.af-form label{ position:relative; display:block; }
-				.af-input{ background:rgba(255,255,255,.08); color:#fff; width:100%; padding:19px 10px 6px; outline:0; border:1px solid rgba(255,255,255,.15); border-radius:16px; font-size:14px; font-family:'Roboto',sans-serif; box-shadow:inset 0 2px 6px rgba(0,0,0,.18); transition:border-color .15s, box-shadow .15s; }
+				.af-input{ background:rgba(255,255,255,.08); color:#fff; width:100%; padding:19px 10px 6px; outline:0; border:1px solid rgba(255,255,255,.15); border-radius:16px; font-size:14px; font-family:inherit; box-shadow:inset 0 2px 6px rgba(0,0,0,.18); transition:border-color .15s, box-shadow .15s; }
 				.af-input:focus{ border-color:rgba(217,181,104,.55); }
 				.af-input + span{ color:rgba(255,255,255,.5); position:absolute; left:11px; top:0; font-size:.9em; cursor:text; transition:.2s ease; pointer-events:none; }
 				.af-input:placeholder-shown + span{ top:13px; font-size:.9em; }
@@ -1213,7 +1222,7 @@
 				   olsun"). Simdi TEK bir avatar+isim "profil" butonu (bkz. renderAuthUI/
 				   toggleHeaderMenu) + tikla-ac acilir menu -- hem web hem mobilde AYNI tek
 				   satirlik kompakt alan, secenekler (Admin Paneli/Cikis) menude toplanir. */
-				.header-auth{ position:static; display:flex; align-items:center; min-width:0; font-family:'Roboto',sans-serif; font-size:13px; }
+				.header-auth{ position:static; display:flex; align-items:center; min-width:0; font-family:inherit; font-size:13px; }
 				/* #headerAuth'un KENDISI position:static KALMALI (mobil header-baslik cakisma
 				   testi bunu varsayiyor) -- .header-menu'nun konumlandirma bagi bu ARA sarmalayiciya
 				   (.header-profile-wrap) tasindi, boylece hem test hem dropdown'un dogru
@@ -1267,7 +1276,7 @@
 				/* === YÜKLENİYOR EKRANI  === */
 				.loading-overlay{ position:fixed; top:0; left:0; right:0; height:calc(var(--vh, 1vh) * 100); background:rgba(243,239,230,.94); display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:300; }
 				.loading-overlay.open{ display:flex; }
-				.loading-overlay .loading-label{ font-family:'Roboto',sans-serif; font-size:13px; color:var(--muted); font-weight:600; }
+				.loading-overlay .loading-label{ font-family:inherit; font-size:13px; color:var(--muted); font-weight:600; }
 
 				.simple-spinner { width: 3.5em; height: 3.5em; border: 5px solid var(--surface-hover-3); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
 				@keyframes spin { to { transform: rotate(360deg); } }
@@ -1287,7 +1296,7 @@
 				.admin-user-row .au-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
 				.admin-user-row .au-name{ font-weight:700; font-size:14px; color:var(--ink); }
 				.admin-user-row .au-email{ font-size:12px; color:var(--muted); min-width:0; overflow-wrap:break-word; word-break:break-word; }
-				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:'Roboto',sans-serif; background:var(--surface-input); color:var(--ink); cursor:pointer; }
+				.admin-user-row select{ padding:6px 8px; border-radius:7px; border:1px solid var(--border); font-size:13px; font-family:inherit; background:var(--surface-input); color:var(--ink); cursor:pointer; }
 				.admin-user-row select:disabled{ background:var(--surface-hover); color:var(--muted); cursor:not-allowed; }
 				.au-basin-toggle{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted); cursor:pointer; white-space:nowrap; user-select:none; }
 				.au-basin-toggle input{ cursor:pointer; }
@@ -1300,7 +1309,7 @@
 				.admin-log-row .al-action{ color:var(--ink); }
 				/* "kim yaptı" (al-by, lacivert/kalın) ile "kime yapıldı" (al-target, altın rozet) birbirine karışmasın diye ayrı stiller */
 				.admin-log-row .al-target{ display:inline-block; background:rgba(184,146,63,.16); color:var(--warn-text-alt); font-weight:700; padding:1px 8px; border-radius:6px; margin-right:3px; }
-				.admin-log-row .al-time{ font-family:'JetBrains Mono',monospace; color:var(--muted); font-size:11px; font-weight:500; white-space:nowrap; }
+				.admin-log-row .al-time{ font-family:inherit; color:var(--muted); font-size:11px; font-weight:500; white-space:nowrap; }
 				/* Hangi alanın değiştiği ("Protokol Sırası: 2. sıradan 4. sıraya düşürüldü") alt satırlar hâlinde listelenir */
 				.admin-log-row .al-detail{ display:block; margin-top:4px; padding-left:9px; border-left:2px solid rgba(184,146,63,.4); font-size:12px; line-height:1.55; color:var(--muted); }
 				.admin-log-row .al-detail b{ color:var(--ink); font-weight:600; }
@@ -1309,7 +1318,7 @@
 			   dilini kullanır ama satır başına bir silme düğmesi taşır. */
 			.dict-section{ margin-bottom:18px; }
 			.dict-section-title{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--ink); margin:0 0 8px; }
-			.dict-count{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--muted); background:var(--surface-subtle); border-radius:999px; padding:1px 8px; }
+			.dict-count{ font-family:inherit; font-size:11px; font-weight:600; color:var(--muted); background:var(--surface-subtle); border-radius:999px; padding:1px 8px; }
 			.dict-list{ display:flex; flex-direction:column; gap:4px; }
 			.dict-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 10px; background:var(--card); border:1px solid var(--border-soft); border-radius:8px; font-size:13px; }
 			.dict-val{ min-width:0; overflow-wrap:break-word; word-break:break-word; color:var(--ink); }
@@ -1395,8 +1404,8 @@
 			   - Sidebar + KPI şeridi + içerik kartı: hepsi AYNI cam tarifi (blur+saturate,
 			     yarı saydam beyaz, ince kenarlık) -- mobildeki .mobile-glass-nav ile aynı dil,
 			     boşluklarla "yüzen" paneller (flush kenar YOK).
-			   - Tipografi netleştirildi: nav 13px, KPI sayısı 26px JetBrains Mono (verinin
-			     kendi fontuyla -- saat/tarih gösterimleriyle tutarlı), KPI etiketi 10px
+			   - Tipografi netleştirildi: nav 13px, KPI sayısı 26px, KPI etiketi 10px
+			     büyük harf,
 			     büyük harf, bölüm başlığı 19px. Önceki "eşit değil" hissi bu net skala ile
 			     giderildi. #adminPanelBg zaten .modal-bg (fixed+fade) -- sadece İÇERİK değişti. */
 			body[data-page="admin"] #adminPanelBg{
@@ -1415,19 +1424,19 @@
 			.admin-sidebar{ flex:0 0 232px; display:flex; flex-direction:column; gap:4px; padding:18px 12px; border-radius:20px; height:100%; box-sizing:border-box; overflow-y:auto; }
 			.admin-sidebar-brand{ display:flex; align-items:center; gap:10px; padding:2px 8px 14px; margin-bottom:10px; border-bottom:1px solid rgba(120,120,140,.15); }
 			.admin-sidebar-logo{ font-size:21px; line-height:1; }
-			.admin-sidebar-brand b{ display:block; font-family:'Fraunces',serif; font-size:14px; font-weight:600; color:var(--ink); line-height:1.3; }
+			.admin-sidebar-brand b{ display:block; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); line-height:1.3; }
 			.admin-sidebar-sub{ display:block; font-size:10.5px; color:var(--muted); letter-spacing:.02em; }
 			.admin-nav-group{ display:flex; flex-direction:column; gap:2px; }
 			/* Faz 9: akordeon grup başlığı -- AdminLTE'nin .nav-header/.nav-arrow davranışının
 			   vanilla portu (bkz. app.js toggleAdminNavGroup/openAdminNavGroup). Kapalıyken
 			   .admin-nav-treeview display:none, .open olunca block; ok .open'da 180deg döner. */
-			.admin-nav-header{ display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 10px; border:none; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; text-align:left; cursor:pointer; border-radius:8px; }
+			.admin-nav-header{ display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 10px; border:none; background:none; color:var(--muted); font-family:inherit; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; text-align:left; cursor:pointer; border-radius:8px; }
 			.admin-nav-header:hover{ background:rgba(120,120,140,.1); color:var(--ink); }
 			.admin-nav-header .nav-arrow{ width:14px; height:14px; transition:transform .18s ease; }
 			.admin-nav-group.open .admin-nav-header .nav-arrow{ transform:rotate(180deg); }
 			.admin-nav-treeview{ display:none; flex-direction:column; gap:2px; padding-bottom:6px; }
 			.admin-nav-group.open .admin-nav-treeview{ display:flex; }
-			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:10px; background:none; color:var(--ink); font-family:'Roboto',sans-serif; font-size:13px; font-weight:500; text-align:left; cursor:pointer; transition:background .12s ease, color .12s ease; position:relative; }
+			.admin-nav-item{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:none; border-radius:10px; background:none; color:var(--ink); font-family:inherit; font-size:13px; font-weight:500; text-align:left; cursor:pointer; transition:background .12s ease, color .12s ease; position:relative; }
 			.admin-nav-item .ikon{ width:17px; height:17px; color:var(--muted); transition:color .12s ease; }
 			.admin-nav-item:hover{ background:rgba(120,120,140,.12); }
 			.admin-nav-item:hover .ikon{ color:var(--ink); }
@@ -1439,7 +1448,7 @@
 			[data-theme="dark"] .admin-nav-item.active{ box-shadow:0 1px 3px rgba(0,0,0,.4); }
 			.admin-nav-item.active::before{ content:''; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:3px; height:18px; border-radius:0 3px 3px 0; background:var(--accent-ink); }
 			.admin-nav-item.active .ikon{ color:var(--accent-ink); }
-			.admin-back-btn{ display:flex; align-items:center; gap:8px; margin-top:auto; padding:9px 10px; border:1px solid rgba(120,120,140,.2); border-radius:10px; background:none; color:var(--muted); font-family:'Roboto',sans-serif; font-size:12.5px; text-align:left; cursor:pointer; }
+			.admin-back-btn{ display:flex; align-items:center; gap:8px; margin-top:auto; padding:9px 10px; border:1px solid rgba(120,120,140,.2); border-radius:10px; background:none; color:var(--muted); font-family:inherit; font-size:12.5px; text-align:left; cursor:pointer; }
 			.admin-back-btn .ikon{ width:15px; height:15px; }
 			.admin-back-btn:hover{ background:rgba(120,120,140,.12); color:var(--ink); }
 			.admin-back-btn:active{ transform:scale(.96); }
@@ -1454,13 +1463,13 @@
 			.admin-kpi-icon{ width:26px; height:26px; border-radius:7px; display:grid; place-items:center; flex:none; background:var(--surface-hover); color:var(--muted); margin-bottom:8px; }
 			.admin-kpi-icon .ikon{ width:14px; height:14px; stroke-width:2; }
 			.admin-kpi-icon.accent{ background:var(--accent-soft); color:var(--accent-ink); }
-			.ak-num{ font-family:'JetBrains Mono',monospace; font-size:25px; font-weight:600; color:var(--navy); line-height:1.1; }
+			.ak-num{ font-family:inherit; font-size:25px; font-weight:600; color:var(--navy); line-height:1.1; }
 			[data-theme="dark"] .ak-num{ color:var(--brass-light); }
 			.ak-label{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
 			.admin-kpi.ak-warn .ak-num{ color:var(--warn); }
 			.admin-kpi.ak-warn .admin-kpi-icon{ background:var(--warn-bg); color:var(--warn); }
 			.admin-content-card{ flex:1 1 auto; padding:22px 26px 28px; border-radius:20px; }
-			.admin-main-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--ink); margin:0 0 14px; }
+			.admin-main-title{ font-family:inherit; font-size:19px; font-weight:600; color:var(--ink); margin:0 0 14px; }
 			/* Faz 7 v4 (kullanıcı isteği): Geçmiş sekmesi -- "Tüm Kayıtlar" ve "Test Günlüğü" artık
 			   üst-alt yığılı değil, YAN YANA iki sütun (masaüstü). Ortadaki ince dikey çizgi
 			   var(--divider) ile -- sabit hex YOK, koyu temada da görünür kalır. Her sütunun
@@ -1480,18 +1489,18 @@
 			   token'ları (--yuzey/--vurgu) KOPYALANMADI. */
 			.admcal-card{ display:flex; flex-direction:column; gap:12px; }
 			.admcal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-			.admcal-title{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--ink); }
+			.admcal-title{ font-family:inherit; font-size:17px; font-weight:600; color:var(--ink); }
 			.admcal-nav{ display:flex; align-items:center; gap:6px; }
 			.admcal-nav button:not(.admcal-today){ width:32px; height:32px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--muted); display:grid; place-items:center; cursor:pointer; padding:0; transition:background .12s ease, color .12s ease; }
 			.admcal-nav button:not(.admcal-today):hover{ background:var(--surface-hover); color:var(--ink); }
 			.admcal-nav button:not(.admcal-today) .ikon{ width:15px; height:15px; }
 			.admcal-nav button:not(.admcal-today):active{ transform:scale(.93); }
-			.admcal-today{ height:32px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-family:'Roboto',sans-serif; font-size:12.5px; font-weight:600; cursor:pointer; }
+			.admcal-today{ height:32px; padding:0 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
 			.admcal-today:hover{ background:var(--surface-hover); }
 			.admcal-dow{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:2px; }
 			.admcal-dow span{ text-align:center; font-size:10.5px; font-weight:600; color:var(--muted); letter-spacing:.05em; text-transform:uppercase; padding:2px 0; }
 			.admcal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-			.admcal-cell{ aspect-ratio:1/.85; min-height:52px; border-radius:12px; border:1px solid transparent; background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; padding-top:6px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--ink); cursor:pointer; transition:background .12s ease, border-color .12s ease, transform .1s ease; }
+			.admcal-cell{ aspect-ratio:1/.85; min-height:52px; border-radius:12px; border:1px solid transparent; background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; padding-top:6px; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; transition:background .12s ease, border-color .12s ease, transform .1s ease; }
 			.admcal-cell:hover{ background:var(--surface-hover); }
 			.admcal-cell:active{ transform:scale(.95); }
 			.admcal-cell.other{ color:var(--muted); opacity:.45; }
@@ -1499,7 +1508,7 @@
 			.admcal-daynum{ line-height:1; }
 			.admcal-dots{ display:flex; gap:2.5px; align-items:center; height:6px; }
 			.admcal-dot{ width:5px; height:5px; border-radius:50%; flex:none; }
-			.admcal-extra{ font-size:8px; color:var(--muted); font-family:'Roboto',sans-serif; }
+			.admcal-extra{ font-size:8px; color:var(--muted); font-family:inherit; }
 			.admcal-open-btn{ align-self:flex-start; display:inline-flex; align-items:center; gap:8px; }
 			.admcal-open-btn .ikon{ width:15px; height:15px; }
 			@media (max-width: 560px){
@@ -1575,7 +1584,7 @@
 			   --test-banner-h: banner'in gercek yuksekligi (padding+font), TEK KAYNAK -- hem body
 			   padding'i hem asagidaki overlay top/height hesaplari BURADAN okur. */
 			body.test-mode-active{ --test-banner-h: calc(26px + env(safe-area-inset-top,0px)); padding-top:var(--test-banner-h); }
-			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:150; background:var(--navy); color:#f3efe6; font-family:'Roboto',sans-serif; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
+			#testModeBanner{ display:none; align-items:center; justify-content:center; gap:6px; position:fixed; top:0; left:0; right:0; z-index:150; background:var(--navy); color:#f3efe6; font-family:inherit; font-size:12px; font-weight:600; padding:6px 10px; padding-top:calc(6px + env(safe-area-inset-top,0px)); text-align:center; }
 			/* Faz 10: şerit artık Test Modu VE/veya Salt-Okunur Kilit'i gösterebiliyor (bkz.
 			   updateStatusBanner(), app.js) -- kilit varsa nötr navy yerine tehlike (kırmızı)
 			   rengine döner, çünkü "düzenleme kapalı" test modundan daha acil bir durum. */
@@ -1857,7 +1866,7 @@
 			.stats-bar-fill{ height:100%; border-radius:6px; background:linear-gradient(90deg, var(--navy), var(--brass)); transition:width .25s ease; }
 			[data-theme="dark"] .stats-bar-fill{ background:linear-gradient(90deg, var(--navy-2), var(--brass-light)); }
 			.stats-bar-row:hover .stats-bar-fill{ filter:brightness(1.12); }
-			.stats-bar-count{ width:28px; text-align:right; flex-shrink:0; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+			.stats-bar-count{ width:28px; text-align:right; flex-shrink:0; color:var(--muted); font-family:inherit; }
 
 			/* Faz 9 Part B adım 3: dashboard/field-ops/editorial/hierarchy/integrity ortak
 			   görsel dili -- reui.io/blocks/application/stats görsel deseninden (kod değil,
@@ -1865,7 +1874,7 @@
 			.dash-alert-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:16px; }
 			.dash-alert-card{ background:var(--surface-subtle); border:1px solid var(--divider-soft); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
 			.dash-alert-card.ak-warn{ background:var(--warn-bg); border-color:transparent; }
-			.dash-alert-num{ font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:600; color:var(--navy); line-height:1.1; }
+			.dash-alert-num{ font-family:inherit; font-size:26px; font-weight:600; color:var(--navy); line-height:1.1; }
 			[data-theme="dark"] .dash-alert-num{ color:var(--brass-light); }
 			.dash-alert-card.ak-warn .dash-alert-num{ color:var(--warn); }
 			.dash-alert-label{ font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
@@ -1873,7 +1882,7 @@
 			.dash-alert-subhead{ margin:18px 0 8px; font-size:12.5px; font-weight:600; color:var(--ink); text-transform:uppercase; letter-spacing:.03em; }
 			.stat-expiry-list{ display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; }
 			.stat-expiry-row{ display:flex; align-items:center; gap:10px; padding:7px 10px; background:var(--surface-subtle); border-radius:10px; font-size:12.5px; }
-			.stat-expiry-badge{ flex-shrink:0; min-width:26px; text-align:center; padding:2px 6px; border-radius:6px; background:var(--surface-input); color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; }
+			.stat-expiry-badge{ flex-shrink:0; min-width:26px; text-align:center; padding:2px 6px; border-radius:6px; background:var(--surface-input); color:var(--muted); font-family:inherit; font-size:11px; font-weight:600; }
 			.stat-expiry-badge.warn{ background:var(--warn-bg); color:var(--warn); }
 			.stat-expiry-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
 			.stat-bar{ display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--surface-input); border:1px solid var(--divider-soft); margin-bottom:8px; }
