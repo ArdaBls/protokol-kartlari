@@ -160,9 +160,11 @@ function render() {
         </td>
         <td>${roleCell}</td>
         <td>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);cursor:pointer">
-            <input type="checkbox" data-basin-toggle data-uid="${uid}" ${u.basinGorevlisi ? 'checked' : ''}>
-            İşaretle
+          <label class="check-toggle" title="${u.basinGorevlisi ? 'Basın görevlisi işaretini kaldır' : 'Basın görevlisi olarak işaretle'}">
+            <input type="checkbox" data-basin-toggle data-uid="${uid}" aria-label="${escapeHtml(fullNameOf(u))} — basın görevlisi" ${u.basinGorevlisi ? 'checked' : ''}>
+            <svg viewBox="0 0 64 64" height="1.4em" width="1.4em" aria-hidden="true">
+              <path d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16" pathLength="575.0541381835938" class="path"></path>
+            </svg>
           </label>
         </td>
         <td>
