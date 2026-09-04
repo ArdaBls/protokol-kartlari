@@ -12,6 +12,7 @@ import Sortable from 'sortablejs';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 import { facultyOptionsHtml, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
+import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -111,6 +112,7 @@ function fmtMultiDayRange(tarih, bitisTarihi) {
 
 let database = null;
 let auth = null;
+let eventsListenerRef = null;
 let currentUserName = '';
 let currentUserEmail = '';
 let canWrite = false;
@@ -205,7 +207,12 @@ function eventsOn(dateKey) { return visibleEvents().filter((e) => e.tarih === da
 // ── Firebase read/write ──
 
 function attachEventsListener() {
-  database.ref('etkinlikler').on('value', (snap) => {
+  // Test Modu/Salt-Okunur Kilit açılıp kapanınca dbPath()'in döndürdüğü yol değişir --
+  // önceki dinleyici (eski yolda) kapatılmazsa iki dala birden bağlı kalınır (bkz.
+  // db-mode.js initDbMode dokümantasyonu).
+  if (eventsListenerRef) { eventsListenerRef.off('value'); }
+  eventsListenerRef = database.ref(dbPath('etkinlikler'));
+  eventsListenerRef.on('value', (snap) => {
     const v = snap.val();
     EVENTS = (v && typeof v === 'object') ? v : {};
     renderCalendar();
@@ -218,17 +225,33 @@ function attachEventsListener() {
 
 async function persistEvent(id, patch, logLabel) {
   if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return null; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return null; }
   const isNew = !id;
-  const finalId = id || database.ref('etkinlikler').push().key;
   const current = isNew ? {} : (EVENTS[id] || {});
+  // İyimser kilit: kaydetmeden hemen önce sunucudaki GERÇEK guncellemeTs okunur. Modal
+  // açıkken (ya da bu oturumda son bilinen) değerden farklıysa aradan başka bir editör
+  // yazmış demektir -- sessizce üzerine yazmak yerine kullanıcı uyarılır.
+  if (!isNew) {
+    try {
+      const freshSnap = await database.ref(dbPath('etkinlikler/' + id + '/guncellemeTs')).once('value');
+      const freshTs = freshSnap.val();
+      if (current.guncellemeTs && freshTs && freshTs !== current.guncellemeTs) {
+        showToast('Bu etkinlik siz düzenlerken başka biri tarafından değiştirildi, sayfa yenilenip tekrar denenecek.', { variant: 'error' });
+        return null;
+      }
+    } catch (err) {
+      console.error('Çakışma kontrolü başarısız:', err);
+    }
+  }
+  const finalId = id || database.ref(dbPath('etkinlikler')).push().key;
   const merged = Object.assign({}, current, patch);
   const updates = {};
   const toWrite = Object.assign({}, merged);
   if (isNew) { toWrite.olusturmaTs = firebase.database.ServerValue.TIMESTAMP; toWrite.olusturan = currentUserName || currentUserEmail; }
   toWrite.guncellemeTs = firebase.database.ServerValue.TIMESTAMP;
-  updates['etkinlikler/' + finalId] = toWrite;
-  const logKey = database.ref('logs/etkinlik').push().key;
-  updates['logs/etkinlik/' + logKey] = {
+  updates[dbPath('etkinlikler/' + finalId)] = toWrite;
+  const logKey = database.ref(dbPath('logs/etkinlik')).push().key;
+  updates[dbPath('logs/etkinlik/' + logKey)] = {
     by: currentUserName || currentUserEmail, email: currentUserEmail,
     action: logLabel || 'Etkinlik güncellendi', target: merged.ad || '',
     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -246,11 +269,12 @@ async function persistEvent(id, patch, logLabel) {
 
 async function deleteEvent(id) {
   if (!canWrite) { showToast('Bu işlem için yetkiniz yok.', { variant: 'error' }); return; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   const e = EVENTS[id]; if (!e) { return; }
   const updates = {};
-  updates['etkinlikler/' + id] = null;
-  const logKey = database.ref('logs/etkinlik').push().key;
-  updates['logs/etkinlik/' + logKey] = {
+  updates[dbPath('etkinlikler/' + id)] = null;
+  const logKey = database.ref(dbPath('logs/etkinlik')).push().key;
+  updates[dbPath('logs/etkinlik/' + logKey)] = {
     by: currentUserName || currentUserEmail, email: currentUserEmail,
     action: (e.ad || 'Etkinlik') + ' etkinliği takvimden silindi', target: e.ad || '',
     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -1593,11 +1617,22 @@ export function initCalendar() {
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
       const role = u.role;
-      canWrite = role === 'editor' || role === 'admin' || role === 'owner';
+      canWrite = (role === 'editor' || role === 'admin' || role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
       renderCalendar();
     }).catch(() => { canWrite = false; renderCalendar(); });
   });
 
-  attachEventsListener();
+  // Test Modu/Salt-Okunur Kilit'in ilk değerleri okunmadan `etkinlikler`e bağlanılırsa
+  // ilk okuma yanlış dalda (canlı/test) yapılır -- initDbMode() ilk değerler gelene kadar
+  // bekleyen bir promise döner (bkz. db-mode.js). Mod daha sonra CANLI değişirse (başka bir
+  // admin ayarlar.html'den değiştirirse) dinleyici yeniden bağlanır ve şerit güncellenir.
+  initDbMode(database).then(() => {
+    renderDbModeBanner();
+    attachEventsListener();
+  });
+  onDbModeChange(() => {
+    renderDbModeBanner();
+    attachEventsListener();
+  });
 }

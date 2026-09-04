@@ -480,22 +480,8 @@
 			.cal-rail-btn:hover{ background:var(--surface-hover); border-color:var(--brass-light); }
 			.cal-rail-icon{ font-size:26px; line-height:1; }
 			.cal-rail-label{ font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); }
-			.cal-rail-count{ font-size:12px; color:var(--muted); }
-			.cal-rail-count b{ color:var(--brass-text); font-size:13px; }
 			.cal-rail-next{ background:var(--card); border:1px solid var(--border-soft); border-radius:14px; padding:12px; }
 			.cal-rail-next h4{ margin:0 0 8px; font-family:inherit; font-size:13px; color:var(--ink); font-weight:600; }
-			.cal-next-item{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-top:1px solid var(--surface-hover); cursor:pointer; }
-			.cal-next-item:first-of-type{ border-top:none; }
-			.cal-next-item:hover .cal-next-name{ color:var(--brass-text); }
-			.cal-next-date{ flex-shrink:0; width:34px; text-align:center; background:var(--surface-subtle); border-radius:7px; padding:3px 0; }
-			.cal-next-date .d{ display:block; font-size:14px; font-weight:700; color:var(--ink); line-height:1.1; }
-			.cal-next-date .m{ display:block; font-size:9px; color:var(--muted); text-transform:uppercase; }
-			.cal-next-name{ font-size:12px; font-weight:600; color:var(--ink); line-height:1.3; }
-			.cal-next-meta{ font-size:11px; color:var(--muted); }
-			.cal-rail-empty{ font-size:12px; color:var(--muted); text-align:center; padding:6px 0; }
-			.cal-now-heading{ color:var(--today); }
-			.cal-next-item-now{ background:var(--warn-bg); border-radius:8px; padding:6px 8px; margin:0 0 2px; }
-			.cal-now-dot{ width:8px; height:8px; border-radius:50%; background:var(--today); box-shadow:0 0 0 3px rgba(194,65,12,.18); flex-shrink:0; margin-top:4px; }
 
 			/* ---- Tam ekran kabuk ---- */
 			/* Takvim, sağ raydaki küçük karttan büyüyerek tüm ekranı kaplar.
@@ -519,10 +505,8 @@
 			.cal-rail-btn{ transition:transform .18s ease, box-shadow .18s ease; }
 			.cal-rail-btn:hover{ transform:translateY(-2px); box-shadow:0 14px 38px rgba(22,35,61,.2); }
 			.cal-rail-btn:active{ transform:scale(.97); }
-			/* NOT: .calendar-fab icin transition/:active kurallari asagida (satir ~934/945) YENIDEN
-			   tanimlaniyor ve kaskatta KAZANIYOR -- burada tekrar tanimlamiyoruz (olu kod olurdu). */
 			@media (prefers-reduced-motion: reduce){
-				.cal-overlay, .cal-shell, .cal-launch-backdrop, .cal-rail-btn, .calendar-fab{ transition:none !important; }
+				.cal-overlay, .cal-shell, .cal-launch-backdrop, .cal-rail-btn{ transition:none !important; }
 			}
 			.cal-rail-left{ flex:0 0 232px; border-right:1px solid var(--divider-faint); background:rgba(22,35,61,.045); padding:20px 16px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
 			.cal-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
@@ -965,18 +949,15 @@
 			/* Faz 6 (kullanici istegi): tepsi dugmelerinden etiket metni kaldirildi, ikisi de
 			   sadece ikon tasiyan esit capli DAIRE. width==height + border-radius:50% ile tam
 			   daire; 48px dokunma hedefi icin asgari onerilen boyutun uzerinde. */
-			.calendar-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--ink); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
-			[data-theme="dark"] .calendar-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
-			@media (max-width: 1049px) { .calendar-fab{ display:flex; } }
 			/* Sadece admin rolu icin: tepsinin tam ortasinda admin.html'e goturen 3. dugme.
 			   Gorunurluk .active-list class'i ile JS'ten kontrol edilir (renderAuthUI()) --
 			   faculty-fab'daki ayni desen, rol degisince tek satirla acilip kapanir. */
 			.admin-fab{ display:none; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(255,255,255,.38); color:var(--ink); border:1px solid rgba(255,255,255,.55); border-radius:50%; padding:0; cursor:pointer; transition:background .15s, transform .15s; }
 			[data-theme="dark"] .admin-fab{ background:rgba(255,255,255,.09); color:#f3efe6; border-color:rgba(255,255,255,.2); }
 			@media (max-width: 1049px) { .admin-fab.active-list{ display:flex; } }
-			.calendar-fab:hover, .admin-fab:hover, .faculty-fab:hover{ background:rgba(255,255,255,.55); }
-			[data-theme="dark"] .calendar-fab:hover, [data-theme="dark"] .admin-fab:hover, [data-theme="dark"] .faculty-fab:hover{ background:rgba(255,255,255,.16); }
-			.calendar-fab:active, .admin-fab:active, .faculty-fab:active{ transform:scale(.92); }
+			.admin-fab:hover, .faculty-fab:hover{ background:rgba(255,255,255,.55); }
+			[data-theme="dark"] .admin-fab:hover, [data-theme="dark"] .faculty-fab:hover{ background:rgba(255,255,255,.16); }
+			.admin-fab:active, .faculty-fab:active{ transform:scale(.92); }
 			@media (max-width: 900px) { .cal-rail-left{ display:none; } }
 			@media (max-width: 700px) {
 				.cal-topbar{ padding:calc(9px + env(safe-area-inset-top,0px)) 10px 9px; gap:5px; }
@@ -1853,17 +1834,6 @@
 			   şeridin BOŞLUĞUNU hâlâ ayırırdı, kart merkezden aşağı kayardı. Sıfırlanır. */
 			body[data-page="login"].test-mode-active{ padding-top:0; }
 
-			/* Onboarding rehberi nokta göstergesi */
-			.onboarding-dots{ display:flex; gap:6px; justify-content:center; margin:14px 0; }
-			.onboarding-dot{ width:7px; height:7px; border-radius:50%; background:var(--border); }
-			.onboarding-dot.active{ background:var(--brass); }
-
-			/* PIN ile hızlı hesap geçişi */
-			.pin-account-row{ display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-			.pin-account-name{ flex:1; min-width:100px; font-weight:600; font-size:13px; }
-			.pin-input{ width:80px; padding:7px 10px; border-radius:8px; border:1px solid var(--border); font-size:13px; background:var(--surface-input); color:var(--ink); }
-			.btn-pin{ background:transparent; border:1px solid rgba(255,255,255,.3); color:#f3efe6; border-radius:8px; padding:6px 9px; font-size:15px; cursor:pointer; }
-
 			/* Fotoğraf yükleme yardım ikonu */
 			.help-tooltip-btn{ width:18px; height:18px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--muted); font-size:11px; font-weight:700; cursor:pointer; padding:0; line-height:1; }
 			.photo-help-box{ font-size:12px; color:var(--muted); background:var(--surface-input); border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin:6px 0; line-height:1.4; }
@@ -1871,14 +1841,6 @@
 			/* Etkinlik rozetleri (Basına Kapalı / Dış Katılımlı / Canlı Yayın vb.) */
 			.cal-badge-wrap{ display:inline-flex; flex-wrap:wrap; gap:3px; margin-left:4px; }
 			.cal-badge{ display:inline-block; font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px; line-height:1.5; white-space:nowrap; }
-
-			/* Bildirim zili ve dropdown ("Bir Etkinliğe Gidiyorum" hatırlatmaları) */
-			.notif-bell-wrap{ position:relative; }
-			.notif-badge{ position:absolute; top:-2px; right:-2px; min-width:15px; height:15px; padding:0 3px; border-radius:8px; background:#dc2626; color:#fff; font-size:10px; font-weight:700; line-height:15px; text-align:center; }
-			.notif-dropdown{ display:none; position:absolute; top:calc(100% + 8px); right:0; width:260px; max-height:320px; overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.25); z-index:200; padding:6px; }
-			.notif-dropdown.open{ display:block; }
-			.notif-item{ display:block; width:100%; text-align:left; padding:8px 10px; border:none; background:none; border-radius:6px; font-size:12px; color:var(--ink); cursor:pointer; }
-			.notif-item:hover{ background:var(--surface-input); }
 
 			/* Faz 7 v4 (kullanıcı isteği: istatistikler daha modern görünsün): Admin faaliyet
 			   istatistik paneli -- büyük KPI + üç bölümü ayrı hafif cam kartlara ayıran ızgara +

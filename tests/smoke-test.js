@@ -149,7 +149,7 @@ function serve() {
 		out.sortableYuklu = typeof window.Sortable !== 'undefined';
 		out.hasPeopleArrayFn = typeof window.render === 'function' || typeof render === 'function';
 		out.functionsDefined = {};
-		['render', 'openEditModal', 'saveForm', 'generateNewsText', 'attachEventsListener', 'renderCalendarRail', 'renderWeekView', 'renderMonthView', 'renderListView', 'openCalendar', 'closeCalendar', 'requireEdit', 'requireAdmin', 'applyPermissions', 'openLegalModal', 'fillNewsTemplateSelect'].forEach((fn) => {
+		['render', 'openEditModal', 'saveForm', 'generateNewsText', 'attachEventsListener', 'renderWeekView', 'renderMonthView', 'renderListView', 'openCalendar', 'closeCalendar', 'requireEdit', 'requireAdmin', 'applyPermissions', 'openLegalModal', 'fillNewsTemplateSelect'].forEach((fn) => {
 			out.functionsDefined[fn] = typeof window[fn] === 'function';
 		});
 		out.bodyHTMLLength = document.body.innerHTML.length;

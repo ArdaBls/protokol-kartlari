@@ -1,6 +1,15 @@
 // Admin paneli — giriş noktası
 // Self-contained dashboard skin. Loads only the v4 design system.
 
+// Clickjacking koruması (frame-busting): GitHub Pages statik host olduğu için
+// X-Frame-Options/CSP frame-ancestors HTTP başlığı eklenemiyor -- bu yüzden
+// istemci tarafında telafi ediliyor. Panel bir <iframe> içinde açılırsa üst
+// çerçeveyi kendi konumuna yönlendirir. Modülün en başında, DOM/diğer her şey
+// yüklenmeden önce çalışır ki gömülü sayfa mümkün olduğunca az görünür kalsın.
+if (window.top !== window.self) {
+  window.top.location = window.self.location;
+}
+
 import './scss/v4/main.scss';
 import { mountShell } from './v4/shell.js';
 import { initCharts, initPhotoCounter, initProtocolCounter } from './v4/charts.js';

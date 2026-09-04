@@ -15,7 +15,7 @@
 
 let testModeEnabled = false;
 let readOnlyEnabled = false;
-let started = false;
+let startedPromise = null;
 const listeners = new Set();
 
 /** Test modundayken yolu `test/` dalına yönlendirir (app.js dbPath ile birebir aynı). */
@@ -54,8 +54,14 @@ function notify() { listeners.forEach((cb) => { try { cb(); } catch (err) { cons
  * girişsiz kullanıcıda da sorunsuz okunur.
  */
 export function initDbMode(database) {
-  if (started) { return Promise.resolve(); }
-  started = true;
+  // Aynı sayfada birden fazla widget/modül kendi initDbMode() çağrısını yapabilir (ör.
+  // Operasyonlar sayfasında Görevler + Hızlı Etkinlik + Sayaç aynı anda yükleniyor).
+  // Modül tekil (Vite tek kopya bundler) olduğu için `startedPromise` PAYLAŞILIR --
+  // sonraki çağrılar YENİ dinleyici açmadan, İLK çağrının promise'ini bekler. Öncesinde
+  // burada `started` bir boolean'dı ve ikinci çağrı anında çözülen bir promise dönüyordu
+  // -- bu da ikinci widget'ın testModoEnabled/readOnlyEnabled henüz Firebase'den
+  // okunmadan (varsayılan false ile) veri çekmeye başlamasına yol açabiliyordu.
+  if (startedPromise) { return startedPromise; }
   if (!database) { return Promise.resolve(); }
 
   let resolveTest, resolveRead;
@@ -78,7 +84,8 @@ export function initDbMode(database) {
     if (changed) { notify(); }
   }, (err) => { console.error('Salt-okunur durumu okunamadı:', err); resolveRead(); });
 
-  return Promise.all([firstTest, firstRead]);
+  startedPromise = Promise.all([firstTest, firstRead]);
+  return startedPromise;
 }
 
 /**

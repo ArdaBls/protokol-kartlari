@@ -1829,3 +1829,30 @@ body.cmdk-open { overflow: hidden; }
   gap: var(--space-2);
 }
 
+// Test Modu / Salt-Okunur Kilit şeridi -- ana sitedeki #testModeBanner'ın (style.css)
+// admin paneli karşılığı, bkz. db-mode.js renderDbModeBanner(). Sayfa gövdesinin en
+// üstüne eklenir, panel içeriğinin üstüne biner ki hangi dalda çalışıldığı hiç
+// kaçırılmasın.
+.db-mode-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  padding-top: calc(6px + env(safe-area-inset-top, 0px));
+  background: var(--navy, #1e293b);
+  color: #f3efe6;
+  font-size: 12px;
+  font-weight: var(--font-weight-medium, 600);
+  text-align: center;
+
+  &.is-locked {
+    background: #b03a3a;
+  }
+}
+

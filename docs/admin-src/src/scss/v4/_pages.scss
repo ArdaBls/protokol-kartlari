@@ -887,6 +887,69 @@ body[data-page="dashboard-2"] .page-wrapper {
   display: block;
 }
 
+// ── ORTAK SINIF ÇAKIŞMASI: .card / .btn ailesi (frontend denetimi, 4 Eylül 2026) ──
+// protokol.html HEM style.css HEM de bu v4 admin CSS'ini aynı anda yüklüyor (bkz.
+// protokol.html <head>'indeki "style.css ve app.js aynen dahil edildi" yorumu).
+// .card / .btn / .btn-primary / .btn-ghost / .btn-danger gibi ortak sınıf adları
+// iki dosyada da (0,1,0) özgüllükte tanımlı -- v4'ün şu ana kadar kazanması TAMAMEN
+// yükleme SIRASINA bağlıydı (style.css <head>'de önce, bu modülün CSS'i sonra
+// enjekte ediliyor, eşit özgüllükte "son yüklenen kazanır"). Bu "tesadüfen" bir
+// zafer: biri <link>/<script> sırasını değiştirirse veya build'in enjeksiyon sırası
+// değişirse SESSİZCE tersine dönebilir. Kullanıcı kararı: v4'ün kompakt admin
+// görünümü BU sayfada KASITLI olarak kazanmalı -- aşağıdaki kurallar sayfa kapsamlı
+// (body[data-page="dashboard-2"]) bir seçiciyle (0,1,1) özgüllük ekleyip style.css'in
+// düz (0,1,0) kurallarını, sıra ne olursa olsun, KESİN olarak eziyor. Değerler
+// _components.scss'teki v4 tanımlarının BİREBİR kopyası -- CSS'te "bu sayfada bu
+// değeri garantiyle uygula" başka türlü ifade edilemediği için burada tekrar ediliyor;
+// v4'ün temel .card/.btn görünümü değişirse _components.scss İLE BİRLİKTE güncellenmeli.
+body[data-page="dashboard-2"] {
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    transition: box-shadow 150ms;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 120ms, border-color 120ms, color 120ms, box-shadow 120ms;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary-dk);
+  }
+  .btn-primary:hover { background: var(--primary-dk); }
+  // Not: .actions-row içindeki .btn-ghost/.btn-danger-outline aşağıda AYRI ve DAHA
+  // ÖZGÜL (.actions-row ekleyerek (0,2,1)) kurallarla kasıtlı olarak farklı (daha
+  // belirgin yüzeyli) stillenir -- o kurallar burayı ezer, birbirleriyle çakışmaz.
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .btn-ghost:hover { background: var(--bg-surface-secondary); color: var(--text); }
+  .btn-danger {
+    background: var(--red);
+    color: white;
+    border-color: #a82b2b;
+  }
+  .btn-danger:hover { background: #a82b2b; }
+}
+
 // ── AKSİYON BUTONLARI: arka plan ──
 // Kullanıcı: "butonları yalnızca arka plandan ayıran şey yazıların rengi,
 // buton arka planı koyalım zarif olsun."

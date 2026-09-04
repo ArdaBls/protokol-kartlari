@@ -437,11 +437,20 @@ const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
  * yenilemeden rozet artar. Yalnızca admin/owner içindir: kurallar zaten
  * users/ listesini sadece onlara açıyor, editörde istek boşuna reddedilirdi.
  */
+// onAuthStateChanged birden fazla kez tetiklenebilir (ör. misafir -> giriş yapmış kullanıcı
+// geçişi, ya da token yenilenmesi) -- her seferinde önceki .on() dinleyicisi kapatılmazsa
+// dinleyiciler birikip her değişiklikte callback'i N kere çalıştırır (bkz. kanban.js
+// loadEvents'teki AYNI desen: etkListenerRef/gorevListenerRef).
+let onayRozetiListenerRef = null;
+let blockedListenerRef = null;
+
 function onayBekleyenRozetiniBagla(role) {
+  if (onayRozetiListenerRef) { onayRozetiListenerRef.off('value'); onayRozetiListenerRef = null; }
   if (role !== 'admin' && role !== 'owner') { return; }
   const rozet = document.getElementById('tb-onay-rozeti');
   if (!rozet) { return; }
-  firebase.database().ref('users').on('value', (snap) => {
+  onayRozetiListenerRef = firebase.database().ref('users');
+  onayRozetiListenerRef.on('value', (snap) => {
     const hepsi = snap.val() || {};
     const bekleyen = Object.keys(hepsi).filter((uid) => {
       const r = hepsi[uid] && hepsi[uid].role;
@@ -534,7 +543,9 @@ export function syncShellUser() {
         // kisitlandi.html'in kendi CANLI dinleyicisiyle (tersi yönde) AYNI desen: sadece
         // "blocked" yaprağı dinlenir, geri kalan (onarım/onay kapısı/shell mount) bir daha
         // ÇALIŞTIRILMAZ -- tek amacı blocked true olur olmaz anında dışarı atmak.
-        firebase.database().ref('users/' + user.uid + '/blocked').on('value', (blockedSnap) => {
+        if (blockedListenerRef) { blockedListenerRef.off('value'); }
+        blockedListenerRef = firebase.database().ref('users/' + user.uid + '/blocked');
+        blockedListenerRef.on('value', (blockedSnap) => {
           if (blockedSnap.val() === true) {
             window.location.replace('erisim-kisitlandi.html');
           }

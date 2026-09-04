@@ -13,13 +13,17 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <!-- Kullanıcı isteği: CKEditor yerine TinyMCE (editör deneyimi daha iyi bulundu).
      jsDelivr üzerinden açık kaynak (GPL) TinyMCE dağıtımı -- Tiny Cloud API anahtarı
-     GEREKMİYOR, "bu alan adı kayıtlı değil" uyarı çubuğu göstermez. -->
-<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
+     GEREKMİYOR, "bu alan adı kayıtlı değil" uyarı çubuğu göstermez.
+     SRI (integrity/crossorigin) eklendi: jsDelivr'in CDN'i güvenle tamamen dışarıda,
+     hash tam sürüme (major-only DEĞİL) sabitlenmiş -- SRI sabit bir dosya içeriği
+     gerektirdiği için @7 gibi kayan bir etiket her yeni yayında hash'i geçersiz kılardı.
+     Sürüm güncellenirse integrity hash'i de birlikte güncellenmeli. -->
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.3/tinymce.min.js" integrity="sha384-Ovv1ZPEkpW4ElBKDKaEIPkNfTTadFpifFwNJOBnuStg0PQ0RBln5Lsf9AI8BsCmx" crossorigin="anonymous"></script>
 <!-- DOMPurify: haberMetni TinyMCE'nin ürettiği HTML olduğu için escape EDİLEMEZ (biçimlendirme
      kaybolur), ama `etkinlikler` düğümüne herhangi bir editor rolü yazabildiğinden depolanmış
      XSS yüzeyi var. Ham HTML basılan her yerde sanitize etmek için TinyMCE ile aynı desende
-     (jsDelivr, sürüm sabitlenmiş major) yüklenir. -->
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+     (jsDelivr, sürüm sabitlenmiş TAM sürüm + SRI) yüklenir. -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.14/dist/purify.min.js" integrity="sha384-46dPGH1XlTmj7bc50bqLjTdORXs/3EP2QpA/6EWbelYWOY9VGp+87RT61S3Mcslb" crossorigin="anonymous"></script>
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -36,13 +40,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/haber-detayi-biiLNfbZ.js"></script>
+  <script type="module" crossorigin src="/js/haber-detayi-N36Nn6Wl.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-CoE5gKbl.js">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-JgWAorY4.js">
   <link rel="modulepreload" crossorigin href="/js/roster-C-_G5UhN.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-Bi8JF5Ac.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-BoAIYMLr.css">
 </head>
 <body data-shell="admin" data-page="project-detail" data-breadcrumb="Anasayfa|index.html > Tüm haberler|tum-haberler.html > Haber detayı">
 

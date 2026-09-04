@@ -1,3 +1,14 @@
+			// Clickjacking koruması (frame-busting): GitHub Pages statik host olduğu için
+			// X-Frame-Options/CSP frame-ancestors HTTP başlığı eklenemiyor -- bu yüzden
+			// istemci tarafında telafi ediliyor. Sayfa bir <iframe> içinde açılırsa üst
+			// çerçeveyi kendi konumuna yönlendirir. IIFE olarak dosyanın EN BAŞINDA,
+			// DOMContentLoaded beklemeden hemen çalışır.
+			(function () {
+			if (window.top !== window.self) {
+			window.top.location = window.self.location;
+			}
+			})();
+
 			// Firebase Ayarları
 			const firebaseConfig = {
 			apiKey: "AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk",
@@ -67,7 +78,7 @@
 					window.__adminBooted = true;
 					openAdminPanel();
 				}
-				if (currentUser) { startReminderTicker(); renderNotifCenter(); }
+				if (currentUser) { startReminderTicker(); }
 			}
 
 			function showLoading(msg) { document.getElementById("loadingLabel").textContent = msg || "Yükleniyor…"; document.getElementById("loadingOverlay").classList.add("open"); }
@@ -157,9 +168,7 @@
 					// Kullanıcı isteği: ana site artık kendi giriş modalını (authFormBg/openAuthForm)
 					// KULLANMIYOR -- tek giriş noktası yeni admin panelindeki giris.html. returnTo
 					// ile geldiği sayfaya (index/takvim/protokol/admin fark etmez) geri dönüyor.
-					// PIN ile hızlı hesap değiştirme AYRI bir özellik (zaten doğrudan Firebase'e
-					// giriş yapıyor, modal kullanmıyor), dokunulmadı.
-					wrap.innerHTML = '<button class="btn-auth btn-pin" type="button" onclick="openPinSwitchModal()" title="PIN ile hızlı hesap değiştir">🔑</button><button class="btn-auth" onclick="location.href=\'giris.html?returnTo=\'+encodeURIComponent(location.href)">Giriş Yap</button>';
+					wrap.innerHTML = '<button class="btn-auth" onclick="location.href=\'giris.html?returnTo=\'+encodeURIComponent(location.href)">Giriş Yap</button>';
 					return;
 				}
 				const roleLabel = { pending: "Onay Bekliyor", editor: "Editör", admin: "Admin", owner: "Kurucu" }[currentUser.role] || "Onay Bekliyor";
@@ -187,7 +196,6 @@
 					'<div class="header-menu-user"><span class="role-dot ' + (currentUser.role || "pending") + '"></span><span class="hm-name">' + escapeHtml(displayName) + '</span><span class="hm-role">' + roleLabel + '</span></div>' +
 					adminItem +
 					newAdminItem +
-					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); openPinSwitchModal();">🔑 PIN ile Hızlı Hesap Değiştir</button>' +
 					'<button type="button" class="header-menu-item" onclick="closeHeaderMenu(); handleLogout();">↩ Çıkış</button>' +
 				'</div>' +
 				'</div>';
@@ -1277,7 +1285,9 @@
 				else if (btn.classList.contains('btn-permdel-card')) openSinglePermDelete(pid);
 			});
 
-			// "Şimdi/Sıradaki" rail'i (renderCalendarRail) -- tarih/etkinlik id'si dataset'ten okunur.
+			// #calRailNext artık protokol.html'de gizli bir iskelet (bkz. sayfadaki yorum) -- hiçbir
+			// zaman içerik almıyor, ama null-check'siz kullanıldığı için dinleyici güvenli kalsın diye
+			// (eleman gerçekten yoksa hata atmasın) burada duruyor.
 			document.getElementById('calRailNext').addEventListener('click', function(e) {
 				const item = e.target.closest('[data-evid]'); if (!item) return;
 				openCalendarAt(item.dataset.date, item.dataset.evid);
@@ -1942,151 +1952,12 @@
 				database.ref(dbPath("oneriler/" + currentListKey + "/" + kind)).push({ deger: value }).catch(function(){});
 			}
 
-			// PIN ile hızlı hesap geçişi. Şifre Firebase'e YAZILMAZ -- sadece bu tarayıcının
-			// localStorage'ında, PIN'den türetilen bir AES-GCM anahtarıyla şifreli tutulur, bu
-			// yüzden gerçekten "aynı cihaz" ile sınırlıdır (kullanıcı isteği).
-			const QUICK_ACCOUNTS_KEY = "omuProtokolQuickAccounts";
-			function getQuickAccounts(){ try { return JSON.parse(localStorage.getItem(QUICK_ACCOUNTS_KEY) || "[]"); } catch(e) { return []; } }
-			function saveQuickAccounts(list){ try { localStorage.setItem(QUICK_ACCOUNTS_KEY, JSON.stringify(list)); } catch(e) {} }
-			function b64FromBytes(bytes){ return btoa(String.fromCharCode.apply(null, bytes)); }
-			function bytesFromB64(b64){ return Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); }); }
-			async function pinDeriveKey(pin, saltBytes){
-				const enc = new TextEncoder();
-				const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
-				return crypto.subtle.deriveKey(
-					{ name: "PBKDF2", salt: saltBytes, iterations: 100000, hash: "SHA-256" },
-					keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
-				);
-			}
-			async function pinEncryptPassword(pin, password){
-				const salt = crypto.getRandomValues(new Uint8Array(16));
-				const iv = crypto.getRandomValues(new Uint8Array(12));
-				const key = await pinDeriveKey(pin, salt);
-				const cipherBuf = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, new TextEncoder().encode(password));
-				return { salt: b64FromBytes(salt), iv: b64FromBytes(iv), cipher: b64FromBytes(new Uint8Array(cipherBuf)) };
-			}
-			async function pinDecryptPassword(pin, rec){
-				const key = await pinDeriveKey(pin, bytesFromB64(rec.salt));
-				const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytesFromB64(rec.iv) }, key, bytesFromB64(rec.cipher));
-				return new TextDecoder().decode(plainBuf);
-			}
-			function logAccountEvent(who, email, actionLabel){
-				if (!database) return;
-				database.ref(dbPath("logs/hesap")).push({ by: who, email: email, action: actionLabel, target: "", timestamp: firebase.database.ServerValue.TIMESTAMP }).catch(function(){});
-			}
-			function openPinSwitchModal(){
-				renderQuickAccountsList();
-				const linkSection = document.getElementById("pinLinkSection");
-				if (linkSection) linkSection.style.display = currentUser ? "" : "none";
-				document.getElementById("pinSwitchModalBg").classList.add("open");
-			}
-			function closePinSwitchModal(){ document.getElementById("pinSwitchModalBg").classList.remove("open"); }
-			function renderQuickAccountsList(){
-				const wrap = document.getElementById("pinAccountsList");
-				const accounts = getQuickAccounts();
-				if (!accounts.length) { wrap.innerHTML = '<p class="hint">Bu cihaza henüz bağlı hesap yok.</p>'; return; }
-				wrap.innerHTML = accounts.map(function(a, i){
-					return '<div class="pin-account-row">' +
-						'<div class="pin-account-name">' + escapeHtml(a.displayName || a.email) + '</div>' +
-						'<input type="password" inputmode="numeric" maxlength="6" class="pin-input" id="pinInput_' + i + '" placeholder="PIN">' +
-						'<button class="btn btn-primary" type="button" onclick="switchToQuickAccount(' + i + ')">Aç</button>' +
-						'<button class="btn btn-danger-outline" type="button" onclick="removeQuickAccount(' + i + ')">Kaldır</button>' +
-					'</div>';
-				}).join("");
-			}
-			async function switchToQuickAccount(i){
-				const accounts = getQuickAccounts();
-				const acc = accounts[i]; if (!acc) return;
-				const pinEl = document.getElementById("pinInput_" + i);
-				const pin = pinEl ? pinEl.value.trim() : "";
-				if (!/^\d{4,6}$/.test(pin)) { showToast("PIN 4-6 haneli rakam olmalı.", "error"); return; }
-				try {
-					const password = await pinDecryptPassword(pin, acc);
-					await auth.signInWithEmailAndPassword(acc.email, password);
-					closePinSwitchModal();
-					showToast("Hesap değiştirildi: " + (acc.displayName || acc.email), "success");
-					logAccountEvent(acc.displayName || acc.email, acc.email, "PIN ile hesap değiştirildi");
-				} catch(e) {
-					showToast("PIN hatalı veya bu hesap artık geçerli değil.", "error");
-				}
-			}
-			function removeQuickAccount(i){
-				const accounts = getQuickAccounts();
-				const removed = accounts.splice(i, 1)[0];
-				saveQuickAccounts(accounts);
-				renderQuickAccountsList();
-				if (removed) showToast((removed.displayName || removed.email) + " bu cihazdan kaldırıldı.", "success");
-			}
-			async function linkPinToCurrentAccount(){
-				if (!currentUser) { showToast("Önce giriş yapmalısınız.", "error"); return; }
-				const pin1 = document.getElementById("pinNew1").value.trim();
-				const pin2 = document.getElementById("pinNew2").value.trim();
-				const password = document.getElementById("pinLinkPassword").value;
-				if (!/^\d{4,6}$/.test(pin1)) { showToast("PIN 4-6 haneli rakam olmalı.", "error"); return; }
-				if (pin1 !== pin2) { showToast("PIN'ler eşleşmiyor.", "error"); return; }
-				if (!password) { showToast("Şifrenizi girin (bir kereliğine doğrulama için).", "error"); return; }
-				try {
-					const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, password);
-					await auth.currentUser.reauthenticateWithCredential(cred);
-					const enc = await pinEncryptPassword(pin1, password);
-					const who = ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() || currentUser.email;
-					const accounts = getQuickAccounts().filter(function(a){ return a.email !== currentUser.email; });
-					accounts.push(Object.assign({ email: currentUser.email, displayName: who }, enc));
-					saveQuickAccounts(accounts);
-					document.getElementById("pinNew1").value = ""; document.getElementById("pinNew2").value = ""; document.getElementById("pinLinkPassword").value = "";
-					showToast("PIN tanımlandı.", "success");
-					logAccountEvent(who, currentUser.email, "Bu cihaza PIN tanımlandı/güncellendi");
-					renderQuickAccountsList();
-				} catch(e) {
-					showToast("Şifre doğrulanamadı.", "error");
-				}
-			}
+			// PIN ile Hızlı Hesap Değiştir özelliği kaldırıldı (kullanıcı isteği, güvenlik
+			// denetimi): Firebase şifresi PIN'den türetilen bir anahtarla localStorage'da
+			// şifreli tutuluyordu -- paylaşılan/ödünç cihazlarda risk taşıyordu. Eski
+			// kullanıcılarda kalmış olabilecek şifreli kayıtları bir kerelik temizler.
+			try { localStorage.removeItem("omuProtokolQuickAccounts"); } catch(e) {}
 
-			// Onboarding rehberi -- sadece protokol.html'de mevcut, ilk ziyarette bir kez açılır.
-			const ONBOARDING_STEPS = [
-				{ icon: "🗂️", title: "Protokol Kartları'na Hoş Geldiniz", text: "Kartlarda kişi/unvan/birim bilgisi var. Üstteki arama kutusu ve sol fakülte filtresiyle hızlıca bulabilirsin." },
-				{ icon: "🗓️", title: "Etkinlik Takvimi", text: "Sağdaki takvim kutusuna tıklayınca tam sayfa takvime geçersin. Gün/Hafta/Ay/Yıl/Liste görünümleri var." },
-				{ icon: "✏️", title: "Düzenleme Yetkisi", text: "Giriş yapmadan sadece görüntüleyebilirsin. Kayıt olup admin onayı alınca kart ekleme/düzenleme açılır." },
-				{ icon: "🛠️", title: "Admin Paneli", text: "Sadece admin rolündeki kullanıcılar admin.html üzerinden kullanıcı yetkisi, log ve test modunu yönetebilir." }
-			];
-			let onboardingIdx = 0;
-			function renderOnboardingStep(){
-				const s = ONBOARDING_STEPS[onboardingIdx];
-				document.getElementById("onboardingStepIcon").textContent = s.icon;
-				document.getElementById("onboardingStepTitle").textContent = s.title;
-				document.getElementById("onboardingStepText").textContent = s.text;
-				document.getElementById("onboardingPrevBtn").style.display = onboardingIdx === 0 ? "none" : "";
-				document.getElementById("onboardingNextBtn").textContent = onboardingIdx === ONBOARDING_STEPS.length - 1 ? "Bitir" : "İleri";
-				document.getElementById("onboardingDots").innerHTML = ONBOARDING_STEPS.map(function(_, i){
-					return '<span class="onboarding-dot' + (i === onboardingIdx ? ' active' : '') + '"></span>';
-				}).join("");
-			}
-			function onboardingStep(dir){
-				const next = onboardingIdx + dir;
-				if (next >= ONBOARDING_STEPS.length) { closeOnboarding(true); return; }
-				onboardingIdx = Math.max(0, Math.min(ONBOARDING_STEPS.length - 1, next));
-				renderOnboardingStep();
-			}
-			function skipOnboarding(){ closeOnboarding(true); }
-			function closeOnboarding(markSeen){
-				document.getElementById("onboardingModalBg").classList.remove("open");
-				if (markSeen) { try { localStorage.setItem("omuProtokolOnboardingSeen", "1"); } catch(e) {} }
-			}
-			function openOnboarding(){
-				const el = document.getElementById("onboardingModalBg");
-				if (!el) return;
-				onboardingIdx = 0;
-				renderOnboardingStep();
-				el.classList.add("open");
-			}
-			// Footer'daki "rehberi tekrar göster" -- her zaman zorla açar, seen bayrağını değiştirmez.
-			function replayOnboarding(){ openOnboarding(); }
-			(function maybeShowOnboarding(){
-				if (!document.getElementById("onboardingModalBg")) return;
-				let seen = false;
-				try { seen = localStorage.getItem("omuProtokolOnboardingSeen") === "1"; } catch(e) {}
-				if (!seen) setTimeout(openOnboarding, 400);
-			})();
 			// Telif yılı her yıl elle güncellenmesin diye otomatik yazılır.
 			(function setFooterYear(){
 				const el = document.getElementById("footYear");
@@ -3870,13 +3741,12 @@ function attachEventsListener(){
 			closeEventModal();
 			showToast("Düzenlediğiniz etkinlik başka bir kullanıcı tarafından silindi.", "warn");
 		}
-		renderCalendarRail();
 		if(document.getElementById("calendarOverlay").classList.contains("open")) renderCalendar();
 		if(document.getElementById("admCalGrid")) renderAdminCalendar();
 	};
 	activeEventsListenerErrCallback = function(err){
 		console.error("etkinlikler okunamadı:", err);
-		calEvents = {}; renderCalendarRail();
+		calEvents = {};
 		// Uyarı sadece giriş yapmış kullanıcıya gösterilir; ziyaretçi için takvim sessizce boş kalır.
 		if(currentUser && !calEventsReadErrorShown){ calEventsReadErrorShown = true; showToast("Takvim etkinlikleri yüklenemedi (yetki sorunu olabilir).", "error"); }
 	};
@@ -3943,67 +3813,13 @@ function renderAdminCalendar(){
 	grid.innerHTML = html;
 }
 
-/* --- Sağ ray (kapalı hâl) --- */
-function renderCalendarRail(){
-	const countEl=document.getElementById("calRailCount"); const nextEl=document.getElementById("calRailNext");
-	if(!countEl||!nextEl) return;
-	const t=todayDate(); const weekEnd=addDays(t,7);
-	const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
-	const all=calEventList().filter(function(e){ return (e.durum||"")!=="iptal"; });
-	// Bir etkinliğin "şimdi mi / ilerde mi / bitti mi" durumunu saat bilgisiyle hesaplar.
-	// Eski mantık sadece tarihe bakıyordu, bugün saati geçmiş etkinlikler de "Sıradaki"de kalıyordu.
-	function calEventTimeState(e){
-		const d=parseKey(e.tarih); if(!d) return "past";
-		if(d<t) return "past";
-		if(d>t) return "future";
-		const sMin=hmToMin(e.saat);
-		if(sMin===null) return "future"; // saat belirtilmemiş (tüm gün) - eskisi gibi davran
-		if(nowMin<sMin) return "future"; // henüz başlamadı
-		const eMin=hmToMin(e.bitisSaat);
-		if(eMin===null) return "now"; // başladı, bitiş saati girilmemiş -> hâlâ sürüyor kabul edilir
-		return nowMin<eMin ? "now" : "past"; // bitiş saati geçtiyse artık gösterme
-	}
-	const nowItems=[], futureItems=[];
-	all.forEach(function(e){
-		const st=calEventTimeState(e);
-		if(st==="now") nowItems.push(e); else if(st==="future") futureItems.push(e);
-	});
-	const thisWeek=nowItems.concat(futureItems).filter(function(e){ const d=parseKey(e.tarih); return d<weekEnd; });
-	countEl.innerHTML='<b>'+thisWeek.length+'</b> etkinlik · 7 gün';
-	const next=futureItems.slice(0,4);
-	function renderNextItem(e, first){
-		const d=parseKey(e.tarih); const ty=evType(e.tur);
-		return '<div class="cal-next-item"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+escapeHtml(e._id)+'">'+
-			'<span class="cal-next-date"><span class="d">'+d.getDate()+'</span><span class="m">'+CAL_MONTHS[d.getMonth()].slice(0,3)+'</span></span>'+
-			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
-			'<span class="cal-next-meta" style="display:block;">'+(e.saat?escapeHtml(e.saat)+' · ':'')+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
-	}
-	function renderNowItem(e, first){
-		const ty=evType(e.tur);
-		const saatTxt=e.saat?(escapeHtml(e.saat)+(e.bitisSaat?'–'+escapeHtml(e.bitisSaat):'')+' · '):'';
-		return '<div class="cal-next-item cal-next-item-now"'+(first?' style="border-top:none;"':'')+' data-date="'+e.tarih+'" data-evid="'+escapeHtml(e._id)+'">'+
-			'<span class="cal-now-dot" aria-hidden="true"></span>'+
-			'<span style="min-width:0;"><span class="cal-next-name">'+escapeHtml(e.ad||"(adsız)")+'</span>'+
-			'<span class="cal-next-meta" style="display:block;">'+saatTxt+'<span style="color:'+ty.renk+';">●</span> '+escapeHtml(ty.ad)+'</span></span></div>';
-	}
-	let html="";
-	if(nowItems.length){
-		html+='<h4 class="cal-now-heading">Şimdi</h4>'+nowItems.map(function(e,i){ return renderNowItem(e, i===0); }).join("");
-	}
-	html+='<h4'+(nowItems.length?' style="margin-top:10px;"':'')+'>Sıradaki</h4>';
-	html+= next.length ? next.map(function(e,i){ return renderNextItem(e, i===0); }).join("") : '<div class="cal-rail-empty">📭 Planlanmış etkinlik yok.</div>';
-	nextEl.innerHTML=html;
-}
-
 /* --- Takvimi aç / kapat (küçük karttan tam ekrana büyüyen geçiş) --- */
 let calAnimating=false;
 // Animasyonun başlayacağı kutu: masaüstünde sağ raydaki takvim kartı, mobilde alttaki düğme.
 function calOriginRect(){
 	const railBtn=document.querySelector(".cal-rail-btn");
-	const fab=document.getElementById("calendarFab");
 	let el=null;
 	if(railBtn && railBtn.offsetParent!==null) el=railBtn;
-	else if(fab && fab.offsetParent!==null) el=fab;
 	if(!el) return null;
 	const r=el.getBoundingClientRect();
 	return (r.width>0 && r.height>0) ? r : null;
@@ -4089,7 +3905,6 @@ async function startQuickDraftEvent(){
 function clearRemindersForEvent(eventId){
 	const list = getReminders().filter(function(r){ return r.eventId !== eventId; });
 	saveReminders(list);
-	renderNotifCenter();
 }
 let reminderTickTimer = null;
 function startReminderTicker(){
@@ -4099,7 +3914,7 @@ function startReminderTicker(){
 }
 function checkReminders(){
 	const list = getReminders();
-	if (!list.length) { renderNotifCenter(); return; }
+	if (!list.length) return;
 	const now = Date.now();
 	let changed = false;
 	const kept = list.filter(function(r){
@@ -4116,44 +3931,12 @@ function checkReminders(){
 		}
 	});
 	if (changed) saveReminders(kept);
-	renderNotifCenter();
-}
-function renderNotifCenter(){
-	const wrap = document.getElementById("notifBellWrap");
-	const badge = document.getElementById("notifBadge");
-	const dd = document.getElementById("notifDropdown");
-	if (!wrap || !badge || !dd) return;
-	if (!currentUser) { wrap.style.display = "none"; return; }
-	const due = getReminders().filter(function(r){ return r.fired; });
-	wrap.style.display = due.length ? "" : (getReminders().length ? "" : "none");
-	badge.style.display = due.length ? "" : "none";
-	badge.textContent = String(due.length);
-	if (!due.length) { dd.innerHTML = '<p class="hint" style="margin:10px;">Bekleyen hatırlatma yok.</p>'; return; }
-	dd.innerHTML = due.map(function(r){
-		const ev = calEvents[r.eventId];
-		const label = ev ? (fmtTrDate(ev.tarih) + " " + (ev.saat||"") + " · Düzenlenmeyi bekliyor") : "Etkinlik";
-		return '<button type="button" class="notif-item" onclick="openReminderTarget(\'' + r.eventId + '\')">📍 ' + escapeHtml(label) + '</button>';
-	}).join("");
-}
-function toggleNotifCenter(){
-	const dd = document.getElementById("notifDropdown"); if (!dd) return;
-	dd.classList.toggle("open");
-}
-function openReminderTarget(eventId){
-	document.getElementById("notifDropdown").classList.remove("open");
-	if (PAGE === "takvim") { tryOpenEditFromQuery(eventId, 0); return; }
-	location.href = "takvim.html?edit=" + encodeURIComponent(eventId);
 }
 function tryOpenEditFromQuery(id, attempts){
 	if (calEvents[id]) { openEventModal(id); return; }
 	if (attempts >= 15) return;
 	setTimeout(function(){ tryOpenEditFromQuery(id, attempts+1); }, 300);
 }
-document.addEventListener("click", function(e){
-	const dd = document.getElementById("notifDropdown");
-	if (!dd || !dd.classList.contains("open")) return;
-	if (!dd.contains(e.target) && e.target.id !== "notifBellBtn") dd.classList.remove("open");
-});
 
 function openCalendar(){
 	if (PAGE !== "takvim") { location.href = buildTakvimUrl(); return; }
@@ -6237,7 +6020,6 @@ function generateNewsFromEvent(){
 		attachSaltOkunurListener();
 		fillNewsTemplateSelect();
 		renderNewsPlaceholderFields();
-		renderCalendarRail();
 		// Ekran genişliği değişince hafta görünümü 3 ↔ 7 gün arasında geçmeli.
 		if(window.matchMedia){
 			const calMq=window.matchMedia("(max-width:700px)");
@@ -6298,9 +6080,7 @@ function generateNewsFromEvent(){
 			singlePermDeleteModalBg: closeSinglePermDelete,
 			newsModalBg: closeNewsModal,
 			adminPanelBg: closeAdminPanel,
-			legalModalBg: closeLegalModal,
-			pinSwitchModalBg: closePinSwitchModal,
-			onboardingModalBg: function(){ closeOnboarding(true); }
+			legalModalBg: closeLegalModal
 		};
 		// En USTTEKI (en yuksek z-index'li) acik modal hedef alinir -- ayni tespit mantigi zaten
 		// Tab focus-trap dinleyicisinde kullaniliyor (bkz. asagida), ic ice acilma ihtimaline karsi.
@@ -6341,27 +6121,16 @@ function generateNewsFromEvent(){
 			window.addEventListener("orientationchange", sync);
 		})();
 
-		// Tema anahtari: <head>'deki erken script data-theme'i sayfa boyanmadan ONCE zaten
-		// uyguladi (bkz. head, FOUC engelleme) -- burada sadece dugme ikonunu mevcut duruma
-		// gore senkronlar ve tiklamayi baglar.
-		function setupTheme(){
-			var btn = document.getElementById("themeToggleBtn");
-			if (!btn) return;
-			btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀️" : "🌙";
-		}
-		function toggleTheme(){
-			var isDark = document.documentElement.getAttribute("data-theme") === "dark";
-			if (isDark) { document.documentElement.removeAttribute("data-theme"); localStorage.setItem("omuProtokolTema", "light"); }
-			else { document.documentElement.setAttribute("data-theme", "dark"); localStorage.setItem("omuProtokolTema", "dark"); }
-			setupTheme();
-		}
-		setupTheme();
+		// Not: eski "themeToggleBtn" düğmesi ve buna bağlı setupTheme()/toggleTheme() (kendi
+		// "omuProtokolTema" localStorage anahtarıyla) kaldırıldı -- düğme artık hiçbir sayfanın
+		// DOM'unda yok. Tema değiştirme artık tamamen v4 admin kabuğunun kendi mekanizmasında
+		// (bkz. admin-src/src/v4/shell.js ve command-palette.js, "theme" localStorage anahtarı,
+		// her sayfanın <head>'indeki FOUC-engelleme script'i) -- burada tekrar etmeye gerek yok.
 
 		// Service Worker Kaydı (Offline / PWA desteği)
 			if ("serviceWorker" in navigator) {
 				window.addEventListener("load", function() {
 					navigator.serviceWorker.register("./sw.js")
-						.then(function(reg) { console.log("Service Worker kaydedildi:", reg.scope); })
-						.catch(function(err) { console.log("Service Worker kaydı başarısız:", err); });
+						.catch(function(err) { console.error("Service Worker kaydı başarısız:", err); });
 				});
 			}

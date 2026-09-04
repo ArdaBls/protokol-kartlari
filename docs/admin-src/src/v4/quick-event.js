@@ -12,6 +12,7 @@
 // burada da tekrarlanıyor.
 
 import { showToast } from './toast.js';
+import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -33,9 +34,10 @@ function hm(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
 
 function createDraft() {
   if (!canWrite) { showToast('Etkinlik eklemek için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   const now = new Date();
   const end = new Date(now.getTime() + 60 * 60000);
-  const id = database.ref('etkinlikler').push().key;
+  const id = database.ref(dbPath('etkinlikler')).push().key;
   const event = {
     ad: QUICK_DRAFT_NAME,
     tur: 'diger',
@@ -50,10 +52,10 @@ function createDraft() {
     olusturmaTs: firebase.database.ServerValue.TIMESTAMP,
     guncellemeTs: firebase.database.ServerValue.TIMESTAMP
   };
-  const logKey = database.ref('logs/etkinlik').push().key;
+  const logKey = database.ref(dbPath('logs/etkinlik')).push().key;
   const updates = {};
-  updates['etkinlikler/' + id] = event;
-  updates['logs/etkinlik/' + logKey] = {
+  updates[dbPath('etkinlikler/' + id)] = event;
+  updates[dbPath('logs/etkinlik/' + logKey)] = {
     by: currentUserName || currentUserEmail, email: currentUserEmail,
     action: 'Hızlı taslak etkinlik oluşturuldu ("Bir Etkinliğe Gidiyorum")', target: QUICK_DRAFT_NAME,
     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -73,6 +75,9 @@ export function initQuickEvent() {
   if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
   database = firebase.database();
   const auth = firebase.auth();
+
+  initDbMode(database).then(renderDbModeBanner);
+  onDbModeChange(renderDbModeBanner);
 
   auth.onAuthStateChanged((user) => {
     if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; return; }

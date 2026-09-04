@@ -176,6 +176,55 @@ function gorevliNamesForEvent(e) {
   return Array.from(set);
 }
 
+// ────────────────────────
+//  Paylaşılan users/etkinlikler önbelleği — Operasyonlar sayfasındaki
+//  editorEventActivity, editorDailyActivity, editorActivityShare ve
+//  initPhotoCounter'ın HEPSİ aynı iki düğümü (users, etkinlikler) canlı
+//  dinliyordu -- 4 ayrı .on('value') = aynı veri için 4 kat gereksiz trafik.
+//  Artık tek bir dinleyici çifti burada açılıyor, her tüketici sadece
+//  abone oluyor (subscribeSharedActivityData); veri her değiştiğinde TÜM
+//  abonelere aynı anda haber verilir. Grafiklerin kendi çizim mantığı
+//  (draw/renderEmpty) DEĞİŞMEDİ, sadece veri kaynağı ortaklaştı.
+let sharedUsersCache = null;
+let sharedEventsCache = null;
+let sharedActivityListenersStarted = false;
+const sharedActivitySubscribers = new Set();
+
+function dispatchSharedActivityData() {
+  sharedActivitySubscribers.forEach((cb) => {
+    try { cb(sharedUsersCache, sharedEventsCache); } catch (err) { console.error('Paylaşılan aktivite verisi işlenemedi:', err); }
+  });
+}
+
+function ensureSharedActivityListeners() {
+  if (sharedActivityListenersStarted) {return;}
+  sharedActivityListenersStarted = true;
+  if (!window.firebase) {return;}
+  if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
+  firebase.database().ref('users').on('value', (snap) => {
+    sharedUsersCache = snap.val() || {};
+    dispatchSharedActivityData();
+  }, () => {
+    // "users" düğümü sadece admin/owner'a açık -- editör PERMISSION_DENIED alır.
+    // Boş listeyle devam edilir, tüketiciler isimleri etkinliklerden türetir.
+    sharedUsersCache = {};
+    dispatchSharedActivityData();
+  });
+  firebase.database().ref('etkinlikler').on('value', (snap) => {
+    sharedEventsCache = snap.val() || {};
+    dispatchSharedActivityData();
+  }, (err) => {
+    console.error('Paylaşılan etkinlik verisi yüklenemedi:', err);
+  });
+}
+
+function subscribeSharedActivityData(cb) {
+  sharedActivitySubscribers.add(cb);
+  ensureSharedActivityListeners();
+  if (sharedUsersCache !== null || sharedEventsCache !== null) {cb(sharedUsersCache, sharedEventsCache);}
+  return () => { sharedActivitySubscribers.delete(cb); };
+}
+
 function editorEventActivity(echarts, el, t) {
   const chart = echarts.init(el);
   const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
@@ -332,18 +381,12 @@ function editorEventActivity(echarts, el, t) {
   }
 
   if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
-  if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
-  firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
-    // "users" düğümü sadece admin/owner'a açık -- editör PERMISSION_DENIED alır.
-    // ESKİDEN burada grafik boş gösteriliyordu. Artık boş bir liste ile devam
-    // ediliyor: draw() isimleri etkinliklerden türetip grafiği yine çiziyor,
-    // böylece editör de kendi aktivitesini görebiliyor (kullanıcı isteği).
-    latestUsers = {};
+  // Paylaşılan users/etkinlikler önbeleğine abone olunur -- ayrı .on('value')
+  // dinleyicisi açılmaz (bkz. ensureSharedActivityListeners üstteki yorum).
+  subscribeSharedActivityData((users, events) => {
+    latestUsers = users;
+    latestEvents = events;
     draw();
-  });
-  firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
-    console.error('editorEventActivity grafiği yüklenemedi:', err);
-    renderEmpty('Etkinlikler yüklenemedi.');
   });
 
   return chart;
@@ -515,14 +558,12 @@ function editorDailyActivity(echarts, el, t) {
   });
 
   if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
-  if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
-  firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
-    latestUsers = {};
+  // Paylaşılan users/etkinlikler önbeleğine abone olunur (bkz. editorEventActivity'deki
+  // aynı desen) -- ayrı .on('value') dinleyicisi açılmaz.
+  subscribeSharedActivityData((users, events) => {
+    latestUsers = users;
+    latestEvents = events;
     draw();
-  });
-  firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
-    console.error('editorDailyActivity grafiği yüklenemedi:', err);
-    renderEmpty('Etkinlikler yüklenemedi.');
   });
 
   return chart;
@@ -555,12 +596,13 @@ function initPhotoCounter() {
   if (!el) {return;}
 
   if (!window.firebase) {return;}
-  if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
 
   // Kullanıcı isteği: takvimdeki etkinlikler değiştikçe bu sayaç da eş zamanlı
-  // güncellensin -- canlı on('value') dinleyicisi (once('value') değil).
-  firebase.database().ref('etkinlikler').on('value', (snap) => {
-    const events = snap.val() || {};
+  // güncellensin. Ayrı bir 'etkinlikler' dinleyicisi açmak yerine, aynı düğümü
+  // zaten dinleyen paylaşılan önbeleğe abone olunur (bkz. yukarıdaki
+  // ensureSharedActivityListeners) -- users tarafı burada kullanılmıyor.
+  subscribeSharedActivityData((_users, events) => {
+    if (events === null) {return;}
     let total = 0;
     Object.keys(events).forEach((id) => {
       gorevliNamesForEvent(events[id]).forEach((name) => {
@@ -568,8 +610,6 @@ function initPhotoCounter() {
       });
     });
     el.textContent = total > 0 ? total.toLocaleString('tr-TR') + '+' : '—';
-  }, (err) => {
-    console.error('Fotoğraf sayacı yüklenemedi:', err);
   });
 }
 
@@ -847,16 +887,12 @@ function editorActivityShare(echarts, el, t) {
   }
 
   if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
-  if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
-  firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
-    // Yukarıdaki grafikle aynı gerekçe: editörde users/ okunamaz, isimler
-    // etkinliklerden türetilir ve grafik yine çizilir.
-    latestUsers = {};
+  // Paylaşılan users/etkinlikler önbeleğine abone olunur (bkz. editorEventActivity'deki
+  // aynı desen) -- ayrı .on('value') dinleyicisi açılmaz.
+  subscribeSharedActivityData((users, events) => {
+    latestUsers = users;
+    latestEvents = events;
     draw();
-  });
-  firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
-    console.error('editorActivityShare grafiği yüklenemedi:', err);
-    renderEmpty('Etkinlikler yüklenemedi.');
   });
 
   return chart;

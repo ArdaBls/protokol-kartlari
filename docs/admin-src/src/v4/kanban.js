@@ -6,6 +6,7 @@
 // yönetilir, bu pano sadece haber üretim iş akışının durumunu gösterir.
 
 import { showToast } from './toast.js';
+import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -201,6 +202,7 @@ function setupDnD() {
     const ev = EVENTS[draggedId];
     if (!ev || normalizeDurum(ev.durum) === newCol) { return; }
     if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
+    if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
     const oldDurum = ev.durum;
     const oldTitle = COLUMNS.find((c) => c.id === normalizeDurum(oldDurum))?.title || oldDurum || '—';
     const newTitle = COLUMNS.find((c) => c.id === newCol)?.title || newCol;
@@ -215,7 +217,7 @@ function setupDnD() {
     // panosunun "en eski güncellenen" sıralaması bu alana bakıyor). Projedeki diğer
     // tüm etkinlik yazmaları gibi artık TEK atomik çok-yollu update ile yazılıyor.
     const updates = {};
-    const basePath = ev._source === 'gorev' ? 'gorevler/' + draggedId : 'etkinlikler/' + draggedId;
+    const basePath = dbPath(ev._source === 'gorev' ? 'gorevler/' + draggedId : 'etkinlikler/' + draggedId);
     updates[basePath + '/durum'] = newCol;
     updates[basePath + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
     // Kullanıcı isteği: tamamlanan görev/etkinlikte kimin tamamladığı belli olsun (kart
@@ -227,7 +229,7 @@ function setupDnD() {
       // Operasyonlar'daki checkbox hâlâ tamamlandi boolean'ını okuyor -- iki yönlü ayna.
       updates[basePath + '/tamamlandi'] = newCol === 'tamamlandi';
     }
-    const logPath = ev._source === 'gorev' ? 'logs/gorev' : 'logs/etkinlik';
+    const logPath = dbPath(ev._source === 'gorev' ? 'logs/gorev' : 'logs/etkinlik');
     const logKey = database.ref(logPath).push().key;
     updates[logPath + '/' + logKey] = {
       by: currentUserName || currentUserEmail, email: currentUserEmail,
@@ -262,7 +264,7 @@ function loadEvents() {
 
   let etkLoaded = false, gorevLoaded = false;
 
-  etkListenerRef = database.ref('etkinlikler');
+  etkListenerRef = database.ref(dbPath('etkinlikler'));
   etkListenerRef.on('value', (snap) => {
     const etk = snap.val() || {};
     Object.keys(EVENTS).forEach((id) => { if (EVENTS[id]._source === 'etkinlik') { delete EVENTS[id]; } });
@@ -274,7 +276,7 @@ function loadEvents() {
     boardEl.innerHTML = '<p class="hint" style="margin:16px;">Yüklenemedi.</p>';
   });
 
-  gorevListenerRef = database.ref('gorevler');
+  gorevListenerRef = database.ref(dbPath('gorevler'));
   gorevListenerRef.on('value', (snap) => {
     const gorev = snap.val() || {};
     Object.keys(EVENTS).forEach((id) => { if (EVENTS[id]._source === 'gorev') { delete EVENTS[id]; } });
@@ -305,11 +307,16 @@ export function initKanban() {
     // kendi kaydını okuma kuralı zaten var: ".read": "auth.uid === $uid").
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
-      canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+      canWrite = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
       loadEvents();
     }).catch(() => { canWrite = false; loadEvents(); });
   });
+
+  // Test Modu/Salt-Okunur Kilit'in ilk değeri gelene kadar bekle, ondan sonra dbPath()
+  // doğru dala işaret eder (bkz. calendar.js initCalendar'daki aynı desen).
+  initDbMode(database).then(() => { renderDbModeBanner(); loadEvents(); });
+  onDbModeChange(() => { renderDbModeBanner(); loadEvents(); });
 
   document.getElementById('kanban-filter')?.addEventListener('input', (e) => {
     filterText = e.target.value.trim();

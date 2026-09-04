@@ -8,6 +8,7 @@
 
 import { showModal, closeModal } from './modal.js';
 import { showToast } from './toast.js';
+import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -21,6 +22,7 @@ let canWrite = false;
 let currentUserName = '';
 let currentUserEmail = '';
 let target = null; // { hedefTarih, baslangicTarih, olusturan } | null
+let sayacListenerRef = null;
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -62,8 +64,8 @@ function tick(valueEl, subEl, barEl) {
 }
 
 function logAction(action, targetLabel) {
-  const logKey = database.ref('logs/sayac').push().key;
-  return database.ref('logs/sayac/' + logKey).set({
+  const logKey = database.ref(dbPath('logs/sayac')).push().key;
+  return database.ref(dbPath('logs/sayac/' + logKey)).set({
     by: currentUserName || currentUserEmail,
     email: currentUserEmail,
     action,
@@ -74,6 +76,7 @@ function logAction(action, targetLabel) {
 
 function openEditModal() {
   if (!canWrite) { showToast('Hedef tarihi ayarlamak için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   const current = target && target.hedefTarih ? target.hedefTarih.slice(0, 16) : '';
   const { body } = showModal({
     title: 'Sayaç hedef tarihi',
@@ -96,7 +99,7 @@ function openEditModal() {
           if (!val) { input.focus(); return false; }
           const hedefTarih = new Date(val).toISOString();
           const baslangicTarih = new Date().toISOString();
-          database.ref('ayarlar/sayac').set({
+          database.ref(dbPath('ayarlar/sayac')).set({
             hedefTarih,
             baslangicTarih,
             olusturan: currentUserName || currentUserEmail
@@ -119,6 +122,7 @@ function openEditModal() {
 
 function resetCountdown() {
   if (!canWrite) { showToast('Bu işlem için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   if (!target || !target.hedefTarih) { showToast('Zaten belirlenmiş bir hedef tarih yok.', { variant: 'error' }); return; }
   showModal({
     title: 'Sayacı sıfırla?',
@@ -130,7 +134,7 @@ function resetCountdown() {
         label: 'Sıfırla',
         variant: 'danger',
         action: () => {
-          database.ref('ayarlar/sayac').remove()
+          database.ref(dbPath('ayarlar/sayac')).remove()
             .then(() => logAction('Sayaç sıfırlandı'))
             .catch((err) => { console.error('Sayaç sıfırlanamadı:', err); showToast('Sayaç sıfırlanamadı.', { variant: 'error' }); });
         }
@@ -156,17 +160,26 @@ export function initCountdown() {
     currentUserEmail = user.email || '';
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
-      canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+      canWrite = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
     }).catch(() => { canWrite = false; });
   });
 
-  database.ref('ayarlar/sayac').on('value', (snap) => {
-    target = snap.val();
-    tick(valueEl, subEl, barEl);
-  }, (err) => {
-    console.error('Sayaç yüklenemedi:', err);
-  });
+  function attachSayacListener() {
+    if (sayacListenerRef) { sayacListenerRef.off('value'); }
+    sayacListenerRef = database.ref(dbPath('ayarlar/sayac'));
+    sayacListenerRef.on('value', (snap) => {
+      target = snap.val();
+      tick(valueEl, subEl, barEl);
+    }, (err) => {
+      console.error('Sayaç yüklenemedi:', err);
+    });
+  }
+
+  // Test Modu/Salt-Okunur Kilit ilk değeri gelene kadar bekle, sonra doğru dala bağlan
+  // (bkz. calendar.js initCalendar'daki aynı desen); mod canlı değişirse yeniden bağlan.
+  initDbMode(database).then(() => { renderDbModeBanner(); attachSayacListener(); });
+  onDbModeChange(() => { renderDbModeBanner(); attachSayacListener(); });
 
   setInterval(() => tick(valueEl, subEl, barEl), 1000);
 

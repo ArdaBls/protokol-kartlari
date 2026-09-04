@@ -5,6 +5,7 @@
 
 import { showModal, closeModal } from './modal.js';
 import { showToast } from './toast.js';
+import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -20,6 +21,7 @@ let TASKS = {};
 let canWrite = false;
 let currentUserName = '';
 let currentUserEmail = '';
+let tasksListenerRef = null;
 
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -71,8 +73,8 @@ function render() {
 }
 
 function logAction(action, target) {
-  const logKey = database.ref('logs/gorev').push().key;
-  return database.ref('logs/gorev/' + logKey).set({
+  const logKey = database.ref(dbPath('logs/gorev')).push().key;
+  return database.ref(dbPath('logs/gorev/' + logKey)).set({
     by: currentUserName || currentUserEmail,
     email: currentUserEmail,
     action,
@@ -84,8 +86,9 @@ function logAction(action, target) {
 function toggleTask(id) {
   const task = TASKS[id];
   if (!task || !canWrite) {return;}
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   const next = !task.tamamlandi;
-  database.ref('gorevler/' + id).update({
+  database.ref(dbPath('gorevler/' + id)).update({
     tamamlandi: next,
     durum: next ? 'tamamlandi' : 'planlandi',
     // Kullanıcı isteği: tamamlanan görevde kimin tamamladığı görünsün (çarpının solunda
@@ -104,6 +107,7 @@ function toggleTask(id) {
 function deleteTask(id) {
   const task = TASKS[id];
   if (!task || !canWrite) {return;}
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   showModal({
     title: 'Görevi sil?',
     size: 'sm',
@@ -114,7 +118,7 @@ function deleteTask(id) {
         label: 'Sil',
         variant: 'danger',
         action: () => {
-          database.ref('gorevler/' + id).remove()
+          database.ref(dbPath('gorevler/' + id)).remove()
             .then(() => logAction('Görev silindi: "' + (task.metin || '') + '"', task.metin || ''))
             .catch((err) => { console.error('Görev silinemedi:', err); showToast('Görev silinemedi.', { variant: 'error' }); });
         }
@@ -125,6 +129,7 @@ function deleteTask(id) {
 
 function openAddModal() {
   if (!canWrite) { showToast('Görev eklemek için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   const { body } = showModal({
     title: 'Yeni görev',
     size: 'sm',
@@ -149,8 +154,8 @@ function openAddModal() {
           const dateEl = body.querySelector('[data-task-input-date]');
           const metin = (textEl.value || '').trim();
           if (!metin) { textEl.focus(); return false; }
-          const key = database.ref('gorevler').push().key;
-          database.ref('gorevler/' + key).set({
+          const key = database.ref(dbPath('gorevler')).push().key;
+          database.ref(dbPath('gorevler/' + key)).set({
             metin,
             tarih: dateEl.value || null,
             tamamlandi: false,
@@ -185,19 +190,28 @@ export function initTasksWidget() {
     currentUserEmail = user.email || '';
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
-      canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+      canWrite = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
       render();
     }).catch(() => { canWrite = false; render(); });
   });
 
-  database.ref('gorevler').on('value', (snap) => {
-    TASKS = snap.val() || {};
-    render();
-  }, (err) => {
-    console.error('Görevler yüklenemedi:', err);
-    if (listEl) {listEl.innerHTML = '<p class="hint" style="margin:12px 0;color:var(--text-muted);font-size:12.5px">Görevler yüklenemedi.</p>';}
-  });
+  function attachTasksListener() {
+    if (tasksListenerRef) { tasksListenerRef.off('value'); }
+    tasksListenerRef = database.ref(dbPath('gorevler'));
+    tasksListenerRef.on('value', (snap) => {
+      TASKS = snap.val() || {};
+      render();
+    }, (err) => {
+      console.error('Görevler yüklenemedi:', err);
+      if (listEl) {listEl.innerHTML = '<p class="hint" style="margin:12px 0;color:var(--text-muted);font-size:12.5px">Görevler yüklenemedi.</p>';}
+    });
+  }
+
+  // Test Modu/Salt-Okunur Kilit ilk değeri gelene kadar bekle (bkz. calendar.js
+  // initCalendar'daki aynı desen), sonra doğru dala bağlan; mod canlı değişirse yeniden bağlan.
+  initDbMode(database).then(() => { renderDbModeBanner(); attachTasksListener(); });
+  onDbModeChange(() => { renderDbModeBanner(); attachTasksListener(); });
 
   addBtn?.addEventListener('click', openAddModal);
 

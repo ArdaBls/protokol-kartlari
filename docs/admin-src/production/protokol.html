@@ -987,25 +987,6 @@
 		     maybeShowOnboarding() hem openOnboarding() null kontrollü olduğu için
 		     app.js'e DOKUNULMADAN güvenle kaldırılabiliyor. -->
 
-		<!-- PIN ile Hızlı Hesap Değiştir -->
-		<div class="modal-bg" id="pinSwitchModalBg" style="z-index:118;">
-			<div class="modal" style="max-width:480px;">
-				<button class="close-x" onclick="closePinSwitchModal()" aria-label="Kapat">✕</button>
-				<h2>🔑 PIN ile Hızlı Hesap Değiştir</h2>
-				<p class="hint">Aynı cihazı paylaşan ekip arkadaşların çıkış yapmadan PIN ile hesap değiştirebilir. Şifreniz Firebase'e gönderilmez, yalnızca bu tarayıcıda PIN ile şifreli saklanır.</p>
-				<h3 style="font-size:14px; margin:14px 0 8px;">Bu Cihazdaki Hesaplar</h3>
-				<div id="pinAccountsList"></div>
-				<div id="pinLinkSection" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
-					<h3 style="font-size:14px; margin:0 0 8px;">Bu Hesabı Bu Cihaza Bağla</h3>
-					<div class="field-row">
-						<div class="field"><label for="pinNew1">Yeni PIN (4-6 hane)</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew1"></div>
-						<div class="field"><label for="pinNew2">PIN Tekrar</label><input type="password" inputmode="numeric" maxlength="6" id="pinNew2"></div>
-					</div>
-					<div class="field"><label for="pinLinkPassword">Mevcut Şifreniz (bir kereliğine doğrulama için)</label><input type="password" id="pinLinkPassword"></div>
-					<button class="btn btn-primary" type="button" style="width:100%;" onclick="linkPinToCurrentAccount()">PIN Tanımla / Güncelle</button>
-				</div>
-			</div>
-		</div>
 
 		<!-- Kullanım Şartları / Gizlilik Politikası -->
 		<div class="modal-bg" id="legalModalBg" style="z-index:120;">
