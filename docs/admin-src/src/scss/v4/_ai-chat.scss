@@ -35,13 +35,21 @@
 }
 
 .ai-msg {
+  // NOT: #ai-chat-messages kendisi flex container DEĞİL (düz div), bu yüzden
+  // align-self hiçbir işe yaramıyordu -- .ai-msg her zaman satırın tamamını
+  // kaplayan bir kutu olarak kalıyordu (kullanıcı bulgusu: "form gibi geniş",
+  // balon gerçek sağ kenara değil o geniş kutunun içine hizalanıyordu).
+  // width:fit-content kutuyu içeriği kadar küçültüyor, margin-left:auto ise
+  // (herhangi bir block kutuda çalışır, flex parent gerektirmez) kullanıcı
+  // mesajını gerçek sağ kenara iter.
   display: flex;
   flex-direction: column;
+  width: fit-content;
   max-width: 72%;
   margin-bottom: var(--space-3);
 
-  &.user { align-self: flex-end; align-items: flex-end; }
-  &.assistant { align-self: flex-start; align-items: flex-start; }
+  &.user { margin-left: auto; align-items: flex-end; }
+  &.assistant { align-items: flex-start; }
 }
 
 .ai-msg-bubble {

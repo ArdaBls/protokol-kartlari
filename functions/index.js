@@ -7,7 +7,7 @@ admin.initializeApp({
 });
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.6-flash';
 const GEMINI_SYSTEM_PROMPT = 'Sen OMÜ Protokol Kartları panelinde çalışan, panel kullanıcılarına yardımcı olan bir yapay zeka asistanısın. Her zaman Türkçe cevap ver. Kısa ve öz ol.';
 const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
 
