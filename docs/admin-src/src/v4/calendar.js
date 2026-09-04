@@ -22,6 +22,12 @@ const firebaseConfig = {
 
 const CAL_HOUR_H = 48;
 const CAL_GUTTER = 54;
+// Dokunmatikte ızgara-seç-oluştur jesti artık ANINDA değil, kısa bir basılı-tutma sonrası
+// başlıyor (bkz. calStartGridSelectGesture) -- kullanıcı isteği: aşağı kaydırmak için her
+// dokunuşun yeni bir etkinlik oluşturmasını istemiyordu. 350ms basılı tutmaya "kasıtlı"
+// davranış; bu süre içinde parmak 10px'ten fazla kayarsa kaydırma sayılır, jest iptal edilir.
+const CAL_TOUCH_HOLD_MS = 350;
+const CAL_TOUCH_MOVE_TOLERANCE = 10;
 
 const CAL_DOW = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const CAL_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -971,18 +977,62 @@ function calStartGridSelectGesture(e) {
   const dateKey = daycol.dataset.date;
   if (!dateKey) { return; }
   const pointerId = e.pointerId;
-  // Ana sitedeki (app.js) kanıtlanmış davranışla birebir aynı: dokunmatikte de
-  // touch-action:none ANINDA (pointerdown'da) uygulanır -- kullanıcı isteği: "sayfayı
-  // da kilitlersek yani basılı tutarken etkinlik saatini ayarlamalıyım". Bir önceki
-  // sürümde bu ANINDA olmayıp kısa bir bekleme sonrası uygulanıyordu (kaydırmayı ayırt
-  // etmek için) ama bu, tarayıcının o dokunuşu ZATEN kaydırmaya kilitlemesine ve
-  // basılı-tutup-sürüklemenin HİÇ çalışmamasına yol açıyordu -- geri alındı.
+  // Fare/kalemde davranış AYNEN korunur: anında başlar (masaüstünde tıkla-sürükle-oluştur
+  // zaten beklenen davranış, kaydırmayla çakışma riski yok).
+  if (e.pointerType !== 'touch') {
+    beginGridSelect(e.clientX, e.clientY);
+    return;
+  }
+  // Dokunmatikte ESKİDEN touch-action:none ANINDA (pointerdown'da) uygulanıyordu (bkz. eski
+  // yorum: bir önceki gecikmeli sürüm, tarayıcının dokunuşu HEMEN kaydırmaya kilitleyip
+  // basılı-tutup-sürüklemeyi tamamen kırıyordu). Ama bu da TERS bir sorun yarattı (kullanıcı
+  // bildirimi): takvimi aşağı kaydırmak için her dokunuş yeni bir etkinlik oluşturuyordu --
+  // kaydırmak için ya "Vazgeç" demek ya da bekleyen ghost'un üstünden kaydırmak gerekiyordu.
+  // Çözüm: touch-action'a HİÇ dokunmadan (varsayılan `auto` ile tarayıcı normal dikey kaydırmayı
+  // serbestçe yönetsin) kısa bir BASILI TUTMA eşiği bekleriz. Eşik boyunca parmak
+  // CAL_TOUCH_MOVE_TOLERANCE px'ten fazla kayarsa bu bir kaydırmadır -- jest tamamen iptal edilir,
+  // tarayıcı zaten kendi kaydırmasını yürütüyordur. Eşik parmak (neredeyse) hareketsizken
+  // dolarsa ancak O ZAMAN touch-action:none uygulanıp oluşturma jesti başlar (klasik "basılı
+  // tut -> sürükleyerek oluştur" -- Google Takvim mobil ile aynı desen).
+  const startX = e.clientX, startY = e.clientY;
+  let settled = false;
+  function onPreHoldMove(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    if (Math.hypot(e2.clientX - startX, e2.clientY - startY) > CAL_TOUCH_MOVE_TOLERANCE) {
+      cancelPreHold();
+    }
+  }
+  function onPreHoldUp(e2) {
+    if (e2.pointerId !== pointerId) { return; }
+    cancelPreHold();
+  }
+  function cancelPreHold() {
+    if (settled) { return; }
+    settled = true;
+    clearTimeout(holdTimer);
+    window.removeEventListener('pointermove', onPreHoldMove);
+    window.removeEventListener('pointerup', onPreHoldUp);
+    window.removeEventListener('pointercancel', onPreHoldUp);
+  }
+  const holdTimer = setTimeout(() => {
+    if (settled) { return; }
+    settled = true;
+    window.removeEventListener('pointermove', onPreHoldMove);
+    window.removeEventListener('pointerup', onPreHoldUp);
+    window.removeEventListener('pointercancel', onPreHoldUp);
+    beginGridSelect(startX, startY);
+  }, CAL_TOUCH_HOLD_MS);
+  window.addEventListener('pointermove', onPreHoldMove);
+  window.addEventListener('pointerup', onPreHoldUp);
+  window.addEventListener('pointercancel', onPreHoldUp);
+
+  function beginGridSelect(clientX, clientY) {
   daycol.setPointerCapture(pointerId);
   const prevTouchAction = daycol.style.touchAction;
   daycol.style.touchAction = 'none';
   const rect = daycol.getBoundingClientRect();
   function minsFromY(y) { let m = Math.round(((y - rect.top) / CAL_HOUR_H) * 60 / 15) * 15; return Math.max(0, Math.min(24 * 60, m)); }
-  const anchorMin = minsFromY(e.clientY);
+  const anchorMin = minsFromY(clientY);
   let startMin = anchorMin, endMin = anchorMin;
   let moved = false;
 
@@ -1030,6 +1080,7 @@ function calStartGridSelectGesture(e) {
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
   window.addEventListener('pointercancel', onUp);
+  }
 }
 
 function calStartResizeGesture(e) {

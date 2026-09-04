@@ -678,7 +678,15 @@
 			.cal-block:hover .cal-resize-handle::after{ opacity:.8; }
 			.cal-block.compact .cal-resize-handle{ display:none; }
 			.cal-block.cal-block-cross-preview .cal-resize-handle{ display:none; }
-			@media (pointer: coarse){ .cal-resize-handle{ height:14px; } .cal-resize-handle::after{ opacity:.6; } }
+			/* Kullanici bildirimi: 14px'e cikarilmis bu bant HALA parmakla tutturmasi zor
+			   ("tam çizgiyi tutmak zorunda kalıyorum bazen bazen de hiç tutamıyorum") --
+			   gorunur yukseklik/grip ipucu AYNEN kaliyor, dokunma alani ::before ile
+			   gorunmez sekilde ~5px daha genisletiliyor (toplam ~24px dokunma bandı). */
+			@media (pointer: coarse){
+				.cal-resize-handle{ height:14px; }
+				.cal-resize-handle::after{ opacity:.6; }
+				.cal-resize-handle::before{ content:""; position:absolute; left:0; right:0; top:-5px; bottom:-5px; }
+			}
 			/* Suruklerken eski saat araligini gosteren silik "hayalet" -- kullanici istegi:
 			   "eski etkinlik altta silüet kalsın... bırakınca gitsin silüet". block'un KENDI
 			   .cal-block stilini miras alir (ayni renk/konum), sadece opaklik/kesikli kenar/
@@ -1009,6 +1017,12 @@
 			@media (max-width: 1049px) {
 			.faculty-fab.active-list{ display:flex; }
 			}
+			/* .mobile-glass-nav tek çocuğu (.faculty-fab) İl Protokolü listesindeyken
+			   active-list sınıfını kaybedip display:none oluyor, ama dış "liquid glass"
+			   çubuğun kendisi (padding:6px + border-radius:32px) HÂLÂ görünür kalıyordu --
+			   içi boş, sadece dolgudan ibaret küçük bir daire olarak ("büyüteç yok, sadece
+			   küçük bir daire var"). Çocuğu yoksa/gizliyse çubuğun kendisi de gizlenir. */
+			.mobile-glass-nav:not(:has(.faculty-fab.active-list)){ display:none !important; }
 			@media (min-width: 1050px) {
 			.faculty-fab, .faculty-sheet, .faculty-sheet-backdrop{ display:none !important; }
 			}
@@ -1063,6 +1077,17 @@
 			.photo-input-row{ display:flex; align-items:center; gap:10px; } .photo-input-row input[type=file]{ min-width:0; flex:1; } .photo-preview{ width:56px; height:56px; border-radius:8px; object-fit:cover; background:#eee; border:1px solid var(--border); flex-shrink:0; }
 			.modal-actions{ display:flex; gap:10px; margin-top:18px; } .modal-actions .btn{ flex:1; text-align:center; }
 			.close-x{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:var(--muted); cursor:pointer; }
+			/* newsModalBg (Haber Metni Ciktisi) diger modallardan cok daha uzun -- sablon secimi,
+			   bircok metin alani, textarea. Mobilde (Safari) icerigi kaydirirken X butonu da
+			   iceriktemis gibi yukari kayip gozden kayboluyordu ("çarpıya basmak çok zor"), ustune
+			   dinamik arac cubugu genisleyince kaybolan ust kisim daha da az erisilebilir oluyordu.
+			   .modal{overflow-x:hidden} zaten (CSS speci geregi: bir eksen non-visible olunca diger
+			   eksen de auto'ya donusuyor) .modal'in KENDISINI kaydirma konteynerine ceviriyor -- bu
+			   yuzden position:sticky burada .modal-bg'ye degil doğrudan .modal'in kendi scroll
+			   alanina gore sabitleniyor ve her zaman erisilebilir kalıyor. Sadece bu modale ozel
+			   (diger 8 modalin mevcut absolute davranisi degismiyor, bkz. asagidaki yorum).
+			*/
+			#newsModalBg .close-x{ position:sticky; top:0; float:right; margin:-8px -8px 0 0; z-index:2; background:var(--card); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; }
 			/* Gorev/etkinlik gecmisi tetikleyicisi -- SADECE kisi duzenleme modalinde (#modalBg),
 			   .close-x'in aynasi. .modal sinifi projede 9 BASKA modalde de kullanildigi icin
 			   padding-left genel .modal h2'ye DEGIL, bu ozel #modalBg kapsamina eklenir. */

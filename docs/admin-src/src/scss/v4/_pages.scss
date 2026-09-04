@@ -1007,10 +1007,16 @@ body[data-page="dashboard-2"] .aib-add:focus-visible .aib-add-icon {
     width: 32px;
     height: 32px;
     padding: 0;
+    // .btn'in gap:5px'i, metin max-width:0'a inip görsel olarak yok olduğunda bile
+    // aralarında BOŞLUK olarak flex akışında kalmaya devam ediyordu (gap, 0 genişlikli
+    // bir flex öğesi için de uygulanır) -- bu da ikonu dairenin gerçek merkezinden ~2.5px
+    // sola kaydırıyordu ("çöp ikonu tam ortada değil"). Daralmış haldeyken gap kapatılır,
+    // hover'da (aşağıda) metin genişleyince gap de geri gelir.
+    gap: 0;
     justify-content: center;
     border-radius: 999px;
     overflow: hidden;
-    transition: width 160ms ease, border-radius 160ms ease, background 120ms, border-color 120ms, color 120ms;
+    transition: width 160ms ease, border-radius 160ms ease, background 120ms, border-color 120ms, color 120ms, gap 160ms ease;
   }
   body[data-page="dashboard-2"] .aib-danger .aib-text {
     max-width: 0;
@@ -1023,6 +1029,7 @@ body[data-page="dashboard-2"] .aib-add:focus-visible .aib-add-icon {
   body[data-page="dashboard-2"] .aib-danger:focus-visible {
     width: auto;
     padding: 0 14px;
+    gap: 5px;
     border-radius: var(--radius-sm);
     background: var(--danger-accent);
     border-color: var(--danger-accent);

@@ -174,9 +174,11 @@ import('leaflet').then(({ default: LeafletLib }) => {
   window.L = LeafletLib;
   const mapEl = document.getElementById('map');
   waitForRealSize(mapEl, () => {
-    // Kampüs ölçeğinde, zaten yakınlaştırılmış bir görünümle başlar (önceden
-    // şehir/il ölçeğindeki zoom 12'den başlıyordu).
-    map = L.map('map').setView([41.3641, 36.1946], 14);
+    // Kampüs ölçeğinde başlar ama TÜM yerleşkeyi kapsayacak kadar geniş: zoom 14
+    // OMÜ Kurupelit yerleşkesinin bir kısmını kadraj dışında bırakıyordu (kullanıcı
+    // isteği: "biraz daha geniş plandan görelim ama çok uzak olmasın") -- 12 (şehir
+    // ölçeği) ile 14 (çok yakın) arasında, kampüsün bütünü görünür kalan 13'e çekildi.
+    map = L.map('map').setView([41.3641, 36.1946], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 18

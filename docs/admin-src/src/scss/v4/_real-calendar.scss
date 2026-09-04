@@ -112,6 +112,19 @@
 
 .cal-resize-handle { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; z-index: 3; cursor: ns-resize; touch-action: none; display: flex; align-items: center; justify-content: center; }
 .cal-resize-handle-top { top: 0; bottom: auto; }
+// Kullanıcı isteği: dokunmatikte 8px'lik görünür çizgiyi parmakla tam isabet ettirmek zordu
+// ("tam çizgiyi tutmak zorunda kalıyorum bazen bazen de hiç tutamıyorum"). Görsel çizgi
+// AYNEN kalıyor -- sadece dokunma alanı görünmez bir ::before ile genişletiliyor (projenin
+// topbar butonlarında kullandığı aynı desen). Ghost'un (bekleyen oluşturma) kolları da
+// `.cal-resize-handle` sınıfını paylaştığı için otomatik kapsanıyor.
+@media (pointer: coarse) {
+  .cal-resize-handle::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: -7px; bottom: -7px;
+  }
+}
 .cal-resize-handle::after { content: ""; width: 16px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.75); opacity: 0; transition: opacity .12s ease; }
 .cal-block:hover .cal-resize-handle::after { opacity: .8; }
 .cal-block.compact .cal-resize-handle { display: none; }

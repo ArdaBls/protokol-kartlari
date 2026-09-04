@@ -100,6 +100,12 @@
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  // overflow-y:auto alone makes overflow-x compute to auto too (CSS spec: a
+  // visible/clip axis becomes auto once the other axis is scrollable) -- rail
+  // modda (64px) bir çocuk elemanın gizli genişliği taşınca bu bir yatay
+  // scrollbar/"tutup çekme yeri" doğuruyordu; sağa çekilince ikonlar view'dan
+  // kayıp gidiyordu. Nav içeriği hiçbir zaman yatay kaydırma gerektirmez.
+  overflow-x: hidden;
   padding: 8px 0;
 }
 .sidebar-nav::-webkit-scrollbar { width: 3px; }

@@ -3771,6 +3771,11 @@ const CAL_DOW_MINI = ["P","S","Ç","P","C","C","P"];
 const CAL_MONTHS = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 const CAL_HOUR_H = 48;   // bir saatlik satırın piksel yüksekliği
 const CAL_GUTTER = 54;   // soldaki saat sütununun genişliği
+// Dokunmatikte izgara-sec-olustur jesti ANINDA degil, kisa bir basili-tutma sonrasi basliyor
+// (bkz. calStartGridSelectGesture) -- kullanici istegi: asagi kaydirmak icin her dokunusun
+// yeni bir etkinlik olusturmasini istemiyordu.
+const CAL_TOUCH_HOLD_MS = 350;
+const CAL_TOUCH_MOVE_TOLERANCE = 10;
 // Telefonda 7 sütun ~48px kalıyor ve etkinlik adları okunmuyordu; dar ekranda 3 güne düşer.
 function calDayCount(){
 	if(calView==="day") return 1;
@@ -5097,13 +5102,42 @@ function calStartGridSelectGesture(e){
 	const dateKey=daycol.dataset.date;
 	if(!dateKey) return;
 	const pointerId=e.pointerId;
+	// Fare/kalemde davranis ANINDA baslar (masaustunde kaydirmayla cakisma riski yok).
+	if(e.pointerType!=="touch"){ beginGridSelect(e.clientX, e.clientY); return; }
+	// Kullanici bildirimi: takvimi parmagiyla asagi kaydirmaya calisirken HER dokunus yeni bir
+	// etkinlik olusturuyordu -- kaydirmak icin ya "Vazgec" demek ya da bekleyen ghost'un ustunden
+	// kaydirmak gerekiyordu. touch-action'a HIC dokunmadan (varsayilan `auto` ile tarayici normal
+	// dikey kaydirmayi serbestce yonetsin) kisa bir BASILI TUTMA esigi (CAL_TOUCH_HOLD_MS) beklenir;
+	// esik dolmadan parmak CAL_TOUCH_MOVE_TOLERANCE px'ten fazla kayarsa bu bir kaydirmadir, jest
+	// tamamen iptal edilir. Esik parmak (neredeyse) hareketsizken dolarsa ancak O ZAMAN
+	// touch-action:none uygulanip olusturma jesti baslar (basili tut -> surukleyerek olustur).
+	const startXHold=e.clientX, startYHold=e.clientY;
+	let settled=false;
+	function onPreHoldMove(e2){
+		if(e2.pointerId!==pointerId) return;
+		if(Math.hypot(e2.clientX-startXHold, e2.clientY-startYHold)>CAL_TOUCH_MOVE_TOLERANCE) cancelPreHold();
+	}
+	function onPreHoldUp(e2){ if(e2.pointerId===pointerId) cancelPreHold(); }
+	function cancelPreHold(){
+		if(settled) return; settled=true; clearTimeout(holdTimer);
+		window.removeEventListener("pointermove", onPreHoldMove);
+		window.removeEventListener("pointerup", onPreHoldUp);
+		window.removeEventListener("pointercancel", onPreHoldUp);
+	}
+	const holdTimer=setTimeout(function(){
+		if(settled) return; settled=true;
+		window.removeEventListener("pointermove", onPreHoldMove);
+		window.removeEventListener("pointerup", onPreHoldUp);
+		window.removeEventListener("pointercancel", onPreHoldUp);
+		beginGridSelect(startXHold, startYHold);
+	}, CAL_TOUCH_HOLD_MS);
+	window.addEventListener("pointermove", onPreHoldMove);
+	window.addEventListener("pointerup", onPreHoldUp);
+	window.addEventListener("pointercancel", onPreHoldUp);
+	return;
+
+	function beginGridSelect(clientX, clientY){
 	daycol.setPointerCapture(pointerId);
-	// Kullanici geri bildirimi (iOS/mobil): parmakla basili tutup asagi cekince tarayici bunu
-	// KENDI dikey sayfa kaydirma jesti sanip pointermove'lari gondermeden pointercancel
-	// atesliyordu -- "saatini ayarlayamadan hemen düzenle ekranı geliyor" (moved hep false
-	// kaliyor, calGridClick'in eski varsayilan-30dk davranisi devreye giriyordu). touch-action
-	// SADECE bu jest surerken 'none' yapilir, onUp'ta geri alinir -- .cal-daycol kalici olarak
-	// kilitlenirse kullanici takvimi parmagiyla hic kaydiramaz.
 	const prevTouchAction=daycol.style.touchAction;
 	daycol.style.touchAction="none";
 	const rect=daycol.getBoundingClientRect();
@@ -5113,8 +5147,8 @@ function calStartGridSelectGesture(e){
 		let m=Math.round(((y-rect.top)/CAL_HOUR_H)*60/15)*15;
 		return Math.max(0,Math.min(24*60,m));
 	}
-	const anchorMin=minsFromY(e.clientY);
-	const startX=e.clientX;
+	const anchorMin=minsFromY(clientY);
+	const startX=clientX;
 	let startMin=anchorMin, endMin=anchorMin;
 	let moved=false, cancelled=false;
 
@@ -5172,6 +5206,7 @@ function calStartGridSelectGesture(e){
 	window.addEventListener("pointermove", onMove);
 	window.addEventListener("pointerup", onUp);
 	window.addEventListener("pointercancel", onUp);
+	}
 }
 // pointerdown/move/up ile calisan, SortableJS'ten TAMAMEN bagimsiz, kendi kendine yeten bir
 // jest. Pointer Events mouse+dokunmatigi tek API'de birlestirdigi icin (setPointerCapture)
