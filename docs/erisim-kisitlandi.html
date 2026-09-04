@@ -42,14 +42,28 @@
    sızmasın diye). Ekrandaki metin ve arkadaki büyük rakam bizim bağlama göre
    ("403", "ERİŞİM YOK") uyarlandı; TV'nin kendi turuncu/ahşap paleti AYNEN
    korunuyor (kullanıcı isteği: "tv'nin renkleri değişik, kendi renklerini
-   kullan"). Antenin sağa ağırlıklı asimetrisini dengelemek için görsel bütün
-   hafifçe sola kaydırıldı ("biraz sağda" geri bildirimi). Mobilde tüm
-   illüstrasyon transform:scale ile küçülür. */
+   kullan"). ÖNEMLİ (2026-09-04 düzeltmesi): iç sarmalayıcı div'in orijinal
+   Uiverse kaynağındaki sınıfı ".main" idi -- bu, panelin KENDİ sayfa iskelet
+   sınıfıyla (bkz. _layout.scss ".main", min-height:100vh benzeri bir kural
+   taşıyor) çakışıyordu ve TV'yi görünmez şekilde 900px'ten uzun, sayfanın
+   sağına kaymış bir kutuya hapsediyordu ("telefizyon tam ortada değil,
+   sağda kalıyor" bildirimleri BUNDAN kaynaklanıyordu). ".tv-main" olarak
+   yeniden adlandırıldı, artık çakışma yok ve gerçekten ortalanıyor. Mobilde
+   tüm illüstrasyon transform:scale ile küçülür. */
 .access-tv-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
-.access-tv { transform: translateX(-0.7em); }
-.access-tv .main_wrapper { display: flex; align-items: center; justify-content: center; width: 22em; height: 22em; }
-.access-tv .main { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 3.5em; }
-.access-tv .antenna { width: 5em; height: 5em; border-radius: 50%; border: 2px solid black; background-color: #f27405; margin-bottom: -6em; margin-left: 0; z-index: -1; }
+.access-tv .main_wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 22em; height: 22em; }
+/* position:relative + z-index:2 -- TV, arkadaki "403" yazısının (z-index:1) ÖNÜNDE
+   dursun diye (kullanıcı isteği: "403 yazısı da tv'nin arkasında olsun"). İkisi de
+   pozitif z-index kullanıyor: negatif bir değer denendiğinde (bkz. .text_404 yorumu)
+   yazı sayfanın kendisiyle birlikte tamamen görünmez oluyordu -- konumlandırılmış iki
+   kardeş arasında normal pozitif z-index karşılaştırması burada güvenilir çalışıyor. */
+.access-tv .tv-main { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 3.5em; }
+/* Antenin z-index:-1'i (orijinal Uiverse kaynağında da vardı) kaldırıldı -- .tv-main
+   flex konteynerinde negatif z-index, anteni kendi kardeşlerinin (özellikle .tv'nin
+   opak arka planının) ARKASINA gömüp tamamen görünmez yapıyordu ("anten ayakları
+   gitti"). DOM sırası zaten anteni TV'den önce/altında çiziyor, ayrı bir z-index'e
+   gerek yok. */
+.access-tv .antenna { width: 5em; height: 5em; border-radius: 50%; border: 2px solid black; background-color: #f27405; margin-bottom: -6em; margin-left: 0; }
 .access-tv .antenna_shadow { position: absolute; background-color: transparent; width: 50px; height: 56px; margin-left: 1.68em; border-radius: 45%; transform: rotate(140deg); border: 4px solid transparent; box-shadow: inset 0 16px #a85103, inset 0 16px 1px 1px #a85103; }
 .access-tv .antenna::after { content: ""; position: absolute; margin-top: -9.4em; margin-left: 0.4em; transform: rotate(-25deg); width: 1em; height: 0.5em; border-radius: 50%; background-color: #f69e50; }
 .access-tv .antenna::before { content: ""; position: absolute; margin-top: 0.2em; margin-left: 1.25em; transform: rotate(-20deg); width: 1.5em; height: 0.8em; border-radius: 50%; background-color: #f69e50; }
@@ -83,7 +97,12 @@
 .access-tv .bottom { width: 100%; height: auto; display: flex; align-items: center; justify-content: center; column-gap: 8.7em; }
 .access-tv .base1, .access-tv .base2 { height: 1em; width: 2em; border: 2px solid #171717; background-color: #4d4d4d; margin-top: -0.15em; z-index: -1; }
 .access-tv .base3 { position: absolute; height: 0.15em; width: 17.5em; background-color: #171717; margin-top: 0.8em; }
-.access-tv .text_404 { position: absolute; display: flex; flex-direction: row; column-gap: 6em; z-index: -5; margin-bottom: 2em; align-items: center; justify-content: center; opacity: 0.5; color: var(--text); }
+/* z-index NEGATİF DEĞİL: .main_wrapper (containing block) kendi stacking context'ini
+   z-index:auto ile kurmuyor, bu yüzden negatif bir değer bu yazıyı sayfanın kendi
+   arka planının bile ALTINA gömüp tamamen görünmez yapıyordu ("403 yazısı gitti").
+   1 -- TV'nin parçalarının (screen/display_div vb.) kullandığı z-index:99'un ALTINDA
+   kalacak kadar düşük, sayfa arka planının ÜSTÜNde kalacak kadar pozitif. */
+.access-tv .text_404 { position: absolute; display: flex; flex-direction: row; column-gap: 6em; z-index: 1; margin-bottom: 2em; align-items: center; justify-content: center; opacity: 0.5; color: var(--text); }
 .access-tv .text_4041, .access-tv .text_4042, .access-tv .text_4043 { transform: scaleY(24.5) scaleX(9); }
 @media only screen and (max-width: 495px) { .access-tv .text_404 { column-gap: 6em; } }
 @media only screen and (max-width: 395px) {
@@ -92,8 +111,8 @@
 }
 /* Kullanıcı isteği: mobil için uyumlu olsun -- tüm illüstrasyon tek bir
    transform:scale ile küçülüyor, iç ölçüler (em) hiç elden geçmeden. */
-@media (max-width: 480px) { .access-tv { transform: translateX(-0.7em) scale(0.62); margin: -4.2em 0; } }
-@media (min-width: 481px) and (max-width: 700px) { .access-tv { transform: translateX(-0.7em) scale(0.82); margin: -2em 0; } }
+@media (max-width: 480px) { .access-tv { transform: scale(0.62); margin: -4.2em 0; } }
+@media (min-width: 481px) and (max-width: 700px) { .access-tv { transform: scale(0.82); margin: -2em 0; } }
 </style>
 <body>
 
@@ -102,7 +121,7 @@
     <div class="access-tv-wrap">
       <div class="access-tv">
         <div class="main_wrapper">
-          <div class="main">
+          <div class="tv-main">
             <div class="antenna">
               <div class="antenna_shadow"></div>
               <div class="a1"></div>
