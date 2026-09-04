@@ -53,6 +53,9 @@ if (document.querySelector('.settings-content')) {
 if (document.querySelector('[data-task-list]')) {
   import('./v4/tasks-widget.js').then((m) => m.initTasksWidget());
 }
+if (document.querySelector('[data-quick-event-btn]')) {
+  import('./v4/quick-event.js').then((m) => m.initQuickEvent());
+}
 if (document.querySelector('[data-countdown-value]')) {
   import('./v4/countdown.js').then((m) => m.initCountdown());
 }
@@ -119,11 +122,12 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.card-opt-btn');
   if (!btn) {return;}
-  // Tasks kartındaki "+" (yeni görev) butonu da görsel tutarlılık için
-  // .card-opt-btn stilini kullanıyor, ama kendi tıklama işleyicisi var
-  // (bkz. tasks-widget.js) -- bu genel dropdown menüsüne düşmemeli, aksi
-  // halde İngilizce "Refresh/Edit/Duplicate" menüsü açılırdı.
-  if (btn.hasAttribute('data-task-add')) {return;}
+  // Tasks kartındaki "+" (yeni görev) ve "📍 Bir Etkinliğe Gidiyorum"
+  // butonları da görsel tutarlılık için .card-opt-btn stilini kullanıyor,
+  // ama kendi tıklama işleyicileri var (bkz. tasks-widget.js, quick-event.js)
+  // -- bu genel dropdown menüsüne düşmemeli, aksi halde İngilizce
+  // "Refresh/Edit/Duplicate" menüsü açılırdı.
+  if (btn.hasAttribute('data-task-add') || btn.hasAttribute('data-quick-event-btn')) {return;}
   // Skip if the click was already handled (e.g. calendar prev/next).
   if (e.defaultPrevented) {return;}
   e.preventDefault();

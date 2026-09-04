@@ -92,6 +92,24 @@
 .cal-block.cancelled .bt { text-decoration: line-through; }
 .cal-block.dragging { opacity: .4; }
 
+// Operasyonlar'daki "Bir Etkinliğe Gidiyorum" (quick-event.js) ile oluşturulan
+// taslak etkinlikler -- kullanıcı bilinçli olarak Takvim'e girene kadar hiçbir
+// bildirim/yönlendirme istemedi, bunun yerine buraya girince taslağın gözden
+// kaçmaması için yanıp sönen sarı vurgu. .cal-ev (liste görünümü) da aynı
+// sınıfı paylaşıyor. `!important` gerekli: .cal-block zaten kendi tür rengini
+// inline style ile taşıyor (bkz. calBlockStyle), kenarlık başka türlü kaybolur.
+@keyframes cal-taslak-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 159, 0, 0.5); }
+  50% { box-shadow: 0 0 0 4px rgba(245, 159, 0, 0); }
+}
+.cal-taslak {
+  border: 2px solid var(--yellow) !important;
+  animation: cal-taslak-pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cal-taslak { animation: none; box-shadow: 0 0 0 2px var(--yellow); }
+}
+
 .cal-resize-handle { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; z-index: 3; cursor: ns-resize; touch-action: none; display: flex; align-items: center; justify-content: center; }
 .cal-resize-handle-top { top: 0; bottom: auto; }
 .cal-resize-handle::after { content: ""; width: 16px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.75); opacity: 0; transition: opacity .12s ease; }

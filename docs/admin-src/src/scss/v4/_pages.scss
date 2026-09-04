@@ -1075,6 +1075,29 @@ body[data-page="dashboard-2"] .aib-add:focus-visible .aib-add-icon {
   .cal-quick-btn {
     min-height: 44px;
   }
+
+  // ── 5) Operasyonlar "Görevler" kartındaki başlık ikon butonları ──
+  // Ölçülen: 26x26 px (.card-opt-btn). Görevler kartı yoğun bir başlık
+  // satırında yaşıyor, .card-edit'teki gibi görsel olarak büyütmek orantısız
+  // olurdu -- üst çubuktaki tb-btn deseniyle aynı çözüm: görünmez, ortalanmış
+  // 44x44 dokunma alanı, görsel boyut DEĞİŞMİYOR. "Bir Etkinliğe Gidiyorum"
+  // (quick-event.js) burada eklendiği için mevcut "+" (görev ekle) butonuna
+  // da aynı kural uygulanıp iki bitişik buton tutarlı kalıyor.
+  [data-quick-event-btn],
+  [data-task-add] {
+    position: relative;
+  }
+  [data-quick-event-btn]::after,
+  [data-task-add]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+  }
 }
 
 // ── Harita: Leaflet'in kendi yazı tipini dayatması ──

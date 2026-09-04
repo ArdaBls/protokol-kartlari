@@ -329,6 +329,11 @@ function calBlockClasses(ev, dayDate) {
   if (st === 'iptal') { c += ' cancelled'; }
   if (dayDate && dayDate < todayDate()) { c += ' past'; }
   if (ev.locked) { c += ' locked'; }
+  // Operasyonlar'daki "Bir Etkinliğe Gidiyorum" (quick-event.js) taslak
+  // etkinlikleri "taslak:true" ile işaretliyor -- burada görsel olarak öne
+  // çıkarılır (bkz. _real-calendar.scss .cal-taslak), form üzerinden
+  // kaydedilince otomatik temizlenir (bkz. openEventModal patch.taslak=null).
+  if (ev.taslak) { c += ' cal-taslak'; }
   return c;
 }
 // Rozetler (Basına Kapalı / Dış Katılımlı / Canlı Yayın) -- ana sitedeki badgeHtml
@@ -656,7 +661,7 @@ function renderMonthView(body) {
     const evs = eventsOn(k);
     const shown = evs.slice(0, 3);
     let chips = shown.map((e) => {
-      return '<button type="button" class="cal-block compact' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + (e.locked ? ' locked' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="position:relative; ' + calBlockStyle(e) + '">' +
+      return '<button type="button" class="cal-block compact' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + (e.locked ? ' locked' : '') + (e.taslak ? ' cal-taslak' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="position:relative; ' + calBlockStyle(e) + '">' +
         ((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? '<span class="bh">' + escapeHtml(fmtMultiDayRange(e.tarih, e.bitisTarihi)) + '</span>' : (e.saat ? '<span class="bh">' + escapeHtml(e.saat) + '</span>' : '')) + '<span class="bt">' + escapeHtml(e.ad || '(adsız)') + '</span>' + lockIconHtml(e) + '</button>';
     }).join('');
     if (evs.length > shown.length) { chips += '<button type="button" class="cal-more" data-date="' + k + '" data-act="more">+' + (evs.length - shown.length) + ' tane daha</button>'; }
@@ -712,7 +717,7 @@ function renderListView(body) {
     const ty = evType(e.tur), st = evStatus(e.durum);
     const evD = parseKey(e.tarih), isPast = evD && evD < today;
     const meta = []; if (e.yer) { meta.push(escapeHtml(e.yer)); } if (e.birim) { meta.push(escapeHtml(e.birim)); }
-    html += '<button type="button" class="cal-ev" data-evid="' + escapeHtml(e._id) + '" data-act="edit">' +
+    html += '<button type="button" class="cal-ev' + (e.taslak ? ' cal-taslak' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit">' +
       '<span class="cal-ev-dot" style="background:' + ty.renk + ';"></span>' +
       '<span class="cal-ev-time">' + escapeHtml((e.bitisTarihi && e.bitisTarihi !== e.tarih) ? fmtMultiDayRange(e.tarih, e.bitisTarihi) : (e.saat || '—')) + '</span>' +
       '<span class="cal-ev-main"><span class="cal-ev-name' + ((e.durum === 'tamamlandi' || e.durum === 'iptal' || isPast) ? ' done' : '') + '">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) +
@@ -1384,7 +1389,13 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         haberYazanlari: calNewsWriters.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
         katilimcilar: calAttendees.slice(),
         haberKaynagi: form.querySelector('#cef-haberKaynagi').value,
-        not: form.querySelector('#cef-not').value.trim()
+        not: form.querySelector('#cef-not').value.trim(),
+        // quick-event.js'in oluşturduğu taslaklar "taslak:true" taşır (bkz.
+        // .cal-taslak görsel vurgusu). Form üzerinden kaydedilince -- ad
+        // hariç TÜM alanlar boş bile kalsa -- kullanıcı bilinçli kaydetmiş
+        // demektir, bitisTarihi'ndeki null-siler deseniyle aynı şekilde
+        // taslak alanı temizlenir.
+        taslak: null
       };
       const ref = EVENTS[id];
       const logLabel = id
