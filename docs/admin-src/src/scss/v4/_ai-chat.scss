@@ -84,6 +84,32 @@
   vertical-align: middle;
 }
 
+// "Yazıyor…" göstergesi -- Gemini cevabı beklenirken asistan tarafında
+// görünen üç nokta. Proje kararı: animasyonlar sistem ayarından bağımsız
+// her zaman çalışır (bkz. kullanici-yonetimi.html check-toggle kararı).
+.ai-typing-bubble {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+
+  span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: ai-typing-bounce 1.1s infinite ease-in-out;
+  }
+  span:nth-child(2) { animation-delay: 0.15s; }
+  span:nth-child(3) { animation-delay: 0.3s; }
+}
+
+@keyframes ai-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
 // Mesaj gönderme kutusu -- tek satır input + gönder butonu, tek bir kapsül
 // içinde. DESIGN.md'nin "Inputs / Fields" kuralına göre (36px yükseklik, 4px
 // köşe yasak -- burada kapsül bir grup olduğu için kart/panel köşesi 8px

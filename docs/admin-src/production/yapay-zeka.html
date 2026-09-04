@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
 <body data-shell="admin" data-page="ai-chat" data-breadcrumb="Anasayfa|index.html > Yapay Zeka">
@@ -67,17 +68,28 @@ const firebaseConfig = {
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const database = firebase.database();
 const auth = firebase.auth();
+// FAZ 2 (Cloud Function proxy): Gemini key artık tarayıcıya hiç gelmiyor --
+// yalnızca Firebase Secret Manager'da duruyor. functions/index.js'teki
+// "geminiChat" callable fonksiyonu çağrılıyor; fonksiyon kendi içinde
+// yapayZekaMesajlari/{uid}'i okuyup Gemini'yi çağırıyor ve asistan cevabını
+// aynı yola kendisi push ediyor -- bu yüzden burada RTDB'ye ikinci bir
+// push/once yapmaya gerek yok, sadece fonksiyonu tetikliyoruz.
+const functions = firebase.app().functions('europe-west1');
+const geminiChat = functions.httpsCallable('geminiChat');
 
-// FAZ 1 (taslak): gerçek Gemini bağlantısı henüz yok. Kullanıcı mesajından
-// ~600ms sonra sabit bir yer tutucu cevap push edilir, "taslak:true" alanıyla
-// işaretlenir. Bir sonraki adımda bu fonksiyonun içi gerçek Gemini API
-// isteğiyle değiştirilecek -- geri kalan her şey (Firebase yazma/okuma, UI,
-// izolasyon) değişmeden kalacak.
-const TASLAK_CEVAPLAR = [
-  'Bu bir taslak cevaptır — gerçek Gemini bağlantısı bir sonraki adımda eklenecek.',
-  'Şimdilik yer tutucu bir yanıt gösteriyorum, yakında gerçek yapay zeka devreye girecek.',
-  'Mesajınız kaydedildi. Gerçek Gemini cevabı bir sonraki güncellemede gelecek.'
-];
+function yaziyorGoster(goster) {
+  const mevcut = document.getElementById('ai-chat-typing');
+  if (goster && !mevcut) {
+    const el = document.createElement('div');
+    el.id = 'ai-chat-typing';
+    el.className = 'ai-msg assistant';
+    el.innerHTML = '<div class="ai-msg-bubble ai-typing-bubble"><span></span><span></span><span></span></div>';
+    messagesEl.appendChild(el);
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+  } else if (!goster && mevcut) {
+    mevcut.remove();
+  }
+}
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -128,18 +140,15 @@ function gonder(metin) {
   sohbetRef().push({ rol: 'kullanici', metin: temiz, zaman: firebase.database.ServerValue.TIMESTAMP })
     .then(() => {
       input.value = '';
-      // Yer tutucu cevap -- FAZ 1 kapsamı, bkz. yukarıdaki not.
-      setTimeout(() => {
-        const cevap = TASLAK_CEVAPLAR[Math.floor(Math.random() * TASLAK_CEVAPLAR.length)];
-        sohbetRef().push({ rol: 'asistan', metin: cevap, taslak: true, zaman: firebase.database.ServerValue.TIMESTAMP })
-          .catch((err) => console.error('Taslak cevap yazılamadı:', err));
-      }, 600);
+      yaziyorGoster(true);
+      return geminiChat();
     })
     .catch((err) => {
-      console.error('Mesaj gönderilemedi:', err);
-      showToast('Mesaj gönderilemedi.', { variant: 'error' });
+      console.error('Yapay zeka cevabı alınamadı:', err);
+      showToast('Yapay zeka cevap veremedi: ' + err.message, { variant: 'error' });
     })
     .finally(() => {
+      yaziyorGoster(false);
       sendBtn.disabled = false;
       input.disabled = false;
       input.focus();
