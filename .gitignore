@@ -23,10 +23,6 @@ scripts/*.output.json
 # var (protokol kartlarindaki isimler ve fotograflar). Daha once bu repoda PII
 # commit'lenmesi olayi yasandigi icin burada temkinli taraf seciliyor.
 .impeccable/
-# Yapay Zeka sohbet fonksiyonu: Gemini key Firebase Secret Manager'da,
-# hicbir dosyada durmuyor -- .env yine de onlem olarak yoksayiliyor.
-functions/node_modules/
-functions/.env*
 # Visual Studio'nun production.slnx klasorunu acinca kendiliginden urettigi
 # yerel IDE calisma dosyalari (sqlite cache, layout) -- proje kaynagi degil.
 .vs/

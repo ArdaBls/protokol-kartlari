@@ -34,8 +34,7 @@ export const EDITOR_NAV_KEYS = [
   'project-detail', // Haber detayı
   'profile',        // Profiliniz
   'settings',       // Ayarlar
-  'faq',            // Yardım merkezi
-  'ai-chat'         // Yapay Zeka
+  'faq'             // Yardım merkezi
 ];
 
 export const NAV = [
