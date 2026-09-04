@@ -34,7 +34,8 @@ export const EDITOR_NAV_KEYS = [
   'project-detail', // Haber detayı
   'profile',        // Profiliniz
   'settings',       // Ayarlar
-  'faq'             // Yardım merkezi
+  'faq',            // Yardım merkezi
+  'games'           // Oyunlar
 ];
 
 export const NAV = [
@@ -63,7 +64,8 @@ export const NAV = [
     label: 'Uygulamalar',
     items: [
       { key: 'kanban',        href: 'yapilacaklar.html',        text: 'Yapılacaklar Listesi',       icon: 'kanban' },
-      { key: 'notifications', href: 'bildirimler.html', text: 'Bildirimler',  icon: 'bell' }
+      { key: 'notifications', href: 'bildirimler.html', text: 'Bildirimler',  icon: 'bell' },
+      { key: 'games',         href: 'oyunlar.html',     text: 'Oyunlar',      icon: 'gamepad' }
     ]
   },
   {
@@ -110,7 +112,8 @@ export const ICONS = {
   icons:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>',
   layout:    '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg>',
   code:      '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>',
-  paint:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 11H5a2 2 0 00-2 2v2a2 2 0 002 2h2v3a1 1 0 001 1h3a1 1 0 001-1v-3h7a2 2 0 002-2v-2a2 2 0 00-2-2z"/><path d="M19 11V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v6"/></svg>'
+  paint:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 11H5a2 2 0 00-2 2v2a2 2 0 002 2h2v3a1 1 0 001 1h3a1 1 0 001-1v-3h7a2 2 0 002-2v-2a2 2 0 00-2-2z"/><path d="M19 11V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v6"/></svg>',
+  gamepad:   '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="11" rx="5.5"/><path d="M7 10v4M5 12h4"/><circle cx="16" cy="11" r="1"/><circle cx="18.5" cy="13.5" r="1"/></svg>'
 };
 
 const CHEVRON = '<svg class="nav-chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>';
