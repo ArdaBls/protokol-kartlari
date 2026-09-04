@@ -581,6 +581,14 @@
 // well before 3-col rows do (charts legend, sidebar widgets need ~340px).
 @media (max-width: 1100px) {
   .col-8-4, .col-4-8 { grid-template-columns: minmax(0, 1fr); }
+  // Kullanıcı bulgusu: Operasyonlar'daki "Görevler" kartı mobilde sağ
+  // kenara tam oturmuyordu. Kök sebep: .col-8-4 > :first-child'daki
+  // "grid-column: span 2" kuralı bu breakpoint'in İÇİNDE sıfırlanmıyordu --
+  // tek sütunlu bir ızgarada 2 sütun istemek, tarayıcının görünmez bir
+  // ek (auto boyutlu) sütun oluşturmasına yol açıyor, bu da ikinci kartı
+  // (span'lenmeyen) o fazladan dar sütuna göre kaydırıp sağ kenarda
+  // tutarsız bir boşluk bırakıyordu.
+  .col-8-4 > :first-child { grid-column: auto; }
 }
 // col-4 → col-2 first since 4 wide tiles cramp earliest
 @media (max-width: 1200px) {

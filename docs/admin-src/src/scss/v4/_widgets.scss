@@ -352,6 +352,38 @@
 .donut-legend--lg .donut-legend-item .dot { width: 10px; height: 10px; }
 .donut-legend--lg .donut-legend-item .pct { font-size: 14px; margin-inline-start: 16px; }
 
+// Kullanıcı bulgusu: bu büyük donut ("%" sekmesi) mobilde çok büyük
+// görünüyordu -- kök sebep index.html'deki inline style="width:260px" /
+// "width:280px" idi (inline stil hiçbir CSS media query'siyle ezilemez).
+// Aynı sabit değerler artık burada, ezilebilir CSS sınıfı olarak.
+.donut-block-lg {
+  height: 100%;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  gap: var(--space-7);
+}
+.donut-svg-lg {
+  width: 260px; height: 260px; flex: 0 0 260px;
+  position: relative;
+  margin-inline-end: var(--space-5);
+}
+.donut-legend-wrap-lg { flex: 0 0 auto; width: 280px; }
+
+@media (max-width: 768px) {
+  // 260px donut + 24px boşluk + 280px legend = 564px -- hiçbir telefon
+  // genişliğine sığmıyordu. Dikey istifleme + küçültülmüş boyutlar.
+  .donut-block-lg {
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+  }
+  .donut-svg-lg {
+    width: 150px; height: 150px; flex: 0 0 150px;
+    margin-inline-end: 0;
+  }
+  .donut-legend-wrap-lg { width: 100%; }
+}
+
 // ────────────────────────
 //  APP VERSIONS (progress)
 // ────────────────────────

@@ -266,9 +266,28 @@ function editorEventActivity(echarts, el, t) {
       };
     });
 
+    // Kullanıcı bulgusu: mobilde ECharts'ın otomatik çakışma-gizleme
+    // davranışı bazı ay etiketlerini düşürüyordu, içinde bulunduğumuz ay
+    // hiç görünmeyebiliyordu. Tüm 12 ayı görmeye gerek yok ama şu anki ay
+    // HER ZAMAN görünür ve ortada olmalı -- dar ekranda dataZoom ile ~5
+    // aylık bir pencere açılır (şu anki ay ortada), zoomLock:true sadece
+    // kaydırmaya (swipe) izin verir, pinch-zoom'la bozulmaz. Masaüstünde
+    // dataZoom hiç eklenmiyor, mevcut 12 aylık görünüm aynen kalıyor.
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const dataZoom = isMobile ? (() => {
+      const curMonth = new Date().getMonth();
+      let start = curMonth - 2;
+      let end = curMonth + 2;
+      if (start < 0) { end -= start; start = 0; }
+      if (end > 11) { start -= (end - 11); end = 11; }
+      start = Math.max(0, start);
+      return [{ type: 'inside', xAxisIndex: 0, zoomLock: true, startValue: start, endValue: end }];
+    })() : undefined;
+
     chart.setOption({
       ...baseOption(t),
       tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
+      dataZoom,
       // Kullanıcı isteği: 3'ten fazla kişi eklenince legend iki satıra sarıp
       // (ECharts'ın varsayılan davranışı) sabit "bottom:40" grid boşluğunu aşıyor,
       // ikinci satır grafiğin çizgileriyle üst üste biniyordu. type:'scroll' legend'i
@@ -324,6 +343,139 @@ function editorEventActivity(echarts, el, t) {
   });
   firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
     console.error('editorEventActivity grafiği yüklenemedi:', err);
+    renderEmpty('Etkinlikler yüklenemedi.');
+  });
+
+  return chart;
+}
+
+// Kullanıcı isteği: "Editör Aktivitesi"nin üçüncü görünümü -- "kim hangi
+// gün çalışmış" sorusuna cevap. editorEventActivity ile BİREBİR aynı görsel
+// dil (bağımsız kişi çizgileri, aynı renk paleti, aynı legend/grid deseni),
+// tek fark: x ekseni ay değil, İÇİNDE BULUNDUĞUMUZ AYIN GÜNLERİ.
+function editorDailyActivity(echarts, el, t) {
+  const chart = echarts.init(el);
+  const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
+
+  function renderEmpty(message) {
+    chart.setOption({
+      ...baseOption(t),
+      graphic: [{
+        type: 'text',
+        left: 'center', top: 'middle',
+        style: { text: message, fill: t.textMuted, fontSize: 12, fontFamily }
+      }],
+      xAxis: { show: false }, yAxis: { show: false }, series: []
+    }, true);
+  }
+
+  renderEmpty('Yükleniyor…');
+
+  let latestUsers = null;
+  let latestEvents = null;
+
+  function draw() {
+    if (latestUsers === null || latestEvents === null) {return;}
+    const users = latestUsers;
+    const events = latestEvents;
+
+    let names = [];
+    Object.keys(users).forEach((uid) => {
+      const u = users[uid];
+      if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) {return;}
+      const full = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+      if (full && names.indexOf(full) === -1) {names.push(full);}
+    });
+    if (!names.length) { names = isimleriEtkinliklerdenCikar(events); }
+
+    if (!names.length) { renderEmpty('Editor/admin/owner rolünde kullanıcı yok.'); return; }
+
+    const now = new Date();
+    const currentYearMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const dayLabels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+
+    const counts = {};
+    names.forEach((n) => { counts[n] = new Array(daysInMonth).fill(0); });
+
+    Object.keys(events).forEach((id) => {
+      const e = events[id];
+      if (!e || !e.tarih) {return;}
+      const tarih = String(e.tarih);
+      if (tarih.slice(0, 7) !== currentYearMonth) {return;}
+      const dayIdx = parseInt(tarih.slice(8, 10), 10) - 1;
+      if (dayIdx < 0 || dayIdx >= daysInMonth) {return;}
+      namesForEvent(e).forEach((n) => {
+        if (counts[n]) {counts[n][dayIdx]++;}
+      });
+    });
+
+    const series = names.map((name, i) => {
+      const color = colorForIndex(i, basePalette);
+      return {
+        name,
+        type: 'line',
+        // NOT: stack:'total' KULLANMA -- editorEventActivity'deki aynı gerekçe,
+        // bkz. o fonksiyondaki yorum.
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { color, width: 1.5 },
+        itemStyle: { color },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: withAlpha(color, '55') },
+            { offset: 1, color: withAlpha(color, '08') }
+          ])
+        },
+        data: counts[name]
+      };
+    });
+
+    chart.setOption({
+      ...baseOption(t),
+      tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
+      legend: {
+        type: 'scroll',
+        data: names,
+        bottom: 0,
+        itemGap: 16,
+        textStyle: { color: t.textMuted, fontSize: 11 },
+        pageIconColor: t.textMuted,
+        pageIconInactiveColor: t.borderLight,
+        pageTextStyle: { color: t.textMuted, fontSize: 11 },
+        icon: 'circle',
+        itemWidth: 8,
+        itemHeight: 8
+      },
+      grid: { ...baseOption(t).grid, top: 28, left: 8, right: 16, bottom: 40, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: dayLabels,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: t.borderLight } },
+        axisTick: { show: false },
+        axisLabel: { color: t.textMuted, fontSize: 10 }
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        splitLine: { lineStyle: { color: t.borderLight, type: [4, 3] } },
+        axisLabel: { color: t.textMuted, fontSize: 10, formatter: '{value}' },
+        axisLine: { show: false },
+        axisTick: { show: false }
+      },
+      series
+    }, true);
+  }
+
+  if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
+  if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }
+  firebase.database().ref('users').on('value', (snap) => { latestUsers = snap.val() || {}; draw(); }, () => {
+    latestUsers = {};
+    draw();
+  });
+  firebase.database().ref('etkinlikler').on('value', (snap) => { latestEvents = snap.val() || {}; draw(); }, (err) => {
+    console.error('editorDailyActivity grafiği yüklenemedi:', err);
     renderEmpty('Etkinlikler yüklenemedi.');
   });
 
@@ -1307,6 +1459,7 @@ function gantt(echarts, el, t) {
 const charts = {
   'dashboard-network': dashboardNetwork,
   'editor-event-activity': editorEventActivity,
+  'editor-daily-activity': editorDailyActivity,
   'revenue-line':      revenueLine,
   'sales-bar':         salesBar,
   'traffic-donut':     trafficDonut,
@@ -1364,7 +1517,8 @@ export async function initCharts() {
     },
     {
       GridComponent, TooltipComponent, LegendComponent,
-      VisualMapComponent, PolarComponent, CalendarComponent, GraphicComponent
+      VisualMapComponent, PolarComponent, CalendarComponent, GraphicComponent,
+      DataZoomComponent
     },
     { CanvasRenderer }
   ] = await Promise.all([
@@ -1380,6 +1534,7 @@ export async function initCharts() {
     TreemapChart, SankeyChart, CustomChart,
     GridComponent, TooltipComponent, LegendComponent,
     VisualMapComponent, PolarComponent, CalendarComponent, GraphicComponent,
+    DataZoomComponent,
     CanvasRenderer
   ]);
 

@@ -134,30 +134,33 @@ document.addEventListener('click', (e) => {
   openMenu(btn, DEFAULT_CARD_MENU);
 });
 
-// Editör Aktivitesi kartındaki "%" düğmesi: aylık çizgi grafiği ↔ Kişilere
-// Göre Etkinlik Payı donut'u arasında geçiş yapar (bkz. index.html'deki
-// [data-chart-view] konteynerleri). Donut, display:none iken 0x0 boyutla
-// mount olduğu için görünür olduğunda ECharts'a "resize" event'i üzerinden
-// (bkz. charts.js'teki mounted-chart resize dinleyicisi) yeniden ölç
-// tetiklenir -- ayrı bir API'ye ihtiyaç duymadan mevcut mekanizma tekrar
-// kullanılıyor.
+// Editör Aktivitesi kartındaki Ay/Gün/% sekmeleri: aylık çizgi grafiği ↔
+// günlük çizgi grafiği ↔ Kişilere Göre Etkinlik Payı donut'u arasında geçiş
+// yapar (bkz. index.html'deki [data-chart-view] konteynerleri). Gizli
+// görünümler display:none iken 0x0 boyutla mount olduğu için görünür
+// olduklarında ECharts'a "resize" event'i üzerinden (bkz. charts.js'teki
+// mounted-chart resize dinleyicisi) yeniden ölç tetiklenir -- ayrı bir
+// API'ye ihtiyaç duymadan mevcut mekanizma tekrar kullanılıyor.
+const CHART_VIEW_SUBTITLES = {
+  line: 'Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık',
+  daily: 'Basın görevlisi olarak atandıkları etkinlik sayısı, günlük · ' + new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+  share: 'Basın görevlisi olarak atandıkları toplam etkinlik payı'
+};
 document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-chart-view-toggle]');
+  const btn = e.target.closest('[data-chart-view-btn]');
   if (!btn) {return;}
   const card = btn.closest('.card');
   if (!card) {return;}
-  const lineView = card.querySelector('[data-chart-view="line"]');
-  const shareView = card.querySelector('[data-chart-view="share"]');
+  const view = btn.dataset.chartViewBtn;
   const subtitle = card.querySelector('[data-editor-activity-subtitle]');
-  if (!lineView || !shareView) {return;}
-  const showingShare = shareView.style.display !== 'none';
-  lineView.style.display = showingShare ? '' : 'none';
-  shareView.style.display = showingShare ? 'none' : '';
-  btn.classList.toggle('active', !showingShare);
-  if (subtitle) {
-    subtitle.textContent = showingShare
-      ? 'Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık'
-      : 'Basın görevlisi olarak atandıkları toplam etkinlik payı';
+  card.querySelectorAll('[data-chart-view]').forEach((el) => {
+    el.style.display = el.dataset.chartView === view ? '' : 'none';
+  });
+  card.querySelectorAll('[data-chart-view-btn]').forEach((b) => {
+    b.classList.toggle('active', b === btn);
+  });
+  if (subtitle && CHART_VIEW_SUBTITLES[view]) {
+    subtitle.textContent = CHART_VIEW_SUBTITLES[view];
   }
   window.dispatchEvent(new Event('resize'));
 });
