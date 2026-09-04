@@ -116,55 +116,12 @@
       <div class="card-header">
         <div>
           <div class="card-title">Başarılar</div>
-          <div class="card-subtitle">Çalışma alanında kazanılan rozetler.</div>
+          <div class="card-subtitle" id="basarim-subtitle">Çalışma alanında kazanılan rozetler.</div>
         </div>
-        <a href="#" style="font-size:12px">Tümünü gör</a>
+        <a href="tum-basarimlar.html" style="font-size:12px">Tümünü gör</a>
       </div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius);background:var(--primary-lt)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">En çok katkı</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">100+ düzenleme</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--yellow-lt);color:var(--yellow);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="9" r="5"/><path d="M8 14l-2 1 1-3"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Denetleyici</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">50+ inceleme</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--purple-lt);color:var(--purple);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">İlk kullanıcılardan</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">2014'te katıldı</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--blue-lt);color:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h10M3 10h10M3 14h6"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Belgeleyici</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">25+ haber metni</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--green-lt);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Güvenilir</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">%98 zamanında</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius);opacity:.5">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--bg-surface-secondary);color:var(--text-muted);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="8" height="6" rx="1.5"/><path d="M6 6V4a2 2 0 014 0v2"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Kilitli</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">200 düzenleme gerekli</div>
-          </div>
-        </div>
+        <div class="badge-grid" id="basarim-mini-grid"></div>
       </div>
     </div>
   </div>
@@ -209,9 +166,11 @@
 
 <script type="module">
 // Görev 2: profil.html gerçek Firebase kullanıcı verisiyle çalışır ve
-// düzenlenebilir. "Başarılar" ve "Son etkinlikler" kartlarına kasıtlı olarak
-// dokunulmadı -- kullanıcı isteği, ayrıca ele alınacak.
+// düzenlenebilir. "Son etkinlikler" kartına kasıtlı olarak dokunulmadı --
+// ayrıca ele alınacak. "Başarılar" artık gerçek veri (bkz. achievements.js
+// ve tum-basarimlar.html) -- demo rozetler kaldırıldı.
 import { showToast } from '/src/v4/toast.js';
+import { ACHIEVEMENTS } from '/src/v4/achievements.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -309,11 +268,51 @@ function loadUser(uid) {
   });
 }
 
+// ── Başarılar (önizleme) -- tam liste tum-basarimlar.html'de ──
+const escapeHtml = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const BADGE_DEFAULT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg>';
+const BADGE_LOCK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="8" height="6" rx="1.5"/><path d="M6 6V4a2 2 0 014 0v2"/></svg>';
+const BADGE_PREVIEW_COUNT = 6;
+
+function loadAchievements(uid) {
+  const gridEl = document.getElementById('basarim-mini-grid');
+  const subtitleEl = document.getElementById('basarim-subtitle');
+  if (!ACHIEVEMENTS.length) {
+    subtitleEl.textContent = 'Henüz tanımlı başarım yok.';
+    gridEl.innerHTML = '';
+    return;
+  }
+  database.ref('users/' + uid + '/basarimlar').once('value').then((snap) => {
+    const earned = snap.val() || {};
+    const earnedCount = ACHIEVEMENTS.filter((a) => earned[a.id]).length;
+    subtitleEl.textContent = `${earnedCount} / ${ACHIEVEMENTS.length} başarım kazanıldı`;
+    // secret + kazanılmamış hiç gösterilmez (bkz. achievements.js); önizlemede en fazla
+    // BADGE_PREVIEW_COUNT tane -- tam liste "Tümünü gör" ile tum-basarimlar.html'de.
+    const visible = ACHIEVEMENTS.filter((a) => !a.secret || earned[a.id]).slice(0, BADGE_PREVIEW_COUNT);
+    gridEl.innerHTML = visible.map((a) => {
+      const ts = earned[a.id];
+      const isEarned = !!ts;
+      return `
+        <div class="badge-tile${isEarned ? ' badge-tile--earned' : ' badge-tile--locked'}" title="${escapeHtml(a.aciklama || '')}">
+          <div class="badge-tile-icon">${isEarned ? (a.icon || BADGE_DEFAULT_ICON) : BADGE_LOCK_ICON}</div>
+          <div class="badge-tile-name">${escapeHtml(a.ad || '(adsız)')}</div>
+          <div class="badge-tile-desc">${escapeHtml(a.aciklama || '')}</div>
+          ${isEarned ? `<div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>` : '<div class="badge-tile-date badge-tile-date--locked">Kilitli</div>'}
+        </div>
+      `;
+    }).join('');
+  }).catch((err) => {
+    console.error('Başarımlar yüklenemedi:', err);
+    subtitleEl.textContent = 'Başarımlar yüklenemedi.';
+  });
+}
+
 auth.onAuthStateChanged((user) => {
   if (!user) { window.location.href = 'giris.html'; return; }
   currentUid = user.uid;
   currentEmail = user.email || '';
   loadUser(currentUid);
+  loadAchievements(currentUid);
 });
 
 // ── Kaydet / Vazgeç (üstteki ve formdaki iki buton çifti aynı davranışı paylaşır) ──

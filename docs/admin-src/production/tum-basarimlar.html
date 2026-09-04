@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tüm başarımlar | Protokol</title>
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="all-achievements" data-breadcrumb="Anasayfa|index.html > Profiliniz|profil.html > Tüm başarımlar">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Hesap</div>
+        <h1 class="page-title">Tüm başarımlar</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Rozetler</div>
+        <div class="card-subtitle" id="basarim-ozet">Yükleniyor…</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="badge-grid" id="basarim-grid"></div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+// Kullanıcı isteği: "tüm-başarımlar.html sayfası olsun ... sırayla başarımlar kare
+// şeklinde o sayfada gözüksün ... Bazıları gizli olacak ve görünmeycek (easter egg
+// tarzı) ta ki kişi o başarımı tetikleyen şeyi yapıncaya kadar". Başarım TANIMLARI
+// achievements.js'de tutulur (kazanma koşulları/otomatik verme mantığı ayrıca
+// eklenecek) -- bu sayfa sadece o listeyi ve kullanıcının users/{uid}/basarimlar
+// altındaki kazanma tarihlerini birleştirip vitrin olarak gösterir.
+import { ACHIEVEMENTS } from '/src/v4/achievements.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+const auth = firebase.auth();
+
+const gridEl = document.getElementById('basarim-grid');
+const ozetEl = document.getElementById('basarim-ozet');
+const escapeHtml = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function fmtDate(ts) {
+  if (!ts) { return ''; }
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) { return ''; }
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+const DEFAULT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg>';
+const LOCK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="8" height="6" rx="1.5"/><path d="M6 6V4a2 2 0 014 0v2"/></svg>';
+
+function render(earned) {
+  // secret + henüz kazanılmamış -- listede hiç yer almaz (kullanıcı isteği: "görünmeycek").
+  const visible = ACHIEVEMENTS.filter((a) => !a.secret || earned[a.id]);
+
+  if (!ACHIEVEMENTS.length) {
+    ozetEl.textContent = 'Henüz tanımlı başarım yok.';
+    gridEl.innerHTML = '<p class="hint" style="margin:0;color:var(--text-muted)">Sistem başarımları yakında burada görünecek.</p>';
+    return;
+  }
+
+  const earnedCount = ACHIEVEMENTS.filter((a) => earned[a.id]).length;
+  ozetEl.textContent = `${earnedCount} / ${ACHIEVEMENTS.length} başarım kazanıldı`;
+
+  if (!visible.length) {
+    gridEl.innerHTML = '<p class="hint" style="margin:0;color:var(--text-muted)">Henüz kazanılmış bir başarım yok.</p>';
+    return;
+  }
+
+  gridEl.innerHTML = visible.map((a) => {
+    const ts = earned[a.id];
+    const isEarned = !!ts;
+    return `
+      <div class="badge-tile${isEarned ? ' badge-tile--earned' : ' badge-tile--locked'}" title="${escapeHtml(a.aciklama || '')}">
+        <div class="badge-tile-icon">${isEarned ? (a.icon || DEFAULT_ICON) : LOCK_ICON}</div>
+        <div class="badge-tile-name">${escapeHtml(a.ad || '(adsız)')}</div>
+        <div class="badge-tile-desc">${escapeHtml(a.aciklama || '')}</div>
+        ${isEarned ? `<div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>` : '<div class="badge-tile-date badge-tile-date--locked">Kilitli</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+auth.onAuthStateChanged((user) => {
+  if (!user) { window.location.href = 'giris.html'; return; }
+  database.ref('users/' + user.uid + '/basarimlar').once('value').then((snap) => {
+    render(snap.val() || {});
+  }).catch((err) => {
+    console.error('Başarımlar yüklenemedi:', err);
+    ozetEl.textContent = 'Başarımlar yüklenemedi.';
+  });
+});
+</script>
+
+</body>
+</html>

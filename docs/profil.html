@@ -28,12 +28,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/profil-BdnkMrER.js"></script>
+  <script type="module" crossorigin src="/js/profil-BXvTmbbo.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-C1WeEIA0.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-Cpy132Eb.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-tXpv3ljz.js">
+  <link rel="modulepreload" crossorigin href="/js/achievements-CW-oHc3r.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-DSMifVSA.css">
 </head>
 <body data-shell="admin" data-page="profile" data-breadcrumb="Anasayfa|index.html > Profiliniz">
 
@@ -291,55 +292,12 @@
       <div class="card-header">
         <div>
           <div class="card-title">Başarılar</div>
-          <div class="card-subtitle">Çalışma alanında kazanılan rozetler.</div>
+          <div class="card-subtitle" id="basarim-subtitle">Çalışma alanında kazanılan rozetler.</div>
         </div>
-        <a href="#" style="font-size:12px">Tümünü gör</a>
+        <a href="tum-basarimlar.html" style="font-size:12px">Tümünü gör</a>
       </div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius);background:var(--primary-lt)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">En çok katkı</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">100+ düzenleme</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--yellow-lt);color:var(--yellow);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="9" r="5"/><path d="M8 14l-2 1 1-3"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Denetleyici</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">50+ inceleme</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--purple-lt);color:var(--purple);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1z"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">İlk kullanıcılardan</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">2014'te katıldı</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--blue-lt);color:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h10M3 10h10M3 14h6"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Belgeleyici</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">25+ haber metni</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius)">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--green-lt);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Güvenilir</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">%98 zamanında</div>
-          </div>
-          <div style="text-align:center;padding:14px 8px;border:1px solid var(--border-color-light);border-radius:var(--radius);opacity:.5">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--bg-surface-secondary);color:var(--text-muted);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
-              <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="8" height="6" rx="1.5"/><path d="M6 6V4a2 2 0 014 0v2"/></svg>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Kilitli</div>
-            <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">200 düzenleme gerekli</div>
-          </div>
-        </div>
+        <div class="badge-grid" id="basarim-mini-grid"></div>
       </div>
     </div>
   </div>
