@@ -96,15 +96,25 @@ function render(earned) {
     return;
   }
 
+  // Kullanıcı isteği: kilitli (henüz kazanılmamış) başarımların adı/açıklaması da
+  // gösterilmesin -- sadece "Kilitli" yazsın, içerik kazanılana kadar tamamen gizli kalsın.
   gridEl.innerHTML = visible.map((a) => {
     const ts = earned[a.id];
     const isEarned = !!ts;
+    if (!isEarned) {
+      return `
+        <div class="badge-tile badge-tile--locked">
+          <div class="badge-tile-icon">${LOCK_ICON}</div>
+          <div class="badge-tile-date badge-tile-date--locked">Kilitli</div>
+        </div>
+      `;
+    }
     return `
-      <div class="badge-tile${isEarned ? ' badge-tile--earned' : ' badge-tile--locked'}" title="${escapeHtml(a.aciklama || '')}">
-        <div class="badge-tile-icon">${isEarned ? earnedIconMarkup(a) : LOCK_ICON}</div>
+      <div class="badge-tile badge-tile--earned" title="${escapeHtml(a.aciklama || '')}">
+        <div class="badge-tile-icon">${earnedIconMarkup(a)}</div>
         <div class="badge-tile-name">${escapeHtml(a.ad || '(adsız)')}</div>
         <div class="badge-tile-desc">${escapeHtml(a.aciklama || '')}</div>
-        ${isEarned ? `<div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>` : '<div class="badge-tile-date badge-tile-date--locked">Kilitli</div>'}
+        <div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>
       </div>
     `;
   }).join('');

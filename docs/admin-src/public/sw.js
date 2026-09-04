@@ -13,7 +13,7 @@
 // Sürüm numarası: her önemli değişiklikte veya ikon/önbellek şeması değişiminde
 // artırılmalı (eski iki sürüm şeması -- omu-protokol-vX / protokol-admin-vX --
 // artık TEK bir şemada birleşti).
-const CACHE_NAME = "protokol-v4.0.0";
+const CACHE_NAME = "protokol-v4.0.1";
 
 const OFFLINE_URL = "./cevrimdisi.html";
 
