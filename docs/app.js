@@ -5823,6 +5823,11 @@ async function saveEventImpl(){
 	// uyum), ve mevcut çok-günlü bir etkinlik tek-günlüye çevrilirse alan burada DOĞAL OLARAK
 	// düşer (persistEvent tüm düğümü TAMAMEN yeni obj ile değiştiriyor, eski alan kalmaz).
 	if(cokGunlu && bitisTarihi && bitisTarihi!==tarih) obj.bitisTarihi=bitisTarihi;
+	// Kullanici istegi: takvimdeki etkinlikler icin de tamamlayan kisi belli olsun (kanban
+	// panosundaki "Tamamlandi" kartinda avatar olarak gosterilir, bkz. kanban.js). persistEvent
+	// TUM dugumu obj ile DEGISTIRDIGI icin (yukaridaki yorum) durum tamamlandi DEGILSE alan hic
+	// eklenmez -- eski bir tamamlama izi dogal olarak dusuyor.
+	if(obj.durum==="tamamlandi"){ obj.tamamlayan = ((currentUser.firstName||"")+" "+(currentUser.lastName||"")).trim() || currentUser.email; obj.tamamlayanEmail = currentUser.email; }
 	// Duzenleme modali acikken baska bir kullanici bu etkinligi silmis olabilir; o durumda
 	// asagidaki "yeni kayit" dali calisip SILINEN etkinligi geri diriltiyordu (olusturan/
 	// olusturmaTs alanlari da yanlis kisiye gecerek log ile veri celisir hale geliyordu).

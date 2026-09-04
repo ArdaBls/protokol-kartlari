@@ -528,6 +528,17 @@ export function syncShellUser() {
           window.location.replace('erisim-kisitlandi.html');
           return;
         }
+        // Yukarıdaki kontrol TEK SEFERLİK (.once) -- kullanıcı panelde AKTİF gezinirken bir
+        // admin onu engellerse sayfayı yenileyene/başka sekmeye geçene kadar fark edilmiyordu
+        // (kullanıcı bildirimi: "hemen atmıyor, bir sekmeye tıklayınca açılıyor"). erisim-
+        // kisitlandi.html'in kendi CANLI dinleyicisiyle (tersi yönde) AYNI desen: sadece
+        // "blocked" yaprağı dinlenir, geri kalan (onarım/onay kapısı/shell mount) bir daha
+        // ÇALIŞTIRILMAZ -- tek amacı blocked true olur olmaz anında dışarı atmak.
+        firebase.database().ref('users/' + user.uid + '/blocked').on('value', (blockedSnap) => {
+          if (blockedSnap.val() === true) {
+            window.location.replace('erisim-kisitlandi.html');
+          }
+        });
         // ONAY KAPISI (kullanıcı isteği: "ben onay verene kadar siteyi görmesin,
         // beklemeye düşsün"). Kayıt olan herkes users/{uid}.role = "pending" ile
         // başlıyor; yönetici rolü editor/admin/owner yapana kadar panelin HİÇBİR

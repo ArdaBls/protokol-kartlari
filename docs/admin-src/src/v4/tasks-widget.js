@@ -60,6 +60,10 @@ function render() {
       <span class="todo-text">${escapeHtml(v.metin || '')}</span>
       ${v.durum === 'yaziliyor' ? '<span class="todo-status-badge todo-status-badge--yaziliyor">Haber yazılıyor</span>' : ''}
       ${v.durum === 'incelemede' ? '<span class="todo-status-badge todo-status-badge--incelemede">İncelemede</span>' : ''}
+      ${v.tamamlandi && v.tamamlayan ? `
+        <span class="todo-status-badge todo-status-badge--tamamlandi">Tamamlandı</span>
+        <span class="todo-avatar" title="${escapeHtml(v.tamamlayan)} tamamladı">${escapeHtml((v.tamamlayan || '?').charAt(0).toUpperCase())}</span>
+      ` : ''}
       ${canWrite ? `<button type="button" class="todo-delete" data-task-delete="${id}" aria-label="Görevi sil"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>` : ''}
       ${v.tarih ? `<span class="todo-date">${escapeHtml(fmtTarih(v.tarih))}</span>` : ''}
     </div>
@@ -84,6 +88,11 @@ function toggleTask(id) {
   database.ref('gorevler/' + id).update({
     tamamlandi: next,
     durum: next ? 'tamamlandi' : 'planlandi',
+    // Kullanıcı isteği: tamamlanan görevde kimin tamamladığı görünsün (çarpının solunda
+    // "Tamamlandı" yazısı + avatar). Tamamlanmadan geri alınırsa alanlar temizlenir --
+    // yoksa bir sonraki tamamlayan farklı biri olsa da eski isim kalırdı.
+    tamamlayan: next ? (currentUserName || currentUserEmail) : null,
+    tamamlayanEmail: next ? currentUserEmail : null,
     guncellemeTs: firebase.database.ServerValue.TIMESTAMP
   })
     .catch((err) => { console.error('Görev güncellenemedi:', err); showToast('Görev güncellenemedi.', { variant: 'error' }); });

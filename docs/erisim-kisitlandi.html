@@ -26,21 +26,139 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/erisim-kisitlandi-CL6cY_Xs.js"></script>
+  <script type="module" crossorigin src="/js/erisim-kisitlandi-Be43e1h7.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-Boq_izPD.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-BIH9EGCW.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-C1WeEIA0.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-Cpy132Eb.css">
 </head>
 <!-- data-shell="admin" BİLEREK YOK: onay-bekliyor.html ile AYNI sebep -- bu sayfa
      panel kabuğunu yüklemez, dolayısıyla shell.js'in erişim kapısı burada tekrar
      çalışmaz ve döngü oluşmaz. -->
+<style>
+/* Retro TV "erişim yok" illüstrasyonu -- sadece bu sayfaya özel, tüm sınıflar
+   .access-tv altında kapsanmış (genel .b1/.g/.line1 gibi isimler siteye
+   sızmasın diye). Ekrandaki metin ve arkadaki büyük rakam bizim bağlama göre
+   ("403", "ERİŞİM YOK") uyarlandı; TV'nin kendi turuncu/ahşap paleti AYNEN
+   korunuyor (kullanıcı isteği: "tv'nin renkleri değişik, kendi renklerini
+   kullan"). Antenin sağa ağırlıklı asimetrisini dengelemek için görsel bütün
+   hafifçe sola kaydırıldı ("biraz sağda" geri bildirimi). Mobilde tüm
+   illüstrasyon transform:scale ile küçülür. */
+.access-tv-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
+.access-tv { transform: translateX(-0.7em); }
+.access-tv .main_wrapper { display: flex; align-items: center; justify-content: center; width: 22em; height: 22em; }
+.access-tv .main { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 3.5em; }
+.access-tv .antenna { width: 5em; height: 5em; border-radius: 50%; border: 2px solid black; background-color: #f27405; margin-bottom: -6em; margin-left: 0; z-index: -1; }
+.access-tv .antenna_shadow { position: absolute; background-color: transparent; width: 50px; height: 56px; margin-left: 1.68em; border-radius: 45%; transform: rotate(140deg); border: 4px solid transparent; box-shadow: inset 0 16px #a85103, inset 0 16px 1px 1px #a85103; }
+.access-tv .antenna::after { content: ""; position: absolute; margin-top: -9.4em; margin-left: 0.4em; transform: rotate(-25deg); width: 1em; height: 0.5em; border-radius: 50%; background-color: #f69e50; }
+.access-tv .antenna::before { content: ""; position: absolute; margin-top: 0.2em; margin-left: 1.25em; transform: rotate(-20deg); width: 1.5em; height: 0.8em; border-radius: 50%; background-color: #f69e50; }
+.access-tv .a1 { position: relative; top: -102%; left: -130%; width: 12em; height: 5.5em; border-radius: 50px; background-image: linear-gradient(#171717, #171717, #353535, #353535, #171717); transform: rotate(-29deg); clip-path: polygon(50% 0%, 49% 100%, 52% 100%); }
+.access-tv .a1d { position: relative; top: -211%; left: -35%; transform: rotate(45deg); width: 0.5em; height: 0.5em; border-radius: 50%; border: 2px solid black; background-color: #979797; z-index: 99; }
+.access-tv .a2 { position: relative; top: -210%; left: -10%; width: 12em; height: 4em; border-radius: 50px; background-color: #171717; background-image: linear-gradient(#171717, #171717, #353535, #353535, #171717); margin-right: 5em; clip-path: polygon(47% 0, 47% 0, 34% 34%, 54% 25%, 32% 100%, 29% 96%, 49% 32%, 30% 38%); transform: rotate(-8deg); }
+.access-tv .a2d { position: relative; top: -294%; left: 94%; width: 0.5em; height: 0.5em; border-radius: 50%; border: 2px solid black; background-color: #979797; z-index: 99; }
+.access-tv .notfound_text { background-color: black; padding-left: 0.3em; padding-right: 0.3em; font-size: 0.75em; color: white; letter-spacing: 0; border-radius: 5px; z-index: 10; }
+.access-tv .tv { width: 17em; height: 9em; margin-top: 3em; border-radius: 15px; background-color: #d36604; display: flex; justify-content: center; border: 2px solid #1d0e01; box-shadow: inset 0.2em 0.2em #e69635; }
+.access-tv .tv::after { content: ""; position: absolute; width: 17em; height: 9em; border-radius: 15px; background: repeating-radial-gradient(#d36604 0 0.0001%, #00000070 0 0.0002%) 50% 0/2500px 2500px, repeating-conic-gradient(#d36604 0 0.0001%, #00000070 0 0.0002%) 60% 60%/2500px 2500px; background-blend-mode: difference; opacity: 0.09; }
+.access-tv .curve_svg { position: absolute; margin-top: 0.25em; margin-left: -0.25em; height: 12px; width: 12px; }
+.access-tv .display_div { display: flex; align-items: center; align-self: center; justify-content: center; border-radius: 15px; box-shadow: 3.5px 3.5px 0 #e69635; }
+.access-tv .screen_out { width: auto; height: auto; border-radius: 10px; }
+.access-tv .screen_out1 { width: 11em; height: 7.75em; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+.access-tv .screen { width: 13em; height: 7.85em; border: 2px solid #1d0e01; background: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%) 50% 0/2500px 2500px, repeating-conic-gradient(#000 0 0.0001%, #fff 0 0.0002%) 60% 60%/2500px 2500px; background-blend-mode: difference; animation: accessTvStatic 0.2s infinite alternate; border-radius: 10px; z-index: 99; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #252525; letter-spacing: 0.15em; text-align: center; }
+@keyframes accessTvStatic { 100% { background-position: 50% 0, 60% 50%; } }
+.access-tv .lines { display: flex; column-gap: 0.1em; align-self: flex-end; }
+.access-tv .line1, .access-tv .line3 { width: 2px; height: 0.5em; background-color: black; border-radius: 25px 25px 0 0; margin-top: 0.5em; }
+.access-tv .line2 { flex-grow: 1; width: 2px; height: 1em; background-color: black; border-radius: 25px 25px 0 0; }
+.access-tv .buttons_div { width: 4.25em; align-self: center; height: 8em; background-color: #e69635; border: 2px solid #1d0e01; padding: 0.6em; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column; row-gap: 0.75em; box-shadow: 3px 3px 0 #e69635; }
+.access-tv .b1, .access-tv .b2 { width: 1.65em; height: 1.65em; border-radius: 50%; background-color: #7f5934; border: 2px solid black; box-shadow: inset 2px 2px 1px #b49577, -2px 0 #513721, -2px 0 0 1px black; }
+.access-tv .b1::before { content: ""; position: absolute; margin-top: 1em; margin-left: 0.5em; transform: rotate(47deg); border-radius: 5px; width: 0.1em; height: 0.4em; background-color: black; }
+.access-tv .b1::after { content: ""; position: absolute; margin-top: 0.9em; margin-left: 0.8em; transform: rotate(47deg); border-radius: 5px; width: 0.1em; height: 0.55em; background-color: black; }
+.access-tv .b1 div { content: ""; position: absolute; margin-top: -0.1em; margin-left: 0.65em; transform: rotate(45deg); width: 0.15em; height: 1.5em; background-color: black; }
+.access-tv .b2::before { content: ""; position: absolute; margin-top: 1.05em; margin-left: 0.8em; transform: rotate(-45deg); border-radius: 5px; width: 0.15em; height: 0.4em; background-color: black; }
+.access-tv .b2::after { content: ""; position: absolute; margin-top: -0.1em; margin-left: 0.65em; transform: rotate(-45deg); width: 0.15em; height: 1.5em; background-color: black; }
+.access-tv .speakers { display: flex; flex-direction: column; row-gap: 0.5em; }
+.access-tv .speakers .g1 { display: flex; column-gap: 0.25em; }
+.access-tv .speakers .g1 .g11, .access-tv .g12, .access-tv .g13 { width: 0.65em; height: 0.65em; border-radius: 50%; background-color: #7f5934; border: 2px solid black; box-shadow: inset 1.25px 1.25px 1px #b49577; }
+.access-tv .speakers .g { width: auto; height: 2px; background-color: #171717; }
+.access-tv .bottom { width: 100%; height: auto; display: flex; align-items: center; justify-content: center; column-gap: 8.7em; }
+.access-tv .base1, .access-tv .base2 { height: 1em; width: 2em; border: 2px solid #171717; background-color: #4d4d4d; margin-top: -0.15em; z-index: -1; }
+.access-tv .base3 { position: absolute; height: 0.15em; width: 17.5em; background-color: #171717; margin-top: 0.8em; }
+.access-tv .text_404 { position: absolute; display: flex; flex-direction: row; column-gap: 6em; z-index: -5; margin-bottom: 2em; align-items: center; justify-content: center; opacity: 0.5; color: var(--text); }
+.access-tv .text_4041, .access-tv .text_4042, .access-tv .text_4043 { transform: scaleY(24.5) scaleX(9); }
+@media only screen and (max-width: 495px) { .access-tv .text_404 { column-gap: 6em; } }
+@media only screen and (max-width: 395px) {
+  .access-tv .text_404 { column-gap: 4em; }
+  .access-tv .text_4041, .access-tv .text_4042, .access-tv .text_4043 { transform: scaleY(25) scaleX(8); }
+}
+/* Kullanıcı isteği: mobil için uyumlu olsun -- tüm illüstrasyon tek bir
+   transform:scale ile küçülüyor, iç ölçüler (em) hiç elden geçmeden. */
+@media (max-width: 480px) { .access-tv { transform: translateX(-0.7em) scale(0.62); margin: -4.2em 0; } }
+@media (min-width: 481px) and (max-width: 700px) { .access-tv { transform: translateX(-0.7em) scale(0.82); margin: -2em 0; } }
+</style>
 <body>
 
 <div class="error-page">
   <div class="error-content">
-    <div class="error-code">🚫</div>
+    <div class="access-tv-wrap">
+      <div class="access-tv">
+        <div class="main_wrapper">
+          <div class="main">
+            <div class="antenna">
+              <div class="antenna_shadow"></div>
+              <div class="a1"></div>
+              <div class="a1d"></div>
+              <div class="a2"></div>
+              <div class="a2d"></div>
+            </div>
+            <div class="tv">
+              <div class="cruve">
+                <svg class="curve_svg" version="1.1" viewBox="0 0 189.929 189.929">
+                  <path d="M70.343,70.343c-30.554,30.553-44.806,72.7-39.102,115.635l-29.738,3.951C-5.442,137.659,11.917,86.34,49.129,49.13
+                    C86.34,11.918,137.664-5.445,189.928,1.502l-3.95,29.738C143.041,25.54,100.895,39.789,70.343,70.343z"></path>
+                </svg>
+              </div>
+              <div class="display_div">
+                <div class="screen_out">
+                  <div class="screen_out1">
+                    <div class="screen">
+                      <span class="notfound_text">ERİŞİM YOK</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="lines">
+                <div class="line1"></div>
+                <div class="line2"></div>
+                <div class="line3"></div>
+              </div>
+              <div class="buttons_div">
+                <div class="b1"><div></div></div>
+                <div class="b2"></div>
+                <div class="speakers">
+                  <div class="g1">
+                    <div class="g11"></div>
+                    <div class="g12"></div>
+                    <div class="g13"></div>
+                  </div>
+                  <div class="g"></div>
+                  <div class="g"></div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom">
+              <div class="base1"></div>
+              <div class="base2"></div>
+              <div class="base3"></div>
+            </div>
+          </div>
+          <div class="text_404">
+            <div class="text_4041">4</div>
+            <div class="text_4042">0</div>
+            <div class="text_4043">3</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="error-title">Erişiminiz kısıtlandı</div>
     <div class="error-message">
       Hesabınıza panel erişimi bir yönetici tarafından kısıtlanmıştır. Bir hata

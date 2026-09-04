@@ -117,6 +117,10 @@ function renderCard(v) {
   const writers = v.source === 'gorev' ? [] : parseNameList(e.haberYazanlari);
   const avatars = writers.map((name) => `<span class="kanban-avatar" style="background:var(--primary)" title="${escapeHtml(name)}">${escapeHtml(name.charAt(0).toUpperCase())}</span>`).join('');
   const weekTag = v.overdue ? `<span class="kanban-card-week-tag">${escapeHtml(weekRangeLabel(v.originWeek))} haftasından</span>` : '';
+  // Kullanıcı isteği: takvimdeki etkinlikler için de tamamlayan kişi belli olsun -- kanban
+  // panosu görev/etkinlik ayrımı yapmadan tek bir "Tamamlandı" sütununda gösterdiği için
+  // tamamlayan izini burada göstermek her iki kaynağı da kapsıyor.
+  const completedBy = (v.durum === 'tamamlandi' && e.tamamlayan) ? `<span class="kanban-avatar kanban-avatar--done" title="${escapeHtml(e.tamamlayan)} tamamladı">${escapeHtml(e.tamamlayan.charAt(0).toUpperCase())}</span>` : '';
   return `
     <article class="kanban-card${v.overdue ? ' kanban-card--overdue' : ''}" draggable="${canWrite}" data-id="${v.id}" data-source="${v.source}">
       <div class="kanban-card-title">${escapeHtml(v.title)}</div>
@@ -126,7 +130,7 @@ function renderCard(v) {
           ${v.dateKey ? `<span class="due-date">${escapeHtml(fmtTarih(v.dateKey))}</span>` : ''}
           ${weekTag}
         </div>
-        <div class="kanban-card-avatars">${avatars}</div>
+        <div class="kanban-card-avatars">${completedBy}${avatars}</div>
       </div>
     </article>
   `;
@@ -201,7 +205,9 @@ function setupDnD() {
     const oldTitle = COLUMNS.find((c) => c.id === normalizeDurum(oldDurum))?.title || oldDurum || '—';
     const newTitle = COLUMNS.find((c) => c.id === newCol)?.title || newCol;
     const title = ev._source === 'gorev' ? (ev.metin || 'Görev') : (ev.ad || 'Etkinlik');
+    const oldTamamlayan = ev.tamamlayan;
     ev.durum = newCol; // iyimser güncelleme
+    ev.tamamlayan = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
     render();
     // Durum değişikliği ESKİDEN tek başına .set() ile yazılıyordu: ne işlem günlüğüne
     // (logs/etkinlik) düşüyordu -- yani panodan yapılan durum değişiklikleri admin
@@ -212,6 +218,11 @@ function setupDnD() {
     const basePath = ev._source === 'gorev' ? 'gorevler/' + draggedId : 'etkinlikler/' + draggedId;
     updates[basePath + '/durum'] = newCol;
     updates[basePath + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
+    // Kullanıcı isteği: tamamlanan görev/etkinlikte kimin tamamladığı belli olsun (kart
+    // üzerinde avatar). Başka bir sütuna geri sürüklenirse temizlenir -- yoksa eski bir
+    // tamamlama izi yanlışlıkla kalmış gibi görünürdü.
+    updates[basePath + '/tamamlayan'] = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
+    updates[basePath + '/tamamlayanEmail'] = newCol === 'tamamlandi' ? currentUserEmail : null;
     if (ev._source === 'gorev') {
       // Operasyonlar'daki checkbox hâlâ tamamlandi boolean'ını okuyor -- iki yönlü ayna.
       updates[basePath + '/tamamlandi'] = newCol === 'tamamlandi';
@@ -229,25 +240,49 @@ function setupDnD() {
       .catch((err) => {
         console.error('Durum güncellenemedi:', err);
         ev.durum = oldDurum;
+        ev.tamamlayan = oldTamamlayan;
         render();
         showToast('Durum güncellenemedi.', { variant: 'error' });
       });
   });
 }
 
+// Kullanıcı isteği: "birisi operasyonlarda görevi tamamlarsa anlık işlemiyor, sayfayı
+// yenilemek gerekiyor" -- eskiden ikisi de .once('value') idi (tek seferlik anlık görüntü).
+// Şimdi CANLI dinleniyor (.on), her biri kendi kaynağının EVENTS'teki payını günceller ki
+// bir düğümdeki güncelleme diğerinin (henüz gelmemiş) verisini geçici olarak silmesin.
+let etkListenerRef = null;
+let gorevListenerRef = null;
 function loadEvents() {
-  Promise.all([
-    database.ref('etkinlikler').once('value'),
-    database.ref('gorevler').once('value')
-  ]).then(([etkSnap, gorevSnap]) => {
-    const etk = etkSnap.val() || {};
-    const gorev = gorevSnap.val() || {};
-    EVENTS = {};
+  // initKanban()'daki onAuthStateChanged birden fazla kez tetiklenebilir (ör. misafir ->
+  // giriş yapmış kullanıcı geçişi) -- her seferinde YENİ .on() dinleyicisi eklemeden önce
+  // eskisi kapatılmazsa dinleyiciler birikip her değişiklikte render()'ı N kere çağırırdı.
+  if (etkListenerRef) { etkListenerRef.off('value'); }
+  if (gorevListenerRef) { gorevListenerRef.off('value'); }
+
+  let etkLoaded = false, gorevLoaded = false;
+
+  etkListenerRef = database.ref('etkinlikler');
+  etkListenerRef.on('value', (snap) => {
+    const etk = snap.val() || {};
+    Object.keys(EVENTS).forEach((id) => { if (EVENTS[id]._source === 'etkinlik') { delete EVENTS[id]; } });
     Object.entries(etk).forEach(([id, v]) => { if (v) { EVENTS[id] = { ...v, _source: 'etkinlik' }; } });
+    etkLoaded = true;
+    if (etkLoaded && gorevLoaded) { render(); }
+  }, (err) => {
+    console.error('Etkinlikler yüklenemedi:', err);
+    boardEl.innerHTML = '<p class="hint" style="margin:16px;">Yüklenemedi.</p>';
+  });
+
+  gorevListenerRef = database.ref('gorevler');
+  gorevListenerRef.on('value', (snap) => {
+    const gorev = snap.val() || {};
+    Object.keys(EVENTS).forEach((id) => { if (EVENTS[id]._source === 'gorev') { delete EVENTS[id]; } });
     Object.entries(gorev).forEach(([id, v]) => { if (v) { EVENTS[id] = { ...v, _source: 'gorev' }; } });
-    render();
-  }).catch((err) => {
-    console.error('Etkinlikler/görevler yüklenemedi:', err);
+    gorevLoaded = true;
+    if (etkLoaded && gorevLoaded) { render(); }
+  }, (err) => {
+    console.error('Görevler yüklenemedi:', err);
     boardEl.innerHTML = '<p class="hint" style="margin:16px;">Yüklenemedi.</p>';
   });
 }

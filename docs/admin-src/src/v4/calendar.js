@@ -1395,7 +1395,13 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         // hariç TÜM alanlar boş bile kalsa -- kullanıcı bilinçli kaydetmiş
         // demektir, bitisTarihi'ndeki null-siler deseniyle aynı şekilde
         // taslak alanı temizlenir.
-        taslak: null
+        taslak: null,
+        // Kullanıcı isteği: takvimdeki etkinlikler için de tamamlayan kişi belli olsun
+        // (kanban panosundaki "Tamamlandı" kartında avatar olarak gösterilir, bkz. kanban.js).
+        // Durum tamamlandı DEĞİLSE alanlar temizlenir -- yoksa eski bir tamamlama izi,
+        // etkinlik yeniden planlandı/yazılıyor durumuna dönünce yanlışlıkla kalmış olurdu.
+        tamamlayan: form.querySelector('#cef-durum').value === 'tamamlandi' ? (currentUserName || currentUserEmail) : null,
+        tamamlayanEmail: form.querySelector('#cef-durum').value === 'tamamlandi' ? currentUserEmail : null
       };
       const ref = EVENTS[id];
       const logLabel = id

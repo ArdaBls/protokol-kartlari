@@ -773,6 +773,10 @@
   flex-shrink: 0;
 }
 .kanban-avatar + .kanban-avatar { margin-inline-start: -6px; }
+// Tamamlayan kişi (kullanıcı isteği: "takvimdeki etkinlikler için de tamamlayan kişi belli
+// olsun") -- diğer avatarlardan renkle ayrışsın diye yeşil (--green, "Tamamlandı" durumuyla
+// aynı semantik renk).
+.kanban-avatar--done { background: var(--green); }
 
 // Haftalık pano filtresi: geçen haftadan kalıp henüz tamamlanmamış kartlar
 // (bkz. kanban.js visibleEvents) ince kırmızı kenarlık + hangi haftadan

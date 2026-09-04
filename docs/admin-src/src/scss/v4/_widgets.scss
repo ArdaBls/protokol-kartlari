@@ -275,6 +275,21 @@
 }
 .todo-status-badge--yaziliyor { background: var(--yellow-lt); color: var(--yellow); }
 .todo-status-badge--incelemede { background: var(--purple-lt); color: var(--purple); }
+.todo-status-badge--tamamlandi { background: var(--green-lt); color: var(--green); }
+// Tamamlayan kişinin baş harfi -- kanban panosundaki .kanban-avatar ile aynı dil
+// (kullanıcı isteği: "avatar ile kimin tamamladığı yazsın").
+.todo-avatar {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 9px;
+  font-weight: var(--font-weight-bold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .todo-delete {
   display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px;
