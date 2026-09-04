@@ -773,3 +773,24 @@
   flex-shrink: 0;
 }
 .kanban-avatar + .kanban-avatar { margin-inline-start: -6px; }
+
+// Haftalık pano filtresi: geçen haftadan kalıp henüz tamamlanmamış kartlar
+// (bkz. kanban.js visibleEvents) ince kırmızı kenarlık + hangi haftadan
+// kaldığını gösteren etiketle işaretlenir -- kalınlık aynı kalıyor, sadece renk.
+.kanban-card--overdue { border-color: var(--red); }
+.kanban-card-week-tag {
+  color: var(--red);
+  font-weight: var(--font-weight-medium);
+}
+.kanban-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kanban-week-nav-label {
+  font-size: 12.5px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  min-width: 118px;
+  text-align: center;
+}

@@ -31,6 +31,18 @@ function fmtTarih(key) {
 
 function parseNameList(s) { return String(s || '').split(',').map((x) => x.trim()).filter(Boolean); }
 
+// Hafta yardımcıları -- calendar.js:117-118'den birebir kopyalandı (proje deseni:
+// küçük yardımcılar dosyalar arası import edilmeyip kopyalanıyor).
+function addDays(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+function startOfWeek(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay() + 6) % 7; return addDays(x, -wd); }
+const WEEK_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+function weekRangeLabel(weekStart) {
+  const end = addDays(weekStart, 6);
+  const sm = WEEK_MONTHS[weekStart.getMonth()], em = WEEK_MONTHS[end.getMonth()];
+  if (weekStart.getMonth() === end.getMonth()) { return weekStart.getDate() + '–' + end.getDate() + ' ' + em + ' ' + end.getFullYear(); }
+  return weekStart.getDate() + ' ' + sm + ' – ' + end.getDate() + ' ' + em + ' ' + end.getFullYear();
+}
+
 // "Gerçekleşti" aşaması kaldırılıp durum tek bir haber-üretim iş akışında birleştirildiğinde
 // (bkz. app.js EVENT_STATUS) eski kayıtlarda hâlâ cekildi/haber/yayinlandi değerleri olabilir.
 // Panoda sessizce kaybolmasınlar diye en yakın yeni sütuna eşlenir; canlı veriye asla
@@ -38,32 +50,81 @@ function parseNameList(s) { return String(s || '').split(',').map((x) => x.trim(
 const LEGACY_DURUM = { cekildi: 'planlandi', haber: 'yaziliyor', yayinlandi: 'tamamlandi' };
 function normalizeDurum(d) { const k = d || 'planlandi'; return LEGACY_DURUM[k] || k; }
 
-let EVENTS = {}; // id -> event object (canlı Firebase verisi)
+let EVENTS = {}; // id -> event object (canlı Firebase verisi, hem etkinlikler hem gorevler, _source etiketli)
 let canWrite = false;
 let currentUserName = '';
 let currentUserEmail = '';
 let filterText = '';
 let database = null;
 let boardEl = null;
+let weekLabelEl = null;
+let viewedWeek = startOfWeek(new Date());
+
+// Bir kaydın "köken haftası" -- etkinlik için tarih, görev için tarih||oluşturulma.
+function originWeekOf(e) {
+  const raw = e.tarih || (e.createdAt ? new Date(e.createdAt) : null);
+  const d = typeof raw === 'string' ? (parseKeyLoose(raw) || new Date()) : (raw instanceof Date ? raw : new Date());
+  return startOfWeek(d);
+}
+function parseKeyLoose(s) {
+  const a = String(s || '').split('-');
+  if (a.length !== 3) { return null; }
+  const y = Number(a[0]), m = Number(a[1]), day = Number(a[2]);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) { return null; }
+  const d = new Date(y, m - 1, day);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Bir kaydın "en son dokunulduğu hafta" -- tamamlandı işaretlemesinin NE ZAMAN
+// olduğunu gösterir (guncellemeTs). Görünürlük kuralı bunun üzerinden çalışır ki
+// geçmiş haftadan kalıp az önce tamamlanan bir kart, tamamlandığı anda değil,
+// gerçek zaman bir SONRAKİ haftaya geçtiğinde kaybolsun (kullanıcı isteği).
+function trackWeekOf(e) {
+  const ts = e.guncellemeTs || e.createdAt;
+  if (typeof ts === 'number') { return startOfWeek(new Date(ts)); }
+  return originWeekOf(e);
+}
+
+// Ortak görünüm modeli -- etkinlik ve görev kayıtlarını tek bir şekle indirger.
+function viewOf(id, e) {
+  const source = e._source;
+  const durum = normalizeDurum(e.durum);
+  const originWeek = originWeekOf(e);
+  const trackWeek = trackWeekOf(e);
+  return {
+    id, source, durum, raw: e,
+    title: source === 'gorev' ? (e.metin || '(adsız görev)') : (e.ad || '(adsız)'),
+    subtitle: source === 'gorev' ? '' : (e.yer || ''),
+    dateKey: e.tarih || '',
+    originWeek,
+    overdue: originWeek.getTime() < viewedWeek.getTime(),
+    visible: durum !== 'tamamlandi' || trackWeek.getTime() === viewedWeek.getTime()
+  };
+}
 
 function visibleEvents() {
   const q = filterText.toLowerCase();
   return Object.entries(EVENTS)
-    .filter(([, e]) => e && normalizeDurum(e.durum) !== 'iptal')
-    .filter(([, e]) => !q || (e.ad || '').toLowerCase().includes(q))
-    .sort((a, b) => (a[1].tarih || '').localeCompare(b[1].tarih || ''));
+    .filter(([, e]) => e && e._source && normalizeDurum(e.durum) !== 'iptal')
+    .map(([id, e]) => viewOf(id, e))
+    .filter((v) => !q || v.title.toLowerCase().includes(q))
+    .filter((v) => v.visible)
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 }
 
-function renderCard([id, e]) {
-  const writers = parseNameList(e.haberYazanlari);
+function renderCard(v) {
+  const e = v.raw;
+  const writers = v.source === 'gorev' ? [] : parseNameList(e.haberYazanlari);
   const avatars = writers.map((name) => `<span class="kanban-avatar" style="background:var(--primary)" title="${escapeHtml(name)}">${escapeHtml(name.charAt(0).toUpperCase())}</span>`).join('');
+  const weekTag = v.overdue ? `<span class="kanban-card-week-tag">${escapeHtml(weekRangeLabel(v.originWeek))} haftasından</span>` : '';
   return `
-    <article class="kanban-card" draggable="${canWrite}" data-id="${id}">
-      <div class="kanban-card-title">${escapeHtml(e.ad || '(adsız)')}</div>
-      ${e.yer ? `<div class="kanban-card-desc">${escapeHtml(e.yer)}</div>` : ''}
+    <article class="kanban-card${v.overdue ? ' kanban-card--overdue' : ''}" draggable="${canWrite}" data-id="${v.id}" data-source="${v.source}">
+      <div class="kanban-card-title">${escapeHtml(v.title)}</div>
+      ${v.subtitle ? `<div class="kanban-card-desc">${escapeHtml(v.subtitle)}</div>` : ''}
       <div class="kanban-card-foot">
         <div class="kanban-card-meta">
-          ${e.tarih ? `<span class="due-date">${escapeHtml(fmtTarih(e.tarih))}</span>` : ''}
+          ${v.dateKey ? `<span class="due-date">${escapeHtml(fmtTarih(v.dateKey))}</span>` : ''}
+          ${weekTag}
         </div>
         <div class="kanban-card-avatars">${avatars}</div>
       </div>
@@ -72,7 +133,7 @@ function renderCard([id, e]) {
 }
 
 function renderColumn(col, entries) {
-  const items = entries.filter(([, e]) => normalizeDurum(e.durum) === col.id);
+  const items = entries.filter((v) => v.durum === col.id);
   return `
     <section class="kanban-column" data-col="${col.id}">
       <header class="kanban-column-head">
@@ -90,6 +151,7 @@ function renderColumn(col, entries) {
 function render() {
   const entries = visibleEvents();
   boardEl.innerHTML = COLUMNS.map((c) => renderColumn(c, entries)).join('');
+  if (weekLabelEl) { weekLabelEl.textContent = weekRangeLabel(viewedWeek); }
 }
 
 // ── Sürükle-bırak: gerçek yazma ──
@@ -138,6 +200,7 @@ function setupDnD() {
     const oldDurum = ev.durum;
     const oldTitle = COLUMNS.find((c) => c.id === normalizeDurum(oldDurum))?.title || oldDurum || '—';
     const newTitle = COLUMNS.find((c) => c.id === newCol)?.title || newCol;
+    const title = ev._source === 'gorev' ? (ev.metin || 'Görev') : (ev.ad || 'Etkinlik');
     ev.durum = newCol; // iyimser güncelleme
     render();
     // Durum değişikliği ESKİDEN tek başına .set() ile yazılıyordu: ne işlem günlüğüne
@@ -146,17 +209,23 @@ function setupDnD() {
     // panosunun "en eski güncellenen" sıralaması bu alana bakıyor). Projedeki diğer
     // tüm etkinlik yazmaları gibi artık TEK atomik çok-yollu update ile yazılıyor.
     const updates = {};
-    updates['etkinlikler/' + draggedId + '/durum'] = newCol;
-    updates['etkinlikler/' + draggedId + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
-    const logKey = database.ref('logs/etkinlik').push().key;
-    updates['logs/etkinlik/' + logKey] = {
+    const basePath = ev._source === 'gorev' ? 'gorevler/' + draggedId : 'etkinlikler/' + draggedId;
+    updates[basePath + '/durum'] = newCol;
+    updates[basePath + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
+    if (ev._source === 'gorev') {
+      // Operasyonlar'daki checkbox hâlâ tamamlandi boolean'ını okuyor -- iki yönlü ayna.
+      updates[basePath + '/tamamlandi'] = newCol === 'tamamlandi';
+    }
+    const logPath = ev._source === 'gorev' ? 'logs/gorev' : 'logs/etkinlik';
+    const logKey = database.ref(logPath).push().key;
+    updates[logPath + '/' + logKey] = {
       by: currentUserName || currentUserEmail, email: currentUserEmail,
-      action: (ev.ad || 'Etkinlik') + ' etkinliğinin durumu panodan değiştirildi · Durum: ' + oldTitle + ' → ' + newTitle,
-      target: ev.ad || '',
+      action: title + (ev._source === 'gorev' ? ' görevinin' : ' etkinliğinin') + ' durumu panodan değiştirildi · Durum: ' + oldTitle + ' → ' + newTitle,
+      target: title,
       timestamp: firebase.database.ServerValue.TIMESTAMP
     };
     database.ref('/').update(updates)
-      .then(() => showToast(`"${ev.ad}" → ${newTitle}`, { variant: 'success' }))
+      .then(() => showToast(`"${title}" → ${newTitle}`, { variant: 'success' }))
       .catch((err) => {
         console.error('Durum güncellenemedi:', err);
         ev.durum = oldDurum;
@@ -167,12 +236,19 @@ function setupDnD() {
 }
 
 function loadEvents() {
-  database.ref('etkinlikler').once('value').then((snap) => {
-    EVENTS = snap.val() || {};
+  Promise.all([
+    database.ref('etkinlikler').once('value'),
+    database.ref('gorevler').once('value')
+  ]).then(([etkSnap, gorevSnap]) => {
+    const etk = etkSnap.val() || {};
+    const gorev = gorevSnap.val() || {};
+    EVENTS = {};
+    Object.entries(etk).forEach(([id, v]) => { if (v) { EVENTS[id] = { ...v, _source: 'etkinlik' }; } });
+    Object.entries(gorev).forEach(([id, v]) => { if (v) { EVENTS[id] = { ...v, _source: 'gorev' }; } });
     render();
   }).catch((err) => {
-    console.error('Etkinlikler yüklenemedi:', err);
-    boardEl.innerHTML = '<p class="hint" style="margin:16px;">Etkinlikler yüklenemedi.</p>';
+    console.error('Etkinlikler/görevler yüklenemedi:', err);
+    boardEl.innerHTML = '<p class="hint" style="margin:16px;">Yüklenemedi.</p>';
   });
 }
 
@@ -204,4 +280,10 @@ export function initKanban() {
     filterText = e.target.value.trim();
     render();
   });
+
+  weekLabelEl = document.querySelector('[data-week-label]');
+  document.querySelector('[data-week-prev]')?.addEventListener('click', () => { viewedWeek = addDays(viewedWeek, -7); render(); });
+  document.querySelector('[data-week-next]')?.addEventListener('click', () => { viewedWeek = addDays(viewedWeek, 7); render(); });
+  document.querySelector('[data-week-today]')?.addEventListener('click', () => { viewedWeek = startOfWeek(new Date()); render(); });
+  if (weekLabelEl) { weekLabelEl.textContent = weekRangeLabel(viewedWeek); }
 }

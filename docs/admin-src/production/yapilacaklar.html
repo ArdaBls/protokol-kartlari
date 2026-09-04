@@ -26,6 +26,16 @@
         <h1 class="page-title">Haber üretim panosu</h1>
       </div>
       <div class="page-actions">
+        <div class="kanban-week-nav">
+          <button type="button" class="chart-daynav-btn" data-week-prev aria-label="Önceki hafta">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+          </button>
+          <span class="kanban-week-nav-label" data-week-label></span>
+          <button type="button" class="chart-daynav-btn" data-week-next aria-label="Sonraki hafta">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg>
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" data-week-today>Bugün</button>
+        </div>
         <div class="search-box" style="width:220px">
           <svg class="s-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
           <input type="text" id="kanban-filter" placeholder="Etkinlik ara…" aria-label="Etkinlik ara">

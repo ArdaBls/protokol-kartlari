@@ -58,6 +58,8 @@ function render() {
     <div class="todo-row${v.tamamlandi ? ' done' : ''}" data-task-id="${id}">
       <div class="todo-cb${v.tamamlandi ? ' done' : ''}" data-task-toggle="${id}"></div>
       <span class="todo-text">${escapeHtml(v.metin || '')}</span>
+      ${v.durum === 'yaziliyor' ? '<span class="todo-status-badge todo-status-badge--yaziliyor">Haber yazılıyor</span>' : ''}
+      ${v.durum === 'incelemede' ? '<span class="todo-status-badge todo-status-badge--incelemede">İncelemede</span>' : ''}
       ${canWrite ? `<button type="button" class="todo-delete" data-task-delete="${id}" aria-label="Görevi sil"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>` : ''}
       ${v.tarih ? `<span class="todo-date">${escapeHtml(fmtTarih(v.tarih))}</span>` : ''}
     </div>
@@ -79,7 +81,11 @@ function toggleTask(id) {
   const task = TASKS[id];
   if (!task || !canWrite) {return;}
   const next = !task.tamamlandi;
-  database.ref('gorevler/' + id + '/tamamlandi').set(next)
+  database.ref('gorevler/' + id).update({
+    tamamlandi: next,
+    durum: next ? 'tamamlandi' : 'planlandi',
+    guncellemeTs: firebase.database.ServerValue.TIMESTAMP
+  })
     .catch((err) => { console.error('Görev güncellenemedi:', err); showToast('Görev güncellenemedi.', { variant: 'error' }); });
   // Not: silme/oluşturma işlem günlüğüne düşüyor (bkz. logAction), ama
   // tamamlandı işaretleme sık tekrar eden, düşük riskli bir aksiyon olduğu
@@ -139,9 +145,11 @@ function openAddModal() {
             metin,
             tarih: dateEl.value || null,
             tamamlandi: false,
+            durum: 'planlandi',
             olusturan: currentUserName || currentUserEmail,
             olusturanEmail: currentUserEmail,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            guncellemeTs: firebase.database.ServerValue.TIMESTAMP
           })
             .then(() => logAction('Yeni görev eklendi: "' + metin + '"', metin))
             .catch((err) => { console.error('Görev eklenemedi:', err); showToast('Görev eklenemedi.', { variant: 'error' }); });

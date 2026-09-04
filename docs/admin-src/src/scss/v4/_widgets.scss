@@ -262,6 +262,18 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+// Görev ↔ kanban durum rozeti (bkz. kanban.js) -- görev panosunda
+// "Haber yazılıyor"/"İncelemede" sütununa taşınınca burada da görünsün diye.
+.todo-status-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+.todo-status-badge--yaziliyor { background: var(--yellow-lt); color: var(--yellow); }
+.todo-status-badge--incelemede { background: var(--purple-lt); color: var(--purple); }
 .todo-delete {
   display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px;
