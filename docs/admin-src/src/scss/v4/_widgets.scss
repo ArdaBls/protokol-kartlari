@@ -315,6 +315,27 @@
 }
 .chart-view-toggle:hover { background: var(--body-bg); color: var(--text-secondary); }
 .chart-view-toggle.active { background: var(--primary-lt); color: var(--primary); }
+
+// "Gün" sekmesi mobilde: card-subtitle alanı metin yerine önceki/sonraki
+// günler gezinme butonlarını gösterir (bkz. main-v4.js dailyNavHtml(),
+// charts.js [data-daily-nav] tıklama mantığı).
+.chart-daynav { display: flex; align-items: center; gap: 6px; }
+.chart-daynav-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border: none;
+  background: var(--body-bg);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.chart-daynav-btn svg { width: 12px; height: 12px; }
+.chart-daynav-btn:hover { background: var(--primary-lt); color: var(--primary); }
+.chart-daynav-label { font-size: 11.5px; color: var(--text-muted); }
+@media (pointer: coarse) {
+  .chart-daynav-btn { width: 28px; height: 28px; }
+}
 .todo-prio {
   width: 6px; height: 6px;
   border-radius: 50%;

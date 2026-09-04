@@ -146,6 +146,22 @@ const CHART_VIEW_SUBTITLES = {
   daily: 'Basın görevlisi olarak atandıkları etkinlik sayısı, günlük · ' + new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
   share: 'Basın görevlisi olarak atandıkları toplam etkinlik payı'
 };
+// Kullanıcı isteği: "Gün" sekmesi mobilde çok sıkışıktı (30-31 gün etiketi) --
+// charts.js'te bugünü ortalayan ~7 günlük bir pencereye (dataZoom) düşürüldü,
+// önceki/sonraki günleri görmek için de buton isteniyor. Bu butonlar metin
+// alt başlığının YERİNE geçiyor ("...yazısını silip yapalım") -- yalnızca
+// mobilde ve yalnızca "Gün" sekmesi aktifken. Butonların kendi tıklama
+// mantığı charts.js'te (editorDailyActivity, [data-daily-nav] delegated
+// dinleyici) -- burası sadece hangi içeriğin gösterileceğine karar verir.
+function dailyNavHtml() {
+  return '<span class="chart-daynav">' +
+    '<button type="button" class="chart-daynav-btn" data-daily-nav="prev" aria-label="Önceki günler">' +
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg></button>' +
+    '<span class="chart-daynav-label">Günler</span>' +
+    '<button type="button" class="chart-daynav-btn" data-daily-nav="next" aria-label="Sonraki günler">' +
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"/></svg></button>' +
+    '</span>';
+}
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-chart-view-btn]');
   if (!btn) {return;}
@@ -159,8 +175,13 @@ document.addEventListener('click', (e) => {
   card.querySelectorAll('[data-chart-view-btn]').forEach((b) => {
     b.classList.toggle('active', b === btn);
   });
-  if (subtitle && CHART_VIEW_SUBTITLES[view]) {
-    subtitle.textContent = CHART_VIEW_SUBTITLES[view];
+  if (subtitle) {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (view === 'daily' && isMobile) {
+      subtitle.innerHTML = dailyNavHtml();
+    } else if (CHART_VIEW_SUBTITLES[view]) {
+      subtitle.textContent = CHART_VIEW_SUBTITLES[view];
+    }
   }
   window.dispatchEvent(new Event('resize'));
 });

@@ -373,6 +373,16 @@ function editorDailyActivity(echarts, el, t) {
 
   let latestUsers = null;
   let latestEvents = null;
+  // Kullanıcı isteği: mobilde ayın tüm günleri (30-31 etiket) çok sıkışık
+  // duruyordu -- aylık grafikteki gibi bugünü sabitleyip ~7 günlük bir
+  // pencere açılıyor, "önceki/sonraki" butonlarıyla pencere kaydırılabiliyor
+  // (dataZoom'un kendisi zoomLock:true, yalnızca pan/kaydırma). Bu iki
+  // değişken nav butonlarının (aşağıdaki delegated click handler) hangi
+  // pencerede olduğumuzu bilmesi için modül kapsamında tutuluyor.
+  const DAILY_WINDOW = 7;
+  let winStart = 0;
+  let winEnd = 0;
+  let curDaysInMonth = 31;
 
   function draw() {
     if (latestUsers === null || latestEvents === null) {return;}
@@ -393,6 +403,7 @@ function editorDailyActivity(echarts, el, t) {
     const now = new Date();
     const currentYearMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    curDaysInMonth = daysInMonth;
     const dayLabels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
 
     const counts = {};
@@ -431,9 +442,22 @@ function editorDailyActivity(echarts, el, t) {
       };
     });
 
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    let dataZoom;
+    if (isMobile) {
+      const today = now.getDate() - 1;
+      winStart = Math.max(0, today - Math.floor(DAILY_WINDOW / 2));
+      winEnd = Math.min(daysInMonth - 1, winStart + DAILY_WINDOW - 1);
+      winStart = Math.max(0, winEnd - DAILY_WINDOW + 1);
+      dataZoom = [{ type: 'inside', xAxisIndex: 0, zoomLock: true, startValue: winStart, endValue: winEnd }];
+    } else {
+      dataZoom = undefined;
+    }
+
     chart.setOption({
       ...baseOption(t),
       tooltip: { ...baseOption(t).tooltip, trigger: 'axis' },
+      dataZoom,
       legend: {
         type: 'scroll',
         data: names,
@@ -467,6 +491,28 @@ function editorDailyActivity(echarts, el, t) {
       series
     }, true);
   }
+
+  // Kullanıcı isteği: "önceki/sonraki günler" butonları -- Operasyonlar
+  // sayfasındaki [data-daily-nav] butonları (bkz. index.html/main-v4.js,
+  // sadece "Gün" sekmesi mobilde aktifken görünürler) pencereyi DAILY_WINDOW
+  // kadar kaydırır. document üzerinde delegated dinleyici kullanılıyor --
+  // butonların bulunduğu .card-subtitle innerHTML'i sekme değişince yeniden
+  // yazılıyor (main-v4.js), doğrudan bağlanan bir dinleyici bu yenilemede
+  // kaybolurdu.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-daily-nav]');
+    if (!btn) {return;}
+    const card = btn.closest('.card');
+    if (!card || !card.contains(el)) {return;}
+    const dir = btn.dataset.dailyNav === 'prev' ? -1 : 1;
+    let newStart = winStart + dir * DAILY_WINDOW;
+    let newEnd = newStart + DAILY_WINDOW - 1;
+    if (newStart < 0) { newStart = 0; newEnd = DAILY_WINDOW - 1; }
+    if (newEnd > curDaysInMonth - 1) { newEnd = curDaysInMonth - 1; newStart = Math.max(0, newEnd - DAILY_WINDOW + 1); }
+    winStart = newStart;
+    winEnd = newEnd;
+    chart.dispatchAction({ type: 'dataZoom', xAxisIndex: 0, startValue: winStart, endValue: winEnd });
+  });
 
   if (!window.firebase) { renderEmpty('Firebase yüklenemedi.'); return chart; }
   if (!firebase.apps.length) { firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG); }

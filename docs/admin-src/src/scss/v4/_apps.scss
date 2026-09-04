@@ -454,8 +454,16 @@
   min-height: 420px;
   border-radius: var(--radius-lg);
   overflow: hidden;
+  // Kullanıcı bulgusu ("çok dar" -- gerçekte oyun sadece 150px yüksekliğinde
+  // dar bir şeride sıkışmıştı): iframe { height:100% } klasik flexbox yüzde-
+  // yükseklik çözümleme sorununa takıldı -- width:100% çalıştı ama height:100%
+  // tarayıcının varsayılan iframe yüksekliğine (150px) düştü. position:relative
+  // + iframe'de position:absolute; inset:0 bu sorunu tamamen bertaraf ediyor --
+  // yüzde hesaplamasına hiç girmeden konumlanmış üst elemanı dolduruyor. Hem
+  // masaüstünde hem mobilde AYNI kural (kullanıcı isteği: "ikisini de").
+  position: relative;
 
-  iframe { width: 100%; height: 100%; border: none; display: block; }
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
 }
 
 // ────────────────────────
