@@ -42,9 +42,13 @@
         <div class="empty-desc">Bir şey sor, başlayalım.</div>
       </div>
     </div>
-    <form class="ai-chat-form" id="ai-chat-form">
-      <textarea id="ai-chat-input" class="form-control" placeholder="Bir şey yazın… (Enter ile gönder, Shift+Enter ile yeni satır)" rows="1" required></textarea>
-      <button type="submit" class="btn btn-primary" id="ai-chat-send">Gönder</button>
+    <form class="ai-msgbox" id="ai-chat-form">
+      <input required placeholder="Bir şey yazın…" type="text" id="ai-chat-input">
+      <button type="submit" id="ai-chat-send" aria-label="Gönder">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 664 663">
+          <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L17.753 646.157L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888"/>
+        </svg>
+      </button>
     </form>
   </div>
 
@@ -124,7 +128,6 @@ function gonder(metin) {
   sohbetRef().push({ rol: 'kullanici', metin: temiz, zaman: firebase.database.ServerValue.TIMESTAMP })
     .then(() => {
       input.value = '';
-      input.style.height = 'auto';
       // Yer tutucu cevap -- FAZ 1 kapsamı, bkz. yukarıdaki not.
       setTimeout(() => {
         const cevap = TASLAK_CEVAPLAR[Math.floor(Math.random() * TASLAK_CEVAPLAR.length)];
@@ -146,18 +149,6 @@ function gonder(metin) {
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   gonder(input.value);
-});
-
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    gonder(input.value);
-  }
-});
-
-input.addEventListener('input', () => {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
 });
 
 auth.onAuthStateChanged((user) => {
