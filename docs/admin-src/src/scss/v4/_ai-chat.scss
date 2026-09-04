@@ -89,7 +89,10 @@
 // köşe yasak -- burada kapsül bir grup olduğu için kart/panel köşesi 8px
 // kullanılıyor, hap köşe YOK), odak halkası teal + 3px yıkama.
 .ai-msgbox {
-  width: 100%;
+  // width:100% BURAYA KONMAZ -- bu bir flex item (.ai-chat-card flex-direction:column,
+  // varsayılan align-items:stretch zaten tam genişliğe geriyor). width:100% +
+  // yatay margin birlikte kutuyu kartın sağına taşırıyordu (kullanıcı bulgusu:
+  // "yazma çubuğu sağa doğru taşıyor", masaüstü ve mobilde aynı).
   height: 40px;
   display: flex;
   align-items: center;
