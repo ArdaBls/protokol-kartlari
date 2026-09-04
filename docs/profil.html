@@ -28,13 +28,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/profil-BXvTmbbo.js"></script>
+  <script type="module" crossorigin src="/js/profil-D5fhcoPZ.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-tXpv3ljz.js">
-  <link rel="modulepreload" crossorigin href="/js/achievements-CW-oHc3r.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-DSMifVSA.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-CoE5gKbl.js">
+  <link rel="modulepreload" crossorigin href="/js/achievements-DhYTrRVb.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-Bi8JF5Ac.css">
 </head>
 <body data-shell="admin" data-page="profile" data-breadcrumb="Anasayfa|index.html > Profiliniz">
 
@@ -298,6 +298,23 @@
       </div>
       <div class="card-body">
         <div class="badge-grid" id="basarim-mini-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Günlük işaret -- ödülü tum-basarimlar.html'e kadar gizli kalan bir başarımın
+       tetikleyicisi (bkz. achievements.js "klima-faresi", secret:true). Günde bir kez. ── -->
+  <div class="row">
+    <div class="card">
+      <div class="card-body" style="display:flex;align-items:center;gap:10px;padding:14px 16px">
+        <label class="check-toggle" style="flex-shrink:0">
+          <input type="checkbox" id="klima-checkbox">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><path class="path" d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16" pathLength="575.0541381835938"></path></svg>
+        </label>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Bugün klimayı kapattım</div>
+          <div class="hint" id="klima-note" style="margin:0">Yükleniyor…</div>
+        </div>
       </div>
     </div>
   </div>

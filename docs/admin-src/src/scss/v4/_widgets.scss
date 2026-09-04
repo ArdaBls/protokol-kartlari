@@ -503,6 +503,10 @@
   color: #fff;
 }
 .badge-tile-icon svg { width: 20px; height: 20px; }
+// Kazanılan rozetlerde gerçek görsel (svg/png, bkz. achievements.js icon alanı) --
+// dairenin İÇİNE sığdırılır, kırpılmaz (object-fit:contain), kendi renklerini korur.
+.badge-tile-icon img { width: 30px; height: 30px; object-fit: contain; }
+.badge-tile--earned .badge-tile-icon { background: transparent; }
 .badge-tile--locked .badge-tile-icon { background: var(--bg-surface-secondary); color: var(--text-muted); }
 .badge-tile-name { font-size: 12.5px; font-weight: var(--font-weight-medium); color: var(--text); line-height: 1.3; }
 .badge-tile-desc { font-size: 10.5px; color: var(--text-muted); line-height: 1.35; }

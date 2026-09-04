@@ -73,8 +73,10 @@ function fmtDate(ts) {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
-const DEFAULT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg>';
 const LOCK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="8" height="6" rx="1.5"/><path d="M6 6V4a2 2 0 014 0v2"/></svg>';
+// achievements.js'deki icon alanı bir DOSYA YOLUDUR (svg/png), inline SVG değil --
+// kullanıcının paylaştığı gerçek rozet görselleri (bkz. admin-src/public/basarimlar/).
+function earnedIconMarkup(a) { return `<img src="${escapeHtml(a.icon)}" alt="" loading="lazy">`; }
 
 function render(earned) {
   // secret + henüz kazanılmamış -- listede hiç yer almaz (kullanıcı isteği: "görünmeycek").
@@ -99,7 +101,7 @@ function render(earned) {
     const isEarned = !!ts;
     return `
       <div class="badge-tile${isEarned ? ' badge-tile--earned' : ' badge-tile--locked'}" title="${escapeHtml(a.aciklama || '')}">
-        <div class="badge-tile-icon">${isEarned ? (a.icon || DEFAULT_ICON) : LOCK_ICON}</div>
+        <div class="badge-tile-icon">${isEarned ? earnedIconMarkup(a) : LOCK_ICON}</div>
         <div class="badge-tile-name">${escapeHtml(a.ad || '(adsız)')}</div>
         <div class="badge-tile-desc">${escapeHtml(a.aciklama || '')}</div>
         ${isEarned ? `<div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>` : '<div class="badge-tile-date badge-tile-date--locked">Kilitli</div>'}

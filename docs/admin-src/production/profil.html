@@ -126,6 +126,23 @@
     </div>
   </div>
 
+  <!-- ── Günlük işaret -- ödülü tum-basarimlar.html'e kadar gizli kalan bir başarımın
+       tetikleyicisi (bkz. achievements.js "klima-faresi", secret:true). Günde bir kez. ── -->
+  <div class="row">
+    <div class="card">
+      <div class="card-body" style="display:flex;align-items:center;gap:10px;padding:14px 16px">
+        <label class="check-toggle" style="flex-shrink:0">
+          <input type="checkbox" id="klima-checkbox">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><path class="path" d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16" pathLength="575.0541381835938"></path></svg>
+        </label>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Bugün klimayı kapattım</div>
+          <div class="hint" id="klima-note" style="margin:0">Yükleniyor…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Activity timeline ── -->
   <div class="row">
     <div class="card">
@@ -243,16 +260,23 @@ function fmtDate(ts) {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
+// tamAd yoksa (isim boş) sıfır sayımla çözülür -- Promise.resolve, .catch zincirini bozmadan.
 function loadStats(tamAd) {
-  if (!tamAd) { els.statEtkinlik.textContent = '0'; els.statGorevli.textContent = '0'; els.statHaber.textContent = '0'; return; }
-  database.ref('etkinlikler').once('value').then((snap) => {
+  if (!tamAd) {
+    els.statEtkinlik.textContent = '0'; els.statGorevli.textContent = '0'; els.statHaber.textContent = '0';
+    return Promise.resolve({ etkinlik: 0, gorevli: 0, haber: 0 });
+  }
+  return database.ref('etkinlikler').once('value').then((snap) => {
     const events = Object.values(snap.val() || {});
-    els.statEtkinlik.textContent = events.filter((e) => e && e.olusturan === tamAd).length;
-    els.statGorevli.textContent = events.filter((e) => parseNameList(e && e.gorevli).includes(tamAd)).length;
-    els.statHaber.textContent = events.filter((e) => parseNameList(e && e.haberYazanlari).includes(tamAd)).length;
+    const etkinlik = events.filter((e) => e && e.olusturan === tamAd).length;
+    const gorevli = events.filter((e) => parseNameList(e && e.gorevli).includes(tamAd)).length;
+    const haber = events.filter((e) => parseNameList(e && e.haberYazanlari).includes(tamAd)).length;
+    els.statEtkinlik.textContent = etkinlik; els.statGorevli.textContent = gorevli; els.statHaber.textContent = haber;
+    return { etkinlik, gorevli, haber };
   }).catch((err) => {
     console.error('Hesap istatistikleri yüklenemedi:', err);
     els.statEtkinlik.textContent = '—'; els.statGorevli.textContent = '—'; els.statHaber.textContent = '—';
+    return { etkinlik: 0, gorevli: 0, haber: 0 };
   });
 }
 
@@ -261,20 +285,22 @@ function loadUser(uid) {
     currentData = snap.val() || {};
     fillForm();
     els.statUyelik.textContent = fmtDate(currentData.createdAt);
-    loadStats(tamAdOf(currentData));
+    return loadStats(tamAdOf(currentData));
   }).catch((err) => {
     console.error('Profil yüklenemedi:', err);
     showToast('Profil yüklenemedi.', { variant: 'error' });
+    return { etkinlik: 0, gorevli: 0, haber: 0 };
   });
 }
 
 // ── Başarılar (önizleme) -- tam liste tum-basarimlar.html'de ──
 const escapeHtml = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const BADGE_DEFAULT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"/></svg>';
 const BADGE_LOCK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="8" height="6" rx="1.5"/><path d="M6 6V4a2 2 0 014 0v2"/></svg>';
 const BADGE_PREVIEW_COUNT = 6;
+// achievements.js'deki icon alanı bir DOSYA YOLUDUR (svg/png), inline SVG değil.
+function earnedIconMarkup(a) { return `<img src="${escapeHtml(a.icon)}" alt="" loading="lazy">`; }
 
-function loadAchievements(uid) {
+function renderAchievements(earned) {
   const gridEl = document.getElementById('basarim-mini-grid');
   const subtitleEl = document.getElementById('basarim-subtitle');
   if (!ACHIEVEMENTS.length) {
@@ -282,37 +308,114 @@ function loadAchievements(uid) {
     gridEl.innerHTML = '';
     return;
   }
-  database.ref('users/' + uid + '/basarimlar').once('value').then((snap) => {
-    const earned = snap.val() || {};
-    const earnedCount = ACHIEVEMENTS.filter((a) => earned[a.id]).length;
-    subtitleEl.textContent = `${earnedCount} / ${ACHIEVEMENTS.length} başarım kazanıldı`;
-    // secret + kazanılmamış hiç gösterilmez (bkz. achievements.js); önizlemede en fazla
-    // BADGE_PREVIEW_COUNT tane -- tam liste "Tümünü gör" ile tum-basarimlar.html'de.
-    const visible = ACHIEVEMENTS.filter((a) => !a.secret || earned[a.id]).slice(0, BADGE_PREVIEW_COUNT);
-    gridEl.innerHTML = visible.map((a) => {
-      const ts = earned[a.id];
-      const isEarned = !!ts;
-      return `
-        <div class="badge-tile${isEarned ? ' badge-tile--earned' : ' badge-tile--locked'}" title="${escapeHtml(a.aciklama || '')}">
-          <div class="badge-tile-icon">${isEarned ? (a.icon || BADGE_DEFAULT_ICON) : BADGE_LOCK_ICON}</div>
-          <div class="badge-tile-name">${escapeHtml(a.ad || '(adsız)')}</div>
-          <div class="badge-tile-desc">${escapeHtml(a.aciklama || '')}</div>
-          ${isEarned ? `<div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>` : '<div class="badge-tile-date badge-tile-date--locked">Kilitli</div>'}
-        </div>
-      `;
-    }).join('');
+  const earnedCount = ACHIEVEMENTS.filter((a) => earned[a.id]).length;
+  subtitleEl.textContent = `${earnedCount} / ${ACHIEVEMENTS.length} başarım kazanıldı`;
+  // secret + kazanılmamış hiç gösterilmez (bkz. achievements.js); önizlemede en fazla
+  // BADGE_PREVIEW_COUNT tane -- tam liste "Tümünü gör" ile tum-basarimlar.html'de.
+  const visible = ACHIEVEMENTS.filter((a) => !a.secret || earned[a.id]).slice(0, BADGE_PREVIEW_COUNT);
+  gridEl.innerHTML = visible.map((a) => {
+    const ts = earned[a.id];
+    const isEarned = !!ts;
+    return `
+      <div class="badge-tile${isEarned ? ' badge-tile--earned' : ' badge-tile--locked'}" title="${escapeHtml(a.aciklama || '')}">
+        <div class="badge-tile-icon">${isEarned ? earnedIconMarkup(a) : BADGE_LOCK_ICON}</div>
+        <div class="badge-tile-name">${escapeHtml(a.ad || '(adsız)')}</div>
+        <div class="badge-tile-desc">${escapeHtml(a.aciklama || '')}</div>
+        ${isEarned ? `<div class="badge-tile-date">${escapeHtml(fmtDate(ts))}</div>` : '<div class="badge-tile-date badge-tile-date--locked">Kilitli</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+// Bugünün tarihi, yerel saat dilimiyle (YYYY-MM-DD) -- "günde 1 kere" sınırı buna göre.
+function bugunAnahtari() {
+  const n = new Date();
+  const p = (v) => String(v).padStart(2, '0');
+  return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+}
+
+// ── Klima Faresi: günlük "Klimayı kapattım" işareti -- 5. işaretlemede başarım açılır ──
+function loadKlima(uid) {
+  const cbEl = document.getElementById('klima-checkbox');
+  const noteEl = document.getElementById('klima-note');
+  if (!cbEl) { return Promise.resolve(0); }
+  return database.ref('users/' + uid + '/klimaKapatma').once('value').then((snap) => {
+    const v = snap.val() || {};
+    const sayisi = v.sayisi || 0;
+    const bugunIsaretlendi = v.sonTarih === bugunAnahtari();
+    cbEl.checked = bugunIsaretlendi;
+    cbEl.disabled = bugunIsaretlendi;
+    noteEl.textContent = bugunIsaretlendi ? `Bugün işaretlendi (${sayisi}/5). Yarın tekrar gelin.` : `${sayisi}/5 -- günde bir kez işaretleyebilirsiniz.`;
+    return sayisi;
   }).catch((err) => {
-    console.error('Başarımlar yüklenemedi:', err);
-    subtitleEl.textContent = 'Başarımlar yüklenemedi.';
+    console.error('Klima verisi yüklenemedi:', err);
+    return 0;
   });
 }
+
+function klimaKapattim(uid) {
+  const cbEl = document.getElementById('klima-checkbox');
+  const bugun = bugunAnahtari();
+  database.ref('users/' + uid + '/klimaKapatma').once('value').then((snap) => {
+    const v = snap.val() || {};
+    if (v.sonTarih === bugun) { return undefined; } // yarış durumu güvenliği -- çift tık/iki sekme
+    const yeniSayi = (v.sayisi || 0) + 1;
+    return database.ref('users/' + uid + '/klimaKapatma').set({ sayisi: yeniSayi, sonTarih: bugun }).then(() => {
+      return loadKlima(uid).then((sayisi) => checkAndGrantAchievements(uid, sayisi)).then((earned) => renderAchievements(earned));
+    });
+  }).catch((err) => {
+    console.error('İşaretlenemedi:', err);
+    showToast('İşaretlenemedi, tekrar deneyin.', { variant: 'error' });
+    if (cbEl) { cbEl.checked = false; cbEl.disabled = false; }
+  });
+}
+
+// ── Otomatik başarım verme -- her koşulu bir kez değerlendirir, zaten kazanılmışsa dokunmaz ──
+function checkAndGrantAchievements(uid, klimaKapatmaSayisi) {
+  const ctx = {
+    role: currentData.role,
+    haberSayisi: Number(els.statHaber.textContent) || 0,
+    etkinlikSayisi: Number(els.statGorevli.textContent) || 0,
+    klimaKapatmaSayisi: klimaKapatmaSayisi || 0
+  };
+  return database.ref('users/' + uid + '/basarimlar').once('value').then((snap) => {
+    const earned = snap.val() || {};
+    const updates = {};
+    ACHIEVEMENTS.forEach((a) => {
+      if (earned[a.id]) { return; }
+      try {
+        if (a.kosul(ctx)) { updates[a.id] = firebase.database.ServerValue.TIMESTAMP; }
+      } catch (err) { console.error('Başarım koşulu değerlendirilemedi: ' + a.id, err); }
+    });
+    if (!Object.keys(updates).length) { return earned; }
+    return database.ref('users/' + uid + '/basarimlar').update(updates).then(() => {
+      Object.keys(updates).forEach((id) => {
+        const a = ACHIEVEMENTS.find((x) => x.id === id);
+        showToast(`Yeni başarım: ${a ? a.ad : id} 🏆`, { variant: 'success' });
+      });
+      return Object.assign({}, earned, updates);
+    });
+  }).catch((err) => {
+    console.error('Başarımlar değerlendirilemedi:', err);
+    return {};
+  });
+}
+
+document.getElementById('klima-checkbox')?.addEventListener('change', (e) => {
+  if (!currentUid || !e.target.checked) { return; }
+  e.target.disabled = true;
+  klimaKapattim(currentUid);
+});
 
 auth.onAuthStateChanged((user) => {
   if (!user) { window.location.href = 'giris.html'; return; }
   currentUid = user.uid;
   currentEmail = user.email || '';
-  loadUser(currentUid);
-  loadAchievements(currentUid);
+  Promise.all([loadUser(currentUid), loadKlima(currentUid)]).then(([, klimaSayisi]) => {
+    return checkAndGrantAchievements(currentUid, klimaSayisi);
+  }).then((earned) => {
+    renderAchievements(earned);
+  });
 });
 
 // ── Kaydet / Vazgeç (üstteki ve formdaki iki buton çifti aynı davranışı paylaşır) ──
