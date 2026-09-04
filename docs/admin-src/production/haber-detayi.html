@@ -35,6 +35,11 @@
 </main>
 
 <script type="module">
+// Fakülte/birim listesi + basın görevlisi picker'ı takvimdeki (calendar.js) etkinlik
+// düzenleme formuyla AYNI paylaşılan modülden gelir (bkz. roster.js) -- iki yer birbirinden
+// bağımsız kopya listeler tutmasın diye (kullanıcı isteği: eşzamanlı olmalı her yerle).
+import { facultyOptionsHtml, loadPressOfficerPool, renderPersonRolesPickerHtml } from '/src/v4/roster.js';
+
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
   authDomain: 'omu-protokol.firebaseapp.com',
@@ -177,7 +182,7 @@ function render(id, e) {
             ${canWrite ? `
               <div class="field"><label for="ed-tarih">Tarih</label><input type="date" id="ed-tarih" class="form-control" value="${escapeHtml(e.tarih || '')}"></div>
               <div class="field"><label for="ed-yer">Yer / Mekân</label><input type="text" id="ed-yer" class="form-control" value="${escapeHtml(e.yer || '')}"></div>
-              <div class="field"><label for="ed-birim">Düzenleyen Birim</label><input type="text" id="ed-birim" class="form-control" value="${escapeHtml(e.birim || '')}"></div>
+              <div class="field"><label for="ed-birim">Düzenleyen Birim</label><select id="ed-birim" class="form-control"><option value="">—</option>${facultyOptionsHtml(e.birim || '')}</select></div>
               <div class="field"><label for="ed-planlayan">Planlayan / Sorumlu</label><input type="text" id="ed-planlayan" class="form-control" value="${escapeHtml(e.planlayan || '')}"></div>
             ` : `
               <div style="font-size:13px;color:var(--text-secondary);line-height:2">
@@ -191,20 +196,16 @@ function render(id, e) {
         </div>
 
         <div class="card">
-          <div class="card-header"><div class="card-title">Haberi yazan(lar)</div></div>
+          <div class="card-header"><div class="card-title">Basın görevlisi / Haberi yazan(lar)</div></div>
           <div class="card-body">
             ${canWrite
-              ? `<input type="text" id="ed-haberYazanlari" class="form-control" placeholder="Virgülle ayırarak yazın" value="${escapeHtml(e.haberYazanlari || '')}">`
-              : `<div style="font-size:13px;color:var(--text-secondary)">${yazanlar.length ? yazanlar.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Henüz işlenmemiş.</span>'}</div>`}
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><div class="card-title">Basın görevlisi</div></div>
-          <div class="card-body">
-            ${canWrite
-              ? `<input type="text" id="ed-gorevli" class="form-control" placeholder="Virgülle ayırarak yazın" value="${escapeHtml(e.gorevli || '')}">`
-              : `<div style="font-size:13px;color:var(--text-secondary)">${gorevliler.length ? gorevliler.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Atanmamış.</span>'}</div>`}
+              ? `<input type="text" class="cal-ev-att-search" id="ed-personSearch" placeholder="İsim ara…"><div class="cal-ev-att-box cal-ev-role-box" id="ed-personBox"></div>`
+              : `
+                <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">
+                  <div style="margin-bottom:8px"><span style="color:var(--text-muted)">Basın görevlisi</span><br>${gorevliler.length ? gorevliler.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Atanmamış.</span>'}</div>
+                  <div><span style="color:var(--text-muted)">Haberi yazan(lar)</span><br>${yazanlar.length ? yazanlar.map((n) => escapeHtml(n)).join('<br>') : '<span style="color:var(--text-muted)">Henüz işlenmemiş.</span>'}</div>
+                </div>
+              `}
           </div>
         </div>
       </div>
@@ -213,8 +214,34 @@ function render(id, e) {
 
   if (canWrite) {
     const saveBtn = document.getElementById('haberSaveBtn');
-    const fieldIds = ['ed-tarih', 'ed-yer', 'ed-birim', 'ed-planlayan', 'ed-haberYazanlari', 'ed-gorevli'];
+    const fieldIds = ['ed-tarih', 'ed-yer', 'ed-birim', 'ed-planlayan'];
     const fieldEls = fieldIds.map((fid) => document.getElementById(fid));
+
+    // Basın görevlisi / haberi yazan(lar) artık serbest metin DEĞİL, takvimdeki (calendar.js)
+    // düzenleme modalıyla AYNI kişi/rol picker'ı (bkz. roster.js) -- calPressStaff/calNewsWriters
+    // bu modalın yerel state'i, checkbox değişiklikleri buraya yazılır.
+    let pressOfficerPool = [];
+    const calPressStaff = parseNameList(e.gorevli);
+    const calNewsWriters = parseNameList(e.haberYazanlari);
+    const personBox = document.getElementById('ed-personBox');
+    const personSearch = document.getElementById('ed-personSearch');
+    const renderPersonBox = () => {
+      if (!personBox) { return; }
+      personBox.innerHTML = renderPersonRolesPickerHtml(pressOfficerPool, personSearch ? personSearch.value : '', calPressStaff, calNewsWriters);
+    };
+    renderPersonBox();
+    loadPressOfficerPool(database).then((pool) => { pressOfficerPool = pool; renderPersonBox(); });
+    personSearch?.addEventListener('input', renderPersonBox);
+    personBox?.addEventListener('change', (ev) => {
+      const t = ev.target;
+      const name = t.dataset.name || '';
+      if (!name) { return; }
+      const list = t.classList.contains('cal-ev-role-basin') ? calPressStaff : t.classList.contains('cal-ev-role-haber') ? calNewsWriters : null;
+      if (!list) { return; }
+      if (t.checked) { if (list.indexOf(name) === -1) { list.push(name); } }
+      else { const idx = list.indexOf(name); if (idx !== -1) { list.splice(idx, 1); } }
+      updateSaveVisibility();
+    });
 
     const saveErr = document.getElementById('haberSaveErr');
     // Sayfada showToast yok; hata mesajı Kaydet butonunun yanında satır içi gösteriliyor
@@ -225,14 +252,20 @@ function render(id, e) {
     };
     const clearSaveError = () => { if (saveErr) { saveErr.textContent = ''; saveErr.style.display = 'none'; } };
 
+    const sortedJoin = (list) => list.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', ');
+    let updateSaveVisibility = () => {};
+
     createHaberEditor(document.getElementById('haberEditor')).then((editor) => {
       editorInstance = editor;
       const originalHtml = editor.getContent();
-      const original = { haberMetni: originalHtml };
+      const original = { haberMetni: originalHtml, gorevli: sortedJoin(calPressStaff), haberYazanlari: sortedJoin(calNewsWriters) };
       fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
 
-      const updateSaveVisibility = () => {
-        const changed = editor.getContent() !== original.haberMetni || fieldIds.some((fid, i) => fieldEls[i].value !== original[fid]);
+      updateSaveVisibility = () => {
+        const changed = editor.getContent() !== original.haberMetni ||
+          fieldIds.some((fid, i) => fieldEls[i].value !== original[fid]) ||
+          sortedJoin(calPressStaff) !== original.gorevli ||
+          sortedJoin(calNewsWriters) !== original.haberYazanlari;
         saveBtn.style.display = changed ? '' : 'none';
       };
       editor.on('input change undo redo keyup', updateSaveVisibility);
@@ -255,10 +288,10 @@ function render(id, e) {
           haberMetni: editor.getContent(),
           tarih,
           yer: fieldEls[1].value.trim(),
-          birim: fieldEls[2].value.trim(),
+          birim: fieldEls[2].value,
           planlayan: fieldEls[3].value.trim(),
-          haberYazanlari: fieldEls[4].value.trim(),
-          gorevli: fieldEls[5].value.trim(),
+          haberYazanlari: sortedJoin(calNewsWriters),
+          gorevli: sortedJoin(calPressStaff),
           // Aynı alanın iki farklı saat kaynağıyla yazılması (istemci saati vs. sunucu saati)
           // saati bozuk bir istemcide sıralamayı bozar; projedeki diğer tüm yazmalar
           // (calendar.js persistEvent, app.js) sunucu damgası kullanıyor.
@@ -280,6 +313,8 @@ function render(id, e) {
           Object.assign(e, patch, { guncellemeTs: e.guncellemeTs });
           fieldIds.forEach((fid, i) => { original[fid] = fieldEls[i].value; });
           original.haberMetni = editor.getContent();
+          original.gorevli = sortedJoin(calPressStaff);
+          original.haberYazanlari = sortedJoin(calNewsWriters);
           saveBtn.textContent = 'Kaydedildi ✓';
           setTimeout(() => { saveBtn.style.display = 'none'; saveBtn.disabled = false; saveBtn.textContent = 'Kaydet'; }, 1400);
         }).catch((err) => {

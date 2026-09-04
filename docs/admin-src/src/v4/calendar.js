@@ -11,6 +11,7 @@
 import Sortable from 'sortablejs';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
+import { facultyOptionsHtml, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -60,35 +61,6 @@ const EVENT_BADGES = [
   { key: 'basina_kapali', ad: 'Basına Kapalı', renk: '#b91c1c', bg: '#fee2e2' },
   { key: 'dis_katilimli', ad: 'Dış Katılımlı', renk: '#1d4ed8', bg: '#dbeafe' },
   { key: 'canli_yayin',   ad: 'Canlı Yayın',   renk: '#b45309', bg: '#fef3c7' }
-];
-
-const FACULTY_GROUPS = [
-  { title: 'Rektörlük', items: ['Rektörlük'] },
-  { title: 'Fakülteler', items: [
-    'Ali Fuad Başgil Hukuk Fakültesi', 'Çarşamba İnsan ve Toplum Bilimleri Fakültesi', 'Diş Hekimliği Fakültesi',
-    'Eczacılık Fakültesi', 'Eğitim Fakültesi', 'Fen Fakültesi', 'Güzel Sanatlar Fakültesi',
-    'İktisadi ve İdari Bilimler Fakültesi', 'İlahiyat Fakültesi', 'İletişim Fakültesi',
-    'İnsan ve Toplum Bilimleri Fakültesi', 'Mimarlık Fakültesi', 'Mühendislik Fakültesi',
-    'Sağlık Bilimleri Fakültesi', 'Tıp Fakültesi', 'Turizm Fakültesi', 'Veteriner Fakültesi',
-    'Yaşar Doğu Spor Bilimleri Fakültesi', 'Ziraat Fakültesi'
-  ] },
-  { title: 'Yüksekokul ve Konservatuvar', items: ['Devlet Konservatuvarı', 'Yabancı Diller Yüksekokulu'] },
-  { title: 'Enstitüler', items: ['Lisansüstü Eğitim Enstitüsü', 'Kenevir Araştırmaları Enstitüsü', 'Yaban Hayatı Araştırmaları Enstitüsü'] },
-  { title: 'Meslek Yüksekokulları', items: [
-    'Alaçam Meslek Yüksekokulu', 'Bafra Meslek Yüksekokulu', 'Bafra Turizm Meslek Yüksekokulu',
-    'Bilişim Teknolojileri Meslek Yüksekokulu', 'Çarşamba Ticaret Borsası Meslek Yüksekokulu',
-    'Havelsan Siber Güvenlik Meslek Yüksekokulu', 'Havza Meslek Yüksekokulu', 'Ladik Meslek Yüksekokulu',
-    'Sağlık Hizmetleri Meslek Yüksekokulu', 'Samsun Meslek Yüksekokulu', 'Terme Meslek Yüksekokulu',
-    'Vezirköprü Meslek Yüksekokulu', 'Yeşilyurt Demir Çelik Meslek Yüksekokulu'
-  ] },
-  { title: 'Ofisler ve Merkezler', items: ['Teknoloji Transfer Ofisi'] },
-  { title: 'Koordinatörlükler', items: [
-    'Araştırma ve Geliştirme Koordinatörlüğü (AR-GE)', 'Eğitim Öğretim Koordinatörlüğü', 'Kalite Koordinatörlüğü',
-    'Meslek Yüksekokulları Koordinatörlüğü', 'Mezunlar Koordinatörlüğü',
-    'Öğretim Üyesi Yetiştirme Programı Koordinatörlüğü', 'Temel Bilimler Dersleri Koordinatörlüğü',
-    'Uluslararası İlişkiler Koordinatörlüğü', 'Uygulama ve Araştırma Merkezleri Koordinatörlüğü',
-    'Yayın Koordinatörlüğü', 'Toplumsal Katkı Koordinatörlüğü'
-  ] }
 ];
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -1195,22 +1167,13 @@ function calStartMultiDayGesture(e) {
 
 // ── Edit modal (tam parite: ana sitedeki (app.js) openEventModal'ın TÜM alanları) ──
 
-function facultyOptionsHtml(selected) {
-  return FACULTY_GROUPS.map((g) => '<optgroup label="' + escapeHtml(g.title) + '">' +
-    g.items.map((name) => '<option value="' + escapeHtml(name) + '"' + (name === selected ? ' selected' : '') + '>' + escapeHtml(name) + '</option>').join('') +
-    '</optgroup>').join('');
-}
-
 // "Basın Görevlisi" havuzu: admin tarafından işaretlenmiş kullanıcılar (basinGorevlileri
-// düğümü). Ana sitedeki loadPressOfficerPool ile birebir aynı — her openEventModal()
-// çağrısında yeniden okunur (oturum içi kısa ömürlü önbellek, kalıcı dinleyici YOK).
+// düğümü, bkz. roster.js). Ana sitedeki loadPressOfficerPool ile birebir aynı — her
+// openEventModal() çağrısında yeniden okunur (oturum içi kısa ömürlü önbellek, kalıcı
+// dinleyici YOK).
 function loadPressOfficerPool() {
   if (!database) { return Promise.resolve(); }
-  return database.ref('basinGorevlileri').once('value').then((snap) => {
-    const obj = snap.val() || {};
-    pressOfficerPool = Object.keys(obj).map((uid) => ({ uid, name: String(obj[uid] || '').trim() })).filter((p) => p.name);
-    pressOfficerPool.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-  }).catch(() => { /* sessizce yut: pool boş gelir ama modal çalışmaya devam eder */ });
+  return loadPressOfficerPoolShared(database).then((pool) => { pressOfficerPool = pool; });
 }
 // "Katılımcılar" havuzu: ana sitedeki peopleList() ile AYNI kaynak (universiteProtokolVerileri).
 // Admin panelinde bu düğüme kalıcı bir dinleyici henüz bağlı olmadığı için (bkz. görev notu),
@@ -1233,21 +1196,7 @@ function loadPeoplePool() {
 function renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters) {
   const box = bodyEl.querySelector('#cef-personBox'); if (!box) { return; }
   const searchEl = bodyEl.querySelector('#cef-personSearch');
-  const q = ((searchEl && searchEl.value) || '').trim().toLocaleLowerCase('tr');
-  const filtered = pressOfficerPool.filter((p) => p.name.toLocaleLowerCase('tr').includes(q));
-  const extraNames = new Set([...calPressStaff, ...calNewsWriters].filter((n) => !filtered.some((p) => p.name === n)));
-  function row(name) {
-    return '<div class="cal-ev-role-item"><span class="name">' + escapeHtml(name) + '</span>' +
-      '<span class="cal-ev-role-toggles">' +
-        '<label><input type="checkbox" class="cal-ev-role-basin" data-name="' + escapeHtml(name) + '" ' + (calPressStaff.indexOf(name) !== -1 ? 'checked' : '') + '> Basın Görevlisi</label>' +
-        '<label><input type="checkbox" class="cal-ev-role-haber" data-name="' + escapeHtml(name) + '" ' + (calNewsWriters.indexOf(name) !== -1 ? 'checked' : '') + '> Haberi Yazdı</label>' +
-      '</span></div>';
-  }
-  let html = '';
-  extraNames.forEach((name) => { html += row(name); });
-  html += filtered.map((p) => row(p.name)).join('');
-  if (!html) { html = '<p class="cal-ev-att-empty">' + (pressOfficerPool.length ? 'Eşleşen kişi yok.' : 'Henüz admin tarafından işaretlenmiş basın görevlisi yok.') + '</p>'; }
-  box.innerHTML = html;
+  box.innerHTML = renderPersonRolesPickerHtml(pressOfficerPool, (searchEl && searchEl.value) || '', calPressStaff, calNewsWriters);
 }
 // Katılımcılar: peoplePoolCache (üniversite) + isteğe bağlı ilPoolCache (İl Protokolü) —
 // ana sitedeki renderEventAttendeePicker ile birebir aynı birleştirme/öncelik mantığı.

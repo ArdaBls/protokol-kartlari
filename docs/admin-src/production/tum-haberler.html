@@ -35,8 +35,8 @@
     </div>
   </div>
 
-  <div class="row col-3" id="projects-grid">
-    <div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
+  <div id="projects-grid">
+    <div style="text-align:center;color:var(--text-muted);padding:32px">Yükleniyor…</div>
   </div>
 
 </div>
@@ -91,7 +91,37 @@ let currentUserName = '';
 let currentUserEmail = '';
 
 function setState(html) {
-  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
+  grid.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:32px">${html}</div>`;
+}
+
+// Ay/hafta gruplama -- kullanıcı isteği: "tüm haberler de aylara ve ayların
+// haftalarına göre sıralanmalı". Gruplama etkinliğin GERÇEK tarihine (tarih)
+// göre yapılır (oluşturulma zamanına değil) -- "Eylül" başlığı altında Eylül
+// ayına AİT etkinlikler görünsün diye. Hafta hesabı kanban.js/calendar.js'teki
+// startOfWeek ile birebir aynı (Pazartesi başlangıçlı) -- proje deseni: küçük
+// yardımcılar dosyalar arası kopyalanır.
+const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+function addDays(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+function startOfWeek(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay() + 6) % 7; return addDays(x, -wd); }
+function parseTarihDate(s) {
+  const a = String(s || '').split('-');
+  if (a.length !== 3) { return null; }
+  const y = Number(a[0]), m = Number(a[1]), day = Number(a[2]);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) { return null; }
+  const d = new Date(y, m - 1, day);
+  return isNaN(d.getTime()) ? null : d;
+}
+function dateOf(e) {
+  const fromTarih = parseTarihDate(e.tarih);
+  if (fromTarih) { return fromTarih; }
+  const ts = sortTs(e);
+  return ts ? new Date(ts) : new Date(0);
+}
+function weekLabel(weekStart) {
+  const end = addDays(weekStart, 6);
+  const sm = AYLAR[weekStart.getMonth()].slice(0, 3), em = AYLAR[end.getMonth()].slice(0, 3);
+  if (weekStart.getMonth() === end.getMonth()) { return weekStart.getDate() + '–' + end.getDate() + ' ' + em; }
+  return weekStart.getDate() + ' ' + sm + ' – ' + end.getDate() + ' ' + em;
 }
 
 // haberMetni zengin metin editöründen gelen HTML -- hem kart önizlemesi hem de arama
@@ -103,31 +133,67 @@ const stripTags = (h) => String(h || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g
 // ayarıyla küçültülmeli, yoksa sorun taraf değiştirir.
 const trLower = (s) => String(s || '').toLocaleLowerCase('tr');
 
+function newsCardHtml(id, e) {
+  const durum = normalizeDurum(e.durum);
+  const writers = parseNameList(e.haberYazanlari).join(', ') || '—';
+  const plain = stripTags(e.haberMetni);
+  const excerpt = plain.slice(0, 140);
+  return `
+    <a class="card" href="haber-detayi.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(e.ad || '(adsız)')}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span class="status ${DURUM_CLS[durum] || ''}">${DURUM_LABEL[durum] || durum}</span>
+          ${canWrite ? `<button type="button" class="card-opt-btn news-delete-btn" data-id="${escapeHtml(id)}" title="Bu haberi sil" aria-label="Bu haberi sil">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6.5 4V2.5h3V4M4.5 4l.5 9.5h6l.5-9.5"/></svg>
+          </button>` : ''}
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${escapeHtml(fmtTarih(e.tarih))}${e.yer ? ' · ' + escapeHtml(e.yer) : ''}</div>
+      <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px">${excerpt ? escapeHtml(excerpt) + (plain.length > 140 ? '…' : '') : '<span style="color:var(--text-muted)">Haber metni henüz girilmedi.</span>'}</div>
+      <div style="font-size:11.5px;color:var(--text-muted)">Yazan: ${escapeHtml(writers)}</div>
+    </a>
+  `;
+}
+
 function render() {
   const q = trLower(filterText).trim();
   const items = NEWS.filter(([, e]) => !q || trLower(e.ad).includes(q) || trLower(stripTags(e.haberMetni)).includes(q));
   if (!items.length) { setState('Eşleşen haber yok.'); return; }
 
-  grid.innerHTML = items.map(([id, e]) => {
-    const durum = normalizeDurum(e.durum);
-    const writers = parseNameList(e.haberYazanlari).join(', ') || '—';
-    const plain = stripTags(e.haberMetni);
-    const excerpt = plain.slice(0, 140);
-    return `
-      <a class="card" href="haber-detayi.html?id=${encodeURIComponent(id)}" style="display:block;padding:16px;text-decoration:none;color:inherit">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px">
-          <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(e.ad || '(adsız)')}</div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            <span class="status ${DURUM_CLS[durum] || ''}">${DURUM_LABEL[durum] || durum}</span>
-            ${canWrite ? `<button type="button" class="card-opt-btn news-delete-btn" data-id="${escapeHtml(id)}" title="Bu haberi sil" aria-label="Bu haberi sil">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6.5 4V2.5h3V4M4.5 4l.5 9.5h6l.5-9.5"/></svg>
-            </button>` : ''}
-          </div>
+  // Ay -> hafta -> haber ağacına grupla. Aylar/haftalar en yeniden en eskiye sıralanır
+  // (kullanıcı isteği: "aylara ve ayların haftalarına göre sıralanmalı").
+  const monthMap = new Map();
+  items.forEach(([id, e]) => {
+    const d = dateOf(e);
+    const mKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (!monthMap.has(mKey)) { monthMap.set(mKey, { date: new Date(d.getFullYear(), d.getMonth(), 1), weeks: new Map() }); }
+    const mEntry = monthMap.get(mKey);
+    const wStart = startOfWeek(d);
+    const wKey = wStart.getTime();
+    if (!mEntry.weeks.has(wKey)) { mEntry.weeks.set(wKey, { start: wStart, entries: [] }); }
+    mEntry.weeks.get(wKey).entries.push([id, e]);
+  });
+
+  const monthKeys = Array.from(monthMap.keys()).sort().reverse();
+  grid.innerHTML = monthKeys.map((mKey) => {
+    const mEntry = monthMap.get(mKey);
+    const weekKeys = Array.from(mEntry.weeks.keys()).sort((a, b) => b - a);
+    const weeksHtml = weekKeys.map((wKey) => {
+      const wEntry = mEntry.weeks.get(wKey);
+      const sortedEntries = wEntry.entries.slice().sort((a, b) => dateOf(b[1]).getTime() - dateOf(a[1]).getTime());
+      return `
+        <div class="news-week-group" style="margin-bottom:14px">
+          <div class="news-week-label">${escapeHtml(weekLabel(wEntry.start))}</div>
+          <div class="row col-3">${sortedEntries.map(([id, e]) => newsCardHtml(id, e)).join('')}</div>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${escapeHtml(fmtTarih(e.tarih))}${e.yer ? ' · ' + escapeHtml(e.yer) : ''}</div>
-        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px">${excerpt ? escapeHtml(excerpt) + (plain.length > 140 ? '…' : '') : '<span style="color:var(--text-muted)">Haber metni henüz girilmedi.</span>'}</div>
-        <div style="font-size:11.5px;color:var(--text-muted)">Yazan: ${escapeHtml(writers)}</div>
-      </a>
+      `;
+    }).join('');
+    return `
+      <div class="news-month-group" style="margin-bottom:28px">
+        <h2 class="news-month-title">${escapeHtml(AYLAR[mEntry.date.getMonth()])} ${mEntry.date.getFullYear()}</h2>
+        ${weeksHtml}
+      </div>
     `;
   }).join('');
 }

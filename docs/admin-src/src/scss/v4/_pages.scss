@@ -1,6 +1,24 @@
 // Page-specific components: pagination, alerts, chips, calendar, inbox, invoice, project/product cards
 
 // ────────────────────────
+//  TÜM HABERLER -- ay/hafta grup başlıkları
+// ────────────────────────
+.news-month-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.news-week-label {
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+// ────────────────────────
 //  PAGINATION
 // ────────────────────────
 .pagination {
