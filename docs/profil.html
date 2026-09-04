@@ -12,6 +12,22 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+/* Yeni başarım bildirimi -- kullanıcı isteği: "kişi gerekli özellikleri sağladığında
+   karşısına ekranın ortasına gelen bildirim ile çıkmalı". Köşedeki toast'tan farklı,
+   dikkat çekici, ortalanmış bir kart -- tıklayınca ya da birkaç saniye sonra kapanır.
+   Birden fazla başarım aynı anda kazanılırsa (bkz. queueAchievementPopups) sırayla gösterilir. */
+.achievement-popup-backdrop { position: fixed; inset: 0; z-index: 500; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity .2s ease; cursor: pointer; }
+.achievement-popup-backdrop.open { opacity: 1; }
+.achievement-popup { background: var(--bg-surface); border-radius: 16px; padding: 28px 32px; max-width: 300px; width: 100%; text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); transform: scale(.85) translateY(10px); transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); cursor: default; }
+.achievement-popup-backdrop.open .achievement-popup { transform: scale(1) translateY(0); }
+.achievement-popup-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); margin-bottom: 12px; }
+.achievement-popup-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--primary-lt); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.achievement-popup-icon img { width: 44px; height: 44px; object-fit: contain; }
+.achievement-popup-name { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.achievement-popup-desc { font-size: 12.5px; color: var(--text-muted); }
+.achievement-popup-hint { font-size: 10.5px; color: var(--text-muted); margin-top: 16px; opacity: .7; }
+</style>
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -28,7 +44,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/profil-D5fhcoPZ.js"></script>
+  <script type="module" crossorigin src="/js/profil-aAvO8P-P.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">

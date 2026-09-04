@@ -13,6 +13,22 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
+<style>
+/* Yeni başarım bildirimi -- kullanıcı isteği: "kişi gerekli özellikleri sağladığında
+   karşısına ekranın ortasına gelen bildirim ile çıkmalı". Köşedeki toast'tan farklı,
+   dikkat çekici, ortalanmış bir kart -- tıklayınca ya da birkaç saniye sonra kapanır.
+   Birden fazla başarım aynı anda kazanılırsa (bkz. queueAchievementPopups) sırayla gösterilir. */
+.achievement-popup-backdrop { position: fixed; inset: 0; z-index: 500; background: rgba(15, 23, 42, .55); display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity .2s ease; cursor: pointer; }
+.achievement-popup-backdrop.open { opacity: 1; }
+.achievement-popup { background: var(--bg-surface); border-radius: 16px; padding: 28px 32px; max-width: 300px; width: 100%; text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); transform: scale(.85) translateY(10px); transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); cursor: default; }
+.achievement-popup-backdrop.open .achievement-popup { transform: scale(1) translateY(0); }
+.achievement-popup-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); margin-bottom: 12px; }
+.achievement-popup-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--primary-lt); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.achievement-popup-icon img { width: 44px; height: 44px; object-fit: contain; }
+.achievement-popup-name { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.achievement-popup-desc { font-size: 12.5px; color: var(--text-muted); }
+.achievement-popup-hint { font-size: 10.5px; color: var(--text-muted); margin-top: 16px; opacity: .7; }
+</style>
 </head>
 <body data-shell="admin" data-page="profile" data-breadcrumb="Anasayfa|index.html > Profiliniz">
 
@@ -370,6 +386,41 @@ function klimaKapattim(uid) {
   });
 }
 
+// ── Yeni başarım bildirimi: ekranın ortasında, tıklayınca veya birkaç saniye sonra kapanan
+// bir kart (kullanıcı isteği -- köşedeki toast YETMEZ, "ekranın ortasına gelen bildirim ile
+// çıkmalı"). Birden fazla başarım aynı anda kazanılırsa queueAchievementPopups sırayla gösterir. ──
+function showAchievementPopup(a) {
+  return new Promise((resolve) => {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'achievement-popup-backdrop';
+    backdrop.innerHTML = `
+      <div class="achievement-popup">
+        <div class="achievement-popup-eyebrow">Yeni başarım</div>
+        <div class="achievement-popup-icon"><img src="${escapeHtml(a.icon)}" alt=""></div>
+        <div class="achievement-popup-name">${escapeHtml(a.ad || '(adsız)')}</div>
+        <div class="achievement-popup-desc">${escapeHtml(a.aciklama || '')}</div>
+        <div class="achievement-popup-hint">Kapatmak için dokunun</div>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+    requestAnimationFrame(() => backdrop.classList.add('open'));
+    let done = false;
+    function close() {
+      if (done) { return; }
+      done = true;
+      backdrop.removeEventListener('click', close);
+      clearTimeout(autoTimer);
+      backdrop.classList.remove('open');
+      setTimeout(() => { backdrop.remove(); resolve(); }, 220);
+    }
+    backdrop.addEventListener('click', close);
+    const autoTimer = setTimeout(close, 4500);
+  });
+}
+async function queueAchievementPopups(items) {
+  for (const a of items) { await showAchievementPopup(a); }
+}
+
 // ── Otomatik başarım verme -- her koşulu bir kez değerlendirir, zaten kazanılmışsa dokunmaz ──
 function checkAndGrantAchievements(uid, klimaKapatmaSayisi) {
   const ctx = {
@@ -389,10 +440,8 @@ function checkAndGrantAchievements(uid, klimaKapatmaSayisi) {
     });
     if (!Object.keys(updates).length) { return earned; }
     return database.ref('users/' + uid + '/basarimlar').update(updates).then(() => {
-      Object.keys(updates).forEach((id) => {
-        const a = ACHIEVEMENTS.find((x) => x.id === id);
-        showToast(`Yeni başarım: ${a ? a.ad : id} 🏆`, { variant: 'success' });
-      });
+      const newlyEarned = Object.keys(updates).map((id) => ACHIEVEMENTS.find((x) => x.id === id)).filter(Boolean);
+      queueAchievementPopups(newlyEarned); // kasıtlı olarak await edilmiyor -- grid arka planda hemen render olur
       return Object.assign({}, earned, updates);
     });
   }).catch((err) => {
