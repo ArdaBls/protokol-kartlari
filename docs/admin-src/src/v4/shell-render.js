@@ -160,7 +160,7 @@ export function renderSidebar(activeKey) {
   return `
     <aside class="sidebar" aria-label="Primary navigation">
       <a class="sidebar-brand" href="index.html">
-        <img class="brand-icon" src="/icon-192.png" alt="">
+        <img class="brand-icon" src="/icons/icon-192.png" alt="">
         <div class="brand-name">Protokol</div>
       </a>
       <nav class="sidebar-nav">${groups}</nav>
