@@ -1,25 +1,6 @@
-// Operasyonlar (Dashboard) sayfası — "Takvim Görünümü" mini widget'ı.
-//
-// Kompakt bir yaklaşan-etkinlikler listesi (calendar.js'teki tam Takvim sayfasının
-// küçük bir özeti). "Görevler" kartıyla (tasks-widget.js) AYNI desen: kendi Firebase
-// bağlantısını açar, `database.ref(dbPath('etkinlikler')).on('value', ...)` ile
-// SÜREKLİ AÇIK bir dinleyici kurar -- takvim sayfasında bir etkinlik eklenip/
-// silinip/güncellendiğinde bu widget SAYFA YENİLENMEDEN anında güncellenir
-// (Realtime Database'in doğası: aynı düğüme yazılan her değişiklik açık TÜM
-// .on('value') dinleyicilerine push edilir). calendar.js'e HİÇ dokunulmadı.
-//
-// db-mode.js (dbPath/isReadOnly/initDbMode) calendar.js'teki İLE AYNI şekilde
-// kullanılıyor ki Test Modu açıkken bu widget da doğru dalı (test/etkinlikler) okusun.
-
-import { dbPath, initDbMode, onDbModeChange } from './db-mode.js';
+// Grafikler ve mini takvim aynı abonelikten beslenir; Test Modu birlikte değişir.
+import { subscribeSharedActivityData } from './charts.js';
 import { escapeHtml } from './markup.js';
-
-const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
-  authDomain: 'omu-protokol.firebaseapp.com',
-  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
-  projectId: 'omu-protokol'
-};
 
 const AYLAR_KISA = ['OCA', 'ŞUB', 'MAR', 'NİS', 'MAY', 'HAZ', 'TEM', 'AĞU', 'EYL', 'EKİ', 'KAS', 'ARA'];
 
@@ -96,27 +77,9 @@ function renderList(listEl, events) {
 
 export function initMiniCalendarWidget() {
   const listEl = document.querySelector('[data-mini-calendar-list]');
-  if (!listEl) { return; }
-
-  if (!window.firebase) { return; }
-  if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
-  const database = firebase.database();
-
-  let ref = null;
-  function attachListener() {
-    if (ref) { ref.off(); }
-    ref = database.ref(dbPath('etkinlikler'));
-    ref.on('value', (snap) => {
-      renderList(listEl, snap.val() || {});
-    }, (err) => {
-      console.error('Mini takvim widget\'ı için etkinlikler okunamadı:', err);
-      listEl.innerHTML = '<p class="hint" style="margin:12px 0;color:var(--text-muted);font-size:12.5px">Yüklenemedi.</p>';
-    });
-  }
-
-  // calendar.js'teki (initCalendar) AYNI desen: ilk değerler gelene kadar bekle, sonra
-  // mod CANLI değişirse (başka bir admin ayarlar.html'den değiştirirse) yeniden bağlan --
-  // açık bir .on() dinleyicisi yol değişince kendiliğinden yeni dala geçmez.
-  initDbMode(database).then(attachListener);
-  onDbModeChange(attachListener);
+  if (!listEl || listEl.dataset.subscribed) { return; }
+  listEl.dataset.subscribed = 'true';
+  subscribeSharedActivityData((_users, events) => {
+    if (events !== null) { renderList(listEl, events); }
+  });
 }

@@ -1,6 +1,7 @@
 // Admin paneli — ECharts entegrasyonu
 // Dynamic-imports ECharts only when a [data-chart] element is present on the
 // page, keeping pages without charts free of the ~400kB cost.
+import { dbPath, initDbMode, onDbModeChange } from './db-mode.js';
 
 const tokens = () => {
   const cs = getComputedStyle(document.documentElement);
@@ -188,6 +189,9 @@ function gorevliNamesForEvent(e) {
 let sharedUsersCache = null;
 let sharedEventsCache = null;
 let sharedActivityListenersStarted = false;
+let sharedEventsRef = null;
+let sharedEventsPath = null;
+let sharedEventsGeneration = 0;
 const sharedActivitySubscribers = new Set();
 
 function dispatchSharedActivityData() {
@@ -198,10 +202,12 @@ function dispatchSharedActivityData() {
 
 function ensureSharedActivityListeners() {
   if (sharedActivityListenersStarted) {return;}
-  sharedActivityListenersStarted = true;
   if (!window.firebase) {return;}
+  sharedActivityListenersStarted = true;
   if (!firebase.apps.length) {firebase.initializeApp(EDITOR_ACTIVITY_FIREBASE_CONFIG);}
-  firebase.database().ref('users').on('value', (snap) => {
+  const database = firebase.database();
+  // Hesap/rol verisi test dalına kopyalanmaz; yalnızca içerik dalı değişir.
+  database.ref('users').on('value', (snap) => {
     sharedUsersCache = snap.val() || {};
     dispatchSharedActivityData();
   }, () => {
@@ -210,15 +216,34 @@ function ensureSharedActivityListeners() {
     sharedUsersCache = {};
     dispatchSharedActivityData();
   });
-  firebase.database().ref('etkinlikler').on('value', (snap) => {
-    sharedEventsCache = snap.val() || {};
+  let modeReady = false;
+  function attachEvents() {
+    if (!modeReady) {return;}
+    const path = dbPath('etkinlikler');
+    if (sharedEventsPath === path) {return;}
+    if (sharedEventsRef) {sharedEventsRef.off('value');}
+    sharedEventsPath = path;
+    const generation = ++sharedEventsGeneration;
+    // Yeni dal yüklenirken eski dalın kayıtları hiçbir widget'ta kalmasın.
+    sharedEventsCache = {};
     dispatchSharedActivityData();
-  }, (err) => {
-    console.error('Paylaşılan etkinlik verisi yüklenemedi:', err);
-  });
+    sharedEventsRef = database.ref(path);
+    sharedEventsRef.on('value', (snap) => {
+      if (generation !== sharedEventsGeneration) {return;}
+      sharedEventsCache = snap.val() || {};
+      dispatchSharedActivityData();
+    }, (err) => {
+      if (generation !== sharedEventsGeneration) {return;}
+      sharedEventsCache = {};
+      dispatchSharedActivityData();
+      console.error('Paylaşılan etkinlik verisi yüklenemedi:', err);
+    });
+  }
+  onDbModeChange(attachEvents);
+  initDbMode(database).then(() => { modeReady = true; attachEvents(); });
 }
 
-function subscribeSharedActivityData(cb) {
+export function subscribeSharedActivityData(cb) {
   sharedActivitySubscribers.add(cb);
   ensureSharedActivityListeners();
   if (sharedUsersCache !== null || sharedEventsCache !== null) {cb(sharedUsersCache, sharedEventsCache);}
