@@ -24,8 +24,8 @@ const STAGING = resolve(DOCS_ROOT, 'admin');
 // GitHub Pages'in custom domain dosyası, ve admin-src kaynağının KENDİSİ (bu script de onun
 // içinde yaşıyor -- silinirse kendi build'ini tamamlayamaz).
 const KEEP = new Set([
-  'protokol.html', 'app.js', 'style.css', 'manifest.json',
-  'icon-192.png', 'icon-512.png', 'CNAME', 'admin-src',
+  'protokol.html', 'app.js', 'style.css',
+  'CNAME', 'admin-src',
   'admin' // 'admin' (staging) -- kendisi taşınıp sonda ayrıca silinecek
 ]);
 

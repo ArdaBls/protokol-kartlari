@@ -164,7 +164,7 @@ function shellInjectionPlugin() {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="${base}icon-192.png">`;
+<link rel="apple-touch-icon" href="${base}icons/icon-180.png">`;
         out = out.replace(/<\/head>/i, `${metaPwa}\n</head>`);
 
         // SEO + Open Graph meta. Skip if the page already declares a
@@ -186,7 +186,7 @@ function shellInjectionPlugin() {
 <meta property="og:type" content="website">
 <meta property="og:title" content="${title.replace(/"/g, '&quot;')}">
 <meta property="og:description" content="${desc.replace(/"/g, '&quot;')}">
-<meta property="og:image" content="${base}images/android-chrome-512x512.svg">
+<meta property="og:image" content="${base}icons/icon-512.png">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">`;
           out = out.replace(/<\/head>/i, `${seo}\n</head>`);
