@@ -417,7 +417,7 @@
 .search-box input::placeholder { color: var(--text-disabled); }
 .search-box input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-lt);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .search-box .s-icon {
   position: absolute;

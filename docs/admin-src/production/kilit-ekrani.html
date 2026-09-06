@@ -27,14 +27,14 @@
     <div class="auth-title" style="text-align:center;margin-top:14px" id="lock-welcome">Tekrar hoş geldiniz</div>
     <div class="auth-subtitle" style="text-align:center">Oturumunuz güvenlik için kilitlendi. Devam etmek için şifrenizi girin.</div>
 
-    <div id="lock-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
+    <div id="lock-error" class="form-hint" role="alert" aria-live="assertive" aria-atomic="true" style="color:var(--red);margin-bottom:0"></div>
 
     <form id="lock-form">
       <div class="form-group">
         <label class="form-label" for="password">Şifre</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
-          <input type="password" id="password" class="form-control" placeholder="••••••••" required autofocus>
+          <input type="password" id="password" class="form-control" aria-describedby="lock-error" placeholder="••••••••" required autofocus>
         </div>
       </div>
 
@@ -81,10 +81,12 @@ const submitBtn = document.getElementById('lock-submit');
 
 function showError(msg) {
   errorEl.textContent = msg;
-  errorEl.style.display = '';
+  errorEl.style.marginBottom = '12px';
 }
 function hideError() {
-  errorEl.style.display = 'none';
+  // Canlı bölge DOM'da kalır; yeni hata metni ekran okuyucuya duyurulur.
+  errorEl.textContent = '';
+  errorEl.style.marginBottom = '0';
 }
 
 auth.onAuthStateChanged((user) => {

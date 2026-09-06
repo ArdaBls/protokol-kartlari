@@ -1,1 +1,0 @@
-{"version":3,"mappings":";mFACkC,iBAAE,gBAA7B,+CAAqB,qCAAQ,iBAAmB","names":[],"ignoreList":[],"sources":["../../admin-src/production/yapilacaklar.html?html-proxy&index=2.js"],"sourcesContent":["\nimport('/src/v4/kanban.js').then(({ initKanban }) => { initKanban(); });\n"],"file":"yapilacaklar-XDI9xGZQ.js"}

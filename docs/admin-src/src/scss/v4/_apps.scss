@@ -285,7 +285,7 @@
 }
 .otp-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-lt);
+  box-shadow: 0 0 0 3px var(--focus-ring);
   background: var(--bg-surface);
 }
 .otp-input:not(:placeholder-shown) { background: var(--primary-lt); border-color: var(--primary); }

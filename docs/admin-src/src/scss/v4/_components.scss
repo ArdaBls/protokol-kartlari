@@ -729,7 +729,7 @@ body.modal-open { overflow: hidden; }
 .modal-form-row textarea:focus,
 .modal-form-row select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-lt);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 // Color swatch radio group

@@ -68,7 +68,7 @@ table.has-selection tbody tr:has(input[type="checkbox"]:checked) {
 .dt-search input::placeholder { color: var(--text-disabled); }
 .dt-search input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-lt);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 // Info text (Showing 1–10 of 100)

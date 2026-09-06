@@ -26,15 +26,15 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/kilit-ekrani-BHhmajZ0.js"></script>
+  <script type="module" crossorigin src="/js/kilit-ekrani-Mfe8Vrx-.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/menus-Buyzp-nt.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-Baqhpi2B.js">
   <link rel="modulepreload" crossorigin href="/js/charts-Bup7H4Jo.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-Bt6_W7fB.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-97Rmn1Cw.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-BmoBAJlP.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-DDl03MYm.css">
 </head>
 <body>
 
@@ -50,14 +50,14 @@
     <div class="auth-title" style="text-align:center;margin-top:14px" id="lock-welcome">Tekrar hoş geldiniz</div>
     <div class="auth-subtitle" style="text-align:center">Oturumunuz güvenlik için kilitlendi. Devam etmek için şifrenizi girin.</div>
 
-    <div id="lock-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
+    <div id="lock-error" class="form-hint" role="alert" aria-live="assertive" aria-atomic="true" style="color:var(--red);margin-bottom:0"></div>
 
     <form id="lock-form">
       <div class="form-group">
         <label class="form-label" for="password">Şifre</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
-          <input type="password" id="password" class="form-control" placeholder="••••••••" required autofocus>
+          <input type="password" id="password" class="form-control" aria-describedby="lock-error" placeholder="••••••••" required autofocus>
         </div>
       </div>
 

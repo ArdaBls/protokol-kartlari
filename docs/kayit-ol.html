@@ -26,15 +26,15 @@
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/kayit-ol-C1gYaV1c.js"></script>
+  <script type="module" crossorigin src="/js/kayit-ol-DaNdqPJ0.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/menus-Buyzp-nt.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-Baqhpi2B.js">
   <link rel="modulepreload" crossorigin href="/js/charts-Bup7H4Jo.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-Bt6_W7fB.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-97Rmn1Cw.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-BmoBAJlP.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-DDl03MYm.css">
 </head>
 <body>
 
@@ -48,7 +48,7 @@
     <div class="auth-title">Hesabınızı oluşturun</div>
     <div class="auth-subtitle">Bir dakikadan kısa sürede başlayın.</div>
 
-    <div id="signup-error" class="form-hint" style="display:none;color:var(--red);margin-bottom:12px"></div>
+    <div id="signup-error" class="form-hint" role="alert" aria-live="assertive" aria-atomic="true" style="color:var(--red);margin-bottom:0"></div>
 
     <form id="signup-form">
       <!-- Kullanıcı isteği: "kayıt ekranında isim, soyisim ayrı şekilde yazılsın ve
@@ -60,7 +60,7 @@
         <label class="form-label" for="firstName">Ad</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>
-          <input type="text" id="firstName" class="form-control" placeholder="Adınızı girin" autocomplete="given-name" required>
+          <input type="text" id="firstName" class="form-control" aria-describedby="signup-error" placeholder="Adınızı girin" autocomplete="given-name" required>
         </div>
       </div>
 
@@ -68,7 +68,7 @@
         <label class="form-label" for="lastName">Soyad</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>
-          <input type="text" id="lastName" class="form-control" placeholder="Soyadınızı girin" autocomplete="family-name" required>
+          <input type="text" id="lastName" class="form-control" aria-describedby="signup-error" placeholder="Soyadınızı girin" autocomplete="family-name" required>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
         <label class="form-label" for="email">E-posta</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 5l6 4 6-4"/></svg>
-          <input type="email" id="email" class="form-control" placeholder="E-postanızı girin" required>
+          <input type="email" id="email" class="form-control" aria-describedby="signup-error" placeholder="E-postanızı girin" required>
         </div>
       </div>
 
@@ -84,9 +84,9 @@
         <label class="form-label" for="password">Şifre</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
-          <input type="password" id="password" class="form-control" placeholder="En az 6 karakter" minlength="6" required>
+          <input type="password" id="password" class="form-control" aria-describedby="signup-password-hint signup-error" placeholder="En az 6 karakter" minlength="6" required>
         </div>
-        <div class="form-hint">En az 6 karakter.</div>
+        <div class="form-hint" id="signup-password-hint">En az 6 karakter.</div>
       </div>
 
       <div class="auth-actions" style="justify-content:flex-start">
