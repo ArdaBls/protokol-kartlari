@@ -216,11 +216,32 @@ function attachEventsListener() {
     const v = snap.val();
     EVENTS = (v && typeof v === 'object') ? v : {};
     renderCalendar();
+    deepLinkEventsReady = true; maybeOpenDeepLinkedEvent();
   }, (err) => {
     console.error('Etkinlikler okunamadı:', err);
     EVENTS = {};
     renderCalendar();
+    deepLinkEventsReady = true; maybeOpenDeepLinkedEvent();
   });
+}
+
+// Dashboard'daki mini takvim widget'ından (mini-calendar-widget.js) "Düzenle" ile
+// buraya /takvim.html?duzenle=<id> şeklinde gelinince, etkinlikler VE yetki (canWrite)
+// ikisi de hazır olunca ilgili düzenleme modalını otomatik açar -- ikisi ASENKRON ve
+// hangisinin önce geleceği garanti değil, bu yüzden iki bayrak da gerekiyor. Bir kez
+// açıldıktan sonra URL'den temizlenir (sayfa yenilenince tekrar açılmasın diye).
+let deepLinkChecked = false;
+let deepLinkAuthReady = false;
+let deepLinkEventsReady = false;
+function maybeOpenDeepLinkedEvent() {
+  if (deepLinkChecked || !deepLinkAuthReady || !deepLinkEventsReady) { return; }
+  deepLinkChecked = true;
+  const id = new URLSearchParams(window.location.search).get('duzenle');
+  if (!id || !EVENTS[id]) { return; }
+  openEventModal(id);
+  const url = new URL(window.location.href);
+  url.searchParams.delete('duzenle');
+  window.history.replaceState({}, '', url);
 }
 
 async function persistEvent(id, patch, logLabel) {
@@ -258,7 +279,17 @@ async function persistEvent(id, patch, logLabel) {
   };
   try {
     await database.ref('/').update(updates);
-    EVENTS[finalId] = merged;
+    // BUG (kullanıcı bildirimi: "bir etkinliği farklı bir güne koyduktan sonra tekrar
+    // yerini değiştiremiyorum"): burada ESKİDEN `EVENTS[finalId] = merged;` yazılıyordu --
+    // ama `merged`, guncellemeTs alanı olarak hâlâ ESKİ (yazmadan ÖNCEKİ) değeri taşıyordu,
+    // çünkü sunucuya yazılan gerçek değer (`toWrite.guncellemeTs`) bir ServerValue.TIMESTAMP
+    // SENTİNEL'i -- istemci onun sunucuda hangi sayıya çözüleceğini bilemez. Sonuç: yerel
+    // önbellek ESKİ zaman damgasında kalıyordu, kullanıcı etkinliği HEMEN tekrar taşımaya
+    // çalışınca yukarıdaki iyimser-kilit kontrolü kendi az önceki yazmasını "başka biri
+    // değiştirmiş" sanıp engelliyordu. Çözüm: yazmadan hemen sonra sunucudaki GERÇEK kaydı
+    // geri okuyup önbelleğe onu koymak.
+    const saved = await database.ref(dbPath('etkinlikler/' + finalId)).once('value');
+    EVENTS[finalId] = saved.val() || merged;
     return { ok: true, id: finalId };
   } catch (err) {
     console.error('Etkinlik kaydedilemedi:', err);
@@ -1612,7 +1643,7 @@ export function initCalendar() {
   renderCalendar();
 
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; renderCalendar(); return; }
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); return; }
     currentUserEmail = user.email || '';
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
@@ -1620,7 +1651,8 @@ export function initCalendar() {
       canWrite = (role === 'editor' || role === 'admin' || role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
       renderCalendar();
-    }).catch(() => { canWrite = false; renderCalendar(); });
+      deepLinkAuthReady = true; maybeOpenDeepLinkedEvent();
+    }).catch(() => { canWrite = false; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); });
   });
 
   // Test Modu/Salt-Okunur Kilit'in ilk değerleri okunmadan `etkinlikler`e bağlanılırsa

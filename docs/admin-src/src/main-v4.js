@@ -73,9 +73,6 @@ if (document.querySelector('[data-quick-event-btn]')) {
 if (document.querySelector('[data-countdown-value]')) {
   import('./v4/countdown.js').then((m) => m.initCountdown());
 }
-if (document.querySelector('[data-dash-map]')) {
-  import('./v4/dashboard-map.js').then((m) => m.initDashboardMap());
-}
 if (document.querySelector('[data-mini-calendar-list]')) {
   import('./v4/mini-calendar-widget.js').then((m) => m.initMiniCalendarWidget());
 }
