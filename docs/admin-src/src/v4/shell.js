@@ -9,6 +9,7 @@ import { renderShell, EDITOR_NAV_KEYS } from './shell-render.js';
 import { openMenu } from './menus.js';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
+import { initStreak } from './streak.js';
 
 function injectShellIfMissing() {
   const body = document.body;
@@ -537,6 +538,15 @@ export function syncShellUser() {
           window.location.replace('erisim-kisitlandi.html');
           return;
         }
+        // Günlük giriş streak'i -- kullanıcı gerçekten giriş yapmış (misafir değil,
+        // buraya kadar geldiyse `user` dolu demektir) ve engellenmemiş. Sonucu
+        // `window.__streakState` + 'streak:ready' event'i olarak yayınlıyoruz;
+        // hangi sayfa/script önce yüklenirse yüklensin (dashboard main-v4.js vb.)
+        // veriyi kaçırmasın diye HEM global değişken HEM event kullanılıyor.
+        initStreak(firebase.database(), user.uid).then((result) => {
+          window.__streakState = result;
+          document.dispatchEvent(new CustomEvent('streak:ready', { detail: result }));
+        });
         // Yukarıdaki kontrol TEK SEFERLİK (.once) -- kullanıcı panelde AKTİF gezinirken bir
         // admin onu engellerse sayfayı yenileyene/başka sekmeye geçene kadar fark edilmiyordu
         // (kullanıcı bildirimi: "hemen atmıyor, bir sekmeye tıklayınca açılıyor"). erisim-

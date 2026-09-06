@@ -12,17 +12,22 @@ if (window.top !== window.self) {
 
 import './scss/v4/main.scss';
 import { mountShell } from './v4/shell.js';
-import { initCharts, initPhotoCounter, initProtocolCounter } from './v4/charts.js';
+import { initCharts, initPhotoCounter } from './v4/charts.js';
 import { openMenu, DEFAULT_CARD_MENU } from './v4/menus.js';
 import { initCommandPalette } from './v4/command-palette.js';
 import { initPageActions } from './v4/page-actions.js';
+import { initStreakUi } from './v4/streak-ui.js';
 
 mountShell();
 initCharts();
 initPhotoCounter();
-initProtocolCounter();
 initCommandPalette();
 initPageActions();
+// "Streak bitti" bildirimi HER admin sayfasında (main-v4.js hepsinde yükleniyor)
+// tetiklenebilmeli, dashboard-özel değil -- bu yüzden aşağıdaki lazy-load bloğunun
+// dışında, koşulsuz çağrılıyor. Widget'ın kendisi (7 daire) sadece
+// [data-streak-widget] varsa (Operasyonlar sayfası) render edilir.
+initStreakUi();
 
 // Service worker — only in production builds (skip on dev so HMR isn't fought
 // by the cache). Single site-wide SW now (protokol.html shares this same
@@ -67,6 +72,12 @@ if (document.querySelector('[data-quick-event-btn]')) {
 }
 if (document.querySelector('[data-countdown-value]')) {
   import('./v4/countdown.js').then((m) => m.initCountdown());
+}
+if (document.querySelector('[data-dash-map]')) {
+  import('./v4/dashboard-map.js').then((m) => m.initDashboardMap());
+}
+if (document.querySelector('[data-mini-calendar-list]')) {
+  import('./v4/mini-calendar-widget.js').then((m) => m.initMiniCalendarWidget());
 }
 
 // ────────────────────────
