@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Forgot password | Protokol</title>
+<title>Şifremi unuttum | Protokol</title>
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
@@ -17,13 +19,13 @@
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <meta name="description" content="OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Forgot password">
+<meta property="og:title" content="Şifremi unuttum">
 <meta property="og:description" content="OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/icons/icon-512.png">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/sifremi-unuttum-BlvPtzh9.js"></script>
+  <script type="module" crossorigin src="/js/sifremi-unuttum-Cnqkc5UP.js"></script>
   <link rel="modulepreload" crossorigin href="/js/rolldown-runtime-_5RX-BWT.js">
   <link rel="modulepreload" crossorigin href="/js/toast-CBtjS_PZ.js">
   <link rel="modulepreload" crossorigin href="/js/menus-Buyzp-nt.js">
@@ -42,41 +44,43 @@
       <div class="brand-name">Protokol</div>
     </div>
 
-    <div class="auth-title">Forgot your password?</div>
-    <div class="auth-subtitle">Enter your email and we'll send a reset link.</div>
+    <div class="auth-title">Şifrenizi mi unuttunuz?</div>
+    <div class="auth-subtitle">E-posta adresinizi girin, size bir sıfırlama bağlantısı gönderelim.</div>
+
+    <div id="reset-error" class="form-hint" role="alert" aria-live="assertive" aria-atomic="true" style="color:var(--red);margin-bottom:0"></div>
 
     <form id="reset-form">
       <div class="form-group">
-        <label class="form-label" for="email">Email</label>
+        <label class="form-label" for="email">E-posta</label>
         <div class="input-group">
           <svg class="input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 5l6 4 6-4"/></svg>
-          <input type="email" id="email" class="form-control" placeholder="you@company.com" required>
+          <input type="email" id="email" class="form-control" aria-describedby="reset-error" placeholder="E-posta adresiniz" required>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
-        Send reset link
+      <button type="submit" id="reset-submit" class="btn btn-primary" style="width:100%;justify-content:center;height:38px">
+        Sıfırlama bağlantısı gönder
       </button>
     </form>
 
-    <div class="auth-divider">or</div>
+    <div class="auth-divider">veya</div>
 
     <div style="text-align:center">
       <a href="giris.html" class="btn btn-outline" style="display:inline-flex;justify-content:center">
-        ← Back to sign in
+        ← Giriş sayfasına dön
       </a>
     </div>
 
-    <div class="auth-success" id="reset-success" hidden>
+    <div class="auth-success" id="reset-success" role="status" aria-live="polite" hidden>
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
         <circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/>
       </svg>
-      <div class="success-title">Check your email</div>
-      <div class="success-desc">We sent a password reset link to <strong id="reset-email"></strong>. The link expires in 30 minutes.</div>
+      <div class="success-title">E-postanızı kontrol edin</div>
+      <div class="success-desc"><strong id="reset-email"></strong> adresine şifre sıfırlama bağlantısı gönderdik.</div>
     </div>
 
     <div class="auth-footer">
-      Don't have an account? <a href="kayit-ol.html">Create one</a>
+      Hesabınız yok mu? <a href="kayit-ol.html">Hesap oluşturun</a>
     </div>
   </div>
 </div>
