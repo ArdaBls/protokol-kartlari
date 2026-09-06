@@ -20,13 +20,12 @@ function hmToMin(s) {
 // bugünün tarih aralığına düşen (tek günlük veya çok günlü) bir etkinlik: saatsizse
 // (tüm gün) bugün olması yeterli, saatliyse şu anki saat başlangıç-bitiş arasında mı
 // diye de bakılır (calendar.js'teki tam hassasiyet gerekmiyor, küçük bir widget bu).
-function isHappeningNow(e) {
-  const today = dKeyToday();
+export function isHappeningNow(e, now = new Date()) {
+  const today = dKeyToday(now);
   const start = e.tarih, end = e.bitisTarihi || e.tarih;
   if (today < start || today > end) { return false; }
   if (!e.saat) { return true; }
   if (start !== end) { return true; } // çok günlü + saatli: gün aralığında olmak yeterli
-  const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const startMin = hmToMin(e.saat);
   if (startMin === null) { return true; }
