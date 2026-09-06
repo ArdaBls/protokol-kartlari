@@ -66,7 +66,7 @@ function renderStreakWidget(state) {
     <div class="stat-content">
       <div class="stat-label">Giriş Serisi</div>
       <div class="stat-value-row"><span class="stat-value" style="font-size:16px">${label}</span></div>
-      <div class="streak-circles">${circles}</div>
+      <div class="streak-circles" aria-hidden="true">${circles}</div>
     </div>
   `;
 }

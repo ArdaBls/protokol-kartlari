@@ -640,7 +640,7 @@ input[type="range"].slider:focus-visible {
   flex-direction: column;
   gap: 2px;
   padding: 14px 8px 14px 14px;
-  border-inline-end: 1px solid var(--border-color-light);
+  border-inline-end: 1px solid var(--border-color);
   background: var(--bg-surface-secondary);
   min-width: 140px;
 }
