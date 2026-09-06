@@ -117,7 +117,21 @@ let currentUserName = '';
 let currentUserEmail = '';
 let canWrite = false;
 
-let EVENTS = {}; // id -> event
+let EVENTS = Object.create(null); // id -> event; prototip anahtarları veri değildir.
+let eventsByDate = new Map();
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+function safeEventId(id) {
+  return typeof id === 'string' && id.length > 0 && !UNSAFE_KEYS.has(id) && !/[.#$\[\]/\u0000-\u001f\u007f]/.test(id) ? id : null;
+}
+function cleanEvents(value) {
+  const clean = Object.create(null);
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    for (const id of Object.keys(value)) {
+      if (safeEventId(id)) { clean[id] = value[id]; }
+    }
+  }
+  return clean;
+}
 let calView = 'week';
 let calAnchor = new Date();
 let sortableInstances = [];
@@ -202,7 +216,15 @@ function eventList() {
 // görmek, silmek imkânsızdı). Ana sitede (app.js calVisibleEvents) böyle bir gizleme YOK;
 // iptaller görünür kalır, sadece .cancelled stiliyle (üstü çizili) ayırt edilir.
 function visibleEvents() { return eventList(); }
-function eventsOn(dateKey) { return visibleEvents().filter((e) => e.tarih === dateKey); }
+function rebuildEventsByDate() {
+  eventsByDate = new Map();
+  // Başlangıç gününe göre gruplama korunur; çok günlük şeritler ayrı çizilir.
+  for (const event of visibleEvents()) {
+    if (!eventsByDate.has(event.tarih)) { eventsByDate.set(event.tarih, []); }
+    eventsByDate.get(event.tarih).push(event);
+  }
+}
+function eventsOn(dateKey) { return eventsByDate.get(dateKey) || []; }
 
 // ── Firebase read/write ──
 
@@ -214,12 +236,12 @@ function attachEventsListener() {
   eventsListenerRef = database.ref(dbPath('etkinlikler'));
   eventsListenerRef.on('value', (snap) => {
     const v = snap.val();
-    EVENTS = (v && typeof v === 'object') ? v : {};
+    EVENTS = cleanEvents(v);
     renderCalendar();
     deepLinkEventsReady = true; maybeOpenDeepLinkedEvent();
   }, (err) => {
     console.error('Etkinlikler okunamadı:', err);
-    EVENTS = {};
+    EVENTS = Object.create(null);
     renderCalendar();
     deepLinkEventsReady = true; maybeOpenDeepLinkedEvent();
   });
@@ -237,7 +259,7 @@ function maybeOpenDeepLinkedEvent() {
   if (deepLinkChecked || !deepLinkAuthReady || !deepLinkEventsReady) { return; }
   deepLinkChecked = true;
   const id = new URLSearchParams(window.location.search).get('duzenle');
-  if (!id || !EVENTS[id]) { return; }
+  if (!safeEventId(id) || !EVENTS[id]) { return; }
   openEventModal(id);
   const url = new URL(window.location.href);
   url.searchParams.delete('duzenle');
@@ -245,6 +267,7 @@ function maybeOpenDeepLinkedEvent() {
 }
 
 async function persistEvent(id, patch, logLabel) {
+  if (id != null && !safeEventId(id)) { return null; }
   if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return null; }
   if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return null; }
   const isNew = !id;
@@ -265,6 +288,7 @@ async function persistEvent(id, patch, logLabel) {
     }
   }
   const finalId = id || database.ref(dbPath('etkinlikler')).push().key;
+  if (!safeEventId(finalId)) { return null; }
   const merged = Object.assign({}, current, patch);
   const updates = {};
   const toWrite = Object.assign({}, merged);
@@ -299,6 +323,7 @@ async function persistEvent(id, patch, logLabel) {
 }
 
 async function deleteEvent(id) {
+  if (!safeEventId(id)) { return; }
   if (!canWrite) { showToast('Bu işlem için yetkiniz yok.', { variant: 'error' }); return; }
   if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
   const e = EVENTS[id]; if (!e) { return; }
@@ -446,6 +471,7 @@ function layoutMultiDayRow(bars) {
 // ── Render dispatcher ──
 
 function renderCalendar() {
+  rebuildEventsByDate();
   calCancelPendingCreate();
   // calOnWindowResize "gün sayısı değişti mi" karşılaştırmasını buradaki değere göre yapar.
   calLastDayCount = calDayCount();
