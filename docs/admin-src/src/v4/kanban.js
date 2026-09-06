@@ -6,6 +6,7 @@
 // yönetilir, bu pano sadece haber üretim iş akışının durumunu gösterir.
 
 import { showToast } from './toast.js';
+import { openMenu } from './menus.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 
 const firebaseConfig = {
@@ -122,8 +123,15 @@ function renderCard(v) {
   // panosu görev/etkinlik ayrımı yapmadan tek bir "Tamamlandı" sütununda gösterdiği için
   // tamamlayan izini burada göstermek her iki kaynağı da kapsıyor.
   const completedBy = (v.durum === 'tamamlandi' && e.tamamlayan) ? `<span class="kanban-avatar kanban-avatar--done" title="${escapeHtml(e.tamamlayan)} tamamladı">${escapeHtml(e.tamamlayan.charAt(0).toUpperCase())}</span>` : '';
+  // Erişilebilirlik düzeltmesi (denetim bulgusu, KRİTİK): durum değiştirmenin TEK yolu
+  // sürükle-bırak idi -- klavye/switch-access kullanıcısı bir kartı hiçbir sütuna
+  // taşıyamıyordu. Bu buton (sadece yazma yetkisi varken görünür) AYNI moveCardTo()
+  // yazma yolunu kullanan, gerçek bir <button> -- doğal olarak Tab ile odaklanır,
+  // Enter/Space ile açılır; menus.js'in openMenu()'sü zaten Escape/dış-tıklama ile
+  // kapanma ve ilk öğeye odaklanma sağlıyor (ayrıca bkz. modal.js'teki AYNI desen).
+  const moveBtn = canWrite ? `<button type="button" class="kanban-move-btn" data-move-id="${escapeHtml(v.id)}" aria-label="${escapeHtml(v.title)} kartını başka bir sütuna taşı" title="Sütuna taşı">↕</button>` : '';
   return `
-    <article class="kanban-card${v.overdue ? ' kanban-card--overdue' : ''}" draggable="${canWrite}" data-id="${v.id}" data-source="${v.source}">
+    <article class="kanban-card${v.overdue ? ' kanban-card--overdue' : ''}" draggable="${canWrite}" data-id="${escapeHtml(v.id)}" data-source="${escapeHtml(v.source)}">
       <div class="kanban-card-title">${escapeHtml(v.title)}</div>
       ${v.subtitle ? `<div class="kanban-card-desc">${escapeHtml(v.subtitle)}</div>` : ''}
       <div class="kanban-card-foot">
@@ -131,7 +139,7 @@ function renderCard(v) {
           ${v.dateKey ? `<span class="due-date">${escapeHtml(fmtTarih(v.dateKey))}</span>` : ''}
           ${weekTag}
         </div>
-        <div class="kanban-card-avatars">${completedBy}${avatars}</div>
+        <div class="kanban-card-avatars">${completedBy}${avatars}${moveBtn}</div>
       </div>
     </article>
   `;
@@ -198,55 +206,77 @@ function setupDnD() {
     if (!body || !draggedId) { return; }
     e.preventDefault();
     body.classList.remove('drop-target');
-    const newCol = body.dataset.drop;
-    const ev = EVENTS[draggedId];
-    if (!ev || normalizeDurum(ev.durum) === newCol) { return; }
-    if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
-    if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
-    const oldDurum = ev.durum;
-    const oldTitle = COLUMNS.find((c) => c.id === normalizeDurum(oldDurum))?.title || oldDurum || '—';
-    const newTitle = COLUMNS.find((c) => c.id === newCol)?.title || newCol;
-    const title = ev._source === 'gorev' ? (ev.metin || 'Görev') : (ev.ad || 'Etkinlik');
-    const oldTamamlayan = ev.tamamlayan;
-    ev.durum = newCol; // iyimser güncelleme
-    ev.tamamlayan = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
-    render();
-    // Durum değişikliği ESKİDEN tek başına .set() ile yazılıyordu: ne işlem günlüğüne
-    // (logs/etkinlik) düşüyordu -- yani panodan yapılan durum değişiklikleri admin
-    // log ekranında HİÇ görünmüyordu -- ne de guncellemeTs tazeleniyordu (admin
-    // panosunun "en eski güncellenen" sıralaması bu alana bakıyor). Projedeki diğer
-    // tüm etkinlik yazmaları gibi artık TEK atomik çok-yollu update ile yazılıyor.
-    const updates = {};
-    const basePath = dbPath(ev._source === 'gorev' ? 'gorevler/' + draggedId : 'etkinlikler/' + draggedId);
-    updates[basePath + '/durum'] = newCol;
-    updates[basePath + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
-    // Kullanıcı isteği: tamamlanan görev/etkinlikte kimin tamamladığı belli olsun (kart
-    // üzerinde avatar). Başka bir sütuna geri sürüklenirse temizlenir -- yoksa eski bir
-    // tamamlama izi yanlışlıkla kalmış gibi görünürdü.
-    updates[basePath + '/tamamlayan'] = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
-    updates[basePath + '/tamamlayanEmail'] = newCol === 'tamamlandi' ? currentUserEmail : null;
-    if (ev._source === 'gorev') {
-      // Operasyonlar'daki checkbox hâlâ tamamlandi boolean'ını okuyor -- iki yönlü ayna.
-      updates[basePath + '/tamamlandi'] = newCol === 'tamamlandi';
-    }
-    const logPath = dbPath(ev._source === 'gorev' ? 'logs/gorev' : 'logs/etkinlik');
-    const logKey = database.ref(logPath).push().key;
-    updates[logPath + '/' + logKey] = {
-      by: currentUserName || currentUserEmail, email: currentUserEmail,
-      action: title + (ev._source === 'gorev' ? ' görevinin' : ' etkinliğinin') + ' durumu panodan değiştirildi · Durum: ' + oldTitle + ' → ' + newTitle,
-      target: title,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
-    database.ref('/').update(updates)
-      .then(() => showToast(`"${title}" → ${newTitle}`, { variant: 'success' }))
-      .catch((err) => {
-        console.error('Durum güncellenemedi:', err);
-        ev.durum = oldDurum;
-        ev.tamamlayan = oldTamamlayan;
-        render();
-        showToast('Durum güncellenemedi.', { variant: 'error' });
-      });
+    moveCardTo(draggedId, body.dataset.drop);
   });
+
+  // Erişilebilirlik düzeltmesi: "Taşı" butonu (renderCard'da eklendi) -- klavye/switch-
+  // access kullanıcısı için sürükle-bırağın TEK alternatifi. Aynı moveCardTo() yazma
+  // yolunu kullanır, sadece hedef sütunu sürükleme yerine bir menüden seçtirir.
+  boardEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-move-id]');
+    if (!btn) { return; }
+    const id = btn.dataset.moveId;
+    const ev = EVENTS[id];
+    if (!ev) { return; }
+    const currentCol = normalizeDurum(ev.durum);
+    const items = COLUMNS.filter((c) => c.id !== currentCol).map((c) => ({
+      label: c.title,
+      action: () => moveCardTo(id, c.id)
+    }));
+    openMenu(btn, items);
+  });
+}
+
+// Sürükle-bırak VE "Taşı" menüsü (klavye erişilebilirlik alternatifi) AYNI yazma
+// yolunu paylaşır -- ikisi de burada birleşiyor.
+function moveCardTo(id, newCol) {
+  const ev = EVENTS[id];
+  if (!ev || normalizeDurum(ev.durum) === newCol) { return; }
+  if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return; }
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
+  const oldDurum = ev.durum;
+  const oldTitle = COLUMNS.find((c) => c.id === normalizeDurum(oldDurum))?.title || oldDurum || '—';
+  const newTitle = COLUMNS.find((c) => c.id === newCol)?.title || newCol;
+  const title = ev._source === 'gorev' ? (ev.metin || 'Görev') : (ev.ad || 'Etkinlik');
+  const oldTamamlayan = ev.tamamlayan;
+  ev.durum = newCol; // iyimser güncelleme
+  ev.tamamlayan = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
+  render();
+  // Durum değişikliği ESKİDEN tek başına .set() ile yazılıyordu: ne işlem günlüğüne
+  // (logs/etkinlik) düşüyordu -- yani panodan yapılan durum değişiklikleri admin
+  // log ekranında HİÇ görünmüyordu -- ne de guncellemeTs tazeleniyordu (admin
+  // panosunun "en eski güncellenen" sıralaması bu alana bakıyor). Projedeki diğer
+  // tüm etkinlik yazmaları gibi artık TEK atomik çok-yollu update ile yazılıyor.
+  const updates = {};
+  const basePath = dbPath(ev._source === 'gorev' ? 'gorevler/' + id : 'etkinlikler/' + id);
+  updates[basePath + '/durum'] = newCol;
+  updates[basePath + '/guncellemeTs'] = firebase.database.ServerValue.TIMESTAMP;
+  // Kullanıcı isteği: tamamlanan görev/etkinlikte kimin tamamladığı belli olsun (kart
+  // üzerinde avatar). Başka bir sütuna geri sürüklenirse temizlenir -- yoksa eski bir
+  // tamamlama izi yanlışlıkla kalmış gibi görünürdü.
+  updates[basePath + '/tamamlayan'] = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
+  updates[basePath + '/tamamlayanEmail'] = newCol === 'tamamlandi' ? currentUserEmail : null;
+  if (ev._source === 'gorev') {
+    // Operasyonlar'daki checkbox hâlâ tamamlandi boolean'ını okuyor -- iki yönlü ayna.
+    updates[basePath + '/tamamlandi'] = newCol === 'tamamlandi';
+  }
+  const logPath = dbPath(ev._source === 'gorev' ? 'logs/gorev' : 'logs/etkinlik');
+  const logKey = database.ref(logPath).push().key;
+  updates[logPath + '/' + logKey] = {
+    by: currentUserName || currentUserEmail, email: currentUserEmail,
+    action: title + (ev._source === 'gorev' ? ' görevinin' : ' etkinliğinin') + ' durumu panodan değiştirildi · Durum: ' + oldTitle + ' → ' + newTitle,
+    target: title,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+  database.ref('/').update(updates)
+    .then(() => showToast(`"${title}" → ${newTitle}`, { variant: 'success' }))
+    .catch((err) => {
+      console.error('Durum güncellenemedi:', err);
+      ev.durum = oldDurum;
+      ev.tamamlayan = oldTamamlayan;
+      render();
+      showToast('Durum güncellenemedi.', { variant: 'error' });
+    });
 }
 
 // Kullanıcı isteği: "birisi operasyonlarda görevi tamamlarsa anlık işlemiyor, sayfayı

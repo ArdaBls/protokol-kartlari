@@ -777,6 +777,16 @@
 // olsun") -- diğer avatarlardan renkle ayrışsın diye yeşil (--green, "Tamamlandı" durumuyla
 // aynı semantik renk).
 .kanban-avatar--done { background: var(--green); }
+// Erişilebilirlik düzeltmesi: sürükle-bırağın klavye/switch-access alternatifi --
+// bkz. kanban.js renderCard/moveCardTo. .card-opt-btn ile aynı boyut/dil.
+.kanban-move-btn {
+  width: 22px; height: 22px; margin-inline-start: 2px; flex-shrink: 0;
+  border: none; background: transparent; border-radius: var(--radius-sm);
+  color: var(--text-muted); cursor: pointer; font-size: 13px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 100ms, color 100ms;
+}
+.kanban-move-btn:hover, .kanban-move-btn:focus-visible { background: var(--body-bg); color: var(--text-secondary); }
 
 // Haftalık pano filtresi: geçen haftadan kalıp henüz tamamlanmamış kartlar
 // (bkz. kanban.js visibleEvents) ince kırmızı kenarlık + hangi haftadan

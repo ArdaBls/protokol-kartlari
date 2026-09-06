@@ -71,30 +71,43 @@ function renderStreakWidget(state) {
   `;
 }
 
+// Erişilebilirlik düzeltmesi (denetim bulgusu, KRİTİK): bu popup modal.js'i
+// KULLANMIYOR (kasıtlı -- modal.js'in başlık çubuğu/kapat-X/footer butonları bu
+// "ortada beliren kart" tasarımına uymuyor), ama bu yüzden modal.js'in ÜCRETSİZ
+// sağladığı temel dialog erişilebilirliğinden (role, odak yönetimi, Escape) de
+// mahrum kalmıştı -- ekran okuyucu popup'ın açıldığını hiç duyurmuyordu, klavye
+// kullanıcısı Escape ile kapatamıyordu, kapanınca odak tetikleyici elemana
+// dönmüyordu. Görsel tasarıma DOKUNMADAN aynı üç şey burada elle uygulanıyor.
 function showStreakBrokenPopup() {
+  const previousFocus = document.activeElement;
   const backdrop = document.createElement('div');
   backdrop.className = 'streak-popup-backdrop';
   backdrop.innerHTML = `
-    <div class="streak-popup">
+    <div class="streak-popup" role="alertdialog" aria-modal="true" aria-labelledby="streak-popup-title" aria-describedby="streak-popup-desc" tabindex="-1">
       <div class="streak-popup-eyebrow">Seri bitti</div>
       ${HAMSTER_WHEEL_HTML}
-      <div class="streak-popup-title">Giriş serin sona erdi</div>
-      <div class="streak-popup-desc">Sitede daha çok vakit geçirmelisin.</div>
-      <div class="streak-popup-hint">Kapatmak için dokunun</div>
+      <div class="streak-popup-title" id="streak-popup-title">Giriş serin sona erdi</div>
+      <div class="streak-popup-desc" id="streak-popup-desc">Sitede daha çok vakit geçirmelisin.</div>
+      <div class="streak-popup-hint">Kapatmak için dokunun veya Escape'e basın</div>
     </div>
   `;
   document.body.appendChild(backdrop);
   requestAnimationFrame(() => backdrop.classList.add('open'));
+  backdrop.querySelector('.streak-popup')?.focus();
   let done = false;
+  function onKeydown(e) { if (e.key === 'Escape') { close(); } }
   function close() {
     if (done) { return; }
     done = true;
     backdrop.removeEventListener('click', close);
+    document.removeEventListener('keydown', onKeydown);
     clearTimeout(autoTimer);
     backdrop.classList.remove('open');
     setTimeout(() => backdrop.remove(), 220);
+    if (previousFocus && typeof previousFocus.focus === 'function') { previousFocus.focus(); }
   }
   backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', onKeydown);
   const autoTimer = setTimeout(close, 5500);
 }
 

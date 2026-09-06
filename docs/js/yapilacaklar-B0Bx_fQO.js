@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/kanban-D9QUZvUo.js","js/toast-CBtjS_PZ.js","js/rolldown-runtime-_5RX-BWT.js","js/menus-Buyzp-nt.js","js/db-mode-Baqhpi2B.js"])))=>i.map(i=>d[i]);
+import{t as n}from"./main-v4-BDNmEKl2.js";n(async()=>{const{initKanban:n}=await(import("./kanban-D9QUZvUo.js"));return{initKanban:n}},__vite__mapDeps([0,1,2,3,4])).then(({initKanban:n})=>{n()});

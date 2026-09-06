@@ -386,31 +386,44 @@ function klimaKapattim(uid) {
 // ── Yeni başarım bildirimi: ekranın ortasında, tıklayınca veya birkaç saniye sonra kapanan
 // bir kart (kullanıcı isteği -- köşedeki toast YETMEZ, "ekranın ortasına gelen bildirim ile
 // çıkmalı"). Birden fazla başarım aynı anda kazanılırsa queueAchievementPopups sırayla gösterir. ──
+// Erişilebilirlik düzeltmesi (denetim bulgusu, KRİTİK): bu popup modal.js'i
+// KULLANMIYOR (kasıtlı -- modal.js'in başlık çubuğu/kapat-X/footer butonları bu
+// "ortada beliren kart" tasarımına uymuyor), ama bu yüzden modal.js'in ÜCRETSİZ
+// sağladığı temel dialog erişilebilirliğinden (role, odak yönetimi, Escape) de
+// mahrum kalmıştı. Görsel tasarıma DOKUNMADAN aynı üç şey burada elle uygulanıyor
+// (streak-ui.js'teki showStreakBrokenPopup ile AYNI desen -- iki bağımsız bileşende
+// tekrarlanan aynı erişilebilirlik açığıydı).
 function showAchievementPopup(a) {
   return new Promise((resolve) => {
+    const previousFocus = document.activeElement;
     const backdrop = document.createElement('div');
     backdrop.className = 'achievement-popup-backdrop';
     backdrop.innerHTML = `
-      <div class="achievement-popup">
+      <div class="achievement-popup" role="alertdialog" aria-modal="true" aria-labelledby="achievement-popup-name" aria-describedby="achievement-popup-desc" tabindex="-1">
         <div class="achievement-popup-eyebrow">Yeni başarım</div>
         <div class="achievement-popup-icon"><img src="${escapeHtml(a.icon)}" alt=""></div>
-        <div class="achievement-popup-name">${escapeHtml(a.ad || '(adsız)')}</div>
-        <div class="achievement-popup-desc">${escapeHtml(a.aciklama || '')}</div>
-        <div class="achievement-popup-hint">Kapatmak için dokunun</div>
+        <div class="achievement-popup-name" id="achievement-popup-name">${escapeHtml(a.ad || '(adsız)')}</div>
+        <div class="achievement-popup-desc" id="achievement-popup-desc">${escapeHtml(a.aciklama || '')}</div>
+        <div class="achievement-popup-hint">Kapatmak için dokunun veya Escape'e basın</div>
       </div>
     `;
     document.body.appendChild(backdrop);
     requestAnimationFrame(() => backdrop.classList.add('open'));
+    backdrop.querySelector('.achievement-popup')?.focus();
     let done = false;
+    function onKeydown(e) { if (e.key === 'Escape') { close(); } }
     function close() {
       if (done) { return; }
       done = true;
       backdrop.removeEventListener('click', close);
+      document.removeEventListener('keydown', onKeydown);
       clearTimeout(autoTimer);
       backdrop.classList.remove('open');
       setTimeout(() => { backdrop.remove(); resolve(); }, 220);
+      if (previousFocus && typeof previousFocus.focus === 'function') { previousFocus.focus(); }
     }
     backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', onKeydown);
     const autoTimer = setTimeout(close, 4500);
   });
 }
