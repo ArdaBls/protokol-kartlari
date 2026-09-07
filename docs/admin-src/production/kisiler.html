@@ -103,9 +103,16 @@ function render(users, events) {
     const initial = name.charAt(0).toUpperCase() || '?';
     const etkinlikSayisi = gorevliCounts[name] || 0;
     const haberSayisi = haberCounts[name] || 0;
+    // Admin/owner zaten users/{uid}'yi tam okuyabiliyor -- avatarUrl de orada,
+    // kullanıcı isteği: "kişiler sekmesinde de herkes birbirinin profil
+    // fotoğrafını görüntüleyebilsin" (yalnızca editör görünümünde değil).
+    const hasPhoto = isSafeAvatarUrl(u.avatarUrl);
+    const avStyle = hasPhoto
+      ? `background-image:url("${String(u.avatarUrl).replace(/["'()]/g, '')}")`
+      : `background:${ROLE_COLOR[role] || ROLE_COLOR.pending}`;
     return `
       <div class="contact-card">
-        <div class="av" style="background:${ROLE_COLOR[role] || ROLE_COLOR.pending}">${escapeHtml(initial)}</div>
+        <div class="av${hasPhoto ? ' has-photo' : ''}" style="${avStyle}">${hasPhoto ? '' : escapeHtml(initial)}</div>
         <div class="name">${escapeHtml(name)}</div>
         <div class="role">${escapeHtml(ROLE_LABEL[role] || role)}</div>
         <div style="font-size:12px;color:var(--text-muted);word-break:break-word;margin-bottom:12px">${escapeHtml(u.email || '')}</div>

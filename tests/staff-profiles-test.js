@@ -151,6 +151,21 @@ function makeMockDatabase(initial) {
     console.log('PASS: syncStaffProfile alanları merge ediyor, dokunulmayanı silmiyor');
   }
 
+  // 8b) subscribeStaffProfiles auth-sonrası yeniden deneme -- statik kaynak kontrolü.
+  // Kullanıcı bulgusu: "Yapılacaklar listesindeki avatarlarda resimler gözükmüyor".
+  // Kök sebep: kanban.js/tasks-widget.js subscribeStaffProfiles'ı sayfa açılır
+  // açılmaz, auth.onAuthStateChanged'den ÖNCE çağırıyordu -- Firebase Auth henüz
+  // çözülmemişken staffProfiles'a .on('value') açılırsa PERMISSION_DENIED alınabilir
+  // ve eskiden listenerStarted kalıcı true kaldığı için bir daha ASLA denenmiyordu.
+  // db-mode.js'teki initDbMode'un AYNI sınıf hata için kullandığı "auth hazır olunca
+  // yeniden dene" deseni (onAuthStateChanged tabanlı retry) burada da olmalı.
+  {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'staff-profiles.js'), 'utf8');
+    assert.match(source, /onAuthStateChanged/, 'subscribeStaffProfiles PERMISSION_DENIED sonrası auth hazır olunca yeniden denemeli');
+    assert.match(source, /function retryProfilesAfterAuth/, 'ayrı bir yeniden-deneme fonksiyonu olmalı (db-mode.js retryAfterAuth ile aynı desen)');
+    console.log('PASS: subscribeStaffProfiles PERMISSION_DENIED sonrası auth hazır olunca yeniden deniyor');
+  }
+
   // 9) Yerel Firebase kuralları -- statik yapı kontrolü (kural motoru yok, first-package-security-test.js ile aynı yaklaşım).
   {
     const rulesPath = path.join(__dirname, '..', 'yerel-notlar', 'firebase-database-rules.json');

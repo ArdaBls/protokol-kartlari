@@ -30,8 +30,8 @@
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
   <script type="module" crossorigin src="/js/toast-C9dk_WzR.js"></script>
   <script type="module" crossorigin src="/js/db-mode-F_jprkvV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BIQuRXSt.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-B6zIzrYc.css">
+  <script type="module" crossorigin src="/js/main-v4-Dr5dEz0j.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-B5y21cdP.css">
 </head>
 <body data-shell="admin" data-page="dashboard" data-breadcrumb="Anasayfa|index.html > Operasyonlar">
 
@@ -260,44 +260,69 @@
 
        Bugün/Bu hafta/Yaklaşan özet bölümleri Takvim sayfasından buraya, Editör
        Aktivitesi'nin SAĞINA taşındı -- eski "Takvim Görünümü" mini takvim kartının
-       (mini-calendar-widget.js) yerini alıyor (bkz. operations-overview-widget.js). -->
+       (mini-calendar-widget.js) yerini alıyor (bkz. operations-overview-widget.js).
+       Kullanıcı isteği: Etkinlik Özeti kartı daha belirgin olsun diye Editör
+       Aktivitesi + Görevler'in TOPLAM yüksekliği kadar uzatıldı (sağ sütun sol
+       sütunun iki kartını da kapsayacak şekilde geriliyor, bkz. .col-8-4 grid'i
+       tek bir satırda tutan sarmalayıcı div). -->
   <div class="row col-8-4">
-    <div class="card" style="display:flex;flex-direction:column;height:402px">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Editör Aktivitesi</div>
-          <div class="card-subtitle" data-editor-activity-subtitle>Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık</div>
-        </div>
-        <div class="card-options">
-          <div class="chart-tabs" data-chart-view-tabs>
-            <button type="button" class="chart-tab active" data-chart-view-btn="line">Ay</button>
-            <button type="button" class="chart-tab" data-chart-view-btn="daily">Gün</button>
-            <button type="button" class="chart-tab" data-chart-view-btn="share">%</button>
+    <div style="display:flex;flex-direction:column;gap:var(--space-4);min-height:0">
+      <div class="card" style="display:flex;flex-direction:column;height:402px">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Editör Aktivitesi</div>
+            <div class="card-subtitle" data-editor-activity-subtitle>Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık</div>
           </div>
-        </div>
-      </div>
-      <div class="chart-area" data-chart-view="line" style="flex:1;min-height:0">
-        <div data-chart="editor-event-activity" style="width:100%;height:100%"></div>
-      </div>
-      <div class="chart-area" data-chart-view="daily" style="flex:1;min-height:0;display:none">
-        <div data-chart="editor-daily-activity" style="width:100%;height:100%"></div>
-      </div>
-      <div class="chart-area" data-chart-view="share" style="flex:1;min-height:0;display:none">
-        <div class="donut-block donut-block-lg">
-          <div class="donut-svg-lg">
-            <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
-            <div class="donut-center-label">
-              <div class="num">—</div>
-              <div class="sub">yüzde</div>
+          <div class="card-options">
+            <div class="chart-tabs" data-chart-view-tabs>
+              <button type="button" class="chart-tab active" data-chart-view-btn="line">Ay</button>
+              <button type="button" class="chart-tab" data-chart-view-btn="daily">Gün</button>
+              <button type="button" class="chart-tab" data-chart-view-btn="share">%</button>
             </div>
           </div>
-          <div class="donut-legend-wrap-lg donut-legend donut-legend--lg"></div>
         </div>
+        <div class="chart-area" data-chart-view="line" style="flex:1;min-height:0">
+          <div data-chart="editor-event-activity" style="width:100%;height:100%"></div>
+        </div>
+        <div class="chart-area" data-chart-view="daily" style="flex:1;min-height:0;display:none">
+          <div data-chart="editor-daily-activity" style="width:100%;height:100%"></div>
+        </div>
+        <div class="chart-area" data-chart-view="share" style="flex:1;min-height:0;display:none">
+          <div class="donut-block donut-block-lg">
+            <div class="donut-svg-lg">
+              <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
+              <div class="donut-center-label">
+                <div class="num">—</div>
+                <div class="sub">yüzde</div>
+              </div>
+            </div>
+            <div class="donut-legend-wrap-lg donut-legend donut-legend--lg"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GÖREVLER ── -->
+      <!-- Kullanıcı isteği: harita önizlemesi kaldırıldı, yerine Görevler geldi. -->
+      <!-- To-Do — gerçek Firebase verisi, bkz. tasks-widget.js -->
+      <div class="card" style="display:flex;flex-direction:column;height:402px">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Görevler</div>
+            <div class="card-subtitle" data-todo-counter>Yükleniyor…</div>
+          </div>
+          <div class="card-options">
+            <button type="button" class="card-opt-btn card-opt-btn-labeled" data-quick-event-btn aria-label="Bir Etkinliğe Gidiyorum" title="Bir Etkinliğe Gidiyorum">📍 Bir Etkinliğe Gidiyorum</button>
+            <button type="button" class="card-opt-btn" data-task-add aria-label="Yeni görev ekle"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg></button>
+          </div>
+        </div>
+        <div class="card-body" data-task-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
       </div>
     </div>
 
-    <!-- Etkinlik Özeti — gerçek Firebase verisi, bkz. operations-overview-widget.js -->
-    <div class="card" data-operations-overview style="display:flex;flex-direction:column;height:402px">
+    <!-- Etkinlik Özeti — gerçek Firebase verisi, bkz. operations-overview-widget.js.
+         Sabit yükseklik YOK -- grid'in varsayılan align-items:stretch'i bu kartı
+         soldaki iki kartın TOPLAM yüksekliğine geriyor. -->
+    <div class="card" data-operations-overview style="display:flex;flex-direction:column">
       <div class="card-header">
         <div>
           <div class="card-title">Etkinlik Özeti</div>
@@ -318,25 +343,6 @@
           <div class="overview-list" data-overview-list="upcoming"></div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ── GÖREVLER ── -->
-  <!-- Kullanıcı isteği: harita önizlemesi kaldırıldı, yerine Görevler geldi. -->
-  <div class="row">
-    <!-- To-Do — gerçek Firebase verisi, bkz. tasks-widget.js -->
-    <div class="card" style="display:flex;flex-direction:column;height:402px">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Görevler</div>
-          <div class="card-subtitle" data-todo-counter>Yükleniyor…</div>
-        </div>
-        <div class="card-options">
-          <button type="button" class="card-opt-btn card-opt-btn-labeled" data-quick-event-btn aria-label="Bir Etkinliğe Gidiyorum" title="Bir Etkinliğe Gidiyorum">📍 Bir Etkinliğe Gidiyorum</button>
-          <button type="button" class="card-opt-btn" data-task-add aria-label="Yeni görev ekle"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg></button>
-        </div>
-      </div>
-      <div class="card-body" data-task-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
     </div>
   </div>
 

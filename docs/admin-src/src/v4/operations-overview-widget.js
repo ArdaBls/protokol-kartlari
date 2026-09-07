@@ -6,14 +6,18 @@
 // Sınıflandırma mantığı event-overview.js'te (saf fonksiyonlar); burası sadece
 // Firebase verisini charts.js'in PAYLAŞILAN aboneliğinden alır (mini-calendar-
 // widget.js'in de yaptığı gibi -- ayrı bir dinleyici AÇMAZ) ve render eder.
-// Kartlara tıklayınca /takvim.html?duzenle=<id>'ye gider -- calendar.js'teki
-// maybeOpenDeepLinkedEvent bu deep-link'i zaten işliyor (mini-calendar-widget.js
-// ile AYNI mekanizma), ayrı bir düzenleme modalı burada YOK.
+//
+// Kullanıcı isteği: satırın TAMAMI tıklanabilir bir bağlantı OLMASIN -- isme
+// tıklayınca hiçbir yere gidilmesin, bilgi olduğu yerde kalsın. Düzenlemek için
+// mini-calendar-widget.js'teki eski "kalem" ikonu geri getirildi -- SADECE o
+// ikon /takvim.html?duzenle=<id>'ye gider (calendar.js'teki maybeOpenDeepLinkedEvent
+// orada düzenleme modalını otomatik açar, ayrı bir detay ekranı YOK).
 import { subscribeSharedActivityData } from './charts.js';
 import { escapeHtml } from './markup.js';
 import { getEventStartDate, getEventEndDate, getCalendarOverviewBuckets } from './event-overview.js';
 
 const AYLAR_KISA = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const EDIT_ICON_SVG = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2l2.5 2.5-7 7-3 .5.5-3 7-7z"/></svg>';
 
 function isSameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function todayDate() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
@@ -30,29 +34,42 @@ function fmtDateLabel(e) {
   return e.saat ? base + ' · ' + e.saat + (e.bitisSaat ? '–' + e.bitisSaat : '') : base;
 }
 
-function overviewCardHtml(e, now) {
+// Kullanıcı isteği: soldaki gün işareti bölüme göre renklensin --
+// Bugün yeşil, Bu hafta sarı, Yaklaşan mavi (section: 'today'|'week'|'upcoming').
+const SECTION_DATE_CLASS = { today: 'overview-date--today', week: 'overview-date--week', upcoming: 'overview-date--upcoming' };
+
+function overviewCardHtml(e, now, section) {
   const ongoing = overviewOngoing(e, now);
   const isToday = isSameDay(getEventStartDate(e), todayDate());
   // Yalnızca renkle anlam verilmiyor -- "Şu anda"/"Bugün" METİN rozeti de var.
   const badge = ongoing ? '<span class="overview-badge overview-badge--now">Şu anda</span>'
     : (isToday ? '<span class="overview-badge overview-badge--today">Bugün</span>' : '');
-  const meta = [fmtDateLabel(e)];
+  const meta = [];
+  if (e.saat) { meta.push(e.saat + (e.bitisSaat ? '–' + e.bitisSaat : '')); }
   if (e.yer) { meta.push(escapeHtml(e.yer)); }
   else if (e.birim) { meta.push(escapeHtml(e.birim)); }
-  return `<a class="overview-card${ongoing ? ' is-ongoing' : ''}" href="/takvim.html?duzenle=${encodeURIComponent(e._id)}">
+  const s = getEventStartDate(e);
+  const en = getEventEndDate(e);
+  const isMultiDay = !!e.bitisTarihi && e.bitisTarihi !== e.tarih;
+  const dayNum = s ? s.getDate() : '?';
+  const monLabel = isMultiDay && en ? (fmtTrDate(s) + '–' + fmtTrDate(en)) : (s ? AYLAR_KISA[s.getMonth()] : '');
+  const dateClass = SECTION_DATE_CLASS[section] || '';
+  return `<div class="overview-card${ongoing ? ' is-ongoing' : ''}">
+    <span class="overview-date ${dateClass}" aria-hidden="true">${isMultiDay ? `<span class="overview-date-range">${escapeHtml(monLabel)}</span>` : `<span class="d">${dayNum}</span><span class="m">${escapeHtml(monLabel)}</span>`}</span>
     <span class="overview-main">
       <span class="overview-title">${escapeHtml(e.ad || '(adsız)')}</span>
-      <span class="overview-meta">${meta.join(' · ')}</span>
+      <span class="overview-meta">${meta.join(' · ') || fmtDateLabel(e)}</span>
     </span>
     ${badge}
-  </a>`;
+    <a class="overview-edit" href="/takvim.html?duzenle=${encodeURIComponent(e._id)}" title="Düzenle" aria-label="${escapeHtml(e.ad || 'Etkinliği')} düzenle">${EDIT_ICON_SVG}</a>
+  </div>`;
 }
 
 function renderList(containerId, items, emptyText) {
   const el = document.querySelector(`[data-overview-list="${containerId}"]`);
   if (!el) { return; }
   const now = new Date();
-  el.innerHTML = items.length ? items.map((e) => overviewCardHtml(e, now)).join('') : `<p class="overview-empty">${emptyText}</p>`;
+  el.innerHTML = items.length ? items.map((e) => overviewCardHtml(e, now, containerId)).join('') : `<p class="overview-empty">${emptyText}</p>`;
 }
 
 let lastEvents = null;

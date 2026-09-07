@@ -23,45 +23,66 @@
 // ────────────────────────
 //  Etkinlik Özeti kartı — Bugün/Bu hafta/Yaklaşan (bkz. operations-overview-widget.js).
 //  Kartın .card-body'si zaten overflow-y:auto (Görevler kartıyla aynı desen) --
-//  üç alt bölüm burada İÇ İÇE ayrı bir scroll konteynerine SAHİP DEĞİL.
-// ────────────────────────
-.overview-section + .overview-section { margin-top: 16px; }
+//  üç alt bölüm burada İÇ İÇE ayrı bir scroll konteynerine SAHİP DEĞİL. Kullanıcı
+//  isteği: kart daha belirgin olsun diye Editör Aktivitesi+Görevler'in toplam
+//  yüksekliği kadar uzatıldı (bkz. index.html'deki grid sarmalayıcı), satırlara
+//  soldan bölüm rengine göre boyalı bir GÜN işareti eklendi (eski Mini Takvim
+//  widget'ındaki .mini-cal-date kutusunun devamı).
+.overview-section + .overview-section { margin-top: 18px; }
 .overview-section-title {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: var(--font-weight-bold);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: .4px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .overview-list { display: flex; flex-direction: column; }
+// Kullanıcı isteği: satırın TAMAMI tıklanabilir bir bağlantı OLMASIN (isme
+// tıklayınca hiçbir yere gidilmesin) -- düzenlemek için ayrı bir kalem ikonu var
+// (bkz. .overview-edit). Satır artık bir <div>, <a> DEĞİL.
 .overview-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--border-color-light);
-  color: inherit;
-  text-decoration: none;
-  transition: background 100ms;
 }
 .overview-list .overview-card:last-child { border-bottom: none; }
-.overview-card:hover, .overview-card:focus-visible { background: var(--bg-surface-secondary); }
 // "Şu anda" devam eden etkinlik: sol kenarda yeşil vurgu şeridi -- ama TEK
 // başına renk yeterli değil (erişilebilirlik), her zaman yanında metin
 // rozeti de var (bkz. .overview-badge--now).
 .overview-card.is-ongoing { box-shadow: inset 3px 0 0 var(--green); }
+// Kullanıcı isteği: soldaki gün işareti -- Bugün yeşil, Bu hafta sarı, Yaklaşan
+// mavi (eski Mini Takvim widget'ındaki .mini-cal-date kutusuyla aynı boyut/biçim).
+.overview-date {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+.overview-date .d { font-size: 13.5px; font-weight: var(--font-weight-bold); }
+.overview-date .m { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; }
+.overview-date-range { font-size: 9px; font-weight: var(--font-weight-bold); text-align: center; line-height: 1.25; padding: 0 2px; }
+.overview-date--today { background: var(--green-lt); color: var(--green); }
+.overview-date--week { background: var(--yellow-lt); color: var(--yellow); }
+.overview-date--upcoming { background: var(--blue-lt); color: var(--blue); }
 .overview-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .overview-title {
-  font-size: 12.5px;
-  font-weight: var(--font-weight-medium);
+  font-size: 13.5px;
+  font-weight: var(--font-weight-bold);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .overview-meta {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -77,6 +98,18 @@
 }
 .overview-badge--now { background: var(--green-lt); color: var(--green); }
 .overview-badge--today { background: var(--primary-lt); color: var(--primary); }
+// Kullanıcı isteği: eski Mini Takvim widget'ındaki kalem/"Düzenle" ikonu geri
+// geldi -- satırın SADECE bu kısmı /takvim.html?duzenle=<id>'ye gidiyor.
+.overview-edit {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  transition: background 120ms, color 120ms;
+}
+.overview-edit:hover, .overview-edit:focus-visible { background: var(--bg-surface-secondary); color: var(--text); }
+.overview-edit svg { width: 14px; height: 14px; }
 .overview-empty { margin: 0; padding: 12px 0; color: var(--text-muted); font-size: 12px; text-align: center; }
 
 // ────────────────────────

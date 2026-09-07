@@ -77,21 +77,56 @@ function dispatch() {
 
 // database: çağıran sayfanın kendi firebase.database() örneği. Aynı sayfada
 // birden fazla kez çağrılırsa dinleyici yalnızca BİR KEZ açılır.
+//
+// KRİTİK (kullanıcı bulgusu: "avatarlarda resimler gözükmüyor"): kanban.js/
+// tasks-widget.js bunu auth.onAuthStateChanged'DEN ÖNCE, sayfa açılır açılmaz
+// çağırıyor. Firebase Auth durumu henüz çözülmemişken staffProfiles'a .on('value')
+// açılırsa kural gereği PERMISSION_DENIED alınabilir -- db-mode.js'teki
+// initDbMode'un AYNI sınıf hatayı önlemek için kullandığı "auth hazır olunca
+// yeniden dene" deseni burada da uygulanıyor (retryAfterAuth). Eskiden bir
+// PERMISSION_DENIED sonrası listenerStarted kalıcı olarak true kalıyor, önbellek
+// boş kalıyor, bir daha ASLA denenmiyordu.
+let retriedAfterAuth = false;
+let authRetryUnsubscribe = null;
+function startProfilesListener(database) {
+  database.ref(STAFF_PROFILES_PATH).on('value', (snap) => {
+    profilesCache = snap.val() || {};
+    rebuildNameIndex();
+    dispatch();
+  }, (err) => {
+    console.error('Personel profilleri okunamadı:', err);
+    profilesCache = {};
+    rebuildNameIndex();
+    dispatch();
+    retryProfilesAfterAuth(database);
+  });
+}
+function retryProfilesAfterAuth(database) {
+  const auth = globalThis.firebase?.auth?.();
+  if (!auth) { return; }
+  if (auth.currentUser) {
+    if (retriedAfterAuth) { return; }
+    retriedAfterAuth = true;
+    setTimeout(() => startProfilesListener(database), 250);
+    return;
+  }
+  if (!authRetryUnsubscribe) {
+    authRetryUnsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) { return; }
+      const unsubscribe = authRetryUnsubscribe;
+      authRetryUnsubscribe = null;
+      if (typeof unsubscribe === 'function') { unsubscribe(); }
+      retriedAfterAuth = true;
+      startProfilesListener(database);
+    });
+  }
+}
 export function subscribeStaffProfiles(database, cb) {
   subscribers.add(cb);
   if (profilesCache && Object.keys(profilesCache).length) { cb(profilesCache); }
   if (!listenerStarted) {
     listenerStarted = true;
-    database.ref(STAFF_PROFILES_PATH).on('value', (snap) => {
-      profilesCache = snap.val() || {};
-      rebuildNameIndex();
-      dispatch();
-    }, (err) => {
-      console.error('Personel profilleri okunamadı:', err);
-      profilesCache = {};
-      rebuildNameIndex();
-      dispatch();
-    });
+    startProfilesListener(database);
   }
   return () => { subscribers.delete(cb); };
 }
