@@ -30,6 +30,24 @@ const STEP_STATUSES = {
   yapilacak: 'Yapılacak', yapiliyor: 'Yapılıyor', incelemede: 'İncelemede',
   tamamlandi: 'Tamamlandı', iptal: 'İptal'
 };
+// reui.io/preview/base/gantt-1 referansındaki çubuk tonları -- gerçek renkler
+// oradaki oklab arkaplanlardan (alfa karışımı çözülerek) çıkarıldı. Ham
+// tonlar (Tailwind ~500) beyaz metinle WCAG AA'yı geçemiyor (~2-3:1), bu
+// yüzden çubuklarda düz dolgu yerine soluk/"saydam" dolgu + solid sol kenarlık
+// + koyu metin kullanılıyor (kullanıcının "saydam görünüyor, o renkler daha
+// iyi" tercihiyle örtüşüyor ve kontrast sorunsuz oluyor).
+const PALETTE = {
+  mavi: '#2b7fff', indigo: '#615fff', mor: '#8e51ff', camgobegi: '#00b8db',
+  turkuaz: '#00bba7', zumrut: '#00bc7d', amber: '#f0b100', turuncu: '#ff6900',
+  kirmizi: '#ff2056', pembe: '#f6339a'
+};
+const PALETTE_ORDER = ['mavi', 'indigo', 'mor', 'camgobegi', 'turkuaz', 'zumrut', 'amber', 'turuncu', 'kirmizi', 'pembe'];
+// Durum -&gt; varsayılan renk (kullanıcı elle seçmediyse). PALETTE anahtarlarına işaret eder.
+const STATUS_COLOR = {
+  fikir: 'indigo', arastirma: 'mavi', hazirlik: 'mor', cekim: 'pembe', kurgu: 'turuncu',
+  onay: 'amber', yayinlandi: 'zumrut', iptal: 'kirmizi',
+  yapilacak: 'indigo', yapiliyor: 'mavi', incelemede: 'mor', tamamlandi: 'zumrut'
+};
 
 let database;
 let projects = {};
@@ -179,6 +197,21 @@ function barGeometry(project, start, days, dayWidth) {
   return { left: left * dayWidth, width: Math.max(dayWidth, (right - left + 1) * dayWidth) };
 }
 
+// Proje düzeyinde kullanıcı elle bir PALETTE rengi seçtiyse (project.renk) o
+// kullanılır; seçmediyse duruma göre otomatik atanan varsayılana düşülür.
+// Adımlar (steps) için elle renk seçimi yok -- her zaman kendi durumlarına
+// göre otomatik renklenir (modal karmaşıklığını artırmamak için bilinçli sınır).
+function barColorHex(item, status, isProjectLevel) {
+  // İptal her zaman kırmızı -- elle seçilmiş renk dahil hiçbir şeyi geçersiz
+  // kılmasın diye burada, TEK yerde uygulanıyor (hem asıl çubuk hem de
+  // akordeondaki mini ilerleme çubuğu bu fonksiyonu çağırıyor, ikisi de
+  // otomatik olarak aynı sonucu görür).
+  if (status === 'iptal') { return PALETTE.kirmizi; }
+  const manual = isProjectLevel ? item.renk : null;
+  if (manual && PALETTE[manual]) { return PALETTE[manual]; }
+  return PALETTE[STATUS_COLOR[status]] || PALETTE.indigo;
+}
+
 function renderTimelineBar(id, item, start, days, dayWidth, stepId = '') {
   const geometry = barGeometry(item, start, days, dayWidth);
   if (!geometry) { return ''; }
@@ -190,11 +223,12 @@ function renderTimelineBar(id, item, start, days, dayWidth, stepId = '') {
   const attrs = stepId
     ? `data-project-id="${escapeHtml(id)}" data-step-id="${escapeHtml(stepId)}"`
     : `data-project-id="${escapeHtml(id)}"`;
-  return `<button type="button" class="gantt-bar ${stepId ? 'gantt-bar--step ' : ''}status-${escapeHtml(status)}${overdue ? ' is-overdue' : ''}" ${attrs} style="left:${geometry.left}px;width:${geometry.width}px" aria-label="${escapeHtml(item.ad)} kaydını düzenle">
-    <span class="gantt-resize gantt-resize--start" data-resize="start" aria-hidden="true"></span>
+  const color = barColorHex(item, status, !stepId);
+  return `<button type="button" class="gantt-bar ${stepId ? 'gantt-bar--step ' : ''}status-${escapeHtml(status)}${overdue ? ' is-overdue' : ''}" ${attrs} style="left:${geometry.left}px;width:${geometry.width}px;--bar-color:${color}" aria-label="${escapeHtml(item.ad)} kaydını düzenle">
+    <span class="gantt-resize gantt-resize--start" data-resize="start" aria-hidden="true"><span class="gantt-resize-grip"></span></span>
     <span class="gantt-bar-progress" style="width:${progress}%"></span>
     <span class="gantt-bar-label">${escapeHtml(item.ad)} · ${progress}%</span>
-    <span class="gantt-resize gantt-resize--end" data-resize="end" aria-hidden="true"></span>
+    <span class="gantt-resize gantt-resize--end" data-resize="end" aria-hidden="true"><span class="gantt-resize-grip"></span></span>
   </button>`;
 }
 
@@ -223,11 +257,19 @@ function renderProjectRow(id, project, start, days, dayWidth) {
   const disclosure = steps.length
     ? `<button type="button" class="gantt-disclosure" data-toggle-project="${escapeHtml(id)}" aria-expanded="${expanded}" aria-label="${escapeHtml(project.ad)} adımlarını ${expanded ? 'daralt' : 'genişlet'}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l5 5-5 5"/></svg></button>`
     : '<span class="gantt-disclosure-placeholder"></span>';
+  // Sol akordeon: reui.io/preview/base/gantt-2 referansındaki grup satırlarında
+  // olduğu gibi başlığın hemen altında ince, renkli bir ilerleme çubuğu --
+  // sadece adımlı projelerde (tek başlarına ilerleme metni yeterli).
+  const barColor = barColorHex(project, project.durum || 'fikir', true);
+  const miniProgress = steps.length
+    ? `<span class="gantt-project-progress" aria-hidden="true"><span style="width:${progress}%;background:${barColor}"></span></span>`
+    : '';
   const parentRow = `<div class="gantt-project-row gantt-parent-row">
     <div class="gantt-project-info gantt-project-info--parent">
       ${disclosure}
       <button type="button" class="gantt-project-main" data-edit-project="${escapeHtml(id)}">
         <span class="gantt-project-title"><i class="priority-${escapeHtml(project.oncelik || 'normal')}"></i>${escapeHtml(project.ad || 'Adsız proje')}</span>
+        ${miniProgress}
         <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${project.sorumlu ? ` · ${escapeHtml(project.sorumlu)}` : ''}${project.tur === 'ozel' ? ' · Özel' : ''}${steps.length ? ` · ${steps.length} adım · %${progress}` : ''}</span>
       </button>
     </div>
@@ -364,18 +406,25 @@ function stepProgress(status) {
   return 0;
 }
 
+// İki satırlı düzen: eskiden tek 7 sütunlu grid, dar modal genişliğinde
+// (kullanıcının "sağda sorumlu kişi gözükmüyor" diye bildirdiği) Sorumlu
+// alanını görünmez kılıyordu. Şimdi hiçbir alan taşmıyor, hepsi her zaman görünür.
 function stepEditorHtml(stepId, step = {}, index = 0) {
   const optionHtml = Object.entries(STEP_STATUSES).map(([value, label]) =>
     `<option value="${value}"${(step.durum || 'yapilacak') === value ? ' selected' : ''}>${label}</option>`
   ).join('');
   return `<div class="gantt-step-editor" data-step-row data-step-id="${escapeHtml(stepId)}">
-    <span class="gantt-step-order" aria-hidden="true">${index + 1}</span>
-    <label><span class="sr-only">Adım adı</span><input class="form-control" data-step-name maxlength="140" required placeholder="Örn. Röportaj çekimi" value="${escapeHtml(step.ad || '')}"></label>
-    <label><span class="sr-only">Adım durumu</span><select class="form-control" data-step-status>${optionHtml}</select></label>
-    <label><span class="sr-only">Başlangıç tarihi</span><input type="date" class="form-control" data-step-start required value="${escapeHtml(step.baslangicTarihi || $('#gantt-start').value)}"></label>
-    <label><span class="sr-only">Bitiş tarihi</span><input type="date" class="form-control" data-step-end required value="${escapeHtml(step.bitisTarihi || $('#gantt-end').value)}"></label>
-    <label><span class="sr-only">Sorumlu</span><input class="form-control" data-step-owner maxlength="120" placeholder="Sorumlu" value="${escapeHtml(step.sorumlu || '')}"></label>
-    <button type="button" class="gantt-step-remove" data-remove-step aria-label="Bu adımı kaldır">×</button>
+    <div class="gantt-step-editor-row">
+      <span class="gantt-step-order" aria-hidden="true">${index + 1}</span>
+      <label class="gantt-step-name-field">Adım adı<input class="form-control" data-step-name maxlength="140" required placeholder="Örn. Röportaj çekimi" value="${escapeHtml(step.ad || '')}"></label>
+      <label class="gantt-step-status-field">Adım durumu<select class="form-control" data-step-status>${optionHtml}</select></label>
+      <button type="button" class="gantt-step-remove" data-remove-step aria-label="Bu adımı kaldır">×</button>
+    </div>
+    <div class="gantt-step-editor-row gantt-step-editor-row--dates">
+      <label>Başlangıç<input type="date" class="form-control" data-step-start required value="${escapeHtml(step.baslangicTarihi || $('#gantt-start').value)}"></label>
+      <label>Bitiş<input type="date" class="form-control" data-step-end required value="${escapeHtml(step.bitisTarihi || $('#gantt-end').value)}"></label>
+      <label>Sorumlu<input class="form-control" data-step-owner maxlength="120" placeholder="Sorumlu" value="${escapeHtml(step.sorumlu || '')}"></label>
+    </div>
   </div>`;
 }
 
@@ -443,6 +492,16 @@ function setFormError(message = '') {
   $('#gantt-form-error').textContent = message;
 }
 
+function renderColorPicker(selected) {
+  const el = $('#gantt-color-picker');
+  if (!el) { return; }
+  el.innerHTML = PALETTE_ORDER.map((key) => `<button type="button" class="gantt-color-swatch${key === selected ? ' is-selected' : ''}" data-color="${key}" style="--swatch:${PALETTE[key]}" role="radio" aria-checked="${key === selected}" aria-label="${key}"></button>`).join('');
+}
+
+function selectedColor() {
+  return $('#gantt-color-picker')?.querySelector('.is-selected')?.dataset.color || '';
+}
+
 function openModal(id = '', focusStepId = '') {
   if (!canWrite || isReadOnly()) {
     showToast(isReadOnly() ? 'Salt-okunur kilit açık.' : 'Proje düzenleme yetkiniz yok.', { variant: 'error' });
@@ -460,7 +519,7 @@ function openModal(id = '', focusStepId = '') {
   $('#gantt-priority').value = project?.oncelik || 'normal';
   $('#gantt-progress').value = Number(project?.ilerleme) || 0;
   $('#gantt-progress-value').textContent = `${Number(project?.ilerleme) || 0}%`;
-  $('#gantt-notes').value = project?.notlar || '';
+  renderColorPicker(project?.renk || '');
   renderStepEditor(project?.adimlar || {});
   refreshEventOptions(project?.takvimEtkinlikId || '');
   $('#gantt-dialog-title').textContent = project ? 'Projeyi düzenle' : 'Yeni proje';
@@ -503,7 +562,7 @@ function projectFromForm() {
     ilerleme: progress,
     adimlar: steps,
     takvimEtkinlikId: $('#gantt-event').value,
-    notlar: $('#gantt-notes').value.trim(),
+    renk: selectedColor(),
     arsiv: false
   };
 }
@@ -621,6 +680,34 @@ async function updateProjectDates(id, startKey, endKey, stepId = '') {
   }
 }
 
+let panState = null;
+
+function isPannableTarget(el) {
+  return !el.closest('.gantt-bar, .gantt-disclosure, button, input, select, a');
+}
+
+// Boş zaman çizelgesi alanını (bar/buton olmayan her yer) tutup sürükleyerek
+// haftalar arasında sağa/sola gitme -- fare tekerleği/scrollbar'a ek olarak.
+function beginPan(event) {
+  if (event.button !== 0 || !isPannableTarget(event.target)) { return; }
+  const board = $('#gantt-board');
+  panState = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: board.scrollLeft };
+  board.setPointerCapture(event.pointerId);
+  board.classList.add('is-panning');
+}
+
+function movePan(event) {
+  if (!panState || event.pointerId !== panState.pointerId) { return; }
+  const board = $('#gantt-board');
+  board.scrollLeft = panState.startScrollLeft - (event.clientX - panState.startX);
+}
+
+function endPan(event) {
+  if (!panState || event.pointerId !== panState.pointerId) { return; }
+  panState = null;
+  $('#gantt-board').classList.remove('is-panning');
+}
+
 function beginBarDrag(event) {
   const bar = event.target.closest('.gantt-bar');
   if (!bar || event.button !== 0) { return; }
@@ -704,6 +791,17 @@ function bindUi() {
   $('#gantt-step-list').addEventListener('change', (event) => {
     if (event.target.matches('[data-step-status]')) { syncProjectProgressFromSteps(); }
   });
+  $('#gantt-color-picker').addEventListener('click', (event) => {
+    const btn = event.target.closest('.gantt-color-swatch');
+    if (!btn) { return; }
+    const wasSelected = btn.classList.contains('is-selected');
+    $('#gantt-color-picker').querySelectorAll('.gantt-color-swatch').forEach((b) => {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-checked', 'false');
+    });
+    // Aynı renge tekrar tıklamak seçimi kaldırır -- durum bazlı otomatik renge döner.
+    if (!wasSelected) { btn.classList.add('is-selected'); btn.setAttribute('aria-checked', 'true'); }
+  });
   $('#gantt-form').addEventListener('submit', saveProject);
   $('#gantt-archive').addEventListener('click', archiveCurrentProject);
   document.querySelectorAll('[data-gantt-close]').forEach((button) => button.addEventListener('click', closeModal));
@@ -722,6 +820,10 @@ function bindUi() {
   $('#gantt-board').addEventListener('pointermove', moveBarDrag);
   $('#gantt-board').addEventListener('pointerup', endBarDrag);
   $('#gantt-board').addEventListener('pointercancel', endBarDrag);
+  $('#gantt-board').addEventListener('pointerdown', beginPan);
+  $('#gantt-board').addEventListener('pointermove', movePan);
+  $('#gantt-board').addEventListener('pointerup', endPan);
+  $('#gantt-board').addEventListener('pointercancel', endPan);
   $('#gantt-board').addEventListener('keydown', (event) => {
     const bar = event.target.closest('.gantt-bar');
     if (bar && (event.key === 'Enter' || event.key === ' ')) {

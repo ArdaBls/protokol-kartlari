@@ -124,9 +124,10 @@
           <select class="form-control" id="gantt-event"><option value="">Bağlantı yok</option></select>
           <span class="gantt-help">Bağlı etkinliğin tarihi, projenin teslim tarihiyle birlikte güncellenir.</span>
         </label>
-        <label class="gantt-field gantt-field--wide">Notlar
-          <textarea class="form-control" id="gantt-notes" rows="4" maxlength="4000"></textarea>
-        </label>
+        <div class="gantt-field gantt-field--wide">
+          <span>Renk</span>
+          <div id="gantt-color-picker" class="gantt-color-picker" role="radiogroup" aria-label="Zaman çizelgesi çubuğu rengi"></div>
+        </div>
       </div>
       <p class="gantt-form-error" id="gantt-form-error" role="alert"></p>
       <footer class="gantt-dialog-actions">
