@@ -12,9 +12,13 @@ const firebaseConfig = {
   projectId: 'omu-protokol'
 };
 
-const DAY_WIDTH = 38;
+// Zoom seviyeleri: reui.io/preview/base/gantt-1 referansındaki gibi ctrl+tekerlek
+// veya +/- ile geçilen, gün başına piksel genişliği kademeleri. Sürekli/analog
+// bir ölçek yerine sabit kademeler kullanılıyor -- yuvarlama sürüklenmesi
+// (rounding drift) olmadan basit ve öngörülebilir.
+const ZOOM_LEVELS = [14, 20, 28, 38, 50, 66, 86];
+const DEFAULT_ZOOM_INDEX = 3;
 const DAY_MS = 86400000;
-const RANGE_DAYS = 42;
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 const SHORT_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 const WEEKDAYS = ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pa'];
@@ -40,6 +44,12 @@ let searchText = '';
 let statusFilter = '';
 let dragState = null;
 let modeReady = false;
+let zoomIndex = DEFAULT_ZOOM_INDEX;
+let currentRangeStart = null;
+let currentRangeDays = 0;
+let scrollRaf = null;
+let initialScrollDone = false;
+let dataLoaded = false;
 const collapsedProjects = new Set();
 
 const $ = (selector) => document.querySelector(selector);
@@ -73,10 +83,32 @@ function dayDiff(a, b) {
   return Math.round((utcB - utcA) / DAY_MS);
 }
 
-function rangeStart() {
-  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  const mondayOffset = (first.getDay() + 6) % 7;
-  return addDays(first, -mondayOffset);
+// reui.io referansındaki gibi zaman çizelgesi tek bir yılın tamamını kapsar
+// (Pazartesi hizalı başlangıçtan Pazar hizalı bitişe) ve kullanıcı bu geniş
+// alanda serbestçe kaydırma/yakınlaştırma yapar -- ay değişince yeniden
+// render etmek yerine sadece scrollLeft değişir (bkz. scrollByDays/scrollToToday).
+function computeRange(year) {
+  const yearFirst = new Date(year, 0, 1);
+  const yearLast = new Date(year, 11, 31);
+  const start = addDays(yearFirst, -((yearFirst.getDay() + 6) % 7));
+  const end = addDays(yearLast, 6 - ((yearLast.getDay() + 6) % 7));
+  return { start, days: dayDiff(start, end) + 1 };
+}
+
+function currentDayWidth() {
+  return ZOOM_LEVELS[zoomIndex];
+}
+
+function nameColWidth() {
+  return $('.gantt-name-head')?.offsetWidth || 270;
+}
+
+function isoWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const weekday = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - weekday);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / DAY_MS) + 1) / 7);
 }
 
 function visibleProjects() {
@@ -106,10 +138,24 @@ function renderSummary() {
   $('#gantt-special-count').textContent = special;
 }
 
-function renderHeader(start) {
+function renderWeekHead(start, days, dayWidth) {
+  let cells = '';
+  for (let index = 0; index < days; index += 7) {
+    const weekStart = addDays(start, index);
+    const weekEnd = addDays(start, index + 6);
+    const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+    const label = sameMonth
+      ? `Hf ${isoWeekNumber(weekStart)} · ${weekStart.getDate()}-${weekEnd.getDate()} ${SHORT_MONTHS[weekStart.getMonth()]}`
+      : `Hf ${isoWeekNumber(weekStart)} · ${weekStart.getDate()} ${SHORT_MONTHS[weekStart.getMonth()]} - ${weekEnd.getDate()} ${SHORT_MONTHS[weekEnd.getMonth()]}`;
+    cells += `<div class="gantt-week-cell">${label}</div>`;
+  }
+  return `<div class="gantt-week-row"><div class="gantt-week-name-head"></div><div class="gantt-week-head" style="--gantt-days:${days};--gantt-day-width:${dayWidth}px">${cells}</div></div>`;
+}
+
+function renderDayHead(start, days) {
   const today = localDateKey(new Date());
   let cells = '';
-  for (let index = 0; index < RANGE_DAYS; index += 1) {
+  for (let index = 0; index < days; index += 1) {
     const date = addDays(start, index);
     const key = localDateKey(date);
     const weekend = date.getDay() === 0 || date.getDay() === 6;
@@ -118,23 +164,23 @@ function renderHeader(start) {
       ${date.getDate() === 1 ? `<small>${SHORT_MONTHS[date.getMonth()]}</small>` : ''}
     </div>`;
   }
-  return `<div class="gantt-name-head">Proje</div><div class="gantt-days-head" style="--gantt-days:${RANGE_DAYS}">${cells}</div>`;
+  return `<div class="gantt-day-row"><div class="gantt-name-head">Proje</div><div class="gantt-days-head" style="--gantt-days:${days}">${cells}</div></div>`;
 }
 
-function barGeometry(project, start) {
+function barGeometry(project, start, days, dayWidth) {
   const projectStart = parseDateKey(project.baslangicTarihi);
   const projectEnd = parseDateKey(project.bitisTarihi);
   if (!projectStart || !projectEnd) { return null; }
   const rawLeft = dayDiff(start, projectStart);
   const rawRight = dayDiff(start, projectEnd);
-  if (rawRight < 0 || rawLeft >= RANGE_DAYS) { return null; }
+  if (rawRight < 0 || rawLeft >= days) { return null; }
   const left = Math.max(0, rawLeft);
-  const right = Math.min(RANGE_DAYS - 1, rawRight);
-  return { left: left * DAY_WIDTH, width: Math.max(DAY_WIDTH, (right - left + 1) * DAY_WIDTH) };
+  const right = Math.min(days - 1, rawRight);
+  return { left: left * dayWidth, width: Math.max(dayWidth, (right - left + 1) * dayWidth) };
 }
 
-function renderTimelineBar(id, item, start, stepId = '') {
-  const geometry = barGeometry(item, start);
+function renderTimelineBar(id, item, start, days, dayWidth, stepId = '') {
+  const geometry = barGeometry(item, start, days, dayWidth);
   if (!geometry) { return ''; }
   const progress = Math.min(100, Math.max(0, Number(item.ilerleme) || 0));
   const today = localDateKey(new Date());
@@ -158,18 +204,18 @@ function projectSteps(project) {
     .sort(([, a], [, b]) => (Number(a.sira) || 0) - (Number(b.sira) || 0));
 }
 
-function renderStepRow(projectId, stepId, step, start) {
+function renderStepRow(projectId, stepId, step, start, days, dayWidth) {
   const status = STEP_STATUSES[step.durum] || STEP_STATUSES.yapilacak;
   return `<div class="gantt-project-row gantt-step-row" data-parent-project="${escapeHtml(projectId)}">
     <button type="button" class="gantt-project-info gantt-step-info" data-edit-project="${escapeHtml(projectId)}" data-focus-step="${escapeHtml(stepId)}">
       <span class="gantt-project-title"><i class="step-status-${escapeHtml(step.durum || 'yapilacak')}"></i>${escapeHtml(step.ad || 'Adsız adım')}</span>
       <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${step.sorumlu ? ` · ${escapeHtml(step.sorumlu)}` : ''} · ${escapeHtml(step.bitisTarihi || 'Tarihsiz')}</span>
     </button>
-    <div class="gantt-track" style="--gantt-days:${RANGE_DAYS}">${renderTimelineBar(projectId, step, start, stepId)}</div>
+    <div class="gantt-track" style="--gantt-days:${days}">${renderTimelineBar(projectId, step, start, days, dayWidth, stepId)}</div>
   </div>`;
 }
 
-function renderProjectRow(id, project, start) {
+function renderProjectRow(id, project, start, days, dayWidth) {
   const steps = projectSteps(project);
   const expanded = !collapsedProjects.has(id);
   const status = STATUSES[project.durum] || 'Fikir';
@@ -185,9 +231,9 @@ function renderProjectRow(id, project, start) {
         <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${project.sorumlu ? ` · ${escapeHtml(project.sorumlu)}` : ''}${project.tur === 'ozel' ? ' · Özel' : ''}${steps.length ? ` · ${steps.length} adım · %${progress}` : ''}</span>
       </button>
     </div>
-    <div class="gantt-track" style="--gantt-days:${RANGE_DAYS}">${renderTimelineBar(id, project, start)}</div>
+    <div class="gantt-track" style="--gantt-days:${days}">${renderTimelineBar(id, project, start, days, dayWidth)}</div>
   </div>`;
-  const childRows = expanded ? steps.map(([stepId, step]) => renderStepRow(id, stepId, step, start)).join('') : '';
+  const childRows = expanded ? steps.map(([stepId, step]) => renderStepRow(id, stepId, step, start, days, dayWidth)).join('') : '';
   return parentRow + childRows;
 }
 
@@ -195,13 +241,85 @@ function render() {
   const board = $('#gantt-board');
   if (!board) { return; }
   renderSummary();
-  $('#gantt-period-label').textContent = `${MONTHS[anchor.getMonth()]} ${anchor.getFullYear()}`;
-  const start = rangeStart();
+  const dayWidth = currentDayWidth();
+  const { start, days } = computeRange(anchor.getFullYear());
+  currentRangeStart = start;
+  currentRangeDays = days;
+  board.style.setProperty('--gantt-day-width', `${dayWidth}px`);
   const list = visibleProjects();
-  board.innerHTML = `<div class="gantt-grid" style="--gantt-width:${RANGE_DAYS * DAY_WIDTH}px">
-    <div class="gantt-grid-head">${renderHeader(start)}</div>
-    ${list.map(([id, project]) => renderProjectRow(id, project, start)).join('') || '<div class="gantt-empty"><strong>Bu görünümde proje yok.</strong><span>Yeni proje ekleyin veya filtreleri temizleyin.</span></div>'}
+  board.innerHTML = `<div class="gantt-grid" style="--gantt-width:${days * dayWidth}px">
+    <div class="gantt-grid-head">${renderWeekHead(start, days, dayWidth)}${renderDayHead(start, days)}</div>
+    ${list.map(([id, project]) => renderProjectRow(id, project, start, days, dayWidth)).join('') || '<div class="gantt-empty"><strong>Bu görünümde proje yok.</strong><span>Yeni proje ekleyin veya filtreleri temizleyin.</span></div>'}
   </div>`;
+  updatePeriodLabel();
+  // Firebase verisi henüz gelmeden (auth/rol çözümü asenkron) kullanıcı
+  // ctrl+tekerlek veya +/- ile yakınlaştırırsa da render() tetiklenir --
+  // bu erken/boş render, "bugüne kaydır" hakkını (initialScrollDone) tüketmesin
+  // diye gerçek Firebase verisi gelene kadar bekliyoruz (dataLoaded).
+  if (dataLoaded && !initialScrollDone) {
+    initialScrollDone = true;
+    scrollToToday(false);
+  }
+}
+
+function updatePeriodLabel() {
+  const board = $('#gantt-board');
+  const label = $('#gantt-period-label');
+  if (!board || !label || !currentRangeStart) { return; }
+  // Görünür şerit, sticky isim sütununun (nameColWidth) sağında başlıyor --
+  // ortasını board.clientWidth/2 sanmak sütun genişliği kadar sola kayardı.
+  const contentCenterX = board.scrollLeft + (board.clientWidth - nameColWidth()) / 2;
+  const dayIndex = Math.max(0, Math.min(currentRangeDays - 1, Math.round(contentCenterX / currentDayWidth())));
+  const date = addDays(currentRangeStart, dayIndex);
+  label.textContent = `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function scrollByDays(days) {
+  const board = $('#gantt-board');
+  if (!board) { return; }
+  board.scrollBy({ left: days * currentDayWidth(), behavior: 'smooth' });
+}
+
+function scrollToToday(smooth = true) {
+  const board = $('#gantt-board');
+  if (!board) { return; }
+  const year = new Date().getFullYear();
+  if (anchor.getFullYear() !== year) {
+    anchor = new Date(year, new Date().getMonth(), 1);
+    render();
+    // render()'ın kendi ilk-kaydırma mandalı (initialScrollDone) artık
+    // tüketilmiş olabilir -- yıl değiştikten sonra "bugüne" gerçekten
+    // kaydırdığımızdan emin olmak için kendimizi tekrar çağırıyoruz.
+    scrollToToday(smooth);
+    return;
+  }
+  const { start } = computeRange(year);
+  const offset = dayDiff(start, new Date()) * currentDayWidth();
+  board.scrollTo({ left: Math.max(0, offset - (board.clientWidth - nameColWidth()) / 2), behavior: smooth ? 'smooth' : 'auto' });
+}
+
+// Fare imlecinin (veya klavye kısayolunda görünür alanın ortasının) altındaki
+// güne "kilitlenerek" yakınlaştırma yapar -- reui.io referansındaki ctrl+tekerlek
+// davranışı. Yeni genişlikte aynı gün yine imlecin altında kalsın diye
+// scrollLeft, eski/yeni piksel-başına-gün oranına göre yeniden hesaplanır.
+function setZoom(nextIndex, clientX = null) {
+  const board = $('#gantt-board');
+  if (!board) { return; }
+  const clamped = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, nextIndex));
+  if (clamped === zoomIndex) { return; }
+  const oldWidth = ZOOM_LEVELS[zoomIndex];
+  const newWidth = ZOOM_LEVELS[clamped];
+  const rect = board.getBoundingClientRect();
+  const colWidth = nameColWidth();
+  // Klavye kısayolunda (clientX yok) "görünür alanın ortası" da aynı şekilde
+  // sticky sütunun sağındaki şeridin ortası olmalı, tüm board genişliğinin
+  // ortası değil.
+  const pointerOffset = clientX === null ? colWidth + (rect.width - colWidth) / 2 : clientX - rect.left;
+  const contentX = board.scrollLeft + pointerOffset - colWidth;
+  const dayIndex = contentX / oldWidth;
+  zoomIndex = clamped;
+  render();
+  board.scrollLeft = Math.max(0, dayIndex * newWidth - pointerOffset + colWidth);
 }
 
 function detachData() {
@@ -215,6 +333,7 @@ function attachData() {
   eventsRef = database.ref(dbPath('etkinlikler'));
   projectsRef.on('value', (snapshot) => {
     projects = snapshot.val() || {};
+    dataLoaded = true;
     render();
   }, (error) => {
     console.error('Haber projeleri yüklenemedi:', error);
@@ -531,18 +650,19 @@ function beginBarDrag(event) {
 
 function moveBarDrag(event) {
   if (!dragState || event.pointerId !== dragState.pointerId) { return; }
-  dragState.delta = Math.round((event.clientX - dragState.originX) / DAY_WIDTH);
-  if (dragState.mode === 'move') { dragState.bar.style.transform = `translateX(${dragState.delta * DAY_WIDTH}px)`; }
+  const dayWidth = currentDayWidth();
+  dragState.delta = Math.round((event.clientX - dragState.originX) / dayWidth);
+  if (dragState.mode === 'move') { dragState.bar.style.transform = `translateX(${dragState.delta * dayWidth}px)`; }
   if (dragState.mode === 'start') {
     const maxDelta = dayDiff(dragState.start, dragState.end);
     const delta = Math.min(maxDelta, dragState.delta);
-    dragState.bar.style.transform = `translateX(${delta * DAY_WIDTH}px)`;
-    dragState.bar.style.width = `${Math.max(DAY_WIDTH, dragState.originalWidth - delta * DAY_WIDTH)}px`;
+    dragState.bar.style.transform = `translateX(${delta * dayWidth}px)`;
+    dragState.bar.style.width = `${Math.max(dayWidth, dragState.originalWidth - delta * dayWidth)}px`;
   }
   if (dragState.mode === 'end') {
     const minDelta = -dayDiff(dragState.start, dragState.end);
     const delta = Math.max(minDelta, dragState.delta);
-    dragState.bar.style.width = `${Math.max(DAY_WIDTH, dragState.originalWidth + delta * DAY_WIDTH)}px`;
+    dragState.bar.style.width = `${Math.max(dayWidth, dragState.originalWidth + delta * dayWidth)}px`;
   }
 }
 
@@ -562,9 +682,12 @@ function endBarDrag(event) {
 
 function bindUi() {
   $('#gantt-new').addEventListener('click', () => openModal());
-  $('#gantt-prev').addEventListener('click', () => { anchor = new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1); render(); });
-  $('#gantt-next').addEventListener('click', () => { anchor = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1); render(); });
-  $('#gantt-today').addEventListener('click', () => { anchor = new Date(new Date().getFullYear(), new Date().getMonth(), 1); render(); });
+  // Sürekli/geniş (tüm yıl) zaman çizelgesinde önceki/sonraki artık ayı
+  // değiştirip yeniden render etmiyor -- sadece 4 hafta kaydırıyor (reui.io
+  // referansındaki kaydırma davranışı). "Bugün" gerekirse yılı da değiştirir.
+  $('#gantt-prev').addEventListener('click', () => scrollByDays(-28));
+  $('#gantt-next').addEventListener('click', () => scrollByDays(28));
+  $('#gantt-today').addEventListener('click', () => scrollToToday(true));
   $('#gantt-search').addEventListener('input', (event) => { searchText = event.target.value.trim(); render(); });
   $('#gantt-status-filter').addEventListener('change', (event) => { statusFilter = event.target.value; render(); });
   $('#gantt-progress').addEventListener('input', (event) => { $('#gantt-progress-value').textContent = `${event.target.value}%`; });
@@ -609,6 +732,26 @@ function bindUi() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !$('#gantt-modal').hidden) { closeModal(); }
   });
+  const board = $('#gantt-board');
+  // Ctrl/Cmd + tekerlek: reui.io referansındaki yakınlaştırma. preventDefault
+  // şart -- yoksa tarayıcı bunu sayfa yakınlaştırma (page zoom) kısayolu olarak
+  // yakalar ve tüm sayfa büyür/küçülür (reui.io'da elle test edilirken görüldü).
+  board.addEventListener('wheel', (event) => {
+    if (!event.ctrlKey && !event.metaKey) { return; }
+    event.preventDefault();
+    setZoom(zoomIndex + (event.deltaY < 0 ? 1 : -1), event.clientX);
+  }, { passive: false });
+  document.addEventListener('keydown', (event) => {
+    if (!$('#gantt-board') || !$('#gantt-modal').hidden) { return; }
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
+    if (event.key === '+' || event.key === '=') { event.preventDefault(); setZoom(zoomIndex + 1); }
+    else if (event.key === '-' || event.key === '_') { event.preventDefault(); setZoom(zoomIndex - 1); }
+  });
+  board.addEventListener('scroll', () => {
+    if (scrollRaf) { return; }
+    scrollRaf = requestAnimationFrame(() => { scrollRaf = null; updatePeriodLabel(); });
+  }, { passive: true });
 }
 
 export function initGantt() {

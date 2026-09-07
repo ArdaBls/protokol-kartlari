@@ -850,27 +850,45 @@
 .gantt-search { width: 250px; }
 .gantt-board { overflow: auto; max-height: calc(100vh - 330px); min-height: 300px; }
 .gantt-grid { min-width: calc(270px + var(--gantt-width)); position: relative; }
-.gantt-grid-head, .gantt-project-row {
-  display: grid;
-  grid-template-columns: 270px var(--gantt-width);
-}
-.gantt-grid-head { position: sticky; top: 0; z-index: 8; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); }
-.gantt-name-head {
+.gantt-project-row { display: grid; grid-template-columns: 270px var(--gantt-width); }
+// Başlık artık iki üst üste satır: hafta üst-başlığı (reui.io referansındaki
+// "W28 Jul 5-11" bandı) + gün başlığı -- bu yüzden .gantt-grid-head kendisi
+// grid değil, iki grid satırını üst üste dizen bir flex sütun oldu.
+.gantt-grid-head { position: sticky; top: 0; z-index: 8; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; }
+.gantt-week-row, .gantt-day-row { display: grid; grid-template-columns: 270px var(--gantt-width); }
+.gantt-week-row { border-bottom: 1px solid var(--border-color); }
+.gantt-week-name-head, .gantt-name-head {
   position: sticky;
   left: 0;
   z-index: 10;
   background: var(--bg-surface);
+  border-inline-end: 1px solid var(--border-color);
+}
+.gantt-name-head {
   padding: 15px 16px;
   color: var(--text-muted);
   font-size: 11px;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: .05em;
+}
+.gantt-week-head { display: grid; grid-template-columns: repeat(var(--gantt-days), var(--gantt-day-width, 38px)); }
+.gantt-week-cell {
+  grid-column: span 7;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
   border-inline-end: 1px solid var(--border-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gantt-days-head, .gantt-track {
   display: grid;
-  grid-template-columns: repeat(var(--gantt-days), 38px);
+  grid-template-columns: repeat(var(--gantt-days), var(--gantt-day-width, 38px));
 }
 .gantt-day {
   height: 54px;
@@ -949,14 +967,19 @@
 .gantt-step-row .gantt-project-title .step-status-iptal { background: #94a3b8; }
 .gantt-track {
   position: relative;
-  background-image: repeating-linear-gradient(to right, transparent 0, transparent 37px, var(--border-color) 37px, var(--border-color) 38px);
+  background-image: repeating-linear-gradient(to right,
+    transparent 0, transparent calc(var(--gantt-day-width, 38px) - 1px),
+    var(--border-color) calc(var(--gantt-day-width, 38px) - 1px), var(--border-color) var(--gantt-day-width, 38px));
 }
 .gantt-track::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(to right, transparent 0, transparent 190px, color-mix(in srgb, var(--body-bg) 70%, transparent) 190px, color-mix(in srgb, var(--body-bg) 70%, transparent) 266px);
+  background: repeating-linear-gradient(to right,
+    transparent 0, transparent calc(var(--gantt-day-width, 38px) * 5),
+    color-mix(in srgb, var(--body-bg) 70%, transparent) calc(var(--gantt-day-width, 38px) * 5),
+    color-mix(in srgb, var(--body-bg) 70%, transparent) calc(var(--gantt-day-width, 38px) * 7));
   opacity: .5;
 }
 .gantt-bar {
@@ -964,7 +987,7 @@
   z-index: 2;
   top: 15px;
   height: 36px;
-  min-width: 38px;
+  min-width: var(--gantt-day-width, 38px);
   border: 0;
   border-radius: 8px;
   background: var(--primary);
@@ -975,9 +998,15 @@
   touch-action: none;
   box-shadow: 0 2px 6px rgba(15, 23, 42, .12);
   user-select: none;
+  // Yakınlaştırma/gezinme sonrası yeniden render edildiğinde çubuklar sert bir
+  // sıçrama yerine takvim sayfasındaki geçişlerle aynı yumuşaklıkta (ease,
+  // ~150-400ms) kayarak yeni konumuna "süzülür" -- kullanıcının istediği
+  // "gün değiştirirken silüetlerin bizim takvimdeki gibi" hissi.
+  transition: left .16s ease, width .16s ease;
 }
 .gantt-bar:focus-visible { outline: 3px solid var(--primary-lt); outline-offset: 2px; }
-.gantt-bar.is-dragging { cursor: grabbing; opacity: .82; z-index: 6; }
+.gantt-bar.is-dragging { cursor: grabbing; opacity: .82; z-index: 6; transition: none; }
+@media (prefers-reduced-motion: reduce) { .gantt-bar { transition: none; } }
 .gantt-bar-progress { position: absolute; inset: 0 auto 0 0; background: rgba(255, 255, 255, .2); pointer-events: none; }
 .gantt-bar-label { position: relative; z-index: 2; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10.5px; font-weight: var(--font-weight-bold); }
 .gantt-bar.status-fikir { background: #64748b; }
@@ -987,10 +1016,12 @@
 .gantt-bar.status-kurgu { background: #ea580c; }
 .gantt-bar.status-onay { background: #ca8a04; }
 .gantt-bar.status-yayinlandi { background: #16a34a; }
-.gantt-bar.status-iptal { background: #64748b; opacity: .58; text-decoration: line-through; }
+// calendar.js'teki HABER_DURUM paletiyle hizalı: iptal = kırmızı (renk: #b03a3a),
+// incelemede = mor (renk: #7c3aed) -- aynı "haber üretim" alanı, aynı renk dili.
+.gantt-bar.status-iptal { background: #b03a3a; opacity: .58; text-decoration: line-through; }
 .gantt-bar.status-yapilacak { background: #64748b; }
 .gantt-bar.status-yapiliyor { background: #2563eb; }
-.gantt-bar.status-incelemede { background: #ca8a04; }
+.gantt-bar.status-incelemede { background: #7c3aed; }
 .gantt-bar.status-tamamlandi { background: #16a34a; }
 .gantt-bar--step { top: 13px; height: 32px; border-radius: 6px; }
 .gantt-bar.is-overdue { box-shadow: 0 0 0 2px var(--red), 0 2px 6px rgba(15, 23, 42, .12); }
@@ -1001,10 +1032,31 @@
 .gantt-empty strong { color: var(--text); }
 .gantt-loading { padding: 28px; }
 body.gantt-modal-open { overflow: hidden; }
-.gantt-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; }
+// shadcn/radix Dialog primitive'inin yapısı temel alındı (kullanıcının verdiği
+// referans: "cn-dialog-content fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2
+// -translate-y-1/2 outline-none sm:max-w-md"). Konumlandırma/köşe/gölge/backdrop
+// birebir o dille çevrildi; genişlik istisnası: bu formda tarih + adım tablosu
+// gibi geniş alanlar var, 448px'e (max-w-md) sıkıştırmak kullanılamaz hale
+// getirir -- içeriğe uygun daha geniş bir üst sınır (680px) korunuyor.
+.gantt-modal { position: fixed; inset: 0; z-index: 50; }
 .gantt-modal[hidden] { display: none; }
-.gantt-modal-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .58); backdrop-filter: blur(4px); }
-.gantt-dialog { position: relative; width: min(680px, 100%); max-height: min(820px, calc(100vh - 40px)); overflow: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: 0 24px 60px rgba(15, 23, 42, .24); }
+.gantt-modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .5); }
+.gantt-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 680px;
+  max-height: min(820px, calc(100vh - 40px));
+  overflow: auto;
+  outline: none;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .24), 0 0 0 1px rgba(255, 255, 255, .04);
+}
 .gantt-dialog-head { padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
 .gantt-dialog-head h2 { margin: 2px 0 0; font-size: 20px; color: var(--text); }
 .gantt-close { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg-surface-secondary); color: var(--text-muted); font-size: 22px; cursor: pointer; }
@@ -1046,7 +1098,7 @@ body.gantt-modal-open { overflow: hidden; }
   .gantt-period-nav strong { flex: 1; text-align: end; }
   .gantt-filters, .gantt-search, .gantt-filters .form-control { width: 100%; }
   .gantt-board { max-height: none; }
-  .gantt-grid-head, .gantt-project-row { grid-template-columns: 210px var(--gantt-width); }
+  .gantt-week-row, .gantt-day-row, .gantt-project-row { grid-template-columns: 210px var(--gantt-width); }
   .gantt-grid { min-width: calc(210px + var(--gantt-width)); }
   .gantt-form-grid { grid-template-columns: 1fr; }
   .gantt-field--wide { grid-column: auto; }
