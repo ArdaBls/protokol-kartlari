@@ -30,6 +30,7 @@ export const EDITOR_NAV_KEYS = [
   'calendar',       // Takvim
   'map',            // Harita
   'kanban',         // Yapılacaklar Listesi
+  'gantt',          // Haber Üretim Takvimi
   'projects',       // Tüm haberler
   'project-detail', // Haber detayı
   'profile',        // Profiliniz
@@ -71,6 +72,7 @@ export const NAV = [
   {
     label: 'Haberler',
     items: [
+      { key: 'gantt',          href: 'gantt.html',              text: 'Üretim Takvimi', icon: 'timeline' },
       { key: 'projects',       href: 'tum-haberler.html',       text: 'Tüm haberler', icon: 'projects' },
       { key: 'project-detail', href: 'haber-detayi.html', text: 'Haber detayı', icon: 'pages' }
     ]
@@ -98,6 +100,7 @@ export const ICONS = {
   chat:      '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>',
   bell:      '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/><path d="M10.5 21a1.5 1.5 0 003 0"/></svg>',
   kanban:    '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="14" rx="1.5"/><rect x="11" y="3" width="6" height="9" rx="1.5"/><rect x="19" y="3" width="2" height="6" rx="0.5"/></svg>',
+  timeline:  '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5v14M4 8h7M8 12h9M6 16h14"/><circle cx="4" cy="8" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="6" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>',
   files:     '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7a2 2 0 012-2h4l2 2h7a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>',
   shop:      '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18"/><path d="M9 13a3 3 0 006 0"/></svg>',
   tag:       '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 13l-7 7a2 2 0 01-2.83 0L3 12.83V4h8.83L20 12.17a2 2 0 010 2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
@@ -132,21 +135,21 @@ function renderNavItem(item, activeKey) {
         <button type="button" class="nav-link nav-toggle" aria-expanded="${childActive ? 'true' : 'false'}">
           ${ICONS[item.icon] || ''}
           <span class="nav-text">${item.text}</span>
-          ${item.badge ? `<span class="badge ${item.badge.cls}">${item.badge.text}</span>` : ''}
+${item.badge ? `          <span class="badge ${item.badge.cls}">${item.badge.text}</span>` : ''}
           ${CHEVRON}
         </button>
         <div class="nav-sub"><div class="nav-sub-inner">${sub}</div></div>
       </div>
-    `;
+`;
   }
   const a = item.key === activeKey;
   return `
     <a class="nav-link${a ? ' active' : ''}" href="${item.href}"${item.key ? ` data-nav-key="${item.key}"` : ''}${item.target ? ` target="${item.target}" rel="noopener"` : ''}${a ? ' aria-current="page"' : ''}>
       ${ICONS[item.icon] || ''}
       <span class="nav-text">${item.text}</span>
-      ${item.badge ? `<span class="badge ${item.badge.cls}">${item.badge.text}</span>` : ''}
+${item.badge ? `      <span class="badge ${item.badge.cls}">${item.badge.text}</span>` : ''}
     </a>
-  `;
+`;
 }
 
 export function renderSidebar(activeKey) {

@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Operasyonlar | Protokol</title>
+<title>Üretim Takvimi | Protokol</title>
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. charts.js editorEventActivity(). -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -19,24 +18,25 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
-<meta name="description" content="Operasyonlar — Operasyonlar. OMÜ Protokol Kartları admin paneli.">
+<meta name="description" content="Üretim Takvimi — Üretim Takvimi. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Operasyonlar">
-<meta property="og:description" content="Operasyonlar — Operasyonlar. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:title" content="Üretim Takvimi">
+<meta property="og:description" content="Üretim Takvimi — Üretim Takvimi. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/icons/icon-512.png">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/toast-C9dk_WzR.js"></script>
-  <script type="module" crossorigin src="/js/menus-BQLwJCQm.js"></script>
-  <script type="module" crossorigin src="/js/modal-MTuCfURV.js"></script>
-  <script type="module" crossorigin src="/js/db-mode-DaB3nJMJ.js"></script>
-  <script type="module" crossorigin src="/js/charts-CYHgoSvk.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-SKRvIriJ.js"></script>
+  <script type="module" crossorigin src="/js/gantt-W2I1-KB_.js"></script>
+  <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
+  <link rel="modulepreload" crossorigin href="/js/menus-BQLwJCQm.js">
+  <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
+  <link rel="modulepreload" crossorigin href="/js/db-mode-DaB3nJMJ.js">
+  <link rel="modulepreload" crossorigin href="/js/charts-CYHgoSvk.js">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-SKRvIriJ.js">
   <link rel="stylesheet" crossorigin href="/assets/main-v4-DFF5gCGb.css">
 </head>
-<body data-shell="admin" data-page="dashboard" data-breadcrumb="Anasayfa|index.html > Operasyonlar">
+<body data-shell="admin" data-page="gantt" data-breadcrumb="Anasayfa|index.html > Üretim Takvimi">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -48,8 +48,8 @@
       <nav class="sidebar-nav">
     <div class="nav-group">
       <div class="nav-label">Genel</div>
-      
-    <a class="nav-link active" href="index.html" data-nav-key="dashboard" aria-current="page">
+
+    <a class="nav-link" href="index.html" data-nav-key="dashboard">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="10" width="7" height="11" rx="1.5"/></svg>
       <span class="nav-text">Operasyonlar</span>
 
@@ -74,10 +74,10 @@
     </a>
 
     </div>
-  
+
     <div class="nav-group">
       <div class="nav-label">Uygulamalar</div>
-      
+
     <a class="nav-link" href="yapilacaklar.html" data-nav-key="kanban">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="14" rx="1.5"/><rect x="11" y="3" width="6" height="9" rx="1.5"/><rect x="19" y="3" width="2" height="6" rx="0.5"/></svg>
       <span class="nav-text">Yapılacaklar Listesi</span>
@@ -97,11 +97,11 @@
     </a>
 
     </div>
-  
+
     <div class="nav-group">
       <div class="nav-label">Haberler</div>
-      
-    <a class="nav-link" href="gantt.html" data-nav-key="gantt">
+
+    <a class="nav-link active" href="gantt.html" data-nav-key="gantt" aria-current="page">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5v14M4 8h7M8 12h9M6 16h14"/><circle cx="4" cy="8" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="6" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>
       <span class="nav-text">Üretim Takvimi</span>
 
@@ -120,10 +120,10 @@
     </a>
 
     </div>
-  
+
     <div class="nav-group">
       <div class="nav-label">Yönetim</div>
-      
+
     <a class="nav-link" href="kisiler.html" data-nav-key="users">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
       <span class="nav-text">Kişiler</span>
@@ -169,14 +169,14 @@
         </div>
       </div>
     </aside>
-  
+
 
     <header class="topbar">
       <div class="topbar-left">
         <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Operasyonlar</span></nav>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Üretim Takvimi</span></nav>
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
@@ -197,145 +197,126 @@
         <button class="tb-avatar" type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false">Z</button>
       </div>
     </header>
-  
-<main id="main-content" tabindex="-1" class="main">
-<div class="page-wrapper">
 
+<main id="main-content" tabindex="-1" class="main">
+<div class="page-wrapper gantt-page">
   <div class="page-header">
     <div class="page-header-row">
       <div>
-        <div class="page-pretitle">Genel Bakış</div>
-        <h1 class="page-title">Operasyonlar</h1>
+        <div class="page-pretitle">Haberler</div>
+        <h1 class="page-title">Haber üretim takvimi</h1>
+        <p class="gantt-lead">Özel haberleri ve üretim aşamalarını tek zaman çizelgesinde planlayın.</p>
+      </div>
+      <div class="page-actions">
+        <button type="button" class="btn btn-primary" id="gantt-new">Yeni proje</button>
       </div>
     </div>
   </div>
 
-  <!-- ── STAT CARDS ── -->
-  <div class="row col-3">
-    <div class="card">
-      <!-- Streak (üst üste giriş) göstergesi -- veri streak-ui.js tarafından
-           window.__streakState / 'streak:ready' event'inden dolduruluyor
-           (bkz. shell.js + streak.js). Yüklenene kadar boş/soluk görünür. -->
-      <div class="stat" data-streak-widget></div>
-    </div>
-    <div class="card">
-      <div class="stat">
-        <div class="stat-icon purple">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Sayaç <button type="button" class="countdown-edit-btn" data-countdown-edit aria-label="Hedef tarihi ayarla"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2l2.5 2.5-7 7-3 .5.5-3 7-7z"/></svg></button><button type="button" class="countdown-edit-btn" data-countdown-reset aria-label="Sayacı sıfırla"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 3.5h9M5.5 3.5V2h3v1.5M3.5 3.5l.5 8.5h6l.5-8.5"/></svg></button></div>
-          <div class="stat-value-row">
-            <span class="stat-value" data-countdown-value style="font-size:20px">—</span>
-          </div>
-          <div class="stat-subtext" data-countdown-sub>Hedef tarih belirlenmedi</div>
-        </div>
-      </div>
-      <div style="padding:0 16px 12px">
-        <div class="progress-thin"><div class="bar" data-countdown-bar style="width:0%;background:var(--purple)"></div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="stat">
-        <div class="stat-icon azure">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">Tahmini Çekilen Fotoğraf</div>
-          <div class="stat-value-row">
-            <span class="stat-value" data-photo-counter>—</span>
-          </div>
-          <div class="stat-subtext">Basın görevlisi olarak gidilen etkinliklere göre (tahmini)</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <section class="gantt-summary" aria-label="Proje özeti">
+    <div class="gantt-stat"><span>Aktif</span><strong id="gantt-active-count">0</strong></div>
+    <div class="gantt-stat"><span>Bu ay teslim</span><strong id="gantt-month-count">0</strong></div>
+    <div class="gantt-stat gantt-stat--danger"><span>Geciken</span><strong id="gantt-overdue-count">0</strong></div>
+    <div class="gantt-stat"><span>Özel haber</span><strong id="gantt-special-count">0</strong></div>
+  </section>
 
-  <!-- ── EDİTÖR AKTİVİTESİ (tek başına, tam genişlik) ── -->
-  <!-- Kullanıcı isteği: bu kart TÜM kullanıcılarda (editor/admin/owner -- pending zaten
-       onay-bekliyor.html'e yönlendirildiği için dashboard'a hiç ulaşmıyor) görünmeli,
-       Ay/Gün/% modlarının hepsi dahil. charts.js'teki subscribeSharedActivityData zaten
-       bunu sağlıyor: users/ düğümü sadece admin/owner'a açık olduğu için editör rolü
-       PERMISSION_DENIED alır, ama HER ÜÇ mod da (editorEventActivity/editorDailyActivity/
-       editorActivityShare) bu durumda isimleri doğrudan etkinliklerden (gorevli/
-       haberYazanlari) türetiyor -- ek bir değişiklik gerekmedi, mevcut mekanizma zaten
-       bu senaryoyu kapsıyor (bkz. o dosyadaki isimleriEtkinliklerdenCikar).
-  -->
-  <div class="row">
-    <div class="card" style="display:flex;flex-direction:column;height:402px">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Editör Aktivitesi</div>
-          <div class="card-subtitle" data-editor-activity-subtitle>Basın görevlisi olarak atandıkları etkinlik sayısı, aylık · Ocak – Aralık</div>
-        </div>
-        <div class="card-options">
-          <div class="chart-tabs" data-chart-view-tabs>
-            <button type="button" class="chart-tab active" data-chart-view-btn="line">Ay</button>
-            <button type="button" class="chart-tab" data-chart-view-btn="daily">Gün</button>
-            <button type="button" class="chart-tab" data-chart-view-btn="share">%</button>
-          </div>
-        </div>
+  <section class="card gantt-shell" aria-label="Gantt görünümü">
+    <div class="gantt-toolbar">
+      <div class="gantt-period-nav">
+        <button type="button" class="chart-daynav-btn" id="gantt-prev" aria-label="Önceki dönem">‹</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="gantt-today">Bugün</button>
+        <button type="button" class="chart-daynav-btn" id="gantt-next" aria-label="Sonraki dönem">›</button>
+        <strong id="gantt-period-label"></strong>
       </div>
-      <div class="chart-area" data-chart-view="line" style="flex:1;min-height:0">
-        <div data-chart="editor-event-activity" style="width:100%;height:100%"></div>
-      </div>
-      <div class="chart-area" data-chart-view="daily" style="flex:1;min-height:0;display:none">
-        <div data-chart="editor-daily-activity" style="width:100%;height:100%"></div>
-      </div>
-      <div class="chart-area" data-chart-view="share" style="flex:1;min-height:0;display:none">
-        <div class="donut-block donut-block-lg">
-          <div class="donut-svg-lg">
-            <div data-chart="editor-activity-share" style="width:100%;height:100%"></div>
-            <div class="donut-center-label">
-              <div class="num">—</div>
-              <div class="sub">yüzde</div>
-            </div>
-          </div>
-          <div class="donut-legend-wrap-lg donut-legend donut-legend--lg"></div>
+      <div class="gantt-filters">
+        <label class="sr-only" for="gantt-status-filter">Duruma göre filtrele</label>
+        <select id="gantt-status-filter" class="form-control">
+          <option value="">Tüm durumlar</option>
+          <option value="fikir">Fikir</option>
+          <option value="arastirma">Araştırma</option>
+          <option value="hazirlik">Hazırlık</option>
+          <option value="cekim">Çekim</option>
+          <option value="kurgu">Kurgu</option>
+          <option value="onay">Onay</option>
+          <option value="yayinlandi">Yayınlandı</option>
+          <option value="iptal">İptal</option>
+        </select>
+        <div class="search-box gantt-search">
+          <svg class="s-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+          <input type="search" id="gantt-search" placeholder="Proje veya sorumlu ara…" aria-label="Proje veya sorumlu ara">
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- ── GÖREVLER + TAKVİM GÖRÜNÜMÜ ── -->
-  <!-- Kullanıcı isteği: harita önizlemesi kaldırıldı, yerine Görevler geldi; Takvim
-       Görünümü de Görevler'in yanına (aynı satıra) alındı. -->
-  <div class="row col-8-4">
-    <!-- To-Do — gerçek Firebase verisi, bkz. tasks-widget.js -->
-    <div class="card" style="display:flex;flex-direction:column;height:402px">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Görevler</div>
-          <div class="card-subtitle" data-todo-counter>Yükleniyor…</div>
-        </div>
-        <div class="card-options">
-          <button type="button" class="card-opt-btn card-opt-btn-labeled" data-quick-event-btn aria-label="Bir Etkinliğe Gidiyorum" title="Bir Etkinliğe Gidiyorum">📍 Bir Etkinliğe Gidiyorum</button>
-          <button type="button" class="card-opt-btn" data-task-add aria-label="Yeni görev ekle"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg></button>
-        </div>
-      </div>
-      <div class="card-body" data-task-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
+    <div id="gantt-board" class="gantt-board" aria-live="polite">
+      <p class="hint gantt-loading">Projeler yükleniyor…</p>
     </div>
-
-    <!-- Mini Takvim widget'ı — gerçek Firebase verisi, bkz. mini-calendar-widget.js -->
-    <div class="card" style="display:flex;flex-direction:column;height:402px">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Takvim Görünümü</div>
-          <div class="card-subtitle">Yaklaşan etkinlikler</div>
-        </div>
-      </div>
-      <div class="card-body" data-mini-calendar-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
-    </div>
-  </div>
-
+  </section>
 </div>
 
     <footer class="footer">
       <span>© 2026 Arda Bilasa. Tüm hakları saklıdır.</span>
       <span>Firebase v9.23.0</span>
     </footer>
-  
+
 </main>
+
+<div class="gantt-modal" id="gantt-modal" hidden>
+  <div class="gantt-modal-backdrop" data-gantt-close></div>
+  <section class="gantt-dialog" role="dialog" aria-modal="true" aria-labelledby="gantt-dialog-title">
+    <header class="gantt-dialog-head">
+      <div>
+        <span class="page-pretitle">Haber projesi</span>
+        <h2 id="gantt-dialog-title">Yeni proje</h2>
+      </div>
+      <button type="button" class="gantt-close" data-gantt-close aria-label="Pencereyi kapat">×</button>
+    </header>
+    <form id="gantt-form">
+      <input type="hidden" id="gantt-id">
+      <div class="gantt-form-grid">
+        <label class="gantt-field gantt-field--wide">Proje adı
+          <input class="form-control" id="gantt-title" maxlength="180" required autocomplete="off">
+        </label>
+        <label class="gantt-field">Haber türü
+          <select class="form-control" id="gantt-type"><option value="ozel">Özel haber</option><option value="normal">Normal haber</option></select>
+        </label>
+        <label class="gantt-field">Durum
+          <select class="form-control" id="gantt-status">
+            <option value="fikir">Fikir</option><option value="arastirma">Araştırma</option><option value="hazirlik">Hazırlık</option><option value="cekim">Çekim</option><option value="kurgu">Kurgu</option><option value="onay">Onay</option><option value="yayinlandi">Yayınlandı</option><option value="iptal">İptal</option>
+          </select>
+        </label>
+        <label class="gantt-field">Başlangıç
+          <input type="date" class="form-control" id="gantt-start" required>
+        </label>
+        <label class="gantt-field">Bitiş / teslim
+          <input type="date" class="form-control" id="gantt-end" required>
+        </label>
+        <label class="gantt-field">Sorumlu
+          <input class="form-control" id="gantt-owner" maxlength="120" autocomplete="off">
+        </label>
+        <label class="gantt-field">Öncelik
+          <select class="form-control" id="gantt-priority"><option value="normal">Normal</option><option value="yuksek">Yüksek</option><option value="kritik">Kritik</option></select>
+        </label>
+        <label class="gantt-field gantt-field--wide">İlerleme: <output id="gantt-progress-value">0%</output>
+          <input type="range" id="gantt-progress" min="0" max="100" step="5" value="0">
+        </label>
+        <label class="gantt-field gantt-field--wide">Takvim etkinliği
+          <select class="form-control" id="gantt-event"><option value="">Bağlantı yok</option></select>
+          <span class="gantt-help">Bağlı etkinliğin tarihi, projenin teslim tarihiyle birlikte güncellenir.</span>
+        </label>
+        <label class="gantt-field gantt-field--wide">Notlar
+          <textarea class="form-control" id="gantt-notes" rows="4" maxlength="4000"></textarea>
+        </label>
+      </div>
+      <p class="gantt-form-error" id="gantt-form-error" role="alert"></p>
+      <footer class="gantt-dialog-actions">
+        <button type="button" class="btn btn-ghost gantt-delete" id="gantt-archive" hidden>Arşivle</button>
+        <span></span>
+        <button type="button" class="btn btn-ghost" data-gantt-close>Vazgeç</button>
+        <button type="submit" class="btn btn-primary" id="gantt-save">Kaydet</button>
+      </footer>
+    </form>
+  </section>
+</div>
 
 </body>
 </html>

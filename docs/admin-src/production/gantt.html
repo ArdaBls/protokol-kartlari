@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Üretim Takvimi | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="gantt" data-breadcrumb="Anasayfa|index.html > Üretim Takvimi">
+
+<main class="main">
+<div class="page-wrapper gantt-page">
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Haberler</div>
+        <h1 class="page-title">Haber üretim takvimi</h1>
+        <p class="gantt-lead">Özel haberleri ve üretim aşamalarını tek zaman çizelgesinde planlayın.</p>
+      </div>
+      <div class="page-actions">
+        <button type="button" class="btn btn-primary" id="gantt-new">Yeni proje</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="gantt-summary" aria-label="Proje özeti">
+    <div class="gantt-stat"><span>Aktif</span><strong id="gantt-active-count">0</strong></div>
+    <div class="gantt-stat"><span>Bu ay teslim</span><strong id="gantt-month-count">0</strong></div>
+    <div class="gantt-stat gantt-stat--danger"><span>Geciken</span><strong id="gantt-overdue-count">0</strong></div>
+    <div class="gantt-stat"><span>Özel haber</span><strong id="gantt-special-count">0</strong></div>
+  </section>
+
+  <section class="card gantt-shell" aria-label="Gantt görünümü">
+    <div class="gantt-toolbar">
+      <div class="gantt-period-nav">
+        <button type="button" class="chart-daynav-btn" id="gantt-prev" aria-label="Önceki dönem">‹</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="gantt-today">Bugün</button>
+        <button type="button" class="chart-daynav-btn" id="gantt-next" aria-label="Sonraki dönem">›</button>
+        <strong id="gantt-period-label"></strong>
+      </div>
+      <div class="gantt-filters">
+        <label class="sr-only" for="gantt-status-filter">Duruma göre filtrele</label>
+        <select id="gantt-status-filter" class="form-control">
+          <option value="">Tüm durumlar</option>
+          <option value="fikir">Fikir</option>
+          <option value="arastirma">Araştırma</option>
+          <option value="hazirlik">Hazırlık</option>
+          <option value="cekim">Çekim</option>
+          <option value="kurgu">Kurgu</option>
+          <option value="onay">Onay</option>
+          <option value="yayinlandi">Yayınlandı</option>
+          <option value="iptal">İptal</option>
+        </select>
+        <div class="search-box gantt-search">
+          <svg class="s-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+          <input type="search" id="gantt-search" placeholder="Proje veya sorumlu ara…" aria-label="Proje veya sorumlu ara">
+        </div>
+      </div>
+    </div>
+    <div id="gantt-board" class="gantt-board" aria-live="polite">
+      <p class="hint gantt-loading">Projeler yükleniyor…</p>
+    </div>
+  </section>
+</div>
+</main>
+
+<div class="gantt-modal" id="gantt-modal" hidden>
+  <div class="gantt-modal-backdrop" data-gantt-close></div>
+  <section class="gantt-dialog" role="dialog" aria-modal="true" aria-labelledby="gantt-dialog-title">
+    <header class="gantt-dialog-head">
+      <div>
+        <span class="page-pretitle">Haber projesi</span>
+        <h2 id="gantt-dialog-title">Yeni proje</h2>
+      </div>
+      <button type="button" class="gantt-close" data-gantt-close aria-label="Pencereyi kapat">×</button>
+    </header>
+    <form id="gantt-form">
+      <input type="hidden" id="gantt-id">
+      <div class="gantt-form-grid">
+        <label class="gantt-field gantt-field--wide">Proje adı
+          <input class="form-control" id="gantt-title" maxlength="180" required autocomplete="off">
+        </label>
+        <label class="gantt-field">Haber türü
+          <select class="form-control" id="gantt-type"><option value="ozel">Özel haber</option><option value="normal">Normal haber</option></select>
+        </label>
+        <label class="gantt-field">Durum
+          <select class="form-control" id="gantt-status">
+            <option value="fikir">Fikir</option><option value="arastirma">Araştırma</option><option value="hazirlik">Hazırlık</option><option value="cekim">Çekim</option><option value="kurgu">Kurgu</option><option value="onay">Onay</option><option value="yayinlandi">Yayınlandı</option><option value="iptal">İptal</option>
+          </select>
+        </label>
+        <label class="gantt-field">Başlangıç
+          <input type="date" class="form-control" id="gantt-start" required>
+        </label>
+        <label class="gantt-field">Bitiş / teslim
+          <input type="date" class="form-control" id="gantt-end" required>
+        </label>
+        <label class="gantt-field">Sorumlu
+          <input class="form-control" id="gantt-owner" maxlength="120" autocomplete="off">
+        </label>
+        <label class="gantt-field">Öncelik
+          <select class="form-control" id="gantt-priority"><option value="normal">Normal</option><option value="yuksek">Yüksek</option><option value="kritik">Kritik</option></select>
+        </label>
+        <label class="gantt-field gantt-field--wide">İlerleme: <output id="gantt-progress-value">0%</output>
+          <input type="range" id="gantt-progress" min="0" max="100" step="5" value="0">
+        </label>
+        <label class="gantt-field gantt-field--wide">Takvim etkinliği
+          <select class="form-control" id="gantt-event"><option value="">Bağlantı yok</option></select>
+          <span class="gantt-help">Bağlı etkinliğin tarihi, projenin teslim tarihiyle birlikte güncellenir.</span>
+        </label>
+        <label class="gantt-field gantt-field--wide">Notlar
+          <textarea class="form-control" id="gantt-notes" rows="4" maxlength="4000"></textarea>
+        </label>
+      </div>
+      <p class="gantt-form-error" id="gantt-form-error" role="alert"></p>
+      <footer class="gantt-dialog-actions">
+        <button type="button" class="btn btn-ghost gantt-delete" id="gantt-archive" hidden>Arşivle</button>
+        <span></span>
+        <button type="button" class="btn btn-ghost" data-gantt-close>Vazgeç</button>
+        <button type="submit" class="btn btn-primary" id="gantt-save">Kaydet</button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+<script type="module">
+import('/src/v4/gantt.js').then(({ initGantt }) => { initGantt(); });
+</script>
+</body>
+</html>

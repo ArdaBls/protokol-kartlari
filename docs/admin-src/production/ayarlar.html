@@ -312,7 +312,7 @@ document.getElementById('avatar-remove-btn').addEventListener('click', () => {
   });
 });
 
-// ── Tüm verileri dışa aktar: 3 kök düğümü tek JSON'da indir ──
+// ── Tüm içerik verilerini tek JSON'da indir ──
 const exportBtn = document.querySelector('[data-action="export"]');
 exportBtn.addEventListener('click', () => {
   const originalLabel = exportBtn.textContent;
@@ -322,12 +322,14 @@ exportBtn.addEventListener('click', () => {
   Promise.all([
     database.ref('ilProtokolVerileri').once('value'),
     database.ref('universiteProtokolVerileri').once('value'),
-    database.ref('etkinlikler').once('value')
-  ]).then(([ilSnap, uniSnap, etkinlikSnap]) => {
+    database.ref('etkinlikler').once('value'),
+    database.ref('haberProjeleri').once('value')
+  ]).then(([ilSnap, uniSnap, etkinlikSnap, projeSnap]) => {
     const payload = {
       ilProtokolVerileri: ilSnap.val(),
       universiteProtokolVerileri: uniSnap.val(),
       etkinlikler: etkinlikSnap.val(),
+      haberProjeleri: projeSnap.val(),
       disaAktarilmaTarihi: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -389,7 +391,7 @@ function initTestModeSection() {
   // gösterilebilirdi (bu davranış app.js'te zaten çözülmüş, burada AYNEN
   // tekrarlanıyor -- ayrı bir kaynak, tek yetkili davranış).
   async function cloneRealDataToTestMode() {
-    const paths = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'basinGorevlileri'];
+    const paths = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'basinGorevlileri', 'haberProjeleri'];
     const snaps = await Promise.all(paths.map((p) => database.ref(p).once('value')));
     await Promise.all(paths.map((p, i) => database.ref('test/' + p).set(snaps[i].val())));
   }
