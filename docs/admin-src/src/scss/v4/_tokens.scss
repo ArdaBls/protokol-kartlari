@@ -13,6 +13,15 @@
   --sidebar-border: rgba(255,255,255,0.06);
   --sidebar-w: 252px;
 
+  // Tooltip'ler (bkz. _components.scss [data-tooltip]) HER ZAMAN koyu zemin +
+  // beyaz yazı -- tema fark etmeksizin AYNI kalmalı (sidebar gibi kasıtlı
+  // olarak tema-bağımsız). Eskiden background:var(--text) kullanılıyordu; bu
+  // koyu temada --text AÇIK renge dönüştüğü için tooltip'i beyaz zemin +
+  // beyaz yazıyla (görünmez) bırakıyordu (kullanıcı bulgusu: "arkası beyaz ve
+  // yazı da beyaz, birşey görünmüyor").
+  --tooltip-bg: #1e2633;
+  --tooltip-text: #ffffff;
+
   --primary: #1ABB9C;
   --primary-lt: rgba(26,187,156,0.06);
   --primary-dk: #169f85;
