@@ -35,6 +35,12 @@ export const EDITOR_NAV_KEYS = [
   // notifications/{uid} bildirimlerini gösteren AYRI bir görünüm sunuyor
   // (logs/* hâlâ kapalı), bu yüzden sekme tekrar açıldı.
   'notifications',  // Bildirimler
+  // 'users' (Kişiler) ESKİDEN editöre kapalıydı çünkü sayfa doğrudan users/
+  // düğümünü (e-posta/rol -- editöre kapalı) okuyordu. Artık editör rolünde
+  // kisiler.html güvenli staffProfiles/{uid} (ad + fotoğraf, e-posta/rol YOK)
+  // kaynağına geçiyor -- kullanıcı isteği: "editörler de sitede kaç kişi
+  // var görebilsin", bu yüzden sekme editöre de açıldı.
+  'users',          // Kişiler
   'gantt',          // Haber Üretim Takvimi
   'projects',       // Tüm haberler
   'project-detail', // Haber detayı

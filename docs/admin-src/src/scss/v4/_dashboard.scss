@@ -1,8 +1,10 @@
 // Operasyonlar (Dashboard) sayfasına özel bileşenler:
-//   - Mini Takvim widget'ı (yaklaşan etkinlikler listesi, düzenle kısayolu, canlı gösterge)
+//   - Etkinlik Özeti kartı (Bugün/Bu hafta/Yaklaşan -- eski Mini Takvim widget'ının yerini aldı)
 //   - Streak (üst üste giriş) göstergesi + "streak bitti" bildirimi (hamster tekerleği)
 // NOT: Bir harita önizlemesi ("teaser") burada denenmişti, kullanıcı isteğiyle KALDIRILDI --
-// yerine Görevler + bu Mini Takvim widget'ı geldi (bkz. production/index.html).
+// yerine Görevler geldi (bkz. production/index.html). Mini Takvim widget'ı da (yalnızca
+// "yaklaşan etkinlikler") kullanıcı isteğiyle Etkinlik Özeti'ne (Bugün/Bu hafta/Yaklaşan,
+// Takvim sayfasından taşındı) genişletilerek KALDIRILDI.
 
 // ────────────────────────
 //  Görevler kartı — "Bir Etkinliğe Gidiyorum" artık sadece ikon değil, metinli
@@ -19,33 +21,38 @@
 }
 
 // ────────────────────────
-//  Mini Takvim widget'ı
+//  Etkinlik Özeti kartı — Bugün/Bu hafta/Yaklaşan (bkz. operations-overview-widget.js).
+//  Kartın .card-body'si zaten overflow-y:auto (Görevler kartıyla aynı desen) --
+//  üç alt bölüm burada İÇ İÇE ayrı bir scroll konteynerine SAHİP DEĞİL.
 // ────────────────────────
-.mini-cal-item {
+.overview-section + .overview-section { margin-top: 16px; }
+.overview-section-title {
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 4px;
+}
+.overview-list { display: flex; flex-direction: column; }
+.overview-card {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border-color-light);
+  color: inherit;
+  text-decoration: none;
+  transition: background 100ms;
 }
-.mini-cal-item:last-child { border-bottom: none; }
-.mini-cal-date {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  background: var(--primary-lt);
-  color: var(--primary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.1;
-}
-.mini-cal-date .d { font-size: 14px; font-weight: var(--font-weight-bold); }
-.mini-cal-date .m { font-size: 9.5px; text-transform: uppercase; letter-spacing: .3px; }
-.mini-cal-info { flex: 1; min-width: 0; }
-.mini-cal-title {
+.overview-list .overview-card:last-child { border-bottom: none; }
+.overview-card:hover, .overview-card:focus-visible { background: var(--bg-surface-secondary); }
+// "Şu anda" devam eden etkinlik: sol kenarda yeşil vurgu şeridi -- ama TEK
+// başına renk yeterli değil (erişilebilirlik), her zaman yanında metin
+// rozeti de var (bkz. .overview-badge--now).
+.overview-card.is-ongoing { box-shadow: inset 3px 0 0 var(--green); }
+.overview-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.overview-title {
   font-size: 12.5px;
   font-weight: var(--font-weight-medium);
   color: var(--text);
@@ -53,41 +60,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mini-cal-meta {
+.overview-meta {
   font-size: 11px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-// Kullanıcı isteği: "etkinlik şimdiyse yanıp sönen bir yeşil işaret", düzenle
-// butonunun SOLUNDA.
-.mini-cal-live {
+.overview-badge {
   flex-shrink: 0;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--green, #22c55e);
-  animation: mini-cal-pulse 1.4s ease-in-out infinite;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
 }
-@keyframes mini-cal-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, .5); }
-  50% { opacity: .55; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mini-cal-live { animation: none; }
-}
-// Kullanıcı isteği: en sağa bir "Düzenle" butonu -- takvim.html?duzenle=<id>'ye
-// götürür, calendar.js orada düzenleme modalını otomatik açar.
-.mini-cal-edit {
-  flex-shrink: 0;
-  width: 28px; height: 28px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  transition: background 120ms, color 120ms;
-}
-.mini-cal-edit:hover { background: var(--bg-surface-secondary); color: var(--text); }
-.mini-cal-edit svg { width: 14px; height: 14px; }
+.overview-badge--now { background: var(--green-lt); color: var(--green); }
+.overview-badge--today { background: var(--primary-lt); color: var(--primary); }
+.overview-empty { margin: 0; padding: 12px 0; color: var(--text-muted); font-size: 12px; text-align: center; }
 
 // ────────────────────────
 //  Streak (üst üste giriş) göstergesi

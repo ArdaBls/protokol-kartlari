@@ -10,8 +10,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config. Bu panel admin/
      alt-yolunda aynı origin'de servis edildiği için, kullanıcı ana siteye zaten giriş yapmışsa
-     Firebase Auth oturumu buraya da otomatik taşınır. Kullanıcı yönetimi sayfasıyla aynı
-     "users" düğümünü okur -- burası salt-okunur, kart görünümlü halidir. -->
+     Firebase Auth oturumu buraya da otomatik taşınır. Admin/owner için Kullanıcı yönetimi
+     sayfasıyla aynı "users" düğümünü (salt-okunur, kart görünümlü) okur; editör için ise
+     users/ yerine herkese açık staffProfiles/{uid} (yalnızca ad+fotoğraf) okunur -- kullanıcı
+     isteği: "editörler de sitede kaç kişi var görebilsin", e-posta/rol editöre YİNE sızmaz. -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -40,6 +42,7 @@
 
 <script type="module">
 import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+import { isSafeAvatarUrl } from '/src/v4/staff-profiles.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -128,22 +131,62 @@ function loadUsersAndEvents() {
   });
 }
 
+// ── Editör görünümü: users/ (e-posta/rol -- editöre kapalı) YERİNE, herkese
+// açık staffProfiles/{uid} (yalnızca ad + fotoğraf) okunur. Kullanıcı isteği:
+// "editörler de sitede kaç kişi var görebilsin" -- amaç sayı ve fotoğraf,
+// e-posta/rol/hesap durumu editöre YİNE sızmaz (bkz. staffProfiles kuralları).
+function renderStaffDirectory(profiles) {
+  const uids = Object.keys(profiles || {});
+  if (!uids.length) { setState('Henüz profil fotoğrafı/adı paylaşan kimse yok.'); return; }
+  uids.sort((a, b) => String((profiles[a] || {}).displayName || '').localeCompare(String((profiles[b] || {}).displayName || ''), 'tr'));
+  grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-muted);font-size:13px;margin-bottom:4px">${uids.length} kişi</div>` +
+    uids.map((uid) => {
+      const p = profiles[uid] || {};
+      const name = String(p.displayName || '').trim() || '(isim yok)';
+      const initial = name.charAt(0).toUpperCase() || '?';
+      const hasPhoto = isSafeAvatarUrl(p.avatarUrl);
+      const avStyle = hasPhoto
+        ? `background-image:url("${String(p.avatarUrl).replace(/["'()]/g, '')}")`
+        : 'background:linear-gradient(135deg,var(--blue),#0550a0)';
+      return `
+        <div class="contact-card">
+          <div class="av${hasPhoto ? ' has-photo' : ''}" style="${avStyle}">${hasPhoto ? '' : escapeHtml(initial)}</div>
+          <div class="name">${escapeHtml(name)}</div>
+        </div>
+      `;
+    }).join('');
+}
+function loadStaffDirectory() {
+  setState('Yükleniyor…');
+  database.ref('staffProfiles').once('value').then((snap) => {
+    renderStaffDirectory(snap.val() || {});
+  }).catch((err) => {
+    console.error('Kişi rehberi yüklenemedi:', err);
+    setState('Kişi rehberi yüklenemedi.');
+  });
+}
+
 let authorized = false;
 let modeReady = false;
+let currentRole = '';
 auth.onAuthStateChanged((user) => {
   if (!user) { setState('Bu sayfayı görüntülemek için giriş yapmış olmanız gerekir.'); return; }
   database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
     const role = snap.val();
-    if (role !== 'admin' && role !== 'owner') {
-      setState('Kişiler yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
-      return;
+    currentRole = role;
+    if (role === 'admin' || role === 'owner') {
+      authorized = true;
+      initDbMode(database).then(() => {
+        modeReady = true;
+        renderDbModeBanner();
+        loadUsersAndEvents();
+      });
+    } else if (role === 'editor') {
+      authorized = true;
+      loadStaffDirectory();
+    } else {
+      setState('Kişiler yalnızca onaylı editör/admin/kurucu rolündeki kullanıcılara açıktır.');
     }
-    authorized = true;
-    initDbMode(database).then(() => {
-      modeReady = true;
-      renderDbModeBanner();
-      loadUsersAndEvents();
-    });
   }).catch((err) => {
     console.error('Yetki kontrol edilemedi:', err);
     setState('Yetki kontrol edilemedi.');
@@ -151,6 +194,7 @@ auth.onAuthStateChanged((user) => {
 });
 
 onDbModeChange(() => {
+  if (currentRole === 'editor') { if (authorized) {loadStaffDirectory();} return; }
   if (!modeReady) {return;}
   renderDbModeBanner();
   if (authorized) {loadUsersAndEvents();}

@@ -69,7 +69,7 @@
     </div>
   </div>
 
-  <!-- ── EDİTÖR AKTİVİTESİ (tek başına, tam genişlik) ── -->
+  <!-- ── EDİTÖR AKTİVİTESİ + ETKİNLİK ÖZETİ ── -->
   <!-- Kullanıcı isteği: bu kart TÜM kullanıcılarda (editor/admin/owner -- pending zaten
        onay-bekliyor.html'e yönlendirildiği için dashboard'a hiç ulaşmıyor) görünmeli,
        Ay/Gün/% modlarının hepsi dahil. charts.js'teki subscribeSharedActivityData zaten
@@ -78,8 +78,11 @@
        editorActivityShare) bu durumda isimleri doğrudan etkinliklerden (gorevli/
        haberYazanlari) türetiyor -- ek bir değişiklik gerekmedi, mevcut mekanizma zaten
        bu senaryoyu kapsıyor (bkz. o dosyadaki isimleriEtkinliklerdenCikar).
-  -->
-  <div class="row">
+
+       Bugün/Bu hafta/Yaklaşan özet bölümleri Takvim sayfasından buraya, Editör
+       Aktivitesi'nin SAĞINA taşındı -- eski "Takvim Görünümü" mini takvim kartının
+       (mini-calendar-widget.js) yerini alıyor (bkz. operations-overview-widget.js). -->
+  <div class="row col-8-4">
     <div class="card" style="display:flex;flex-direction:column;height:402px">
       <div class="card-header">
         <div>
@@ -113,12 +116,35 @@
         </div>
       </div>
     </div>
+
+    <!-- Etkinlik Özeti — gerçek Firebase verisi, bkz. operations-overview-widget.js -->
+    <div class="card" data-operations-overview style="display:flex;flex-direction:column;height:402px">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Etkinlik Özeti</div>
+          <div class="card-subtitle">Bugün, bu hafta ve yaklaşan etkinlikler</div>
+        </div>
+      </div>
+      <div class="card-body" style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto">
+        <div class="overview-section">
+          <div class="overview-section-title">Bugün / Şimdiki Etkinlikler</div>
+          <div class="overview-list" data-overview-list="today"></div>
+        </div>
+        <div class="overview-section">
+          <div class="overview-section-title">Bu Haftadaki Etkinlikler</div>
+          <div class="overview-list" data-overview-list="week"></div>
+        </div>
+        <div class="overview-section">
+          <div class="overview-section-title">Yaklaşan Etkinlikler</div>
+          <div class="overview-list" data-overview-list="upcoming"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- ── GÖREVLER + TAKVİM GÖRÜNÜMÜ ── -->
-  <!-- Kullanıcı isteği: harita önizlemesi kaldırıldı, yerine Görevler geldi; Takvim
-       Görünümü de Görevler'in yanına (aynı satıra) alındı. -->
-  <div class="row col-8-4">
+  <!-- ── GÖREVLER ── -->
+  <!-- Kullanıcı isteği: harita önizlemesi kaldırıldı, yerine Görevler geldi. -->
+  <div class="row">
     <!-- To-Do — gerçek Firebase verisi, bkz. tasks-widget.js -->
     <div class="card" style="display:flex;flex-direction:column;height:402px">
       <div class="card-header">
@@ -132,17 +158,6 @@
         </div>
       </div>
       <div class="card-body" data-task-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
-    </div>
-
-    <!-- Mini Takvim widget'ı — gerçek Firebase verisi, bkz. mini-calendar-widget.js -->
-    <div class="card" style="display:flex;flex-direction:column;height:402px">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Takvim Görünümü</div>
-          <div class="card-subtitle">Yaklaşan etkinlikler</div>
-        </div>
-      </div>
-      <div class="card-body" data-mini-calendar-list style="padding:8px 16px;flex:1;min-height:0;overflow-y:auto"></div>
     </div>
   </div>
 

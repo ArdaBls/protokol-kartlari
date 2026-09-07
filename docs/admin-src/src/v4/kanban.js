@@ -8,7 +8,8 @@
 import { showToast } from './toast.js';
 import { openMenu } from './menus.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
-import { subscribeStaffProfiles, renderAttendeeAvatarsHtml, renderCompleterAvatarHtml } from './staff-profiles.js';
+import { subscribeStaffProfiles, renderAttendeeAvatarsHtml, renderCompleterAvatarHtml, registerRosterNames } from './staff-profiles.js';
+import { loadPressOfficerPool } from './roster.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -355,6 +356,10 @@ export function initKanban() {
   onDbModeChange(() => { renderDbModeBanner(); loadEvents(); });
   // Profil fotoğrafları geldikçe (avatarUrl vb.) kart avatarlarını yeniden çiz.
   subscribeStaffProfiles(database, () => render());
+  // gorevli/haberYazanlari alanındaki isim rehberden (basinGorevlileri) geliyor,
+  // kişinin kendi profil adından farklı yazılmış olabilir -- isim->uid köprüsü
+  // kaydedilince findStaffProfile o kişinin gerçek fotoğrafını yine de bulur.
+  loadPressOfficerPool(database).then((pool) => { registerRosterNames(pool); render(); });
 
   document.getElementById('kanban-filter')?.addEventListener('input', (e) => {
     filterText = e.target.value.trim();

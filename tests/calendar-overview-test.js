@@ -1,11 +1,14 @@
-// Takvim sayfası etkinlik özeti (Bugün/Bu hafta/Yaklaşan) ve istatistik
+// Operasyonlar sayfası etkinlik özeti (Bugün/Bu hafta/Yaklaşan -- taşındı,
+// bkz. event-overview.js + operations-overview-widget.js) ve istatistik
 // uygunluk kuralı (hasEventEnded) testi.
 //
-// mini-calendar-widget-test.js'teki teknik izlenir: kaynak dosyadaki import/
-// export ifadeleri metinden çıkarılır, kalan saf fonksiyon tanımları
-// new Function(...) ile çalıştırılıp ihtiyaç duyulan isimler dışa aktarılır.
-// Bu, calendar.js/charts.js'in üst düzeyde DOM/Firebase'e dokunmayan (yalnızca
-// fonksiyon gövdelerinde) yapısına dayanır (bkz. dosyaların kendi üst-seviye
+// event-overview.js hiçbir import/DOM/Firebase bağımlılığı taşımadığı için
+// (kasıtlı olarak öyle tasarlandı, bkz. dosya başındaki not) doğrudan dinamik
+// import ile yüklenebiliyor. charts.js için ise mini-calendar-widget-test.js'
+// teki teknik izleniyor: kaynak dosyadaki import/export ifadeleri metinden
+// çıkarılır, kalan saf fonksiyon tanımları new Function(...) ile çalıştırılıp
+// ihtiyaç duyulan isimler dışa aktarılır (charts.js üst düzeyde DOM/Firebase'e
+// dokunmuyor, yalnızca fonksiyon gövdelerinde -- bkz. dosyanın kendi üst-seviye
 // yan etkisi olmadığını doğrulayan grep sonucu).
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,10 +21,9 @@ function loadPureModule(relativePath, exportNames) {
   return new Function(source + '\nreturn { ' + exportNames.join(', ') + ' };')();
 }
 
+(async () => {
 const { getEventStartDate, getEventEndDate, eventOverlapsRange, getCalendarOverviewBuckets } =
-  loadPureModule('docs/admin-src/src/v4/calendar.js', [
-    'getEventStartDate', 'getEventEndDate', 'eventOverlapsRange', 'getCalendarOverviewBuckets'
-  ]);
+  await import('../docs/admin-src/src/v4/event-overview.js');
 const { hasEventEnded } = loadPureModule('docs/admin-src/src/v4/charts.js', ['hasEventEnded']);
 
 // ── hasEventEnded (Bölüm 2: istatistiğe erken ekleme hatası) ──────────────
@@ -131,3 +133,4 @@ assert.equal(NOW.getDay(), 1, 'test sabiti gerçekten Pazartesi olmalı');
 }
 
 console.log('ALL_TESTS_PASSED: true');
+})().catch((error) => { console.error(error); console.log('ALL_TESTS_PASSED: false'); process.exitCode = 1; });

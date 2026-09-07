@@ -42,6 +42,27 @@ let profilesByName = new Map();
 let listenerStarted = false;
 const subscribers = new Set();
 
+// etkinlikler/{id}.gorevli ve .haberYazanlari SAF isim metnidir (uid taşımaz);
+// picker bu isimleri basinGorevlileri/{uid} rehberinden seçtiriyor (bkz.
+// roster.js loadPressOfficerPool), staffProfiles/{uid}.displayName ise KİŞİNİN
+// KENDİSİ profil.html/ayarlar.html'de girdiği ayrı bir metin -- ikisi birebir
+// aynı yazılmayabilir (ör. rehberde "Ahmet Yılmaz", profilde "Ahmet Y."). Bu
+// yüzden basinGorevlileri {uid,name} çiftleri de bir isim->uid köprüsü olarak
+// tutulur; profil adı eşleşmezse buradan denenir -- ikisi de aynı uid'ye
+// bağlandığı için köprü doğru kişiyi bulur.
+let rosterNameIndex = new Map();
+
+// kanban.js/tasks-widget.js sayfa açılışında roster.js'in loadPressOfficerPool()
+// çıktısını buraya kaydeder (bkz. çağrı yerleri). Rehber nadiren değiştiği için
+// bir kerelik kayıt yeterli.
+export function registerRosterNames(pool) {
+  rosterNameIndex = new Map();
+  (pool || []).forEach((p) => {
+    const key = normalizePersonKey(p && p.name);
+    if (key && p.uid) { rosterNameIndex.set(key, p.uid); }
+  });
+}
+
 function rebuildNameIndex() {
   profilesByName = new Map();
   Object.keys(profilesCache).forEach((uid) => {
@@ -75,13 +96,16 @@ export function subscribeStaffProfiles(database, cb) {
   return () => { subscribers.delete(cb); };
 }
 
-// uid varsa önce uid ile, yoksa Türkçe-normalize edilmiş isimle eşleştirir.
+// uid varsa önce uid ile; yoksa önce staffProfiles'ın KENDİ isim indeksiyle,
+// bulamazsa roster (basinGorevlileri) isim köprüsüyle dener -- gorevli/
+// haberYazanlari alanındaki isim, kişinin profilde kendi girdiği adla değil
+// rehberdeki adla birebir eşleşiyor olabilir (bkz. registerRosterNames notu).
 export function findStaffProfile(uidOrNull, personName) {
   if (uidOrNull && profilesCache[uidOrNull]) { return Object.assign({ uid: uidOrNull }, profilesCache[uidOrNull]); }
   const key = normalizePersonKey(personName);
   if (!key) { return null; }
-  const uid = profilesByName.get(key);
-  if (!uid) { return null; }
+  const uid = profilesByName.get(key) || rosterNameIndex.get(key);
+  if (!uid || !profilesCache[uid]) { return null; }
   return Object.assign({ uid }, profilesCache[uid]);
 }
 

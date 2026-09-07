@@ -74,6 +74,35 @@ async function ac(browser, rol, hedef, bekleyenVar) {
 	return { page, ctx, hatalar };
 }
 
+// Katılım talebi rozet regresyonu: bekleyen attendanceRequests kayıtları
+// da rozete girmeli (kullanıcı bulgusu: "adminin bildirimlerine geliyor ama
+// zil işaretinde artış olmuyor" -- bkz. shell.js attendanceRozetiniBagla).
+async function acAttendance(browser, pendingCount) {
+	const ctx = await browser.newContext();
+	const page = await ctx.newPage();
+	const hatalar = [];
+	page.on('pageerror', (e) => hatalar.push(e.message));
+	await page.route('**/firebasejs/**/firebase-app-compat.js', (r) => r.fulfill({ path: path.join(TESTS_DIR, 'mock-firebase.js'), contentType: 'application/javascript' }));
+	await page.route('**/firebasejs/**/firebase-database-compat.js', (r) => r.fulfill({ body: '', contentType: 'application/javascript' }));
+	await page.route('**/firebasejs/**/firebase-auth-compat.js', (r) => r.fulfill({ body: '', contentType: 'application/javascript' }));
+	await page.route('**Sortable.min.js', (r) => r.fulfill({ path: path.join(TESTS_DIR, 'mock-sortable.js'), contentType: 'application/javascript' }));
+	await page.route('**://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+	await page.addInitScript(({ pendingCount }) => {
+		window.__mockAuthUser = { uid: 'yoneticiUid', email: 'yonetici@test.com', emailVerified: true };
+		const kendi = { firstName: 'Yönetici', lastName: 'Test', email: 'yonetici@test.com', role: 'admin' };
+		window.__mockUserProfile = kendi;
+		window.__mockOnceSnapshot = kendi;
+		const attendanceRequests = {};
+		for (let i = 0; i < pendingCount; i++) {
+			attendanceRequests['r' + i] = { status: 'pending', attendeeName: 'Kişi ' + i, eventName: 'Etkinlik', eventDate: '2026-01-0' + (i + 1) };
+		}
+		window.__mockData = { users: { yoneticiUid: kendi }, logs: {}, attendanceRequests: attendanceRequests };
+	}, { pendingCount });
+	await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'load', timeout: 30000 });
+	await page.waitForTimeout(2200);
+	return { page, ctx, hatalar };
+}
+
 async function rozet(page) {
 	return page.evaluate(() => {
 		const el = document.getElementById('tb-onay-rozeti');
@@ -96,6 +125,19 @@ async function rozet(page) {
 			gorunuyor: r.gorunur === true,
 			sayiDogru: r.sayi === '1',
 			baslikBilgilendirici: /onay bekliyor/.test(r.baslik || ''),
+			hatasiz: hatalar.length === 0
+		};
+		await ctx.close();
+	}
+
+	// 1b) admin + 2 bekleyen katılım talebi (hesap onayı YOK) -> rozette sayılıyor
+	{
+		const { page, ctx, hatalar } = await acAttendance(browser, 2);
+		const r = await rozet(page);
+		sonuc.katilimRozeti = {
+			gorunuyor: r.gorunur === true,
+			sayiDogru: r.sayi === '2',
+			baslikKatilimBahsediyor: /katılım talebi bekliyor/.test(r.baslik || ''),
 			hatasiz: hatalar.length === 0
 		};
 		await ctx.close();

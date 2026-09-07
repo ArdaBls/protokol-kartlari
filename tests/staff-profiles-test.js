@@ -34,7 +34,7 @@ function makeMockDatabase(initial) {
   const {
     normalizePersonKey, isSafeAvatarUrl, subscribeStaffProfiles, findStaffProfile,
     renderStaffAvatar, mergeAttendeeRoles, renderAttendeeAvatarsHtml,
-    renderCompleterAvatarHtml, syncStaffProfile
+    renderCompleterAvatarHtml, syncStaffProfile, registerRosterNames
   } = mod;
 
   // 1) normalizePersonKey Türkçe-güvenli.
@@ -69,6 +69,24 @@ function makeMockDatabase(initial) {
     const none = findStaffProfile(null, 'olmayan kişi');
     assert.equal(none, null);
     console.log('PASS: subscribeStaffProfiles + findStaffProfile uid-önce/ad-sonra çalışıyor');
+  }
+
+  // 3b) registerRosterNames: gorevli/haberYazanlari alanındaki isim, kişinin
+  // kendi profil displayName'inden FARKLI yazılmışsa (rehberdeki adla),
+  // roster köprüsü doğru uid'yi bulup gerçek fotoğrafı döndürmeli.
+  // (staff-profiles.js'in aboneliği sayfa-tekil singleton olduğu için burada
+  // önceki testte zaten yüklenmiş 'u1' -- Ayşe Yılmaz -- kaydı yeniden kullanılıyor.)
+  {
+    // Rehberde "A. Yılmaz" kısaltması olarak kayıtlı, profildeki tam adla eşleşmiyor --
+    // önce direkt ad eşleşmesi denenir (bulunamaz), sonra roster köprüsü.
+    registerRosterNames([{ uid: 'u1', name: 'A. Yılmaz' }]);
+    const viaRoster = findStaffProfile(null, 'A. Yılmaz');
+    assert.equal(viaRoster.uid, 'u1');
+    assert.equal(viaRoster.avatarUrl, 'https://x.com/a.jpg');
+    // Roster'da olmayan bir uid'ye işaret ederse (profil hiç oluşturulmamış) sessizce null döner.
+    registerRosterNames([{ uid: 'hicYokUid', name: 'Kayıp Kişi' }]);
+    assert.equal(findStaffProfile(null, 'Kayıp Kişi'), null);
+    console.log('PASS: registerRosterNames rehber adını profil displayName farklı olsa da doğru uid\'ye bağlıyor');
   }
 
   // 4) renderStaffAvatar: fotoğraf yoksa/geçersizse baş harfe düşer, HTML-injection güvenli.

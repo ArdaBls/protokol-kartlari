@@ -6,7 +6,8 @@
 import { showModal, closeModal } from './modal.js';
 import { showToast } from './toast.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
-import { subscribeStaffProfiles, renderCompleterAvatarHtml } from './staff-profiles.js';
+import { subscribeStaffProfiles, renderCompleterAvatarHtml, registerRosterNames } from './staff-profiles.js';
+import { loadPressOfficerPool } from './roster.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -201,6 +202,9 @@ export function initTasksWidget() {
   });
   // Profil fotoğrafları geldikçe (avatarUrl vb.) "Tamamlandı" avatarlarını yeniden çiz.
   subscribeStaffProfiles(database, () => render());
+  // Eski (tamamlayanUid'siz) kayıtlarda tamamlayan isim rehberden farklı
+  // yazılmış olabilir -- isim->uid köprüsü kaydedilince yine doğru fotoğraf bulunur.
+  loadPressOfficerPool(database).then((pool) => { registerRosterNames(pool); render(); });
 
   function attachTasksListener() {
     if (tasksListenerRef) { tasksListenerRef.off('value'); }

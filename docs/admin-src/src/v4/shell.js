@@ -445,24 +445,36 @@ const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
 // loadEvents'teki AYNI desen: etkListenerRef/gorevListenerRef).
 let onayRozetiListenerRef = null;
 let bildirimRozetiListenerRef = null;
+let attendanceRozetiListenerRef = null;
 let blockedListenerRef = null;
-// Zil rozeti iki kaynağı TOPLAR: admin/owner'da bekleyen hesap onayları
-// (pendingAccounts) + HERKESTE kendi okunmamış kişisel bildirimleri
-// (pendingNotifs, ör. katılım talebi onay/red sonucu). "Okunmamış bildirim
-// sayısı yalnızca kullanıcının ERİŞEBİLDİĞİ bildirimlerden hesaplanmalı" --
-// notifications/{uid} zaten sadece o kullanıcının kendi yolu (bkz. kurallar).
+// Zil rozeti ÜÇ kaynağı TOPLAR: admin/owner'da bekleyen hesap onayları
+// (pendingAccounts) + admin/owner'da bekleyen katılım talepleri
+// (pendingAttendance, ör. "gitti olarak eklenmek istiyor" -- bkz. attendance.js)
+// + HERKESTE kendi okunmamış kişisel bildirimleri (pendingNotifs, ör. katılım
+// talebi onay/red sonucu). "Okunmamış bildirim sayısı yalnızca kullanıcının
+// ERİŞEBİLDİĞİ bildirimlerden hesaplanmalı" -- notifications/{uid} zaten
+// sadece o kullanıcının kendi yolu (bkz. kurallar).
+//
+// KRİTİK: katılım talepleri bildirimler.html'in "Katılım Talepleri" sekmesinde
+// GÖRÜNÜYORDU ama zilde sayılmıyordu -- kullanıcı bulgusu ("zil işaretinde bir
+// artış olmuyor"). Neden: attendanceRequests bildirimler.html'de ayrı bir
+// once() ile çekiliyor, zil rozeti ise SADECE users/ (hesap onayı) ve
+// notifications/{uid} (kişisel) dinliyordu -- attendanceRequests hiç
+// dinlenmiyordu. Aşağıdaki attendanceRozetiniBagla bunu ekliyor.
 let pendingAccountsCount = 0;
+let pendingAttendanceCount = 0;
 let pendingNotifsCount = 0;
 function renderBildirimRozeti() {
   const rozet = document.getElementById('tb-onay-rozeti');
   if (!rozet) { return; }
-  const total = pendingAccountsCount + pendingNotifsCount;
+  const total = pendingAccountsCount + pendingAttendanceCount + pendingNotifsCount;
   rozet.textContent = total > 99 ? '99+' : String(total);
   rozet.hidden = total === 0;
   const zil = rozet.closest('.tb-btn');
   if (zil) {
     const parts = [];
     if (pendingAccountsCount) { parts.push(pendingAccountsCount + ' hesap onay bekliyor'); }
+    if (pendingAttendanceCount) { parts.push(pendingAttendanceCount + ' katılım talebi bekliyor'); }
     if (pendingNotifsCount) { parts.push(pendingNotifsCount + ' okunmamış bildirim'); }
     zil.setAttribute('title', parts.length ? parts.join(' · ') : 'Bildirimler');
   }
@@ -482,6 +494,29 @@ function onayBekleyenRozetiniBagla(role) {
     renderBildirimRozeti();
   }, (err) => console.error('Onay bekleyen sayısı okunamadı:', err));
 }
+
+// attendanceRequests dbPath() ÜZERİNDEN yazılıyor (Test Modu'nda test/ dalına
+// gölgeleniyor) -- rozet de bildirimRozetiniBagla ile AYNI initDbMode+dbPath
+// deseniyle doğru dala bağlanmalı, aksi halde Test Modu açıkken oluşan
+// talepler rozette hiç görünmez.
+let attendanceRozetiRole = null;
+function attendanceRozetiniBagla(role) {
+  attendanceRozetiRole = role || null;
+  if (attendanceRozetiListenerRef) { attendanceRozetiListenerRef.off('value'); attendanceRozetiListenerRef = null; }
+  pendingAttendanceCount = 0;
+  if (role !== 'admin' && role !== 'owner') { renderBildirimRozeti(); return; }
+  const database = firebase.database();
+  initDbMode(database).then(() => {
+    if (attendanceRozetiRole !== role) { return; }
+    attendanceRozetiListenerRef = database.ref(dbPath('attendanceRequests')).orderByChild('status').equalTo('pending');
+    attendanceRozetiListenerRef.on('value', (snap) => {
+      const hepsi = snap.val() || {};
+      pendingAttendanceCount = Object.keys(hepsi).length;
+      renderBildirimRozeti();
+    }, (err) => console.error('Bekleyen katılım talebi sayısı okunamadı:', err));
+  });
+}
+onDbModeChange(() => { if (attendanceRozetiRole) { attendanceRozetiniBagla(attendanceRozetiRole); } });
 
 // Bildirim zili artık editörlerde de görünüyor -- herkes kendi
 // notifications/{uid} düğümünü dinler (bkz. kurallar: sadece o kullanıcı
@@ -614,6 +649,7 @@ export function syncShellUser() {
         }
         applyRoleNav(role);
         onayBekleyenRozetiniBagla(role);
+        attendanceRozetiniBagla(role);
         bildirimRozetiniBagla(user.uid);
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');

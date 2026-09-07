@@ -374,6 +374,12 @@
   font-size: 18px;
   font-weight: 600;
 }
+// Editör görünümündeki gerçek profil fotoğrafı (staffProfiles avatarUrl) --
+// gradient baş-harf yerine kapak fotoğrafı gibi ortalanıp kırpılır.
+.contact-card .av.has-photo {
+  background-size: cover;
+  background-position: center;
+}
 .contact-card .name { font-size: 14px; font-weight: var(--font-weight-bold); color: var(--text); }
 .contact-card .role { font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
 .contact-card .stats {
