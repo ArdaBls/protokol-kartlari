@@ -279,6 +279,61 @@ function renderProjectRow(id, project, start, days, dayWidth) {
   return parentRow + childRows;
 }
 
+// reui.io/preview/base/gantt-1 referansındaki bağımlılık okları: ana proje ->
+// 1. adım -> 2. adım -> ... şeklinde zincir. Konumlar CSS grid matematiğinden
+// yeniden türetilmek yerine gerçek DOM dikdörtgenlerinden (getBoundingClientRect)
+// okunuyor -- zoom/satır yüksekliği/açılıp-kapanma her ne olursa olsun doğru
+// kalır. Yatay kaydırma redraw gerektirmez: bar ve grid birlikte kayar, aradaki
+// fark (gridRect'e göre konum) sabit kalır.
+function connectorPath(fromBar, toBar, gridRect, fromLeftEdge) {
+  const from = fromBar.getBoundingClientRect();
+  const to = toBar.getBoundingClientRect();
+  const x1 = (fromLeftEdge ? from.left : from.right) - gridRect.left;
+  const y1 = from.top + from.height / 2 - gridRect.top;
+  const x2 = to.left - gridRect.left;
+  const y2 = to.top + to.height / 2 - gridRect.top;
+  const midX = fromLeftEdge ? x1 : x1 + 10;
+  return `<path class="gantt-connector-line" d="M${x1},${y1} L${midX},${y1} L${midX},${y2} L${x2},${y2}" marker-end="url(#gantt-arrow)"/>`;
+}
+
+function renderConnectors() {
+  const grid = $('.gantt-grid');
+  if (!grid) { return; }
+  const gridRect = grid.getBoundingClientRect();
+  let paths = '';
+  document.querySelectorAll('.gantt-parent-row').forEach((parentRow) => {
+    const parentBar = parentRow.querySelector('.gantt-bar');
+    const stepBars = [];
+    let sibling = parentRow.nextElementSibling;
+    while (sibling && sibling.classList.contains('gantt-step-row')) {
+      const bar = sibling.querySelector('.gantt-bar');
+      if (bar) { stepBars.push(bar); }
+      sibling = sibling.nextElementSibling;
+    }
+    if (!parentBar || !stepBars.length) { return; }
+    // Ana proje çubuğu tüm adımların süresini kapsayan bir ÖZET (bitişi ilk
+    // adımdan SONRA, çoğu zaman en son adımla aynı gün biter) -- bu yüzden
+    // "bitiş -> başlangıç" bağımlılık okuyla bağlamak (reui'deki gibi) tersten
+    // bir ok gibi görünürdü. Ana projeden ilk adıma "sol kenardan sol kenara"
+    // (başlangıç -> başlangıç) bağlanıyor: "buradan çıkıyor" hissi. Adımlar
+    // kendi aralarında normal bitiş->başlangıç zinciriyle bağlanır.
+    paths += connectorPath(parentBar, stepBars[0], gridRect, true);
+    for (let i = 0; i < stepBars.length - 1; i += 1) {
+      paths += connectorPath(stepBars[i], stepBars[i + 1], gridRect, false);
+    }
+  });
+  let svg = grid.querySelector('.gantt-connectors');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'gantt-connectors');
+    svg.setAttribute('aria-hidden', 'true');
+    grid.prepend(svg);
+  }
+  svg.setAttribute('width', grid.offsetWidth);
+  svg.setAttribute('height', grid.offsetHeight);
+  svg.innerHTML = `<defs><marker id="gantt-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" class="gantt-connector-arrowhead"/></marker></defs>${paths}`;
+}
+
 function render() {
   const board = $('#gantt-board');
   if (!board) { return; }
@@ -293,6 +348,7 @@ function render() {
     <div class="gantt-grid-head">${renderWeekHead(start, days, dayWidth)}${renderDayHead(start, days)}</div>
     ${list.map(([id, project]) => renderProjectRow(id, project, start, days, dayWidth)).join('') || '<div class="gantt-empty"><strong>Bu görünümde proje yok.</strong><span>Yeni proje ekleyin veya filtreleri temizleyin.</span></div>'}
   </div>`;
+  renderConnectors();
   updatePeriodLabel();
   // Firebase verisi henüz gelmeden (auth/rol çözümü asenkron) kullanıcı
   // ctrl+tekerlek veya +/- ile yakınlaştırırsa da render() tetiklenir --
@@ -524,6 +580,7 @@ function openModal(id = '', focusStepId = '') {
   refreshEventOptions(project?.takvimEtkinlikId || '');
   $('#gantt-dialog-title').textContent = project ? 'Projeyi düzenle' : 'Yeni proje';
   $('#gantt-archive').hidden = !project;
+  $('#gantt-remove').hidden = !project;
   setFormError();
   $('#gantt-modal').hidden = false;
   document.body.classList.add('gantt-modal-open');
@@ -640,6 +697,33 @@ async function archiveCurrentProject() {
   } catch (error) {
     console.error('Proje arşivlenemedi:', error);
     setFormError('Proje arşivlenemedi.');
+  }
+}
+
+// Arşivle geri alınabilir (arsiv:true); bu kalıcı silme -- calendar.js'teki
+// etkinlik silme onayıyla aynı desen (window.confirm + kırmızı buton).
+async function deleteCurrentProject() {
+  const id = $('#gantt-id').value;
+  const project = projects[id];
+  if (!id || !project || !canWrite || isReadOnly()) { return; }
+  if (!window.confirm(`"${project.ad || 'Bu proje'}" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) { return; }
+  const updates = {};
+  updates[dbPath(`haberProjeleri/${id}`)] = null;
+  if (project.takvimEtkinlikId) { updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/projeId`)] = null; }
+  const logPath = dbPath('logs/haberProje');
+  const logKey = database.ref(logPath).push().key;
+  updates[`${logPath}/${logKey}`] = {
+    by: currentUserName || currentUserEmail, email: currentUserEmail,
+    action: `${project.ad || 'Haber projesi'} kalıcı olarak silindi`, target: project.ad || '',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+  try {
+    await database.ref('/').update(updates);
+    closeModal();
+    showToast('Proje silindi.', { variant: 'success' });
+  } catch (error) {
+    console.error('Proje silinemedi:', error);
+    setFormError('Proje silinemedi.');
   }
 }
 
@@ -804,6 +888,7 @@ function bindUi() {
   });
   $('#gantt-form').addEventListener('submit', saveProject);
   $('#gantt-archive').addEventListener('click', archiveCurrentProject);
+  $('#gantt-remove').addEventListener('click', deleteCurrentProject);
   document.querySelectorAll('[data-gantt-close]').forEach((button) => button.addEventListener('click', closeModal));
   $('#gantt-board').addEventListener('click', (event) => {
     const toggle = event.target.closest('[data-toggle-project]');
@@ -854,6 +939,13 @@ function bindUi() {
     if (scrollRaf) { return; }
     scrollRaf = requestAnimationFrame(() => { scrollRaf = null; updatePeriodLabel(); });
   }, { passive: true });
+  // Pencere genişliği 760px kırılma noktasını geçince isim sütunu (270px<->210px)
+  // daralıp/genişleyerek tüm bar konumlarını kaydırır -- oklar yeniden çizilmeli.
+  let resizeRaf = null;
+  window.addEventListener('resize', () => {
+    if (resizeRaf) { return; }
+    resizeRaf = requestAnimationFrame(() => { resizeRaf = null; renderConnectors(); });
+  });
 }
 
 export function initGantt() {

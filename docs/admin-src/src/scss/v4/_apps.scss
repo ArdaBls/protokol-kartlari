@@ -854,6 +854,13 @@
 .gantt-board.is-panning { cursor: grabbing; }
 .gantt-board.is-panning .gantt-bar { cursor: grabbing; }
 .gantt-grid { min-width: calc(270px + var(--gantt-width)); position: relative; }
+// reui.io/preview/base/gantt-1 referansındaki bağımlılık okları: ana proje ->
+// 1. adım -> 2. adım zinciri (bkz. gantt.js renderConnectors). Gerçek DOM
+// konumlarından hesaplanıyor; z-index 1 -- track arka planının üstünde,
+// çubukların (z-index 2) altında, oklar çubuk kenarına "değiyor" hissi verir.
+.gantt-connectors { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; overflow: visible; }
+.gantt-connector-line { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
+.gantt-connector-arrowhead { fill: var(--text-muted); }
 .gantt-project-row { display: grid; grid-template-columns: 270px var(--gantt-width); }
 // Başlık artık iki üst üste satır: hafta üst-başlığı (reui.io referansındaki
 // "W28 Jul 5-11" bandı) + gün başlığı -- bu yüzden .gantt-grid-head kendisi
@@ -1003,9 +1010,12 @@
   height: 36px;
   min-width: var(--gantt-day-width, 38px);
   border: 0;
-  border-inline-start: 3px solid var(--bar-color, var(--primary));
   border-radius: 6px;
-  background: color-mix(in srgb, var(--bar-color, var(--primary)) 16%, var(--bg-surface));
+  // var(--bg-surface) ile karıştırmak DÜZ/opak bir açık ton üretiyordu --
+  // kullanıcı "arkasından takvim çizgileri gözükecek bir saydamlık" istedi,
+  // bu yüzden transparent ile karıştırılıyor: gerçek alfa karışımı, altındaki
+  // .gantt-track gün/hafta sonu çizgileri çubuğun içinden görünür kalır.
+  background: color-mix(in srgb, var(--bar-color, var(--primary)) 22%, transparent);
   color: var(--text);
   padding: 0 12px;
   overflow: hidden;
@@ -1020,10 +1030,10 @@
   transition: left .16s ease, width .16s ease;
 }
 .gantt-bar:focus-visible { outline: 3px solid var(--bar-color, var(--primary)); outline-offset: 2px; }
-.gantt-bar:hover { background: color-mix(in srgb, var(--bar-color, var(--primary)) 24%, var(--bg-surface)); }
+.gantt-bar:hover { background: color-mix(in srgb, var(--bar-color, var(--primary)) 32%, transparent); }
 .gantt-bar.is-dragging { cursor: grabbing; opacity: .82; z-index: 6; transition: none; }
 @media (prefers-reduced-motion: reduce) { .gantt-bar { transition: none; } }
-.gantt-bar-progress { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--bar-color, var(--primary)) 30%, transparent); pointer-events: none; }
+.gantt-bar-progress { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--bar-color, var(--primary)) 38%, transparent); pointer-events: none; }
 .gantt-bar-label { position: relative; z-index: 2; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10.5px; font-weight: var(--font-weight-bold); }
 .gantt-bar.status-iptal { opacity: .6; text-decoration: line-through; }
 .gantt-bar--step { top: 13px; height: 32px; }
@@ -1053,6 +1063,9 @@ body.gantt-modal-open { overflow: hidden; }
 .gantt-modal { position: fixed; inset: 0; z-index: 50; }
 .gantt-modal[hidden] { display: none; }
 .gantt-modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .5); }
+// Dialog artık dikey flex sütun: başlık ve alt aksiyon çubuğu (Kaydet vb.)
+// sabit kalır, sadece orta form alanı (.gantt-form-grid) kaydırılır --
+// kullanıcı "Kaydet'e scroll ile ulaşılıyor, en altta sabit kalsın" dedi.
 .gantt-dialog {
   position: fixed;
   top: 50%;
@@ -1062,17 +1075,20 @@ body.gantt-modal-open { overflow: hidden; }
   width: calc(100% - 32px);
   max-width: 680px;
   max-height: min(820px, calc(100vh - 40px));
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   outline: none;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: 14px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, .24), 0 0 0 1px rgba(255, 255, 255, .04);
 }
-.gantt-dialog-head { padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+.gantt-dialog-head { flex: 0 0 auto; padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
 .gantt-dialog-head h2 { margin: 2px 0 0; font-size: 20px; color: var(--text); }
 .gantt-close { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg-surface-secondary); color: var(--text-muted); font-size: 22px; cursor: pointer; }
-.gantt-form-grid { padding: 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+#gantt-form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.gantt-form-grid { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .gantt-field { color: var(--text-secondary); font-size: 11.5px; font-weight: var(--font-weight-medium); display: flex; flex-direction: column; gap: 7px; }
 .gantt-field--wide { grid-column: 1 / -1; }
 .gantt-field textarea { resize: vertical; }
@@ -1101,8 +1117,8 @@ body.gantt-modal-open { overflow: hidden; }
 .gantt-step-remove { flex: 0 0 28px; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 17px; }
 .gantt-step-remove:hover, .gantt-step-remove:focus-visible { color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); }
 .gantt-step-empty { margin: 0; padding: 18px; color: var(--text-muted); text-align: center; font-size: 11px; font-weight: 400; }
-.gantt-form-error { min-height: 18px; margin: 0 22px; color: var(--red); font-size: 11.5px; }
-.gantt-dialog-actions { padding: 14px 22px 20px; display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; }
+.gantt-form-error { flex: 0 0 auto; min-height: 18px; margin: 0 22px; color: var(--red); font-size: 11.5px; }
+.gantt-dialog-actions { flex: 0 0 auto; padding: 14px 22px 20px; display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 8px; border-top: 1px solid var(--border-color); }
 .gantt-delete { color: var(--red) !important; }
 // Alt kısımdaki renk seçici: PALETTE'teki 10 daire, tıklanınca seçilir --
 // tekrar tıklamak seçimi kaldırıp duruma göre otomatik renge döner.
