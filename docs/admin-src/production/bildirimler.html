@@ -56,6 +56,8 @@
 </main>
 
 <script type="module">
+import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
   authDomain: 'omu-protokol.firebaseapp.com',
@@ -133,11 +135,11 @@ function loadLogs() {
   setState('Yükleniyor…');
   Promise.all([
     database.ref('users').once('value'),
-    database.ref('logs/il').limitToLast(50).once('value'),
-    database.ref('logs/universite').limitToLast(50).once('value'),
-    database.ref('logs/etkinlik').limitToLast(50).once('value'),
-    database.ref('logs/hesap').limitToLast(50).once('value'),
-    database.ref('logs/dictionary').limitToLast(50).once('value')
+    database.ref(dbPath('logs/il')).limitToLast(50).once('value'),
+    database.ref(dbPath('logs/universite')).limitToLast(50).once('value'),
+    database.ref(dbPath('logs/etkinlik')).limitToLast(50).once('value'),
+    database.ref(dbPath('logs/hesap')).limitToLast(50).once('value'),
+    database.ref(dbPath('logs/dictionary')).limitToLast(50).once('value')
   ]).then((tumSnaps) => {
     const kullanicilar = tumSnaps[0].val() || {};
     const snaps = tumSnaps.slice(1);
@@ -177,6 +179,8 @@ function loadLogs() {
   });
 }
 
+let authorized = false;
+let modeReady = false;
 auth.onAuthStateChanged((user) => {
   if (!user) { setState('Bu sayfayı görüntülemek için giriş yapmış olmanız gerekir.'); return; }
   database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
@@ -185,11 +189,22 @@ auth.onAuthStateChanged((user) => {
       setState('Bildirimler yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
       return;
     }
-    loadLogs();
+    authorized = true;
+    initDbMode(database).then(() => {
+      modeReady = true;
+      renderDbModeBanner();
+      loadLogs();
+    });
   }).catch((err) => {
     console.error('Yetki kontrol edilemedi:', err);
     setState('Yetki kontrol edilemedi.');
   });
+});
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  renderDbModeBanner();
+  if (authorized) {loadLogs();}
 });
 </script>
 

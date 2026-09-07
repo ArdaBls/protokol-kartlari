@@ -56,6 +56,7 @@
 
 <script type="module">
 import { UNIT_COORDS, resolveUnitName } from '/src/v4/unit-coords.js';
+import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -83,6 +84,8 @@ function colorForCount(count, max) {
 
 let allEvents = [];
 let map, markers = {};
+let canReadEvents = false;
+let modeReady = false;
 
 function populateYearSelect() {
   const years = new Set(allEvents.map((e) => (e.tarih || '').slice(0, 4)).filter(Boolean));
@@ -92,7 +95,7 @@ function populateYearSelect() {
   const sel = document.getElementById('year-select');
   sel.innerHTML = sorted.map((y) => `<option value="${y}">${y}</option>`).join('');
   sel.value = sorted.includes(thisYear) ? thisYear : sorted[0];
-  sel.addEventListener('change', render);
+  sel.onchange = render;
 }
 
 function countsForYear(year) {
@@ -207,13 +210,18 @@ function loadEvents() {
   // bir daha denemiyordu (kullanıcı bildirimi: haritadaki daireler hiç çıkmıyor).
   // onAuthStateChanged ilk kez OTURUM ÇÖZÜLDÜKTEN sonra tetiklenir -- doğru an budur.
   firebase.auth().onAuthStateChanged((user) => {
+    canReadEvents = !!user;
     if (!user) { return; } // giriş yoksa shell.js zaten giris.html'e yönlendiriyor
-    etkinlikleriOku();
+    initDbMode(database).then(() => {
+      modeReady = true;
+      renderDbModeBanner();
+      etkinlikleriOku();
+    });
   });
 }
 
 function etkinlikleriOku() {
-  database.ref('etkinlikler').once('value').then((snap) => {
+  database.ref(dbPath('etkinlikler')).once('value').then((snap) => {
     allEvents = Object.values(snap.val() || {});
     populateYearSelect();
     render();
@@ -223,6 +231,12 @@ function etkinlikleriOku() {
     document.getElementById('unit-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:24px">Etkinlikler yüklenemedi.</div>';
   });
 }
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  renderDbModeBanner();
+  if (canReadEvents && map) {etkinlikleriOku();}
+});
 </script>
 
 </body>

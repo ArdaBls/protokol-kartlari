@@ -50,8 +50,8 @@ function notify() { listeners.forEach((cb) => { try { cb(); } catch (err) { cons
  * İki ayarı da canlı dinlemeye başlar ve İLK değerleri okunduğunda çözülen bir promise
  * döner. Sayfalar veriyi çekmeden ÖNCE bunu beklemeli — aksi halde ilk okuma yanlış
  * dalda (test modu açıkken canlı, ya da tersi) yapılır.
- * `ayarlar/testModuAcik` ve `ayarlar/saltOkunur` kuralları `.read: true` olduğu için
- * girişsiz kullanıcıda da sorunsuz okunur.
+ * `ayarlar/testModuAcik` ve `ayarlar/saltOkunur` kuralları onaylı oturum istediği için
+ * çağıran sayfa önce Firebase Auth durumunun çözülmesini beklemelidir.
  */
 export function initDbMode(database) {
   // Aynı sayfada birden fazla widget/modül kendi initDbMode() çağrısını yapabilir (ör.

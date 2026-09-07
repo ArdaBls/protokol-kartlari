@@ -73,10 +73,6 @@ const EVENT_BADGES = [
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function evType(k) { return EVENT_TYPES.find((t) => t.key === k) || EVENT_TYPES[EVENT_TYPES.length - 1]; }
 function evStatus(k) { return EVENT_STATUS.find((s) => s.key === k) || EVENT_STATUS[0]; }
-// Arşiv bağlantısı <a href> yerine sadece metin olarak kaydediliyor olsa da (admin panelinde
-// henüz bağlantı olarak render edilmiyor), ana siteyle AYNI şema/güvenlik davranışı için
-// javascript: gibi şemalar burada da baştan elenir (ana sitedeki safeLinkUrl ile birebir aynı).
-function safeLinkUrl(u) { const s = String(u === undefined || u === null ? '' : u).trim(); return /^https?:\/\//i.test(s) ? s : ''; }
 // "Basın Görevlisi" / "Haberi Yazan(lar)" alanları Firebase'de virgülle ayrılmış tek bir string
 // olarak tutulur (ana sitedeki parseGorevliString ile birebir aynı ters/düz dönüşüm).
 function parseGorevliString(s) { return String(s || '').split(',').map((x) => x.trim()).filter(Boolean); }
@@ -120,8 +116,14 @@ let canWrite = false;
 let EVENTS = Object.create(null); // id -> event; prototip anahtarları veri değildir.
 let eventsByDate = new Map();
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const FIREBASE_FORBIDDEN_KEY_CHARS = new Set(['.', '#', '$', '[', ']', '/']);
 function safeEventId(id) {
-  return typeof id === 'string' && id.length > 0 && !UNSAFE_KEYS.has(id) && !/[.#$\[\]/\u0000-\u001f\u007f]/.test(id) ? id : null;
+  if (typeof id !== 'string' || id.length === 0 || UNSAFE_KEYS.has(id)) {return null;}
+  const unsafe = Array.from(id).some((char) => {
+    const code = char.charCodeAt(0);
+    return FIREBASE_FORBIDDEN_KEY_CHARS.has(char) || code <= 31 || code === 127;
+  });
+  return unsafe ? null : id;
 }
 function cleanEvents(value) {
   const clean = Object.create(null);
@@ -267,7 +269,7 @@ function maybeOpenDeepLinkedEvent() {
 }
 
 async function persistEvent(id, patch, logLabel) {
-  if (id != null && !safeEventId(id)) { return null; }
+  if (id !== null && id !== undefined && !safeEventId(id)) { return null; }
   if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return null; }
   if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return null; }
   const isNew = !id;
@@ -1312,7 +1314,7 @@ function loadPressOfficerPool() {
 // basınGörevlisi havuzuyla aynı desende her modal açılışında tek seferlik okunur.
 function loadPeoplePool() {
   if (!database) { return Promise.resolve(); }
-  return database.ref('universiteProtokolVerileri').once('value').then((snap) => {
+  return database.ref(dbPath('universiteProtokolVerileri')).once('value').then((snap) => {
     const obj = snap.val() || {};
     peoplePoolCache = Object.keys(obj).map((id) => {
       const p = obj[id];
@@ -1569,7 +1571,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     if (t.id === 'cef-attIncludeIl') {
       if (!t.checked || ilPoolCache !== null) { renderAttendeePicker(bodyEl, calAttendees); return; }
       if (!database) { renderAttendeePicker(bodyEl, calAttendees); return; }
-      database.ref('ilProtokolVerileri').once('value').then((snap) => {
+      database.ref(dbPath('ilProtokolVerileri')).once('value').then((snap) => {
         const v = snap.val() || {};
         ilPoolCache = Object.keys(v).map((pid) => {
           const p = v[pid];

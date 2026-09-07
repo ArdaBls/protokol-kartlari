@@ -77,6 +77,7 @@ export default [
         Pickr: 'readonly',
         Flot: 'readonly',
         FullCalendar: 'readonly',
+        firebase: 'readonly',
         TempusDominus: 'readonly',
         process: 'readonly',
         sample_data: 'readonly',

@@ -43,6 +43,7 @@
 // düzenleme formuyla AYNI paylaşılan modülden gelir (bkz. roster.js) -- iki yer birbirinden
 // bağımsız kopya listeler tutmasın diye (kullanıcı isteği: eşzamanlı olmalı her yerle).
 import { facultyOptionsHtml, loadPressOfficerPool, renderPersonRolesPickerHtml } from '/src/v4/roster.js';
+import { dbPath, canWriteWithRole, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -61,6 +62,14 @@ const normalizeDurum = (d) => { const k = d || 'planlandi'; return LEGACY_DURUM[
 const root = document.getElementById('detail-root');
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const parseNameList = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
+const FIREBASE_FORBIDDEN_KEY_CHARS = new Set(['.', '#', '$', '[', ']', '/']);
+function safeEventId(value) {
+  if (typeof value !== 'string' || !value || value === '__proto__' || value === 'constructor' || value === 'prototype') {return null;}
+  return Array.from(value).some((char) => {
+    const code = char.charCodeAt(0);
+    return FIREBASE_FORBIDDEN_KEY_CHARS.has(char) || code <= 31 || code === 127;
+  }) ? null : value;
+}
 
 // escapeHtml `javascript:` şemasını ENGELLEMEZ: escape edilmiş bir "javascript:alert(1)"
 // href olarak hâlâ çalışır ve `arsiv` alanına bunu yazan bir editör, sayfayı açan kişinin
@@ -155,7 +164,7 @@ function render(id, e) {
           <h1 class="page-title">${escapeHtml(e.ad || '(adsız)')}</h1>
         </div>
         <div class="page-actions">
-          <span class="status ${DURUM_CLS[durum] || ''}" style="font-size:12.5px">${DURUM_LABEL[durum] || durum}</span>
+          <span class="status ${DURUM_CLS[durum] || ''}" style="font-size:12.5px">${escapeHtml(DURUM_LABEL[durum] || durum)}</span>
           ${arsivUrl ? `<a class="btn btn-outline" href="${escapeHtml(arsivUrl)}" target="_blank" rel="noopener">Arşiv bağlantısı</a>` : ''}
         </div>
       </div>
@@ -277,6 +286,10 @@ function render(id, e) {
 
       saveBtn.addEventListener('click', () => {
         clearSaveError();
+        if (isReadOnly()) {
+          showSaveError('Salt-okunur kilit açık, düzenleme yapılamaz.');
+          return;
+        }
         // Tarih YAZMADAN ÖNCE doğrulanır: kaydın tarihi zaten yoksa ve kullanıcı da
         // girmezse eskiden tarih:'' yazılıyordu ve etkinlik takvimden tamamen kayboluyordu.
         // Boş/geçersiz tarihle kaydetmektense hiç kaydetmemek daha az zarar verir.
@@ -301,11 +314,11 @@ function render(id, e) {
           // (calendar.js persistEvent, app.js) sunucu damgası kullanıyor.
           guncellemeTs: firebase.database.ServerValue.TIMESTAMP
         };
-        database.ref('etkinlikler/' + id).update(patch).then(() => {
+        database.ref(dbPath('etkinlikler/' + id)).update(patch).then(() => {
           // Log şeması ana siteyle (app.js persistEvent) ve bildirimler.html'in okuduğu
           // alanlarla BİREBİR aynı olmalı: bildirimler.html tarihi `timestamp`'ten okuyup
           // ona göre sıralıyor -- `ts` yazılırsa kayıt 01.01.1970 görünüp listenin dibine düşer.
-          database.ref('logs/etkinlik').push({
+          database.ref(dbPath('logs/etkinlik')).push({
             by: currentUserName || currentUserEmail, email: currentUserEmail,
             action: (e.ad || '(adsız)') + ' etkinliğinin haber detayı güncellendi',
             target: e.ad || '',
@@ -333,11 +346,13 @@ function render(id, e) {
 
 let currentUserName = '';
 let currentUserEmail = '';
-const id = new URLSearchParams(location.search).get('id');
+let currentRole = '';
+let modeReady = false;
+const id = safeEventId(new URLSearchParams(location.search).get('id'));
 
 function loadEvent() {
   if (!id) { setMessage('Haber detayı', 'Bir etkinlik seçilmedi. Tüm haberler sayfasından bir habere tıklayın.'); return; }
-  database.ref('etkinlikler/' + id).once('value').then((snap) => {
+  database.ref(dbPath('etkinlikler/' + id)).once('value').then((snap) => {
     const e = snap.val();
     if (!e) { setMessage('Haber bulunamadı', 'Bu etkinlik silinmiş veya artık mevcut değil.'); return; }
     render(id, e);
@@ -348,14 +363,26 @@ function loadEvent() {
 }
 
 firebase.auth().onAuthStateChanged((user) => {
-  if (!user) { canWrite = false; loadEvent(); return; }
+  if (!user) { canWrite = false; currentRole = ''; return; }
   database.ref('users/' + user.uid).once('value').then((snap) => {
     const u = snap.val() || {};
-    canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+    currentRole = u.blocked === true ? '' : (u.role || '');
     currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
     currentUserEmail = user.email || '';
-    loadEvent();
-  }).catch(() => { canWrite = false; loadEvent(); });
+    initDbMode(database).then(() => {
+      modeReady = true;
+      canWrite = canWriteWithRole(currentRole);
+      renderDbModeBanner();
+      loadEvent();
+    });
+  }).catch(() => { canWrite = false; currentRole = ''; });
+});
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  canWrite = canWriteWithRole(currentRole);
+  renderDbModeBanner();
+  if (currentRole) {loadEvent();}
 });
 </script>
 

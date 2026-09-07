@@ -252,7 +252,7 @@ function shellInjectionPlugin() {
 }
 
 // Site artık tek bir kök altında yayınlanıyor, bu yüzden `base` her zaman '/'.
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ mode }) => ({
   // Kullanıcı isteği: bu artık bir "admin paneli" değil, sitenin TEK ana sayfası --
   // /admin/production/ önek yolu tamamen kaldırıldı. Kaynak hâlâ admin-src/production/
   // altında yaşıyor (proje içi düzen -- admin-src'in kendisi de artık docs/ altında),
@@ -272,9 +272,8 @@ export default defineConfig(({ command }) => ({
     outDir: '../../admin',
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
-    // Optimize source maps: 'hidden' for production (generates but doesn't reference in bundle)
-    // This allows debugging in production without exposing source maps to users
-    sourcemap: process.env.NODE_ENV === 'production' ? 'hidden' : true,
+    // Production is published directly from docs/, so source maps would also be public.
+    sourcemap: mode === 'production' ? false : true,
     target: 'es2022',
     rollupOptions: {
       plugins: [
@@ -386,7 +385,7 @@ export default defineConfig(({ command }) => ({
   },
   css: {
     // Enable CSS source maps only in development (saves ~8MB in production build)
-    devSourcemap: process.env.NODE_ENV !== 'production',
+    devSourcemap: mode !== 'production',
     preprocessorOptions: {
       scss: {
         // Silence Sass deprecation warnings
@@ -394,8 +393,8 @@ export default defineConfig(({ command }) => ({
         // Additional settings for better performance
         includePaths: ['node_modules'],
         // Generate source maps only in development
-        sourceMap: process.env.NODE_ENV !== 'production',
-        sourceMapContents: process.env.NODE_ENV !== 'production'
+        sourceMap: mode !== 'production',
+        sourceMapContents: mode !== 'production'
       }
     }
   },
@@ -403,12 +402,12 @@ export default defineConfig(({ command }) => ({
     global: 'globalThis',
     process: JSON.stringify({
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: mode
       }
     }),
     'process.env': JSON.stringify({
-      NODE_ENV: 'production'
+      NODE_ENV: mode
     }),
-    'process.env.NODE_ENV': '"production"'
+    'process.env.NODE_ENV': JSON.stringify(mode)
   }
 }));

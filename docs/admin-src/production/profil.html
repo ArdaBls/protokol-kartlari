@@ -204,6 +204,7 @@
 // ve tum-basarimlar.html) -- demo rozetler kaldırıldı.
 import { showToast } from '/src/v4/toast.js';
 import { ACHIEVEMENTS } from '/src/v4/achievements.js';
+import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -225,6 +226,7 @@ function parseNameList(s) {
 let currentUid = null;
 let currentEmail = '';
 let currentData = {};
+let modeReady = false;
 
 const els = {
   avatarBig:  document.getElementById('profile-avatar-big'),
@@ -282,7 +284,7 @@ function loadStats(tamAd) {
     els.statEtkinlik.textContent = '0'; els.statGorevli.textContent = '0'; els.statHaber.textContent = '0';
     return Promise.resolve({ etkinlik: 0, gorevli: 0, haber: 0 });
   }
-  return database.ref('etkinlikler').once('value').then((snap) => {
+  return database.ref(dbPath('etkinlikler')).once('value').then((snap) => {
     const events = Object.values(snap.val() || {});
     const etkinlik = events.filter((e) => e && e.olusturan === tamAd).length;
     const gorevli = events.filter((e) => parseNameList(e && e.gorevli).includes(tamAd)).length;
@@ -473,11 +475,21 @@ auth.onAuthStateChanged((user) => {
   if (!user) { window.location.href = 'giris.html'; return; }
   currentUid = user.uid;
   currentEmail = user.email || '';
-  Promise.all([loadUser(currentUid), loadKlima(currentUid)]).then(([, klimaSayisi]) => {
+  initDbMode(database).then(() => {
+    modeReady = true;
+    renderDbModeBanner();
+    return Promise.all([loadUser(currentUid), loadKlima(currentUid)]);
+  }).then(([, klimaSayisi]) => {
     return checkAndGrantAchievements(currentUid, klimaSayisi);
   }).then((earned) => {
     renderAchievements(earned);
   });
+});
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  renderDbModeBanner();
+  if (currentUid && currentData) {loadStats(tamAdOf(currentData));}
 });
 
 // ── Kaydet / Vazgeç (üstteki ve formdaki iki buton çifti aynı davranışı paylaşır) ──

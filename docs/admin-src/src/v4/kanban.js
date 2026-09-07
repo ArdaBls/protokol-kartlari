@@ -26,7 +26,7 @@ const COLUMNS = [
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 function fmtTarih(key) {
-  if (!key) return '';
+  if (!key) {return '';}
   const [y, m, d] = key.split('-');
   return d && m && y ? `${d}.${m}.${y}` : key;
 }

@@ -220,19 +220,5 @@ document.addEventListener('click', (e) => {
   if (chip) {chip.classList.toggle('active');}
 });
 
-// Form submit — let HTML5 validation run, then fake-submit on valid forms.
-// Lazy-imports the toast helper so the dependency stays out of the entry chunk.
-document.addEventListener('submit', (e) => {
-  const form = e.target;
-  if (!(form instanceof HTMLFormElement)) {return;}
-  // Native :invalid forms still get the browser's validation UI before we
-  // see the submit event, so reaching here means the form is already valid.
-  e.preventDefault();
-  const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
-  const label = (submitBtn?.textContent || submitBtn?.value || 'Saved').trim();
-  import('./v4/toast.js').then(({ showToast }) => showToast(`${label} ✓`, { variant: 'success' }));
-  if (form.dataset.resetOnSubmit !== 'false') {form.reset();}
-});
-
 // Topbar search box opens the command palette — wired by initCommandPalette.
 // Page-actions (Print / Export / Compose / Add / etc.) wired via initPageActions.

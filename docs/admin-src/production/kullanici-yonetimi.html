@@ -79,6 +79,7 @@
 
 <script type="module">
 import { showToast } from '/src/v4/toast.js';
+import { dbPath, isReadOnly, isTestMode, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -102,6 +103,9 @@ const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 
 let currentUid = null;
 let users = {}; // uid -> { firstName, lastName, email, role, basinGorevlisi, blocked, createdAt }
+let pressOfficerIds = new Set();
+let pressOfficerRef = null;
+let modeReady = false;
 let filterText = '', filterRole = '';
 
 function setState(html) {
@@ -139,6 +143,7 @@ function render() {
   rowsEl.innerHTML = entries.map(([uid, u]) => {
     const role = u.role || 'pending';
     const isSelf = uid === currentUid;
+    const isPressOfficer = pressOfficerIds.has(uid);
     const initial = fullNameOf(u).charAt(0).toUpperCase() || '?';
 
     const roleCell = (isSelf || role === 'owner')
@@ -160,8 +165,8 @@ function render() {
         </td>
         <td>${roleCell}</td>
         <td style="text-align:center">
-          <label class="check-toggle" title="${u.basinGorevlisi ? 'Basın görevlisi işaretini kaldır' : 'Basın görevlisi olarak işaretle'}">
-            <input type="checkbox" data-basin-toggle data-uid="${uid}" aria-label="${escapeHtml(fullNameOf(u))} — basın görevlisi" ${u.basinGorevlisi ? 'checked' : ''}>
+          <label class="check-toggle" title="${isPressOfficer ? 'Basın görevlisi işaretini kaldır' : 'Basın görevlisi olarak işaretle'}">
+            <input type="checkbox" data-basin-toggle data-uid="${uid}" aria-label="${escapeHtml(fullNameOf(u))} — basın görevlisi" ${isPressOfficer ? 'checked' : ''}>
             <svg viewBox="0 0 64 64" height="1.4em" width="1.4em" aria-hidden="true">
               <path d="M 0 16 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 16 L 32 48 L 64 16 V 8 A 8 8 90 0 0 56 0 H 8 A 8 8 90 0 0 0 8 V 56 A 8 8 90 0 0 8 64 H 56 A 8 8 90 0 0 64 56 V 16" pathLength="575.0541381835938" class="path"></path>
             </svg>
@@ -208,13 +213,16 @@ async function setUserRole(uid, newRole) {
 }
 
 async function toggleBasinGorevlisi(uid, checked) {
+  if (isReadOnly()) { showToast('Salt-okunur kilit açık, basın görevlisi değiştirilemez.', { variant: 'error' }); render(); return; }
   try {
     const u = users[uid] || {};
     const updates = {};
-    updates['users/' + uid + '/basinGorevlisi'] = checked;
-    updates['basinGorevlileri/' + uid] = checked ? fullNameOf(u) : null;
+    // users/ hesap ve rol verisidir, Test Modu'nda gölgelenmez. Canlı modda eski
+    // uyumluluk alanını koru; Test Modu'nda gerçek kullanıcı kaydına dokunma.
+    if (!isTestMode()) {updates['users/' + uid + '/basinGorevlisi'] = checked;}
+    updates[dbPath('basinGorevlileri/' + uid)] = checked ? fullNameOf(u) : null;
     await database.ref('/').update(updates);
-    if (users[uid]) { users[uid].basinGorevlisi = checked; }
+    if (checked) {pressOfficerIds.add(uid);} else {pressOfficerIds.delete(uid);}
     showToast(checked ? 'Basın görevlisi olarak işaretlendi.' : 'Basın görevlisi işareti kaldırıldı.', { variant: 'success' });
   } catch (err) {
     console.error('İşlem gerçekleştirilemedi:', err);
@@ -302,6 +310,19 @@ function loadUsers() {
   });
 }
 
+function attachPressOfficers() {
+  if (pressOfficerRef) {pressOfficerRef.off('value');}
+  pressOfficerRef = database.ref(dbPath('basinGorevlileri'));
+  pressOfficerRef.on('value', (snap) => {
+    pressOfficerIds = new Set(Object.keys(snap.val() || {}));
+    render();
+  }, (err) => {
+    console.error('Basın görevlileri yüklenemedi:', err);
+    pressOfficerIds = new Set();
+    render();
+  });
+}
+
 auth.onAuthStateChanged((user) => {
   if (!user) {
     currentUid = null;
@@ -317,11 +338,22 @@ auth.onAuthStateChanged((user) => {
       setState('Kullanıcı yönetimi yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
       return;
     }
-    loadUsers();
+    initDbMode(database).then(() => {
+      modeReady = true;
+      renderDbModeBanner();
+      loadUsers();
+      attachPressOfficers();
+    });
   }).catch((err) => {
     console.error('Yetki kontrol edilemedi:', err);
     setState('Yetki kontrol edilemedi.');
   });
+});
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  renderDbModeBanner();
+  attachPressOfficers();
 });
 </script>
 

@@ -6,6 +6,8 @@
 // zamanla farklı fakülte listesi/basın görevlisi göstermeye başlar -- bu
 // yüzden BİLEREK tek, paylaşılan bir modülde tutuluyor.
 
+import { dbPath } from './db-mode.js';
+
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 export const FACULTY_GROUPS = [
@@ -46,7 +48,7 @@ export function facultyOptionsHtml(selected) {
 // "Basın Görevlisi" havuzu: admin tarafından işaretlenmiş kullanıcılar (basinGorevlileri
 // düğümü). database çağıran sayfanın kendi firebase.database() örneğidir.
 export function loadPressOfficerPool(database) {
-  return database.ref('basinGorevlileri').once('value').then((snap) => {
+  return database.ref(dbPath('basinGorevlileri')).once('value').then((snap) => {
     const obj = snap.val() || {};
     const pool = Object.keys(obj).map((uid) => ({ uid, name: String(obj[uid] || '').trim() })).filter((p) => p.name);
     pool.sort((a, b) => a.name.localeCompare(b.name, 'tr'));

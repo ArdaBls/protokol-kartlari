@@ -21,18 +21,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            docs/admin-src/package-lock.json
+            tests/package-lock.json
+
+      - name: Uygulama bağımlılıklarını kur
+        working-directory: docs/admin-src
+        run: npm ci
+
+      - name: Lint kontrolü
+        working-directory: docs/admin-src
+        run: npm run lint
+
+      - name: Üretim derlemesi
+        working-directory: docs/admin-src
+        run: npm run build
 
       - name: Playwright ve Chromium kur
         working-directory: tests
         run: |
-          npm install
+          npm ci
           npx playwright install --with-deps chromium
 
       - name: Regresyon testlerini çalıştır
         working-directory: tests
         run: |
           overall=0
-          for f in smoke-test.js notes-fix-test.js news-template-test.js news-rich-template-test.js calendar-lock-undo-test.js admin-test-panel-test.js calendar-rail-now-test.js calendar-year-list-admin-test.js press-officer-lock-test.js audit-fixes-test.js modal-centering-test.js offline-timeout-test.js test-mode-test.js history-panel-test.js dark-mode-test.js fuzzy-search-test.js status-transition-test.js; do
+          for f in *-test.js; do
             echo "::group::$f"
             node "$f" || overall=1
             echo "::endgroup::"

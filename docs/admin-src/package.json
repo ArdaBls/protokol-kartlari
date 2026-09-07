@@ -5,8 +5,8 @@
   "description": "OMÜ Protokol Kartları — admin paneli. Vite 8, vanilla JS.",
   "scripts": {
     "dev": "vite --clearScreen false",
-    "build": "NODE_ENV=production vite build && node scripts/publish-root.mjs",
-    "build:dev": "NODE_ENV=development vite build",
+    "build": "vite build --mode production && node scripts/publish-root.mjs",
+    "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",

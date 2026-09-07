@@ -39,6 +39,8 @@
 </main>
 
 <script type="module">
+import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
   authDomain: 'omu-protokol.firebaseapp.com',
@@ -102,7 +104,7 @@ function render(users, events) {
       <div class="contact-card">
         <div class="av" style="background:${ROLE_COLOR[role] || ROLE_COLOR.pending}">${escapeHtml(initial)}</div>
         <div class="name">${escapeHtml(name)}</div>
-        <div class="role">${ROLE_LABEL[role] || role}</div>
+        <div class="role">${escapeHtml(ROLE_LABEL[role] || role)}</div>
         <div style="font-size:12px;color:var(--text-muted);word-break:break-word;margin-bottom:12px">${escapeHtml(u.email || '')}</div>
         <div class="stats">
           <div><strong>${etkinlikSayisi}</strong>Etkinlik</div>
@@ -117,7 +119,7 @@ function loadUsersAndEvents() {
   setState('Yükleniyor…');
   Promise.all([
     database.ref('users').once('value'),
-    database.ref('etkinlikler').once('value')
+    database.ref(dbPath('etkinlikler')).once('value')
   ]).then(([usersSnap, eventsSnap]) => {
     render(usersSnap.val() || {}, eventsSnap.val() || {});
   }).catch((err) => {
@@ -126,6 +128,8 @@ function loadUsersAndEvents() {
   });
 }
 
+let authorized = false;
+let modeReady = false;
 auth.onAuthStateChanged((user) => {
   if (!user) { setState('Bu sayfayı görüntülemek için giriş yapmış olmanız gerekir.'); return; }
   database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
@@ -134,11 +138,22 @@ auth.onAuthStateChanged((user) => {
       setState('Kişiler yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
       return;
     }
-    loadUsersAndEvents();
+    authorized = true;
+    initDbMode(database).then(() => {
+      modeReady = true;
+      renderDbModeBanner();
+      loadUsersAndEvents();
+    });
   }).catch((err) => {
     console.error('Yetki kontrol edilemedi:', err);
     setState('Yetki kontrol edilemedi.');
   });
+});
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  renderDbModeBanner();
+  if (authorized) {loadUsersAndEvents();}
 });
 </script>
 

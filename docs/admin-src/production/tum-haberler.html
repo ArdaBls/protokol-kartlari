@@ -43,6 +43,8 @@
 </main>
 
 <script type="module">
+import { dbPath, canWriteWithRole, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
   authDomain: 'omu-protokol.firebaseapp.com',
@@ -143,7 +145,7 @@ function newsCardHtml(id, e) {
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:6px">
         <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(e.ad || '(adsız)')}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <span class="status ${DURUM_CLS[durum] || ''}">${DURUM_LABEL[durum] || durum}</span>
+          <span class="status ${DURUM_CLS[durum] || ''}">${escapeHtml(DURUM_LABEL[durum] || durum)}</span>
           ${canWrite ? `<button type="button" class="card-opt-btn news-delete-btn" data-id="${escapeHtml(id)}" title="Bu haberi sil" aria-label="Bu haberi sil">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6.5 4V2.5h3V4M4.5 4l.5 9.5h6l.5-9.5"/></svg>
           </button>` : ''}
@@ -204,17 +206,18 @@ grid.addEventListener('click', (e) => {
   const btn = e.target.closest('.news-delete-btn');
   if (!btn) { return; }
   e.preventDefault(); e.stopPropagation();
+  if (isReadOnly()) { alert('Salt-okunur kilit açık, silme yapılamaz.'); return; }
   const id = btn.dataset.id;
   const entry = NEWS.find(([nid]) => nid === id);
   const name = entry ? (entry[1].ad || '(adsız)') : '(adsız)';
   if (!window.confirm(`"${name}" etkinliğini/haberini kalıcı olarak silmek istediğinize emin misiniz?`)) { return; }
-  database.ref('etkinlikler/' + id).remove().then(() => {
+  database.ref(dbPath('etkinlikler/' + id)).remove().then(() => {
     // Log şeması ana siteyle (app.js executeEventDelete) ve bildirimler.html'in okuduğu
     // alanlarla BİREBİR aynı olmalı: bildirimler.html tarihi `timestamp`'ten okuyup ona
     // göre sıralıyor -- `ts` yazılırsa kayıt 01.01.1970 görünüp listenin en dibine düşer.
     // Log yazımı silme işleminin başarısını etkilemez, ama .catch()'siz bırakılırsa
     // (ör. logs/ kuralı reddederse) yakalanmamış promise reddi olarak konsola düşer.
-    database.ref('logs/etkinlik').push({
+    database.ref(dbPath('logs/etkinlik')).push({
       by: currentUserName, email: currentUserEmail,
       action: name + ' etkinliği silindi', target: name,
       timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -229,7 +232,7 @@ grid.addEventListener('click', (e) => {
 
 function loadNews() {
   setState('Yükleniyor…');
-  database.ref('etkinlikler').once('value').then((snap) => {
+  database.ref(dbPath('etkinlikler')).once('value').then((snap) => {
     const events = snap.val() || {};
     // Kullanıcı isteği: haber metni doldurulmuş olsun olmasın HER etkinlik burada listelenir --
     // haberi yazma/düzenleme artık haber-detayi.html'deki CKEditor sisteminde yapılıyor,
@@ -246,15 +249,29 @@ function loadNews() {
   });
 }
 
+let currentRole = '';
+let modeReady = false;
 firebase.auth().onAuthStateChanged((user) => {
-  if (!user) { canWrite = false; loadNews(); return; }
+  if (!user) { canWrite = false; currentRole = ''; return; }
   database.ref('users/' + user.uid).once('value').then((snap) => {
     const u = snap.val() || {};
-    canWrite = u.role === 'editor' || u.role === 'admin' || u.role === 'owner';
+    currentRole = u.blocked === true ? '' : (u.role || '');
     currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || user.email || '';
     currentUserEmail = user.email || '';
-    loadNews();
-  }).catch(() => { canWrite = false; loadNews(); });
+    initDbMode(database).then(() => {
+      modeReady = true;
+      canWrite = canWriteWithRole(currentRole);
+      renderDbModeBanner();
+      loadNews();
+    });
+  }).catch(() => { canWrite = false; currentRole = ''; });
+});
+
+onDbModeChange(() => {
+  if (!modeReady) {return;}
+  canWrite = canWriteWithRole(currentRole);
+  renderDbModeBanner();
+  if (currentRole) {loadNews();}
 });
 </script>
 
