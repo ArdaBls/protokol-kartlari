@@ -11,6 +11,7 @@ import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 import { initStreak } from './streak.js';
 import { dbPath, initDbMode, onDbModeChange } from './db-mode.js';
+import { syncStaffProfile } from './staff-profiles.js';
 
 function injectShellIfMissing() {
   const body = document.body;
@@ -651,6 +652,13 @@ export function syncShellUser() {
         onayBekleyenRozetiniBagla(role);
         attendanceRozetiniBagla(role);
         bildirimRozetiniBagla(user.uid);
+        // staffProfiles/{uid} yalnızca kişi profil.html/ayarlar.html'de adını/
+        // fotoğrafını KAYDETTİĞİNDE oluşuyordu -- hiç oraya girmemiş kullanıcılar
+        // Kişiler sayfasında ve Kanban/Yapılacaklar avatarlarında hiç görünmüyordu.
+        // Her girişte sessizce senkronlanır (kişi profilini hiç açmasa bile en
+        // azından adı staffProfiles'a düşer) -- kisiler.html'deki admin/owner
+        // geri-doldurma ile birlikte listeyi tam tutar.
+        syncStaffProfile(firebase.database(), user.uid, { displayName: name }).catch(() => { /* sessiz -- kritik değil */ });
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');
         if (nameEl) {nameEl.textContent = name;}

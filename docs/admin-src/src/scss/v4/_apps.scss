@@ -184,6 +184,9 @@
   position: relative;
 }
 .notification-row:last-child { border-bottom: none; }
+// Kişisel bildirim listesinde (bkz. bildirimler.html renderPersonalNotifications)
+// henüz okundu işaretlenmemiş kayıt -- sol kenarda ince bir vurgu.
+.notification-row--unread { box-shadow: inset 3px 0 0 var(--primary); background: var(--primary-lt); }
 .notification-row:hover { background: var(--bg-surface-secondary); }
 .notification-row .notif-icon {
   width: 32px; height: 32px;

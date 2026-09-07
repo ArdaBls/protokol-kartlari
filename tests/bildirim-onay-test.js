@@ -199,6 +199,22 @@ async function rozet(page) {
 		};
 	}
 
+	// 7) Statik kaynak kontrolü: bildirimler.html'deki iki bulgu düzeltildi --
+	// (a) editörde "Tümü" sekmesine tıklayınca genel (ENTRIES tabanlı) render()'a
+	//     düşüp kişisel bildirimleri boş listeyle EZMEMELİ,
+	// (b) görüntülenen kişisel bildirimler read:true olarak işaretlenmeli, yoksa
+	//     zil rozeti hiç azalmaz (kullanıcı bulgusu: "sağdaki zil işaretinden
+	//     silinmiyor", "adminde de bunlar olmuyor" -- admin için de bir kişisel
+	//     bildirim görünümü/okundu-işaretleme yolu eklendi).
+	{
+		const notifSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'production', 'bildirimler.html'), 'utf8');
+		sonuc.bildirimlerHtmlDuzeltmeleri = {
+			editorTumuSekmesiKisiselBildirimlereGidiyor: /currentRole === 'editor'.{0,40}loadPersonalNotifications\(\)/s.test(notifSource),
+			okunduIsaretlemeVar: /function markNotificationsRead/.test(notifSource) && /markNotificationsRead\(val\)/.test(notifSource),
+			adminIcinKisiselSekmeVar: /notif-tab-kisisel/.test(notifSource) && /getElementById\('notif-tab-kisisel'\)\.hidden = false/.test(notifSource)
+		};
+	}
+
 	console.log(JSON.stringify(sonuc, null, 2));
 	const basarisiz = [];
 	const gez = (o, on) => {

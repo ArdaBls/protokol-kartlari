@@ -130,13 +130,39 @@ function render(users, events) {
   }).join('');
 }
 
+// staffProfiles/{uid} SADECE kişi profil.html/ayarlar.html'de adını/fotoğrafını
+// kaydettiğinde oluşuyor -- çoğu kullanıcı henüz hiç oraya girmediyse editörün
+// gördüğü liste neredeyse boş kalır (kullanıcı bulgusu: "editörlerde kişi
+// kartları gözükmüyordu"). Admin/owner zaten TÜM users/ listesini okuyabildiği
+// için, Kişiler sayfasını her açtığında eksik staffProfiles kayıtlarını
+// (yalnızca ad + varsa mevcut avatarUrl) SESSİZCE geri dolduruyor -- editör bir
+// sonraki ziyaretinde tam listeyi görür, e-posta/rol yine hiç yazılmıyor/sızmıyor.
+function backfillStaffProfiles(users) {
+  database.ref('staffProfiles').once('value').then((snap) => {
+    const existing = snap.val() || {};
+    const updates = {};
+    Object.keys(users).forEach((uid) => {
+      if (existing[uid]) { return; }
+      const u = users[uid];
+      if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) { return; }
+      updates['staffProfiles/' + uid + '/displayName'] = fullNameOf(u);
+      if (isSafeAvatarUrl(u.avatarUrl)) { updates['staffProfiles/' + uid + '/avatarUrl'] = u.avatarUrl; }
+    });
+    if (Object.keys(updates).length) {
+      database.ref('/').update(updates).catch((err) => console.error('staffProfiles geri doldurulamadı:', err));
+    }
+  }).catch((err) => console.error('staffProfiles okunamadı (geri doldurma atlandı):', err));
+}
+
 function loadUsersAndEvents() {
   setState('Yükleniyor…');
   Promise.all([
     database.ref('users').once('value'),
     database.ref(dbPath('etkinlikler')).once('value')
   ]).then(([usersSnap, eventsSnap]) => {
-    render(usersSnap.val() || {}, eventsSnap.val() || {});
+    const users = usersSnap.val() || {};
+    render(users, eventsSnap.val() || {});
+    backfillStaffProfiles(users);
   }).catch((err) => {
     console.error('Veriler yüklenemedi:', err);
     setState('Veriler yüklenemedi.');

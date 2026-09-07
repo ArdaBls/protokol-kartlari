@@ -39,6 +39,7 @@
         <button class="chart-tab" data-filter="etkinlik">Etkinlik Takvimi</button>
         <button class="chart-tab" data-filter="hesap">Hesap</button>
         <button class="chart-tab" data-filter="katilim" id="notif-tab-katilim" hidden>Katılım Talepleri</button>
+        <button class="chart-tab" data-filter="kisisel" id="notif-tab-kisisel" hidden>Bildirimlerim</button>
       </div>
     </div>
     <div class="card-body" style="padding:0">
@@ -184,7 +185,14 @@ document.getElementById('notif-tabs').addEventListener('click', (e) => {
   document.querySelectorAll('#notif-tabs .chart-tab').forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   filter = btn.dataset.filter;
+  // KRİTİK: editörde ENTRIES hiç dolmuyor (logs/* editöre hiç okutulmuyor) --
+  // "Tümü" sekmesine (tekrar) tıklanınca eskiden buradan genel render()'a
+  // düşüp kişisel bildirimleri BOŞ listeyle eziyordu (kullanıcı bulgusu:
+  // "tümü tuşuna basınca bildirimler kayboluyor"). Editörde HER sekme tıklaması
+  // kişisel bildirimlere gitmeli -- zaten görünen tek sekme "Tümü".
+  if (currentRole === 'editor') { setState('Yükleniyor…'); loadPersonalNotifications(); return; }
   if (filter === 'katilim') { setState('Yükleniyor…'); loadKatilim(); return; }
+  if (filter === 'kisisel') { setState('Yükleniyor…'); loadPersonalNotifications(); return; }
   render();
 });
 
@@ -252,7 +260,7 @@ function renderPersonalNotifications(items) {
   }
   empty.hidden = true;
   list.innerHTML = items.map((n) => `
-    <div class="notification-row">
+    <div class="notification-row${n.read === true ? '' : ' notification-row--unread'}">
       <span class="notif-icon notif-info" aria-hidden="true">${ICON.info}</span>
       <span class="notif-body">
         <span class="notif-from">${escapeHtml(n.title || 'Bildirim')}</span>
@@ -262,12 +270,32 @@ function renderPersonalNotifications(items) {
     </div>
   `).join('');
 }
+// Kullanıcı bulgusu: "bildirimler kısmına girince gördüğüm bildirimler
+// sağdaki zil işaretinden silinmiyor" -- görüntülenen bildirimler hiçbir
+// zaman read:true olarak işaretlenmiyordu, bu yüzden shell.js'teki rozet
+// (okunmamış sayısı) sonsuza dek aynı kalıyordu. Sayfayı her açtığında/
+// yeniden yüklediğinde o an listelenen okunmamışlar tek seferlik read:true
+// yapılır -- dbPath() ÜZERİNDEN (attendance.js'in yazdığı yolla AYNI dal).
+function markNotificationsRead(idToItem) {
+  const updates = {};
+  Object.keys(idToItem).forEach((id) => {
+    if (idToItem[id] && idToItem[id].read !== true) {
+      updates[dbPath('notifications/' + currentUid + '/' + id + '/read')] = true;
+    }
+  });
+  if (Object.keys(updates).length) {
+    database.ref('/').update(updates).catch((err) => console.error('Bildirimler okundu olarak işaretlenemedi:', err));
+  }
+}
 function loadPersonalNotifications() {
   setState('Yükleniyor…');
   database.ref(dbPath('notifications/' + currentUid)).limitToLast(50).once('value').then((snap) => {
     const val = snap.val() || {};
-    const items = Object.values(val).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const items = Object.entries(val)
+      .map(([id, n]) => Object.assign({ _id: id }, n))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     renderPersonalNotifications(items);
+    markNotificationsRead(val);
   }).catch((err) => {
     console.error('Bildirimler yüklenemedi:', err);
     setState('Bildirimler yüklenemedi.');
@@ -290,6 +318,11 @@ auth.onAuthStateChanged((user) => {
     if ((role === 'admin' || role === 'owner') && u.blocked !== true) {
       authorized = true;
       document.getElementById('notif-tab-katilim').hidden = false;
+      // Admin/owner'ın da kendi notifications/{uid} bildirimleri olabilir (ör.
+      // kendi gönderdiği bir katılım talebinin onay/red sonucu) -- eskiden bunu
+      // görüp okundu işaretleyecek HİÇBİR yer yoktu, zil rozeti sonsuza dek
+      // aynı kalıyordu (kullanıcı bulgusu: "adminde de bunlar olmuyor").
+      document.getElementById('notif-tab-kisisel').hidden = false;
       initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); loadLogs(); });
     } else if (role === 'editor' && u.blocked !== true) {
       // Editöre yönetim sekmeleri (İl/Üniversite/Etkinlik/Hesap/Katılım
@@ -316,6 +349,7 @@ onDbModeChange(() => {
   if (!authorized) {return;}
   if (currentRole === 'editor') { loadPersonalNotifications(); }
   else if (filter === 'katilim') { loadKatilim(); }
+  else if (filter === 'kisisel') { loadPersonalNotifications(); }
   else { loadLogs(); }
 });
 </script>
