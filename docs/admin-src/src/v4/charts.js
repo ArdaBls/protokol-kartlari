@@ -122,6 +122,70 @@ function gorevliNamesForEvent(e) {
 }
 
 // ────────────────────────
+//  Etkinlik bitiş kontrolü — istatistiklere sadece BİTMİŞ etkinlikler girsin
+// ────────────────────────
+// Kullanıcı bildirimi: gelecekteki bir etkinliğe basın görevlisi/haber yazarı
+// eklenince kişi HEMEN "gitmiş" gibi istatistiklere yansıyordu. calendar.js'teki
+// dKey/parseKey/hmToMin ile AYNI yerel-saat mantığı (küçük yardımcılar bu
+// projede dosyalar arası kasıtlı olarak kopyalanır, bkz. roster.js üstündeki not).
+function chartsParseKey(s) {
+  const a = String(s || '').split('-');
+  if (a.length !== 3) { return null; }
+  const y = Number(a[0]), m = Number(a[1]), day = Number(a[2]);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(day)) { return null; }
+  const d = new Date(y, m - 1, day);
+  if (isNaN(d.getTime()) || d.getFullYear() !== y || d.getMonth() !== m - 1 || d.getDate() !== day) { return null; }
+  return d;
+}
+function chartsHmToMin(s) {
+  const a = String(s || '').split(':');
+  if (a.length < 2) { return null; }
+  const h = Number(a[0]), m = Number(a[1]);
+  if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) { return null; }
+  return h * 60 + m;
+}
+// Bitiş zamanı kuralları:
+// - Tek günlük saatli etkinlik: tarih + bitisSaat (yoksa başlangıç+60dk).
+// - Hiç saat yoksa günün sonu (23:59:59.999).
+// - Çok günlük etkinlik: bitisTarihi gününün sonu (saatler yok sayılır).
+// - bitisSaat <= başlangıç saati ise gece yarısını aşan etkinlik kabul edilir
+//   (dakika 1440'ı geçebilir -- Date constructor bunu doğru şekilde ertesi
+//   güne taşır, elle gün ekleme gerekmez).
+export function hasEventEnded(event, now) {
+  if (!event) { return false; }
+  const start = chartsParseKey(event.tarih);
+  if (!start) { return false; }
+  const isMultiDay = !!event.bitisTarihi && event.bitisTarihi !== event.tarih;
+  if (isMultiDay) {
+    const end = chartsParseKey(event.bitisTarihi) || start;
+    const endOfDay = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+    return now.getTime() >= endOfDay.getTime();
+  }
+  const startMin = chartsHmToMin(event.saat);
+  if (startMin === null) {
+    const endOfDay = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59, 999);
+    return now.getTime() >= endOfDay.getTime();
+  }
+  let endMin = chartsHmToMin(event.bitisSaat);
+  if (endMin === null) { endMin = startMin + 60; }
+  else if (endMin <= startMin) { endMin += 24 * 60; }
+  const endMoment = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, endMin, 0, 0);
+  return now.getTime() >= endMoment.getTime();
+}
+// İstatistiklerin TAMAMI (editorEventActivity/editorDailyActivity/editorActivityShare/
+// fotoğraf sayacı) bu TEK fonksiyondan geçmeli -- farklı filtreler oluşmasın diye.
+// İptal edilmiş etkinlikler zaman kuralından bağımsız olarak hiçbir zaman girmez.
+function filterEligibleEventsForStats(events, now) {
+  if (!events) { return events; }
+  const out = {};
+  Object.keys(events).forEach((id) => {
+    const e = events[id];
+    if (e && e.durum !== 'iptal' && hasEventEnded(e, now)) { out[id] = e; }
+  });
+  return out;
+}
+
+// ────────────────────────
 //  Paylaşılan users/etkinlikler önbelleği — Operasyonlar sayfasındaki
 //  editorEventActivity, editorDailyActivity, editorActivityShare ve
 //  initPhotoCounter'ın HEPSİ aynı iki düğümü (users, etkinlikler) canlı
@@ -185,6 +249,17 @@ function ensureSharedActivityListeners() {
   }
   onDbModeChange(attachEvents);
   initDbMode(database).then(() => { modeReady = true; attachEvents(); });
+  // Etkinliğin zamanı Firebase'de HİÇBİR alan değişmeden dolabilir (ör. saat
+  // 14:00'ü geçti) -- istatistikler bunu yakalamak için dakikada bir aynı
+  // (değişmemiş) veriyle yeniden dağıtılır; her tüketici hasEventEnded'i
+  // TAZE bir `now` ile yeniden değerlendirir. Tek zamanlayıcı, TÜM abonelere.
+  const refreshTimer = setInterval(() => {
+    if (sharedEventsCache !== null) { dispatchSharedActivityData(); }
+  }, 60000);
+  // Tarayıcıda setInterval bir sayı döner (unref yok); Node'da (testler bu
+  // modülü doğrudan import ettiğinde) bir Timeout nesnesi döner ve unref()
+  // çağrılmazsa süreç asla kapanmaz -- yalnızca varsa çağır.
+  if (refreshTimer && typeof refreshTimer.unref === 'function') { refreshTimer.unref(); }
 }
 
 export function subscribeSharedActivityData(cb) {
@@ -354,7 +429,7 @@ function editorEventActivity(echarts, el, t) {
   // dinleyicisi açılmaz (bkz. ensureSharedActivityListeners üstteki yorum).
   subscribeSharedActivityData((users, events) => {
     latestUsers = users;
-    latestEvents = events;
+    latestEvents = filterEligibleEventsForStats(events, new Date());
     draw();
   });
 
@@ -531,7 +606,7 @@ function editorDailyActivity(echarts, el, t) {
   // aynı desen) -- ayrı .on('value') dinleyicisi açılmaz.
   subscribeSharedActivityData((users, events) => {
     latestUsers = users;
-    latestEvents = events;
+    latestEvents = filterEligibleEventsForStats(events, new Date());
     draw();
   });
 
@@ -557,8 +632,19 @@ function editorDailyActivity(echarts, el, t) {
 const PHOTO_RATE_TABLE = {
   'Arda Bilasa': 350,
   'Berk Can Dereci': 800,
-  'Nurdan Gürbüz': 400
+  'Nurdan Gürbüz': 400,
+  'Hasan Çelen': 420
 };
+// Tablo eşleşmesi için Türkçe-güvenli normalizasyon (İ/ı, ş/ç/ğ/ö/ü büyük/küçük
+// harf farklarını tolere eder) -- isim tabloya birebir aynı yazılmadıysa
+// (baş/son boşluk, farklı harf büyüklüğü) sessizce 0 sayılmasın diye.
+function normalizeTrName(s) {
+  return String(s || '').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+}
+const PHOTO_RATE_TABLE_NORMALIZED = Object.keys(PHOTO_RATE_TABLE).reduce((acc, name) => {
+  acc[normalizeTrName(name)] = PHOTO_RATE_TABLE[name];
+  return acc;
+}, {});
 
 function initPhotoCounter() {
   const el = document.querySelector('[data-photo-counter]');
@@ -572,10 +658,12 @@ function initPhotoCounter() {
   // ensureSharedActivityListeners) -- users tarafı burada kullanılmıyor.
   subscribeSharedActivityData((_users, events) => {
     if (events === null) {return;}
+    const eligible = filterEligibleEventsForStats(events, new Date());
     let total = 0;
-    Object.keys(events).forEach((id) => {
-      gorevliNamesForEvent(events[id]).forEach((name) => {
-        if (PHOTO_RATE_TABLE[name] !== undefined) {total += PHOTO_RATE_TABLE[name];}
+    Object.keys(eligible).forEach((id) => {
+      gorevliNamesForEvent(eligible[id]).forEach((name) => {
+        const rate = PHOTO_RATE_TABLE_NORMALIZED[normalizeTrName(name)];
+        if (rate !== undefined) {total += rate;}
       });
     });
     el.textContent = total > 0 ? total.toLocaleString('tr-TR') + '+' : '—';
@@ -713,7 +801,7 @@ function editorActivityShare(echarts, el, t) {
   // aynı desen) -- ayrı .on('value') dinleyicisi açılmaz.
   subscribeSharedActivityData((users, events) => {
     latestUsers = users;
-    latestEvents = events;
+    latestEvents = filterEligibleEventsForStats(events, new Date());
     draw();
   });
 

@@ -159,6 +159,7 @@
 // Görev 3: ayarlar.html gerçek kullanıcı verisiyle çalışır + tüm veriyi dışa aktarır.
 import { showToast } from '/src/v4/toast.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+import { syncStaffProfile } from '/src/v4/staff-profiles.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -251,6 +252,7 @@ document.querySelector('.settings-form').addEventListener('submit', (e) => {
     currentData.lastName = lastName;
     fillSettingsForm();
     showToast('Değişiklikler kaydedildi.', { variant: 'success' });
+    syncStaffProfile(database, currentUid, { displayName: (firstName + ' ' + lastName).trim() }).catch((err) => { console.error('staffProfiles adı güncellenemedi:', err); });
   }).catch((err) => {
     console.error('Değişiklikler kaydedilemedi:', err);
     showToast('Değişiklikler kaydedilemedi.', { variant: 'error' });
@@ -298,6 +300,7 @@ avatarFileInput.addEventListener('change', () => {
       currentData.avatarUrl = dataUrl;
       applyAvatarPreview(fullNameInput.value, dataUrl);
       showToast('Avatar güncellendi.', { variant: 'success' });
+      syncStaffProfile(database, currentUid, { displayName: fullNameInput.value.trim(), avatarUrl: dataUrl }).catch((err) => { console.error('staffProfiles avatarı güncellenemedi:', err); });
     })
   )).catch((err) => {
     console.error('Avatar yüklenemedi:', err);
@@ -311,6 +314,7 @@ document.getElementById('avatar-remove-btn').addEventListener('click', () => {
     currentData.avatarUrl = null;
     applyAvatarPreview(fullNameInput.value, null);
     showToast('Avatar kaldırıldı.', { variant: 'success' });
+    syncStaffProfile(database, currentUid, { avatarUrl: null }).catch((err) => { console.error('staffProfiles avatarı kaldırılamadı:', err); });
   }).catch((err) => {
     console.error('Avatar kaldırılamadı:', err);
     showToast('Avatar kaldırılamadı.', { variant: 'error' });

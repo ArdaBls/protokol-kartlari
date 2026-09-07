@@ -30,6 +30,11 @@ export const EDITOR_NAV_KEYS = [
   'calendar',       // Takvim
   'map',            // Harita
   'kanban',         // Yapılacaklar Listesi
+  // 'notifications' ESKİDEN editöre kapalıydı (bildirimler.html 403'e
+  // düşürüyordu, bkz. eski shell.js yorumu) -- artık sayfa editöre kendi
+  // notifications/{uid} bildirimlerini gösteren AYRI bir görünüm sunuyor
+  // (logs/* hâlâ kapalı), bu yüzden sekme tekrar açıldı.
+  'notifications',  // Bildirimler
   'gantt',          // Haber Üretim Takvimi
   'projects',       // Tüm haberler
   'project-detail', // Haber detayı

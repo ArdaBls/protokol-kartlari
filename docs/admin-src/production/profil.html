@@ -205,6 +205,7 @@
 import { showToast } from '/src/v4/toast.js';
 import { ACHIEVEMENTS } from '/src/v4/achievements.js';
 import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+import { syncStaffProfile } from '/src/v4/staff-profiles.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -504,6 +505,8 @@ function saveProfile() {
     fillForm();
     loadStats(tamAdOf(currentData));
     showToast('Değişiklikler kaydedildi.', { variant: 'success' });
+    // Ortak ekranlarda (Kanban/Yapılacaklar avatarları) gösterilen ad da güncel kalsın.
+    syncStaffProfile(database, currentUid, { displayName: tamAdOf(currentData) }).catch((err) => { console.error('staffProfiles adı güncellenemedi:', err); });
   }).catch((err) => {
     console.error('Değişiklikler kaydedilemedi:', err);
     showToast('Değişiklikler kaydedilemedi.', { variant: 'error' });
@@ -557,6 +560,7 @@ fileInput.addEventListener('change', () => {
       currentData.avatarUrl = dataUrl;
       applyAvatarBig(els.name.textContent, dataUrl);
       showToast('Avatar güncellendi.', { variant: 'success' });
+      syncStaffProfile(database, currentUid, { displayName: tamAdOf(currentData), avatarUrl: dataUrl }).catch((err) => { console.error('staffProfiles avatarı güncellenemedi:', err); });
     })
   )).catch((err) => {
     console.error('Avatar yüklenemedi:', err);

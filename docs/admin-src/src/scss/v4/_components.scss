@@ -441,6 +441,29 @@ table.table tbody tr:hover { background: var(--bg-surface-secondary); }
 }
 .menu-item:hover, .menu-item:focus-visible { background: var(--bg-surface-secondary); }
 .menu-item-danger { color: var(--red); }
+
+// Ortak "personel avatarı" -- staff-profiles.js'in renderStaffAvatar()/
+// renderAttendeeAvatarsHtml()/renderCompleterAvatarHtml() ürettiği paylaşılan
+// işaretleme (Kanban + Yapılacaklar widget'ı, "iki farklı uygulama yazma"
+// kullanıcı isteğiyle ortaklaştırıldı). Fotoğraf varsa background-image
+// (cover), yoksa baş harf. Boyut/konum sayfaya özel CSS'te üzerine yazılır.
+.staff-avatar {
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--primary);
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-surface);
+}
+.staff-avatar + .staff-avatar { margin-inline-start: -6px; }
+// Tamamlayan kişi -- diğer avatarlardan renkle ayrışsın diye yeşil (--green,
+// "Tamamlandı" durumuyla aynı semantik renk).
+.staff-avatar--done { background-color: var(--green); }
 .menu-item-danger:hover, .menu-item-danger:focus-visible { background: color-mix(in srgb, var(--red) 10%, transparent); }
 .menu-separator {
   height: 1px;

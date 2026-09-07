@@ -12,6 +12,10 @@
 //   3. Editörde rozet hiç kurulmuyor (users/ listesi zaten ona kapalı)
 //   4. Bildirimler sayfasında kayıt talebi; isim, e-posta ve saat ile listeleniyor
 //   5. Kullanıcı yönetimi listesinde onay bekleyen kayıt görünüyor
+//   6. Zil rozeti kişisel bildirim sayısını dbPath() üzerinden okuyor --
+//      attendance.js notifications/{uid}'ye Test Modu'nda test/ dalına
+//      yazıyor, rozet canlı yolu izlerse Test Modu'nda oluşan bildirimler
+//      hiç görünmezdi (bkz. shell.js bildirimRozetiniBagla).
 const { chromium } = require('playwright');
 const path = require('path');
 const http = require('http');
@@ -142,6 +146,15 @@ async function rozet(page) {
 			hatasiz: hatalar.length === 0
 		};
 		await ctx.close();
+	}
+
+	// 6) Statik kaynak kontrolü: rozet dinleyicisi dbPath() üzerinden okuyor.
+	{
+		const shellSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'shell.js'), 'utf8');
+		sonuc.rozetDbPath = {
+			dbPathKullaniliyor: /database\.ref\(dbPath\('notifications\/'\s*\+\s*uid\)\)/.test(shellSource),
+			literalYolKalmadi: !/firebase\.database\(\)\.ref\('notifications\/'\s*\+\s*uid\)/.test(shellSource)
+		};
 	}
 
 	console.log(JSON.stringify(sonuc, null, 2));

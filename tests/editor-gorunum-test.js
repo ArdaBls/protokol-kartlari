@@ -4,8 +4,9 @@
 //  1. "Operasyonlar sekmesindeki Editör Aktivitesi kısmını editörlerin de görmesini
 //     istiyorum -- burada küçük bir yarış yapılıyor, görmek motivasyon verir."
 //  2. "Harita sekmesinde 'Etkinlikler yüklenemedi.' hatası var, daireler gözükmüyor."
-//  3. "Bildirimler sekmesi editöre gözükmeye devam ediyor ve basınca 403'e atıyor --
-//     hem sekmeyi hem de sağ üstteki zil simgesini kaldıralım."
+//  3. Bildirimler artık editöre de açık: sekme ve sağ üstteki zil editörde de
+//     GÖRÜNMELİ, ama sayfa yalnızca kendi notifications/{uid} bildirimlerini
+//     gösterir -- logs/* ve hesap onayları editöre hiç ulaşmaz.
 //  4. "Kayıt ekranında isim, soyisim ayrı şekilde yazılsın ve sisteme doğru entegre
 //     edilsin" (tek 'Ad soyad' kutusu yüzünden kişi isimsiz kaydediliyordu).
 const { chromium } = require('playwright');
@@ -82,10 +83,10 @@ async function ac(browser, rol, hedef, usersOkunabilir) {
 		await ctx.close();
 	}
 
-	// 2) Editör: Bildirimler sekmesi ve zil simgesi görünmemeli
+	// 2) Editör: Bildirimler sekmesi ve zil simgesi GÖRÜNMELİ (artık editöre de açık)
 	{
 		const { page, ctx } = await ac(browser, 'editor', 'index.html', false);
-		sonuc.bildirimGizli = await page.evaluate(() => {
+		sonuc.bildirimGorunur = await page.evaluate(() => {
 			const gorunur = (el) => {
 				if (!el) return false;
 				for (let n = el; n && n !== document.body; n = n.parentElement) {
@@ -97,12 +98,12 @@ async function ac(browser, rol, hedef, usersOkunabilir) {
 			};
 			const sekme = document.querySelector('.sidebar [data-nav-key="notifications"]');
 			const zil = document.querySelector('.topbar-right a.tb-btn[href="bildirimler.html"]');
-			return { sekmeGizli: !gorunur(sekme), zilGizli: !gorunur(zil) };
+			return { sekmeGorunur: gorunur(sekme), zilGorunur: gorunur(zil) };
 		});
 		await ctx.close();
 	}
 
-	// 3) Admin: zil GÖRÜNMELİ (gizleme yalnızca editöre özel olmalı)
+	// 3) Admin: zil GÖRÜNMELİ (editörde de görünür olmalı, aynı davranış)
 	{
 		const { page, ctx } = await ac(browser, 'admin', 'index.html', true);
 		sonuc.adminZil = await page.evaluate(() => {

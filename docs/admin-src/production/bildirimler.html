@@ -38,6 +38,7 @@
         <button class="chart-tab" data-filter="universite">Üniversite Protokolü</button>
         <button class="chart-tab" data-filter="etkinlik">Etkinlik Takvimi</button>
         <button class="chart-tab" data-filter="hesap">Hesap</button>
+        <button class="chart-tab" data-filter="katilim" id="notif-tab-katilim" hidden>Katılım Talepleri</button>
       </div>
     </div>
     <div class="card-body" style="padding:0">
@@ -57,6 +58,8 @@
 
 <script type="module">
 import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+import { showToast } from '/src/v4/toast.js';
+import { approveAttendanceRequest, rejectAttendanceRequest, loadPendingAttendanceRequests } from '/src/v4/attendance.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -99,6 +102,7 @@ function render() {
   if (!items.length) {
     list.innerHTML = '';
     empty.hidden = false;
+    document.querySelector('#notif-empty .empty-desc').textContent = 'Bu filtreyle eşleşen bir kayıt bulunamadı.';
     return;
   }
   empty.hidden = true;
@@ -122,12 +126,65 @@ function render() {
   }).join('');
 }
 
+// ── Admin/owner: bekleyen "geçmiş etkinliğe kişi ekle" katılım talepleri ──
+let KATILIM_TALEPLERI = [];
+function renderKatilim() {
+  const list = document.getElementById('notif-list');
+  const empty = document.getElementById('notif-empty');
+  if (!KATILIM_TALEPLERI.length) {
+    list.innerHTML = '';
+    empty.hidden = false;
+    document.querySelector('#notif-empty .empty-desc').textContent = 'Bekleyen katılım talebi yok.';
+    return;
+  }
+  empty.hidden = true;
+  list.innerHTML = KATILIM_TALEPLERI.map((r) => `
+    <div class="notification-row" data-request-id="${escapeHtml(r._id)}">
+      <span class="notif-icon notif-task" aria-hidden="true">${ICON.task}</span>
+      <span class="notif-body">
+        <span class="notif-from">${escapeHtml(r.requestedByName || '?')} <span style="color:var(--text-muted);font-weight:400">talep etti</span></span>
+        <span class="notif-text"><strong>${escapeHtml(r.attendeeName || '')}</strong>, ${escapeHtml(r.eventName || 'etkinlik')} etkinliğine ${escapeHtml(r.eventDate || '')} tarihinde ${r.role === 'haberYazanlari' ? 'haber yazarı' : 'basın görevlisi'} olarak gitti olarak eklenmek istiyor.</span>
+      </span>
+      <span class="notif-time">${r.requestedAt ? new Date(r.requestedAt).toLocaleString('tr-TR') : ''}</span>
+      <button type="button" class="btn btn-outline" style="height:26px;padding:0 10px;font-size:12px;white-space:nowrap" data-approve="${escapeHtml(r._id)}">Onayla</button>
+      <button type="button" class="btn btn-ghost" style="height:26px;padding:0 10px;font-size:12px;white-space:nowrap;color:var(--red)" data-reject="${escapeHtml(r._id)}">Reddet</button>
+    </div>
+  `).join('');
+}
+function loadKatilim() {
+  loadPendingAttendanceRequests(database).then((items) => {
+    KATILIM_TALEPLERI = items;
+    if (filter === 'katilim') { renderKatilim(); }
+  }).catch((err) => {
+    console.error('Katılım talepleri yüklenemedi:', err);
+  });
+}
+document.getElementById('notif-list').addEventListener('click', (e) => {
+  const approveBtn = e.target.closest('[data-approve]');
+  const rejectBtn = e.target.closest('[data-reject]');
+  if (!approveBtn && !rejectBtn) return;
+  const requestId = (approveBtn || rejectBtn).dataset.approve || (approveBtn || rejectBtn).dataset.reject;
+  const action = approveBtn
+    ? approveAttendanceRequest(database, requestId, currentUid, currentUserName)
+    : rejectAttendanceRequest(database, requestId, currentUid, currentUserName);
+  (approveBtn || rejectBtn).disabled = true;
+  action.then(() => {
+    showToast(approveBtn ? 'Talep onaylandı.' : 'Talep reddedildi.', { variant: 'success' });
+    loadKatilim();
+  }).catch((err) => {
+    console.error('Talep işlenemedi:', err);
+    showToast(err && err.message ? err.message : 'Talep işlenemedi.', { variant: 'error' });
+    loadKatilim();
+  });
+});
+
 document.getElementById('notif-tabs').addEventListener('click', (e) => {
   const btn = e.target.closest('.chart-tab');
   if (!btn) return;
   document.querySelectorAll('#notif-tabs .chart-tab').forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   filter = btn.dataset.filter;
+  if (filter === 'katilim') { setState('Yükleniyor…'); loadKatilim(); return; }
   render();
 });
 
@@ -179,22 +236,74 @@ function loadLogs() {
   });
 }
 
+// ── Editör: SADECE kendi kişisel bildirimleri (notifications/{uid}) ──
+// KRİTİK: editör için logs/* düğümlerine HİÇ dokunulmuyor -- indirip arayüzde
+// gizlemek yerine, bu rol dalı o kod yolunu hiç çalıştırmıyor (Firebase
+// kuralları da zaten editöre logs/* okumasını engelliyor, bu istemci tarafı
+// bunu tekrarlamıyor sadece gereksiz denemeyi baştan önlüyor).
+function renderPersonalNotifications(items) {
+  const list = document.getElementById('notif-list');
+  const empty = document.getElementById('notif-empty');
+  if (!items.length) {
+    list.innerHTML = '';
+    empty.hidden = false;
+    document.querySelector('#notif-empty .empty-desc').textContent = 'Henüz bildiriminiz yok.';
+    return;
+  }
+  empty.hidden = true;
+  list.innerHTML = items.map((n) => `
+    <div class="notification-row">
+      <span class="notif-icon notif-info" aria-hidden="true">${ICON.info}</span>
+      <span class="notif-body">
+        <span class="notif-from">${escapeHtml(n.title || 'Bildirim')}</span>
+        <span class="notif-text">${escapeHtml(n.message || '')}</span>
+      </span>
+      <span class="notif-time">${n.createdAt ? new Date(n.createdAt).toLocaleString('tr-TR') : ''}</span>
+    </div>
+  `).join('');
+}
+function loadPersonalNotifications() {
+  setState('Yükleniyor…');
+  database.ref(dbPath('notifications/' + currentUid)).limitToLast(50).once('value').then((snap) => {
+    const val = snap.val() || {};
+    const items = Object.values(val).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderPersonalNotifications(items);
+  }).catch((err) => {
+    console.error('Bildirimler yüklenemedi:', err);
+    setState('Bildirimler yüklenemedi.');
+  });
+}
+
 let authorized = false;
 let modeReady = false;
+let currentUid = '';
+let currentUserName = '';
+let currentRole = '';
 auth.onAuthStateChanged((user) => {
   if (!user) { setState('Bu sayfayı görüntülemek için giriş yapmış olmanız gerekir.'); return; }
-  database.ref('users/' + user.uid + '/role').once('value').then((snap) => {
-    const role = snap.val();
-    if (role !== 'admin' && role !== 'owner') {
-      setState('Bildirimler yalnızca Admin/Kurucu rolündeki kullanıcılara açıktır.');
-      return;
+  currentUid = user.uid;
+  database.ref('users/' + user.uid).once('value').then((snap) => {
+    const u = snap.val() || {};
+    const role = u.role;
+    currentRole = role;
+    currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || (user.email || '');
+    if ((role === 'admin' || role === 'owner') && u.blocked !== true) {
+      authorized = true;
+      document.getElementById('notif-tab-katilim').hidden = false;
+      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); loadLogs(); });
+    } else if (role === 'editor' && u.blocked !== true) {
+      // Editöre yönetim sekmeleri (İl/Üniversite/Etkinlik/Hesap/Katılım
+      // Talepleri) hiç GÖSTERİLMİYOR -- sadece "Tümü" sekmesi kalır ve o da
+      // kişisel bildirimlerini listeler.
+      authorized = true;
+      ['il', 'universite', 'etkinlik', 'hesap'].forEach((f) => {
+        const el = document.querySelector(`#notif-tabs [data-filter="${f}"]`);
+        if (el) { el.hidden = true; }
+      });
+      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); loadPersonalNotifications(); });
+    } else {
+      setState('Bildirimler yalnızca onaylı editör/admin/kurucu rolündeki kullanıcılara açıktır.');
     }
-    authorized = true;
-    initDbMode(database).then(() => {
-      modeReady = true;
-      renderDbModeBanner();
-      loadLogs();
-    });
   }).catch((err) => {
     console.error('Yetki kontrol edilemedi:', err);
     setState('Yetki kontrol edilemedi.');
@@ -204,7 +313,10 @@ auth.onAuthStateChanged((user) => {
 onDbModeChange(() => {
   if (!modeReady) {return;}
   renderDbModeBanner();
-  if (authorized) {loadLogs();}
+  if (!authorized) {return;}
+  if (currentRole === 'editor') { loadPersonalNotifications(); }
+  else if (filter === 'katilim') { loadKatilim(); }
+  else { loadLogs(); }
 });
 </script>
 

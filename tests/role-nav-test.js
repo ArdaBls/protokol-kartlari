@@ -9,8 +9,11 @@
 // Doğrulananlar:
 //   1. admin  -> menüdeki HER sekme görünür
 //   2. owner  -> aynı (admin ile eşdeğer)
-//   3. editor -> SADECE izin verilen 10 sekme; Bildirimler/Kişiler/Kullanıcı
-//                yönetimi/Geliştirici Araçları gizli, boşalan grup başlığı da gizli
+//   3. editor -> izin verilen 11 sekme (Bildirimler artık dahil -- sonraki bir
+//                istekte editöre de açıldı, kendi notifications/{uid}
+//                bildirimlerini gösteren ayrı bir görünüm sunuyor, logs/*
+//                hâlâ kapalı); Kişiler/Kullanıcı yönetimi/Geliştirici Araçları
+//                hâlâ gizli, boşalan grup başlığı da gizli
 //   4. editor izinsiz bir sayfanın adresini elle yazarsa erisim-engellendi.html
 //   5. misafir -> giris.html (ve panel BİR AN BİLE boyanmıyor: pre-paint kapısı)
 const { chromium } = require('playwright');
@@ -22,14 +25,14 @@ const TESTS_DIR = __dirname;
 const SITE_ROOT = path.join(__dirname, '..', 'docs');
 const PORT = 8971;
 
-// Kullanıcının saydığı 10 sekme (görünen metinleriyle).
+// Kullanıcının saydığı 10 sekme + sonradan editöre açılan Bildirimler.
 const EDITOR_GORMELI = [
 	'Operasyonlar', 'Protokol Kartları', 'Takvim', 'Harita',
-	'Yapılacaklar Listesi', 'Tüm haberler', 'Haber detayı',
+	'Yapılacaklar Listesi', 'Bildirimler', 'Tüm haberler', 'Haber detayı',
 	'Profiliniz', 'Ayarlar', 'Yardım merkezi'
 ];
 // Editöre KAPALI olması gerekenler.
-const EDITOR_GORMEMELI = ['Bildirimler', 'Kişiler', 'Kullanıcı yönetimi'];
+const EDITOR_GORMEMELI = ['Kişiler', 'Kullanıcı yönetimi'];
 
 function serve() {
 	const server = http.createServer((req, res) => {

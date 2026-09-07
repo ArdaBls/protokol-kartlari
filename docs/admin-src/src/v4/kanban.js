@@ -8,6 +8,7 @@
 import { showToast } from './toast.js';
 import { openMenu } from './menus.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
+import { subscribeStaffProfiles, renderAttendeeAvatarsHtml, renderCompleterAvatarHtml } from './staff-profiles.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -31,7 +32,6 @@ function fmtTarih(key) {
   return d && m && y ? `${d}.${m}.${y}` : key;
 }
 
-function parseNameList(s) { return String(s || '').split(',').map((x) => x.trim()).filter(Boolean); }
 
 // Hafta yardımcıları -- calendar.js:117-118'den birebir kopyalandı (proje deseni:
 // küçük yardımcılar dosyalar arası import edilmeyip kopyalanıyor).
@@ -56,6 +56,7 @@ let EVENTS = {}; // id -> event object (canlı Firebase verisi, hem etkinlikler 
 let canWrite = false;
 let currentUserName = '';
 let currentUserEmail = '';
+let currentUserUid = '';
 let filterText = '';
 let database = null;
 let boardEl = null;
@@ -116,13 +117,16 @@ function visibleEvents() {
 
 function renderCard(v) {
   const e = v.raw;
-  const writers = v.source === 'gorev' ? [] : parseNameList(e.haberYazanlari);
-  const avatars = writers.map((name) => `<span class="kanban-avatar" style="background:var(--primary)" title="${escapeHtml(name)}">${escapeHtml(name.charAt(0).toUpperCase())}</span>`).join('');
+  // Aynı kişi hem basın görevlisi hem haber yazarıysa TEK avatar (staff-profiles.js
+  // mergeAttendeeRoles), gerçek profil fotoğrafı varsa o gösterilir. Tamamlayan kişi
+  // buradan HARİÇ tutulur -- ayrı bir rozet olarak zaten gösteriliyor (aşağıda).
+  const avatars = v.source === 'gorev' ? '' : renderAttendeeAvatarsHtml(e.gorevli, e.haberYazanlari, v.durum === 'tamamlandi' ? e.tamamlayan : null, 24);
   const weekTag = v.overdue ? `<span class="kanban-card-week-tag">${escapeHtml(weekRangeLabel(v.originWeek))} haftasından</span>` : '';
   // Kullanıcı isteği: takvimdeki etkinlikler için de tamamlayan kişi belli olsun -- kanban
   // panosu görev/etkinlik ayrımı yapmadan tek bir "Tamamlandı" sütununda gösterdiği için
-  // tamamlayan izini burada göstermek her iki kaynağı da kapsıyor.
-  const completedBy = (v.durum === 'tamamlandi' && e.tamamlayan) ? `<span class="kanban-avatar kanban-avatar--done" title="${escapeHtml(e.tamamlayan)} tamamladı">${escapeHtml(e.tamamlayan.charAt(0).toUpperCase())}</span>` : '';
+  // tamamlayan izini burada göstermek her iki kaynağı da kapsıyor. Rol avatarlarıyla
+  // KARIŞMAMASI için kartın sağ üst köşesinde ayrı gösterilir (bkz. CSS).
+  const completedBy = v.durum === 'tamamlandi' ? renderCompleterAvatarHtml(e, 24) : '';
   // Erişilebilirlik düzeltmesi (denetim bulgusu, KRİTİK): durum değiştirmenin TEK yolu
   // sürükle-bırak idi -- klavye/switch-access kullanıcısı bir kartı hiçbir sütuna
   // taşıyamıyordu. Bu buton (sadece yazma yetkisi varken görünür) AYNI moveCardTo()
@@ -256,6 +260,7 @@ function moveCardTo(id, newCol) {
   // tamamlama izi yanlışlıkla kalmış gibi görünürdü.
   updates[basePath + '/tamamlayan'] = newCol === 'tamamlandi' ? (currentUserName || currentUserEmail) : null;
   updates[basePath + '/tamamlayanEmail'] = newCol === 'tamamlandi' ? currentUserEmail : null;
+  updates[basePath + '/tamamlayanUid'] = newCol === 'tamamlandi' ? (currentUserUid || null) : null;
   if (ev._source === 'gorev') {
     // Operasyonlar'daki checkbox hâlâ tamamlandi boolean'ını okuyor -- iki yönlü ayna.
     updates[basePath + '/tamamlandi'] = newCol === 'tamamlandi';
@@ -331,8 +336,9 @@ export function initKanban() {
   setupDnD();
 
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; loadEvents(); return; }
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; currentUserUid = ''; loadEvents(); return; }
     currentUserEmail = user.email || '';
+    currentUserUid = user.uid;
     // Log satırındaki "kim" bilgisi için rolle birlikte ad/soyad da okunur (users/{uid}
     // kendi kaydını okuma kuralı zaten var: ".read": "auth.uid === $uid").
     database.ref('users/' + user.uid).once('value').then((snap) => {
@@ -347,6 +353,8 @@ export function initKanban() {
   // doğru dala işaret eder (bkz. calendar.js initCalendar'daki aynı desen).
   initDbMode(database).then(() => { renderDbModeBanner(); loadEvents(); });
   onDbModeChange(() => { renderDbModeBanner(); loadEvents(); });
+  // Profil fotoğrafları geldikçe (avatarUrl vb.) kart avatarlarını yeniden çiz.
+  subscribeStaffProfiles(database, () => render());
 
   document.getElementById('kanban-filter')?.addEventListener('input', (e) => {
     filterText = e.target.value.trim();

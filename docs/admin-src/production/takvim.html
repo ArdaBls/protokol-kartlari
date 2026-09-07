@@ -39,6 +39,21 @@
     <div id="calMainBody"></div>
   </div>
 
+  <!-- Takvimle AYNI sayfa akışında (ayrı sayfa/modal DEĞİL) dikey özet
+       alanları -- kendi iç scroll'ları YOK, ana sayfa aşağı kaydırılır. -->
+  <section class="card cal-overview-card-wrap" aria-labelledby="cal-overview-today-title">
+    <div class="card-header"><h2 class="card-title" id="cal-overview-today-title">Bugün / Şimdiki Etkinlikler</h2></div>
+    <div class="cal-overview-list" id="cal-overview-today"></div>
+  </section>
+  <section class="card cal-overview-card-wrap" aria-labelledby="cal-overview-week-title">
+    <div class="card-header"><h2 class="card-title" id="cal-overview-week-title">Bu Haftadaki Etkinlikler</h2></div>
+    <div class="cal-overview-list" id="cal-overview-week"></div>
+  </section>
+  <section class="card cal-overview-card-wrap" aria-labelledby="cal-overview-upcoming-title">
+    <div class="card-header"><h2 class="card-title" id="cal-overview-upcoming-title">Yaklaşan Etkinlikler</h2></div>
+    <div class="cal-overview-list" id="cal-overview-upcoming"></div>
+  </section>
+
 </div>
 </main>
 

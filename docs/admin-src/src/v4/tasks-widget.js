@@ -6,6 +6,7 @@
 import { showModal, closeModal } from './modal.js';
 import { showToast } from './toast.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
+import { subscribeStaffProfiles, renderCompleterAvatarHtml } from './staff-profiles.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -21,6 +22,7 @@ let TASKS = {};
 let canWrite = false;
 let currentUserName = '';
 let currentUserEmail = '';
+let currentUserUid = '';
 let tasksListenerRef = null;
 
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -64,7 +66,7 @@ function render() {
       ${v.durum === 'incelemede' ? '<span class="todo-status-badge todo-status-badge--incelemede">İncelemede</span>' : ''}
       ${v.tamamlandi && v.tamamlayan ? `
         <span class="todo-status-badge todo-status-badge--tamamlandi">Tamamlandı</span>
-        <span class="todo-avatar" title="${escapeHtml(v.tamamlayan)} tamamladı">${escapeHtml((v.tamamlayan || '?').charAt(0).toUpperCase())}</span>
+        ${renderCompleterAvatarHtml(v, 22)}
       ` : ''}
       ${canWrite ? `<button type="button" class="todo-delete" data-task-delete="${id}" aria-label="Görevi sil"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>` : ''}
       ${v.tarih ? `<span class="todo-date">${escapeHtml(fmtTarih(v.tarih))}</span>` : ''}
@@ -96,6 +98,7 @@ function toggleTask(id) {
     // yoksa bir sonraki tamamlayan farklı biri olsa da eski isim kalırdı.
     tamamlayan: next ? (currentUserName || currentUserEmail) : null,
     tamamlayanEmail: next ? currentUserEmail : null,
+    tamamlayanUid: next ? (currentUserUid || null) : null,
     guncellemeTs: firebase.database.ServerValue.TIMESTAMP
   })
     .catch((err) => { console.error('Görev güncellenemedi:', err); showToast('Görev güncellenemedi.', { variant: 'error' }); });
@@ -186,8 +189,9 @@ export function initTasksWidget() {
   const auth = firebase.auth();
 
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; render(); return; }
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; currentUserUid = ''; render(); return; }
     currentUserEmail = user.email || '';
+    currentUserUid = user.uid;
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
       canWrite = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
@@ -195,6 +199,8 @@ export function initTasksWidget() {
       render();
     }).catch(() => { canWrite = false; render(); });
   });
+  // Profil fotoğrafları geldikçe (avatarUrl vb.) "Tamamlandı" avatarlarını yeniden çiz.
+  subscribeStaffProfiles(database, () => render());
 
   function attachTasksListener() {
     if (tasksListenerRef) { tasksListenerRef.off('value'); }

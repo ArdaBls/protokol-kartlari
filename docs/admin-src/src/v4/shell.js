@@ -10,6 +10,7 @@ import { openMenu } from './menus.js';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 import { initStreak } from './streak.js';
+import { dbPath, initDbMode, onDbModeChange } from './db-mode.js';
 
 function injectShellIfMissing() {
   const body = document.body;
@@ -443,28 +444,70 @@ const ONAYLI_ROLLER = ['editor', 'admin', 'owner'];
 // dinleyiciler birikip her değişiklikte callback'i N kere çalıştırır (bkz. kanban.js
 // loadEvents'teki AYNI desen: etkListenerRef/gorevListenerRef).
 let onayRozetiListenerRef = null;
+let bildirimRozetiListenerRef = null;
 let blockedListenerRef = null;
+// Zil rozeti iki kaynağı TOPLAR: admin/owner'da bekleyen hesap onayları
+// (pendingAccounts) + HERKESTE kendi okunmamış kişisel bildirimleri
+// (pendingNotifs, ör. katılım talebi onay/red sonucu). "Okunmamış bildirim
+// sayısı yalnızca kullanıcının ERİŞEBİLDİĞİ bildirimlerden hesaplanmalı" --
+// notifications/{uid} zaten sadece o kullanıcının kendi yolu (bkz. kurallar).
+let pendingAccountsCount = 0;
+let pendingNotifsCount = 0;
+function renderBildirimRozeti() {
+  const rozet = document.getElementById('tb-onay-rozeti');
+  if (!rozet) { return; }
+  const total = pendingAccountsCount + pendingNotifsCount;
+  rozet.textContent = total > 99 ? '99+' : String(total);
+  rozet.hidden = total === 0;
+  const zil = rozet.closest('.tb-btn');
+  if (zil) {
+    const parts = [];
+    if (pendingAccountsCount) { parts.push(pendingAccountsCount + ' hesap onay bekliyor'); }
+    if (pendingNotifsCount) { parts.push(pendingNotifsCount + ' okunmamış bildirim'); }
+    zil.setAttribute('title', parts.length ? parts.join(' · ') : 'Bildirimler');
+  }
+}
 
 function onayBekleyenRozetiniBagla(role) {
   if (onayRozetiListenerRef) { onayRozetiListenerRef.off('value'); onayRozetiListenerRef = null; }
-  if (role !== 'admin' && role !== 'owner') { return; }
-  const rozet = document.getElementById('tb-onay-rozeti');
-  if (!rozet) { return; }
+  pendingAccountsCount = 0;
+  if (role !== 'admin' && role !== 'owner') { renderBildirimRozeti(); return; }
   onayRozetiListenerRef = firebase.database().ref('users');
   onayRozetiListenerRef.on('value', (snap) => {
     const hepsi = snap.val() || {};
-    const bekleyen = Object.keys(hepsi).filter((uid) => {
+    pendingAccountsCount = Object.keys(hepsi).filter((uid) => {
       const r = hepsi[uid] && hepsi[uid].role;
       return ONAYLI_ROLLER.indexOf(r) === -1;
     }).length;
-    rozet.textContent = bekleyen > 99 ? '99+' : String(bekleyen);
-    rozet.hidden = bekleyen === 0;
-    const zil = rozet.closest('.tb-btn');
-    if (zil) {
-      zil.setAttribute('title', bekleyen ? bekleyen + ' hesap onay bekliyor' : 'Bildirimler');
-    }
+    renderBildirimRozeti();
   }, (err) => console.error('Onay bekleyen sayısı okunamadı:', err));
 }
+
+// Bildirim zili artık editörlerde de görünüyor -- herkes kendi
+// notifications/{uid} düğümünü dinler (bkz. kurallar: sadece o kullanıcı
+// okuyabilir). attendance.js bu yola dbPath() ÜZERİNDEN yazıyor (workflow
+// verisi, Test Modu'nda test/notifications/{uid} dalına gölgeleniyor) --
+// rozet de AYNI dalı izlemeli, aksi halde Test Modu açıkken oluşan
+// bildirimler rozette hiç görünmez. onDbModeChange ile mod değişince (başka
+// bir sekmeden Test Modu açılıp kapanınca) dinleyici doğru dala yeniden bağlanır.
+let bildirimRozetiUid = null;
+function bildirimRozetiniBagla(uid) {
+  bildirimRozetiUid = uid || null;
+  if (bildirimRozetiListenerRef) { bildirimRozetiListenerRef.off('value'); bildirimRozetiListenerRef = null; }
+  pendingNotifsCount = 0;
+  if (!uid) { renderBildirimRozeti(); return; }
+  const database = firebase.database();
+  initDbMode(database).then(() => {
+    if (bildirimRozetiUid !== uid) { return; }
+    bildirimRozetiListenerRef = database.ref(dbPath('notifications/' + uid));
+    bildirimRozetiListenerRef.on('value', (snap) => {
+      const hepsi = snap.val() || {};
+      pendingNotifsCount = Object.values(hepsi).filter((n) => n && n.read !== true).length;
+      renderBildirimRozeti();
+    }, (err) => console.error('Bildirim sayısı okunamadı:', err));
+  });
+}
+onDbModeChange(() => { if (bildirimRozetiUid) { bildirimRozetiniBagla(bildirimRozetiUid); } });
 
 export function syncShellUser() {
   ensureFirebase().then(() => {
@@ -571,6 +614,7 @@ export function syncShellUser() {
         }
         applyRoleNav(role);
         onayBekleyenRozetiniBagla(role);
+        bildirimRozetiniBagla(user.uid);
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');
         if (nameEl) {nameEl.textContent = name;}
@@ -609,17 +653,12 @@ function applyRoleNav(role) {
 
   const izinli = new Set(EDITOR_NAV_KEYS);
 
-  // 0) Sağ üstteki bildirim zilini gizle.
-  // Zil bildirimler.html'e gidiyor ve o sayfa yalnızca admin/owner'a açık; editörde
-  // görünür kalınca tıklayan 403'e (erisim-engellendi.html) düşüyordu -- kullanıcı
-  // bildirimi: "bildirimler sayfası gözükmeye devam ediyor ve basınca 403'e atıyor,
-  // hem sekmeyi hem de sağ üstteki zil simgesini kaldıralım". Sekme zaten aşağıdaki
-  // data-nav-key süzgeciyle gizleniyor; zil menüde olmadığı için ayrıca ele alınıyor.
-  const zil = document.querySelector('.topbar-right a.tb-btn[href="bildirimler.html"]');
-  if (zil) {
-    zil.hidden = true;
-    zil.style.display = 'none';
-  }
+  // NOT: Sağ üstteki bildirim zili eskiden burada editörden gizleniyordu çünkü
+  // bildirimler.html yalnızca admin/owner'a açıktı ve editör tıklayınca 403'e
+  // düşüyordu. Artık bildirimler.html editöre kendi notifications/{uid}
+  // bildirimlerini gösteren ayrı bir görünüm sunuyor (logs/* hâlâ kapalı),
+  // bu yüzden zil 'notifications' EDITOR_NAV_KEYS'e eklenerek aşağıdaki
+  // data-nav-key süzgeciyle birlikte tekrar görünür bırakıldı.
 
   // 1) İzinsiz sekmeleri gizle.
   document.querySelectorAll('[data-nav-key]').forEach((el) => {

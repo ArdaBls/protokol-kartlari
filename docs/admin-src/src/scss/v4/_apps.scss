@@ -706,6 +706,7 @@
   outline-offset: -4px;
 }
 .kanban-card {
+  position: relative;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
@@ -759,24 +760,17 @@
   display: flex;
   align-items: center;
 }
-.kanban-avatar {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  font-size: 9.5px;
-  font-weight: var(--font-weight-bold);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--bg-surface);
-  flex-shrink: 0;
-}
-.kanban-avatar + .kanban-avatar { margin-inline-start: -6px; }
+.kanban-card-avatars .staff-avatar { width: 22px; height: 22px; font-size: 9.5px; }
 // Tamamlayan kişi (kullanıcı isteği: "takvimdeki etkinlikler için de tamamlayan kişi belli
-// olsun") -- diğer avatarlardan renkle ayrışsın diye yeşil (--green, "Tamamlandı" durumuyla
-// aynı semantik renk).
-.kanban-avatar--done { background: var(--green); }
+// olsun") rol avatarlarıyla KARIŞMASIN diye kartın sağ üst köşesinde ayrı gösterilir
+// (kullanıcı isteği: "kartın sağ üst köşesinde ayrı göster").
+.kanban-card-avatars .staff-avatar--done {
+  position: absolute;
+  top: -6px;
+  inset-inline-end: -6px;
+  margin-inline-start: 0;
+  z-index: 2;
+}
 // Erişilebilirlik düzeltmesi: sürükle-bırağın klavye/switch-access alternatifi --
 // bkz. kanban.js renderCard/moveCardTo. .card-opt-btn ile aynı boyut/dil.
 .kanban-move-btn {

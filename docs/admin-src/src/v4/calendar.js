@@ -13,6 +13,7 @@ import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 import { facultyOptionsHtml, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
+import { createAttendanceRequest } from './attendance.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -99,6 +100,121 @@ function todayDate() { const n = new Date(); return new Date(n.getFullYear(), n.
 function hmToMin(s) { const a = String(s || '').split(':'); if (a.length < 2) { return null; } const h = Number(a[0]), m = Number(a[1]); if (isNaN(h) || isNaN(m)) { return null; } if (h < 0 || h > 23 || m < 0 || m > 59) { return null; } return h * 60 + m; }
 function minToHm(m) { return pad2(Math.floor(m / 60) % 24) + ':' + pad2(m % 60); }
 function fmtTrDate(s) { const d = parseKey(s); if (!d) { return s || ''; } return d.getDate() + ' ' + CAL_MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+// charts.js'teki hasEventEnded ile AYNI kural seti (kasıtlı kod tekrarı, bkz.
+// dosya başındaki not) -- burada modal içindeki "gitti olarak ekle" onay
+// akışının, hangi etkinliklerin ARTIK GEÇMİŞ sayıldığına karar vermesi için.
+function calHasEventEnded(ev) {
+  if (!ev) { return false; }
+  const start = parseKey(ev.tarih);
+  if (!start) { return false; }
+  const now = new Date();
+  const isMultiDay = !!ev.bitisTarihi && ev.bitisTarihi !== ev.tarih;
+  if (isMultiDay) {
+    const end = parseKey(ev.bitisTarihi) || start;
+    return now.getTime() >= new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999).getTime();
+  }
+  const startMin = hmToMin(ev.saat);
+  if (startMin === null) {
+    return now.getTime() >= new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59, 999).getTime();
+  }
+  let endMin = hmToMin(ev.bitisSaat);
+  if (endMin === null) { endMin = startMin + 60; } else if (endMin <= startMin) { endMin += 24 * 60; }
+  return now.getTime() >= new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, endMin, 0, 0).getTime();
+}
+// ── Takvim sayfası özet alanları (Bugün/Şimdiki, Bu hafta, Yaklaşan) ──
+// getEventStartDate/getEventEndDate: TAM an (tarih+saat), sadece tarih değil
+// -- "şu anda devam ediyor mu" ve hafta/30 gün aralık kesişimi hesapları için
+// gerekli. charts.js'teki hasEventEnded ile AYNI bitiş kuralları (kasıtlı kod
+// tekrarı, bkz. dosya başındaki not): saatsiz -> günün sonu, bitisSaat yoksa
+// başlangıç+60dk, bitisSaat <= başlangıçsa gece yarısını aşan etkinlik.
+export function getEventStartDate(event) {
+  const start = parseKey(event && event.tarih);
+  if (!start) { return null; }
+  const startMin = hmToMin(event.saat);
+  if (startMin === null) { return new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0); }
+  return new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, startMin, 0, 0);
+}
+export function getEventEndDate(event) {
+  if (!event) { return null; }
+  const start = parseKey(event.tarih);
+  if (!start) { return null; }
+  const isMultiDay = !!event.bitisTarihi && event.bitisTarihi !== event.tarih;
+  if (isMultiDay) {
+    const end = parseKey(event.bitisTarihi) || start;
+    return new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+  }
+  const startMin = hmToMin(event.saat);
+  if (startMin === null) { return new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59, 999); }
+  let endMin = hmToMin(event.bitisSaat);
+  if (endMin === null) { endMin = startMin + 60; } else if (endMin <= startMin) { endMin += 24 * 60; }
+  return new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, endMin, 0, 0);
+}
+// [rangeStart, rangeEnd] KAPSAYICI (inclusive) aralıkla kesişim -- çok günlü
+// bir etkinlik bitiş tarihiyle DEĞİL, aralıkla KESİŞMESİNE göre sınıflandırılır
+// (kullanıcı isteği: "sadece başlangıç tarihine göre değil, ilgili tarih
+// aralığıyla kesişmesine göre sınıflandır").
+export function eventOverlapsRange(event, rangeStart, rangeEnd) {
+  const s = getEventStartDate(event);
+  const e = getEventEndDate(event);
+  if (!s || !e || !rangeStart || !rangeEnd) { return false; }
+  return s.getTime() <= rangeEnd.getTime() && e.getTime() >= rangeStart.getTime();
+}
+function overviewOngoing(event, now) {
+  const s = getEventStartDate(event), e = getEventEndDate(event);
+  return !!(s && e && s.getTime() <= now.getTime() && e.getTime() >= now.getTime());
+}
+function overviewSort(now) {
+  return (a, b) => {
+    const aOngoing = overviewOngoing(a, now), bOngoing = overviewOngoing(b, now);
+    if (aOngoing !== bOngoing) { return aOngoing ? -1 : 1; }
+    const sa = getEventStartDate(a)?.getTime() ?? 0, sb = getEventStartDate(b)?.getTime() ?? 0;
+    if (sa !== sb) { return sa - sb; }
+    return String(a.ad || '').localeCompare(String(b.ad || ''), 'tr');
+  };
+}
+// Sınıflandırma (kullanıcı isteği): Şu anda (başlangıç<=now<=bitiş) + Bugün
+// (bugünle kesişen DİĞERLERİ) TEK "today" listesinde (devam edenler önce);
+// Bu hafta (Pzt-Paz, today'de olmayanlar); Yaklaşan (hafta sonundan sonraki
+// 30 gün). Aynı etkinlik birden fazla kovaya girmez (seen Set). İptal/arşiv
+// varsayılan listelere alınmaz.
+export function getCalendarOverviewBuckets(events, now) {
+  const list = Object.keys(events || {}).map((id) => {
+    const e = events[id];
+    return (e && typeof e === 'object') ? Object.assign({}, e, { _id: id }) : null;
+  }).filter((e) => e && e.durum !== 'iptal' && e.arsiv !== true && e.tarih);
+
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const weekStartDay = startOfWeek(now);
+  const weekEndDay = addDays(weekStartDay, 6);
+  const weekStart = new Date(weekStartDay.getFullYear(), weekStartDay.getMonth(), weekStartDay.getDate(), 0, 0, 0, 0);
+  const weekEnd = new Date(weekEndDay.getFullYear(), weekEndDay.getMonth(), weekEndDay.getDate(), 23, 59, 59, 999);
+  const upcomingStart = new Date(weekEnd.getTime() + 1);
+  const upcomingEnd = addDays(weekEndDay, 30);
+  upcomingEnd.setHours(23, 59, 59, 999);
+
+  const nowList = [], todayList = [], weekList = [], upcomingList = [];
+  const seen = new Set();
+  list.forEach((e) => {
+    if (overviewOngoing(e, now)) { nowList.push(e); seen.add(e._id); }
+  });
+  list.forEach((e) => {
+    if (!seen.has(e._id) && eventOverlapsRange(e, dayStart, dayEnd)) { todayList.push(e); seen.add(e._id); }
+  });
+  list.forEach((e) => {
+    if (!seen.has(e._id) && eventOverlapsRange(e, weekStart, weekEnd)) { weekList.push(e); seen.add(e._id); }
+  });
+  list.forEach((e) => {
+    if (!seen.has(e._id) && eventOverlapsRange(e, upcomingStart, upcomingEnd)) { upcomingList.push(e); seen.add(e._id); }
+  });
+  const sortFn = overviewSort(now);
+  return {
+    today: nowList.concat(todayList).sort(sortFn),
+    week: weekList.sort(sortFn),
+    upcoming: upcomingList.sort(sortFn)
+  };
+}
+
 function fmtMultiDayRange(tarih, bitisTarihi) {
   const s = parseKey(tarih), e = parseKey(bitisTarihi);
   if (!s || !e) { return ''; }
@@ -114,6 +230,7 @@ let auth = null;
 let eventsListenerRef = null;
 let currentUserName = '';
 let currentUserEmail = '';
+let currentUserUid = '';
 let canWrite = false;
 
 let EVENTS = Object.create(null); // id -> event; prototip anahtarları veri değildir.
@@ -487,6 +604,47 @@ function renderCalendar() {
   else if (calView === 'month') { renderMonthView(body); }
   else if (calView === 'year') { renderYearView(body); }
   else { renderListView(body); }
+  renderOverviewSections();
+}
+
+// ── Sayfa altındaki özet alanları: Bugün/Şimdiki, Bu Hafta, Yaklaşan ──
+// Takvim ızgarasıyla AYNI sayfa akışında (ayrı sayfa/modal DEĞİL), İÇ İÇE
+// küçük scroll alanları YOK -- her bölüm doğal yüksekliğinde, ana sayfa
+// aşağı kaydırılır (kullanıcı isteği). Kartlara tıklayınca mevcut
+// openEventModal() açılır -- ayrı bir detay ekranı YOK.
+function overviewCardHtml(e) {
+  const now = new Date();
+  const ongoing = overviewOngoing(e, now);
+  const isToday = isSameDay(getEventStartDate(e), todayDate());
+  const ty = evType(e.tur);
+  const timeLabel = (e.bitisTarihi && e.bitisTarihi !== e.tarih)
+    ? fmtMultiDayRange(e.tarih, e.bitisTarihi)
+    : (fmtTrDate(e.tarih) + (e.saat ? ' · ' + e.saat + (e.bitisSaat ? '–' + e.bitisSaat : '') : ''));
+  // Yalnızca renkle anlam verilmiyor -- "Şu anda"/"Bugün" METİN rozeti de var.
+  const badge = ongoing ? '<span class="cal-overview-badge cal-overview-badge--now">Şu anda</span>'
+    : (isToday ? '<span class="cal-overview-badge cal-overview-badge--today">Bugün</span>' : '');
+  const meta = [timeLabel];
+  if (e.yer) { meta.push(escapeHtml(e.yer)); }
+  return `<button type="button" class="cal-overview-card${ongoing ? ' is-ongoing' : ''}" data-evid="${escapeHtml(e._id)}">
+    <span class="cal-overview-dot" style="background:${ty.renk}" aria-hidden="true"></span>
+    <span class="cal-overview-main">
+      <span class="cal-overview-title">${escapeHtml(e.ad || '(adsız)')}</span>
+      <span class="cal-overview-meta">${meta.join(' · ')}</span>
+    </span>
+    ${badge}
+  </button>`;
+}
+function renderOverviewList(containerId, items, emptyText) {
+  const el = document.getElementById(containerId);
+  if (!el) { return; }
+  el.innerHTML = items.length ? items.map(overviewCardHtml).join('') : `<p class="cal-overview-empty">${emptyText}</p>`;
+}
+function renderOverviewSections() {
+  if (!document.getElementById('cal-overview-today')) { return; }
+  const buckets = getCalendarOverviewBuckets(EVENTS, new Date());
+  renderOverviewList('cal-overview-today', buckets.today, 'Bugün için planlanmış veya devam eden bir etkinlik yok.');
+  renderOverviewList('cal-overview-week', buckets.week, 'Bu hafta başka etkinlik yok.');
+  renderOverviewList('cal-overview-upcoming', buckets.upcoming, 'Önümüzdeki 30 günde başka etkinlik yok.');
 }
 
 function renderTopbar() {
@@ -1498,6 +1656,11 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
           : null,
         tamamlayanEmail: form.querySelector('#cef-durum').value === 'tamamlandi'
           ? (ev?.durum === 'tamamlandi' ? (ev.tamamlayanEmail || currentUserEmail) : currentUserEmail)
+          : null,
+        // Eski kayıtlarda yok -- kanban.js/tasks-widget.js profil fotoğrafı için
+        // önce bunu, yoksa tamamlayanEmail/tamamlayan adını fallback kullanır.
+        tamamlayanUid: form.querySelector('#cef-durum').value === 'tamamlandi'
+          ? (ev?.durum === 'tamamlandi' ? (ev.tamamlayanUid || currentUserUid || null) : (currentUserUid || null))
           : null
       };
       const ref = EVENTS[id];
@@ -1601,16 +1764,31 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       });
       return;
     }
-    if (t.classList.contains('cal-ev-role-basin')) {
+    if (t.classList.contains('cal-ev-role-basin') || t.classList.contains('cal-ev-role-haber')) {
       const name = t.dataset.name || '';
-      if (t.checked) { if (calPressStaff.indexOf(name) === -1) { calPressStaff.push(name); } }
-      else { const idx = calPressStaff.indexOf(name); if (idx !== -1) { calPressStaff.splice(idx, 1); } }
-      return;
-    }
-    if (t.classList.contains('cal-ev-role-haber')) {
-      const name = t.dataset.name || '';
-      if (t.checked) { if (calNewsWriters.indexOf(name) === -1) { calNewsWriters.push(name); } }
-      else { const idx = calNewsWriters.indexOf(name); if (idx !== -1) { calNewsWriters.splice(idx, 1); } }
+      const isBasin = t.classList.contains('cal-ev-role-basin');
+      const list = isBasin ? calPressStaff : calNewsWriters;
+      // Kullanıcı bildirimi: gelecekteki bir etkinliğe eklenen kişi hemen "gitmiş"
+      // sayılıyordu. GEÇMİŞ (bitmiş) bir etkinliğe biri işaretlenmek istendiğinde
+      // artık doğrudan eklenmiyor -- admin/owner onayı bekleyen bir talep açılır,
+      // kutu kendiliğinden tekrar boş kalır (bkz. attendance.js).
+      if (t.checked && id && ev && calHasEventEnded(ev)) {
+        t.checked = false;
+        if (!name) { return; }
+        createAttendanceRequest(database, {
+          eventId: id, eventName: ev.ad || '', eventDate: ev.tarih || '',
+          attendeeName: name, role: isBasin ? 'gorevli' : 'haberYazanlari',
+          requestedByUid: currentUserUid, requestedByName: currentUserName || currentUserEmail
+        }).then(() => {
+          showToast(name + ' için katılım talebi admin/owner onayına gönderildi.', { variant: 'success' });
+        }).catch((err) => {
+          console.error('Katılım talebi oluşturulamadı:', err);
+          showToast('Katılım talebi oluşturulamadı.', { variant: 'error' });
+        });
+        return;
+      }
+      if (t.checked) { if (list.indexOf(name) === -1) { list.push(name); } }
+      else { const idx = list.indexOf(name); if (idx !== -1) { list.splice(idx, 1); } }
       return;
     }
     if (t.classList.contains('cal-ev-att-cb')) {
@@ -1685,9 +1863,27 @@ export function initCalendar() {
   window.addEventListener('resize', calOnWindowResize, { passive: true });
   renderCalendar();
 
+  // Özet kartlarına tıklayınca mevcut düzenleme modalı açılır -- ayrı bir
+  // detay ekranı/sayfa YOK (kullanıcı isteği).
+  ['cal-overview-today', 'cal-overview-week', 'cal-overview-upcoming'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) { return; }
+    el.addEventListener('click', (e) => {
+      const card = e.target.closest('.cal-overview-card');
+      if (!card) { return; }
+      openEventModal(card.dataset.evid);
+    });
+  });
+  // "Şu anda" durumu Firebase'de hiçbir değişiklik olmadan (zaman geçtikçe)
+  // değişebilir -- charts.js'teki dakikalık yenileme ile aynı gerekçe.
+  if (document.getElementById('cal-overview-today')) {
+    setInterval(() => { renderOverviewSections(); }, 60000);
+  }
+
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); return; }
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; currentUserUid = ''; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); return; }
     currentUserEmail = user.email || '';
+    currentUserUid = user.uid;
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
       const role = u.role;

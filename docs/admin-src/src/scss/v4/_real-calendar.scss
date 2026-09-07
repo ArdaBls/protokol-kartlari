@@ -18,6 +18,54 @@
   display: flex;
   flex-direction: column;
 }
+
+// ── Sayfa altındaki özet alanları (Bugün/Şimdiki, Bu Hafta, Yaklaşan) ──
+// .cal-overview-card-wrap BİLİNÇLİ OLARAK .cal-card'ın flex mekaniğini
+// (flex:1/min-height:0) MİRAS ALMAZ -- doğal içerik yüksekliğinde kalır,
+// böylece .main'in min-height:100vh (sabit yükseklik DEĞİL) sayesinde sayfa
+// bu bölümler eklendikçe doğal olarak uzar ve TARAYICI sayfayı kaydırır.
+// İç içe ayrı bir scroll konteyneri YOK (kullanıcı isteği).
+.cal-overview-card-wrap { margin-top: 20px; }
+.cal-overview-card-wrap .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border-color-light); }
+.cal-overview-list { display: flex; flex-direction: column; }
+.cal-overview-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--border-color-light);
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.cal-overview-list .cal-overview-card:last-child { border-bottom: 0; }
+.cal-overview-card:hover, .cal-overview-card:focus-visible { background: var(--bg-surface-secondary); }
+// "Şu anda" devam eden etkinlik: sol kenarda yeşil vurgu şeridi -- ama TEK
+// başına renk yeterli değil (erişilebilirlik), her zaman yanında metin
+// rozeti de var (bkz. cal-overview-badge--now).
+.cal-overview-card.is-ongoing { box-shadow: inset 3px 0 0 var(--green); }
+.cal-overview-dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
+.cal-overview-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cal-overview-title { font-size: 13px; font-weight: var(--font-weight-medium); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-overview-meta { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-overview-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+.cal-overview-badge--now { background: var(--green-lt); color: var(--green); }
+.cal-overview-badge--today { background: var(--primary-lt); color: var(--primary); }
+.cal-overview-empty { margin: 0; padding: 24px 18px; color: var(--text-muted); font-size: 12.5px; text-align: center; }
+@media (max-width: 700px) {
+  .cal-overview-card { padding: 10px 14px; }
+  .cal-overview-card-wrap .card-header { padding: 12px 14px; }
+}
 .cal-card .calendar-toolbar { flex-shrink: 0; }
 #calMainBody {
   flex: 1 1 auto;
