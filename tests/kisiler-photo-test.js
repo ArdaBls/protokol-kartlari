@@ -41,4 +41,19 @@ assert.match(shellSource, /syncPatch\.avatarUrl = u\.avatarUrl/,
   'shell.js giriş-anı senkronu SADECE displayName değil, varsa avatarUrl\'i de göndermeli (aksi halde ilk girişte fotoğrafsız kayıt oluşup geri doldurmayı engeller)');
 
 console.log('PASS: shell.js giriş senkronu ve kisiler.html geri doldurması eksik fotoğrafları da tamamlıyor');
+
+// Kullanıcı isteği: "div stats lar da editörlerde kişiler klasöründe gözüksün
+// istatistikler gizli olmasın" -- editör görünümü (renderStaffDirectory)
+// admin/owner ile AYNI Etkinlik/Haber istatistik kutularını göstermeli.
+// etkinlikler zaten editöre açık (dbPath ile) -- PII sızıntısı yok.
+assert.match(source, /function renderStaffDirectory\(profiles, events\)/,
+  'renderStaffDirectory events parametresi almalı (istatistik hesaplamak için)');
+assert.match(source, /gorevliCounts\[name\]/,
+  'editör görünümü de Etkinlik sayısını göstermeli');
+assert.match(source, /haberCounts\[name\]/,
+  'editör görünümü de Haber sayısını göstermeli');
+assert.match(source, /database\.ref\(dbPath\('etkinlikler'\)\)\.once\('value'\)/g,
+  'editör görünümü istatistik için etkinlikler verisini de okumalı');
+
+console.log('PASS: editör görünümünde de Etkinlik/Haber istatistikleri gösteriliyor');
 console.log('ALL_TESTS_PASSED: true');

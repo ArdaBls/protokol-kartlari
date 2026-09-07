@@ -182,10 +182,16 @@ function loadUsersAndEvents() {
 // açık staffProfiles/{uid} (yalnızca ad + fotoğraf) okunur. Kullanıcı isteği:
 // "editörler de sitede kaç kişi var görebilsin" -- amaç sayı ve fotoğraf,
 // e-posta/rol/hesap durumu editöre YİNE sızmaz (bkz. staffProfiles kuralları).
-function renderStaffDirectory(profiles) {
+// etkinlikler zaten editöre açık (dbPath üzerinden okunuyor) -- admin/owner
+// görünümündeki AYNI Etkinlik/Haber istatistiği kartları burada da gösterilir
+// (kullanıcı isteği: "istatistikler gizli olmasın").
+function renderStaffDirectory(profiles, events) {
   const uids = Object.keys(profiles || {});
   if (!uids.length) { setState('Henüz profil fotoğrafı/adı paylaşan kimse yok.'); return; }
   uids.sort((a, b) => String((profiles[a] || {}).displayName || '').localeCompare(String((profiles[b] || {}).displayName || ''), 'tr'));
+  const eventList = Object.values(events || {});
+  const gorevliCounts = countByName(eventList, 'gorevli');
+  const haberCounts = countByName(eventList, 'haberYazanlari');
   grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-muted);font-size:13px;margin-bottom:4px">${uids.length} kişi</div>` +
     uids.map((uid) => {
       const p = profiles[uid] || {};
@@ -196,18 +202,27 @@ function renderStaffDirectory(profiles) {
       const avStyle = hasPhoto
         ? `background-image:url(&quot;${String(p.avatarUrl).replace(/["'()]/g, '')}&quot;)`
         : 'background:linear-gradient(135deg,var(--blue),#0550a0)';
+      const etkinlikSayisi = gorevliCounts[name] || 0;
+      const haberSayisi = haberCounts[name] || 0;
       return `
         <div class="contact-card">
           <div class="av${hasPhoto ? ' has-photo' : ''}" style="${avStyle}">${hasPhoto ? '' : escapeHtml(initial)}</div>
           <div class="name">${escapeHtml(name)}</div>
+          <div class="stats">
+            <div><strong>${etkinlikSayisi}</strong>Etkinlik</div>
+            <div><strong>${haberSayisi}</strong>Haber</div>
+          </div>
         </div>
       `;
     }).join('');
 }
 function loadStaffDirectory() {
   setState('Yükleniyor…');
-  database.ref('staffProfiles').once('value').then((snap) => {
-    renderStaffDirectory(snap.val() || {});
+  Promise.all([
+    database.ref('staffProfiles').once('value'),
+    database.ref(dbPath('etkinlikler')).once('value')
+  ]).then(([profilesSnap, eventsSnap]) => {
+    renderStaffDirectory(profilesSnap.val() || {}, eventsSnap.val() || {});
   }).catch((err) => {
     console.error('Kişi rehberi yüklenemedi:', err);
     setState('Kişi rehberi yüklenemedi.');
@@ -231,7 +246,10 @@ auth.onAuthStateChanged((user) => {
       });
     } else if (role === 'editor') {
       authorized = true;
-      loadStaffDirectory();
+      // etkinlikler istatistikleri de gösterildiği için (kullanıcı isteği:
+      // "istatistikler gizli olmasın") dbPath() doğru dalı işaret etmeden ÖNCE
+      // okumamalı -- admin/owner dalıyla AYNI initDbMode bekleme deseni.
+      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); loadStaffDirectory(); });
     } else {
       setState('Kişiler yalnızca onaylı editör/admin/kurucu rolündeki kullanıcılara açıktır.');
     }
