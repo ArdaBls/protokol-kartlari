@@ -32,6 +32,12 @@ assert.match(source, /isReadOnly\(\)/,
   'salt-okunur kilit Gantt yazmalarını engellemelidir');
 assert.match(source, /haberProjeleri\/\$\{id\}\/guncellemeTs/,
   'eşzamanlı değişiklikler sürüm alanıyla kontrol edilmelidir');
+assert.match(source, /data-toggle-project=/,
+  'ana proje satırında alt adımları açıp kapatan akordeon bulunmalıdır');
+assert.match(source, /project\.adimlar/,
+  'alt üretim adımları proje hiyerarşisinden okunmalıdır');
+assert.match(source, /data-step-status/,
+  'üretim adımları kendi durum alanıyla düzenlenebilmelidir');
 assert.doesNotMatch(source, /innerHTML\s*=.*project\.ad/,
   'Firebase kullanıcı metni doğrudan innerHTML içine yazılmamalıdır');
 
@@ -43,6 +49,8 @@ if (fs.existsSync(localRulesPath)) {
     assert.match(projectRules.$projectId['.validate'], /baslangicTarihi/);
     assert.match(projectRules.$projectId.bitisTarihi['.validate'], />= newData\.parent\(\)\.child\('baslangicTarihi'\)/);
     assert.match(projectRules.$projectId.ilerleme['.validate'], /<= 100/);
+    assert.match(projectRules.$projectId.adimlar.$stepId['.validate'], /bitisTarihi/);
+    assert.match(projectRules.$projectId.adimlar.$stepId.durum['.validate'], /tamamlandi/);
   }
 }
 

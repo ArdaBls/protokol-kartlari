@@ -903,6 +903,33 @@
   cursor: pointer;
   min-width: 0;
 }
+.gantt-project-info--parent { display: flex; align-items: center; gap: 2px; cursor: default; }
+.gantt-project-main {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+.gantt-disclosure {
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  flex: 0 0 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.gantt-disclosure:hover, .gantt-disclosure:focus-visible { color: var(--primary); background: var(--primary-lt); }
+.gantt-disclosure svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; transition: transform 140ms ease; }
+.gantt-disclosure[aria-expanded='true'] svg { transform: rotate(90deg); }
+.gantt-disclosure-placeholder { width: 24px; flex: 0 0 24px; }
 .gantt-project-title, .gantt-project-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gantt-project-title { color: var(--text); font-size: 12.5px; font-weight: var(--font-weight-bold); }
 .gantt-project-title i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-inline-end: 7px; background: var(--text-muted); }
@@ -910,6 +937,16 @@
 .gantt-project-title .priority-kritik { background: var(--red); }
 .gantt-project-meta { margin-top: 5px; color: var(--text-muted); font-size: 10.5px; }
 .gantt-project-meta b { color: var(--text-secondary); font-weight: var(--font-weight-medium); }
+.gantt-parent-row { box-shadow: inset 3px 0 0 var(--primary); }
+.gantt-step-row { min-height: 58px; background: color-mix(in srgb, var(--bg-surface-secondary) 45%, transparent); }
+.gantt-step-row .gantt-project-info { padding-inline-start: 42px; background: color-mix(in srgb, var(--bg-surface-secondary) 60%, var(--bg-surface)); }
+.gantt-step-row .gantt-track { opacity: .94; }
+.gantt-step-row .gantt-project-title { font-weight: var(--font-weight-medium); }
+.gantt-step-row .gantt-project-title i { width: 6px; height: 6px; background: var(--text-muted); }
+.gantt-step-row .gantt-project-title .step-status-yapiliyor { background: #2563eb; }
+.gantt-step-row .gantt-project-title .step-status-incelemede { background: #ca8a04; }
+.gantt-step-row .gantt-project-title .step-status-tamamlandi { background: #16a34a; }
+.gantt-step-row .gantt-project-title .step-status-iptal { background: #94a3b8; }
 .gantt-track {
   position: relative;
   background-image: repeating-linear-gradient(to right, transparent 0, transparent 37px, var(--border-color) 37px, var(--border-color) 38px);
@@ -951,6 +988,11 @@
 .gantt-bar.status-onay { background: #ca8a04; }
 .gantt-bar.status-yayinlandi { background: #16a34a; }
 .gantt-bar.status-iptal { background: #64748b; opacity: .58; text-decoration: line-through; }
+.gantt-bar.status-yapilacak { background: #64748b; }
+.gantt-bar.status-yapiliyor { background: #2563eb; }
+.gantt-bar.status-incelemede { background: #ca8a04; }
+.gantt-bar.status-tamamlandi { background: #16a34a; }
+.gantt-bar--step { top: 13px; height: 32px; border-radius: 6px; }
 .gantt-bar.is-overdue { box-shadow: 0 0 0 2px var(--red), 0 2px 6px rgba(15, 23, 42, .12); }
 .gantt-resize { position: absolute; top: 0; bottom: 0; width: 10px; z-index: 4; cursor: ew-resize; }
 .gantt-resize--start { left: 0; }
@@ -972,6 +1014,26 @@ body.gantt-modal-open { overflow: hidden; }
 .gantt-field textarea { resize: vertical; }
 .gantt-field input[type='range'] { width: 100%; accent-color: var(--primary); }
 .gantt-help { color: var(--text-muted); font-size: 10.5px; font-weight: 400; }
+.gantt-steps-field { border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden; }
+.gantt-steps-head { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--bg-surface-secondary); }
+.gantt-steps-head strong, .gantt-steps-head span { display: block; }
+.gantt-steps-head strong { color: var(--text); font-size: 12px; }
+.gantt-steps-head span { margin-top: 2px; color: var(--text-muted); font-size: 10.5px; font-weight: 400; }
+.gantt-step-list { display: flex; flex-direction: column; }
+.gantt-step-editor {
+  display: grid;
+  grid-template-columns: 22px minmax(150px, 1.6fr) minmax(116px, .8fr) 128px 128px minmax(120px, 1fr) 30px;
+  gap: 7px;
+  align-items: center;
+  padding: 9px 10px;
+  border-top: 1px solid var(--border-color);
+}
+.gantt-step-editor:first-child { border-top: 0; }
+.gantt-step-editor .form-control { min-width: 0; font-size: 10.5px; padding-inline: 8px; }
+.gantt-step-order { color: var(--text-muted); font-size: 10px; text-align: center; }
+.gantt-step-remove { width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 17px; }
+.gantt-step-remove:hover, .gantt-step-remove:focus-visible { color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); }
+.gantt-step-empty { margin: 0; padding: 18px; color: var(--text-muted); text-align: center; font-size: 11px; font-weight: 400; }
 .gantt-form-error { min-height: 18px; margin: 0 22px; color: var(--red); font-size: 11.5px; }
 .gantt-dialog-actions { padding: 14px 22px 20px; display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; }
 .gantt-delete { color: var(--red) !important; }
@@ -990,4 +1052,7 @@ body.gantt-modal-open { overflow: hidden; }
   .gantt-field--wide { grid-column: auto; }
   .gantt-dialog-actions { grid-template-columns: auto 1fr auto; }
   .gantt-dialog-actions > span { display: none; }
+  .gantt-steps-field { overflow-x: auto; }
+  .gantt-steps-head { position: sticky; left: 0; min-width: 330px; }
+  .gantt-step-editor { min-width: 780px; }
 }

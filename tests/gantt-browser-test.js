@@ -43,7 +43,11 @@ function serve() {
         proje1: {
           ad: 'Kampüs belgeseli', tur: 'ozel', durum: 'cekim', oncelik: 'kritik',
           baslangicTarihi: '2026-09-03', bitisTarihi: '2026-09-24', ilerleme: 55,
-          sorumlu: 'Gantt Test', notlar: '', arsiv: false, guncellemeTs: 1
+          sorumlu: 'Gantt Test', notlar: '', arsiv: false,
+          adimlar: {
+            adim1: { ad: 'Röportaj çekimi', durum: 'tamamlandi', baslangicTarihi: '2026-09-03', bitisTarihi: '2026-09-08', ilerleme: 100, sira: 0 },
+            adim2: { ad: 'Video kurgusu', durum: 'yapiliyor', baslangicTarihi: '2026-09-09', bitisTarihi: '2026-09-20', ilerleme: 50, sira: 1 }
+          }
         }
       },
       etkinlikler: {
@@ -55,12 +59,31 @@ function serve() {
   try {
     await page.goto(`http://localhost:${PORT}/gantt.html`, { waitUntil: 'load', timeout: 30000 });
     await page.waitForSelector('.gantt-project-row', { timeout: 10000 });
-    assert.equal(await page.locator('.gantt-project-row').count(), 1);
+    assert.equal(await page.locator('.gantt-parent-row').count(), 1);
+    assert.equal(await page.locator('.gantt-step-row').count(), 2);
     assert.equal(await page.locator('.gantt-project-title').first().textContent().then((text) => text.trim()), 'Kampüs belgeseli');
     assert.equal(await page.locator('.nav-link.active[data-nav-key="gantt"]').count(), 1);
-    assert.equal(await page.locator('.gantt-bar').count(), 1);
+    assert.equal(await page.locator('.gantt-bar').count(), 3);
+    await page.locator('[data-toggle-project="proje1"]').click();
+    assert.equal(await page.locator('.gantt-step-row').count(), 0);
+    assert.equal(await page.locator('[data-toggle-project="proje1"]').getAttribute('aria-expanded'), 'false');
+    await page.locator('[data-toggle-project="proje1"]').click();
+    assert.equal(await page.locator('.gantt-step-row').count(), 2);
+    if (process.env.GANTT_SCREENSHOT) {
+      await page.screenshot({ path: process.env.GANTT_SCREENSHOT, fullPage: false });
+    }
+    await page.evaluate(() => { window.__mockUpdates = []; });
+    const stepBarBox = await page.locator('.gantt-bar--step').first().boundingBox();
+    await page.mouse.move(stepBarBox.x + stepBarBox.width / 2, stepBarBox.y + stepBarBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(stepBarBox.x + stepBarBox.width / 2 + 38, stepBarBox.y + stepBarBox.height / 2, { steps: 3 });
+    await page.mouse.up();
+    await page.waitForFunction(() => Array.isArray(window.__mockUpdates) && window.__mockUpdates.length > 0);
+    const stepMove = await page.evaluate(() => window.__mockUpdates.at(-1));
+    assert.equal(stepMove.data['haberProjeleri/proje1/adimlar/adim1/baslangicTarihi'], '2026-09-04');
+    assert.equal(stepMove.data['haberProjeleri/proje1/adimlar/adim1/bitisTarihi'], '2026-09-09');
 
-    await page.locator('[data-edit-project="proje1"]').click();
+    await page.locator('.gantt-project-main[data-edit-project="proje1"]').click();
     await page.waitForSelector('#gantt-modal:not([hidden])');
     assert.equal(await page.locator('#gantt-title').inputValue(), 'Kampüs belgeseli');
     await page.locator('[data-gantt-close]').last().click();
@@ -70,6 +93,9 @@ function serve() {
     await page.locator('#gantt-start').fill('2026-09-10');
     await page.locator('#gantt-end').fill('2026-09-18');
     await page.locator('#gantt-owner').fill('Haber Ekibi');
+    await page.locator('#gantt-add-step').click();
+    await page.locator('[data-step-name]').last().fill('Metin yazımı');
+    await page.locator('[data-step-status]').last().selectOption('yapiliyor');
     await page.locator('#gantt-event').selectOption('ev1');
     await page.locator('#gantt-form').evaluate((form) => form.requestSubmit());
     await page.waitForFunction(() => Array.isArray(window.__mockUpdates) && window.__mockUpdates.length > 0);
@@ -79,6 +105,10 @@ function serve() {
     assert.ok(keys.some((key) => /^haberProjeleri\/mockKey/.test(key)));
     assert.ok(keys.includes('etkinlikler/ev1/tarih'));
     assert.ok(keys.some((key) => /^logs\/haberProje\//.test(key)));
+    const projectValue = Object.entries(update.data).find(([key]) => /^haberProjeleri\/mockKey/.test(key))[1];
+    assert.equal(Object.keys(projectValue.adimlar).length, 1);
+    assert.equal(Object.values(projectValue.adimlar)[0].durum, 'yapiliyor');
+    assert.equal(projectValue.ilerleme, 50);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(150);

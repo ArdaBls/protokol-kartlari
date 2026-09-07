@@ -110,6 +110,16 @@
         <label class="gantt-field gantt-field--wide">İlerleme: <output id="gantt-progress-value">0%</output>
           <input type="range" id="gantt-progress" min="0" max="100" step="5" value="0">
         </label>
+        <section class="gantt-steps-field gantt-field--wide" aria-labelledby="gantt-steps-title">
+          <div class="gantt-steps-head">
+            <div>
+              <strong id="gantt-steps-title">Üretim adımları</strong>
+              <span>Projenin altında açılıp kapanan görev satırları olarak görünür.</span>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="gantt-add-step">+ Adım ekle</button>
+          </div>
+          <div id="gantt-step-list" class="gantt-step-list"></div>
+        </section>
         <label class="gantt-field gantt-field--wide">Takvim etkinliği
           <select class="form-control" id="gantt-event"><option value="">Bağlantı yok</option></select>
           <span class="gantt-help">Bağlı etkinliğin tarihi, projenin teslim tarihiyle birlikte güncellenir.</span>

@@ -27,14 +27,14 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/gantt-W2I1-KB_.js"></script>
+  <script type="module" crossorigin src="/js/gantt-lRxsMxSX.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/menus-BQLwJCQm.js">
   <link rel="modulepreload" crossorigin href="/js/modal-MTuCfURV.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-DaB3nJMJ.js">
   <link rel="modulepreload" crossorigin href="/js/charts-CYHgoSvk.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-SKRvIriJ.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-DFF5gCGb.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-z-Yw-Lui.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CX7ln6KQ.css">
 </head>
 <body data-shell="admin" data-page="gantt" data-breadcrumb="Anasayfa|index.html > Üretim Takvimi">
 
@@ -299,6 +299,16 @@
         <label class="gantt-field gantt-field--wide">İlerleme: <output id="gantt-progress-value">0%</output>
           <input type="range" id="gantt-progress" min="0" max="100" step="5" value="0">
         </label>
+        <section class="gantt-steps-field gantt-field--wide" aria-labelledby="gantt-steps-title">
+          <div class="gantt-steps-head">
+            <div>
+              <strong id="gantt-steps-title">Üretim adımları</strong>
+              <span>Projenin altında açılıp kapanan görev satırları olarak görünür.</span>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="gantt-add-step">+ Adım ekle</button>
+          </div>
+          <div id="gantt-step-list" class="gantt-step-list"></div>
+        </section>
         <label class="gantt-field gantt-field--wide">Takvim etkinliği
           <select class="form-control" id="gantt-event"><option value="">Bağlantı yok</option></select>
           <span class="gantt-help">Bağlı etkinliğin tarihi, projenin teslim tarihiyle birlikte güncellenir.</span>

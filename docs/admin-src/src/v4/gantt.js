@@ -22,6 +22,10 @@ const STATUSES = {
   fikir: 'Fikir', arastirma: 'Araştırma', hazirlik: 'Hazırlık', cekim: 'Çekim',
   kurgu: 'Kurgu', onay: 'Onay', yayinlandi: 'Yayınlandı', iptal: 'İptal'
 };
+const STEP_STATUSES = {
+  yapilacak: 'Yapılacak', yapiliyor: 'Yapılıyor', incelemede: 'İncelemede',
+  tamamlandi: 'Tamamlandı', iptal: 'İptal'
+};
 
 let database;
 let projects = {};
@@ -36,6 +40,7 @@ let searchText = '';
 let statusFilter = '';
 let dragState = null;
 let modeReady = false;
+const collapsedProjects = new Set();
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -81,7 +86,8 @@ function visibleProjects() {
     .filter(([, project]) => !statusFilter || project.durum === statusFilter)
     .filter(([, project]) => {
       if (!query) { return true; }
-      return `${project.ad || ''} ${project.sorumlu || ''}`.toLocaleLowerCase('tr-TR').includes(query);
+      const stepText = Object.values(project.adimlar || {}).map((step) => `${step.ad || ''} ${step.sorumlu || ''}`).join(' ');
+      return `${project.ad || ''} ${project.sorumlu || ''} ${stepText}`.toLocaleLowerCase('tr-TR').includes(query);
     })
     .sort(([, a], [, b]) => String(a.bitisTarihi || '').localeCompare(String(b.bitisTarihi || '')));
 }
@@ -127,25 +133,62 @@ function barGeometry(project, start) {
   return { left: left * DAY_WIDTH, width: Math.max(DAY_WIDTH, (right - left + 1) * DAY_WIDTH) };
 }
 
+function renderTimelineBar(id, item, start, stepId = '') {
+  const geometry = barGeometry(item, start);
+  if (!geometry) { return ''; }
+  const progress = Math.min(100, Math.max(0, Number(item.ilerleme) || 0));
+  const today = localDateKey(new Date());
+  const status = stepId ? (item.durum || 'yapilacak') : (item.durum || 'fikir');
+  const finished = stepId ? ['tamamlandi', 'iptal'].includes(status) : ['yayinlandi', 'iptal'].includes(status);
+  const overdue = item.bitisTarihi < today && !finished;
+  const attrs = stepId
+    ? `data-project-id="${escapeHtml(id)}" data-step-id="${escapeHtml(stepId)}"`
+    : `data-project-id="${escapeHtml(id)}"`;
+  return `<button type="button" class="gantt-bar ${stepId ? 'gantt-bar--step ' : ''}status-${escapeHtml(status)}${overdue ? ' is-overdue' : ''}" ${attrs} style="left:${geometry.left}px;width:${geometry.width}px" aria-label="${escapeHtml(item.ad)} kaydını düzenle">
+    <span class="gantt-resize gantt-resize--start" data-resize="start" aria-hidden="true"></span>
+    <span class="gantt-bar-progress" style="width:${progress}%"></span>
+    <span class="gantt-bar-label">${escapeHtml(item.ad)} · ${progress}%</span>
+    <span class="gantt-resize gantt-resize--end" data-resize="end" aria-hidden="true"></span>
+  </button>`;
+}
+
+function projectSteps(project) {
+  return Object.entries(project.adimlar || {})
+    .filter(([, step]) => step && step.arsiv !== true)
+    .sort(([, a], [, b]) => (Number(a.sira) || 0) - (Number(b.sira) || 0));
+}
+
+function renderStepRow(projectId, stepId, step, start) {
+  const status = STEP_STATUSES[step.durum] || STEP_STATUSES.yapilacak;
+  return `<div class="gantt-project-row gantt-step-row" data-parent-project="${escapeHtml(projectId)}">
+    <button type="button" class="gantt-project-info gantt-step-info" data-edit-project="${escapeHtml(projectId)}" data-focus-step="${escapeHtml(stepId)}">
+      <span class="gantt-project-title"><i class="step-status-${escapeHtml(step.durum || 'yapilacak')}"></i>${escapeHtml(step.ad || 'Adsız adım')}</span>
+      <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${step.sorumlu ? ` · ${escapeHtml(step.sorumlu)}` : ''} · ${escapeHtml(step.bitisTarihi || 'Tarihsiz')}</span>
+    </button>
+    <div class="gantt-track" style="--gantt-days:${RANGE_DAYS}">${renderTimelineBar(projectId, step, start, stepId)}</div>
+  </div>`;
+}
+
 function renderProjectRow(id, project, start) {
-  const geometry = barGeometry(project, start);
+  const steps = projectSteps(project);
+  const expanded = !collapsedProjects.has(id);
   const status = STATUSES[project.durum] || 'Fikir';
   const progress = Math.min(100, Math.max(0, Number(project.ilerleme) || 0));
-  const today = localDateKey(new Date());
-  const overdue = project.bitisTarihi < today && !['yayinlandi', 'iptal'].includes(project.durum);
-  const bar = geometry ? `<button type="button" class="gantt-bar status-${escapeHtml(project.durum || 'fikir')}${overdue ? ' is-overdue' : ''}" data-project-id="${escapeHtml(id)}" style="left:${geometry.left}px;width:${geometry.width}px" aria-label="${escapeHtml(project.ad)} projesini düzenle">
-      <span class="gantt-resize gantt-resize--start" data-resize="start" aria-hidden="true"></span>
-      <span class="gantt-bar-progress" style="width:${progress}%"></span>
-      <span class="gantt-bar-label">${escapeHtml(project.ad)} · ${progress}%</span>
-      <span class="gantt-resize gantt-resize--end" data-resize="end" aria-hidden="true"></span>
-    </button>` : '';
-  return `<div class="gantt-project-row">
-    <button type="button" class="gantt-project-info" data-edit-project="${escapeHtml(id)}">
-      <span class="gantt-project-title"><i class="priority-${escapeHtml(project.oncelik || 'normal')}"></i>${escapeHtml(project.ad || 'Adsız proje')}</span>
-      <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${project.sorumlu ? ` · ${escapeHtml(project.sorumlu)}` : ''}${project.tur === 'ozel' ? ' · Özel' : ''}</span>
-    </button>
-    <div class="gantt-track" style="--gantt-days:${RANGE_DAYS}">${bar}</div>
+  const disclosure = steps.length
+    ? `<button type="button" class="gantt-disclosure" data-toggle-project="${escapeHtml(id)}" aria-expanded="${expanded}" aria-label="${escapeHtml(project.ad)} adımlarını ${expanded ? 'daralt' : 'genişlet'}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l5 5-5 5"/></svg></button>`
+    : '<span class="gantt-disclosure-placeholder"></span>';
+  const parentRow = `<div class="gantt-project-row gantt-parent-row">
+    <div class="gantt-project-info gantt-project-info--parent">
+      ${disclosure}
+      <button type="button" class="gantt-project-main" data-edit-project="${escapeHtml(id)}">
+        <span class="gantt-project-title"><i class="priority-${escapeHtml(project.oncelik || 'normal')}"></i>${escapeHtml(project.ad || 'Adsız proje')}</span>
+        <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${project.sorumlu ? ` · ${escapeHtml(project.sorumlu)}` : ''}${project.tur === 'ozel' ? ' · Özel' : ''}${steps.length ? ` · ${steps.length} adım · %${progress}` : ''}</span>
+      </button>
+    </div>
+    <div class="gantt-track" style="--gantt-days:${RANGE_DAYS}">${renderTimelineBar(id, project, start)}</div>
   </div>`;
+  const childRows = expanded ? steps.map(([stepId, step]) => renderStepRow(id, stepId, step, start)).join('') : '';
+  return parentRow + childRows;
 }
 
 function render() {
@@ -195,11 +238,93 @@ function refreshEventOptions(selectedId = '') {
   select.value = selectedId;
 }
 
+function stepProgress(status) {
+  if (status === 'tamamlandi') { return 100; }
+  if (status === 'incelemede') { return 80; }
+  if (status === 'yapiliyor') { return 50; }
+  return 0;
+}
+
+function stepEditorHtml(stepId, step = {}, index = 0) {
+  const optionHtml = Object.entries(STEP_STATUSES).map(([value, label]) =>
+    `<option value="${value}"${(step.durum || 'yapilacak') === value ? ' selected' : ''}>${label}</option>`
+  ).join('');
+  return `<div class="gantt-step-editor" data-step-row data-step-id="${escapeHtml(stepId)}">
+    <span class="gantt-step-order" aria-hidden="true">${index + 1}</span>
+    <label><span class="sr-only">Adım adı</span><input class="form-control" data-step-name maxlength="140" required placeholder="Örn. Röportaj çekimi" value="${escapeHtml(step.ad || '')}"></label>
+    <label><span class="sr-only">Adım durumu</span><select class="form-control" data-step-status>${optionHtml}</select></label>
+    <label><span class="sr-only">Başlangıç tarihi</span><input type="date" class="form-control" data-step-start required value="${escapeHtml(step.baslangicTarihi || $('#gantt-start').value)}"></label>
+    <label><span class="sr-only">Bitiş tarihi</span><input type="date" class="form-control" data-step-end required value="${escapeHtml(step.bitisTarihi || $('#gantt-end').value)}"></label>
+    <label><span class="sr-only">Sorumlu</span><input class="form-control" data-step-owner maxlength="120" placeholder="Sorumlu" value="${escapeHtml(step.sorumlu || '')}"></label>
+    <button type="button" class="gantt-step-remove" data-remove-step aria-label="Bu adımı kaldır">×</button>
+  </div>`;
+}
+
+function syncProjectProgressFromSteps() {
+  const rows = [...document.querySelectorAll('[data-step-row]')];
+  const progressInput = $('#gantt-progress');
+  if (!rows.length) {
+    progressInput.disabled = false;
+    $('#gantt-progress-value').textContent = `${progressInput.value}%`;
+    return;
+  }
+  const activeRows = rows.filter((row) => row.querySelector('[data-step-status]').value !== 'iptal');
+  const progress = activeRows.length
+    ? Math.round(activeRows.reduce((sum, row) => sum + stepProgress(row.querySelector('[data-step-status]').value), 0) / activeRows.length)
+    : 0;
+  progressInput.value = progress;
+  progressInput.disabled = true;
+  $('#gantt-progress-value').textContent = `${progress}% (adımlardan)`;
+}
+
+function renderStepEditor(steps = {}) {
+  const entries = Object.entries(steps)
+    .filter(([, step]) => step && step.arsiv !== true)
+    .sort(([, a], [, b]) => (Number(a.sira) || 0) - (Number(b.sira) || 0));
+  $('#gantt-step-list').innerHTML = entries.map(([stepId, step], index) => stepEditorHtml(stepId, step, index)).join('') || '<p class="gantt-step-empty">Henüz üretim adımı eklenmedi.</p>';
+  syncProjectProgressFromSteps();
+}
+
+function addStepEditor() {
+  const list = $('#gantt-step-list');
+  list.querySelector('.gantt-step-empty')?.remove();
+  const stepId = database.ref(dbPath('haberProjeleri')).push().key;
+  const count = list.querySelectorAll('[data-step-row]').length;
+  list.insertAdjacentHTML('beforeend', stepEditorHtml(stepId, {}, count));
+  syncProjectProgressFromSteps();
+  list.querySelector(`[data-step-id="${stepId}"] [data-step-name]`)?.focus();
+}
+
+function collectSteps() {
+  const steps = {};
+  [...document.querySelectorAll('[data-step-row]')].forEach((row, index) => {
+    const start = row.querySelector('[data-step-start]').value;
+    const end = row.querySelector('[data-step-end]').value;
+    const name = row.querySelector('[data-step-name]').value.trim();
+    if (!name) { throw new Error(`${index + 1}. üretim adımının adı zorunludur.`); }
+    if (!parseDateKey(start) || !parseDateKey(end) || end < start) {
+      throw new Error(`${index + 1}. üretim adımının tarih aralığı geçersizdir.`);
+    }
+    const status = row.querySelector('[data-step-status]').value;
+    steps[row.dataset.stepId] = {
+      ad: name,
+      durum: status,
+      baslangicTarihi: start,
+      bitisTarihi: end,
+      sorumlu: row.querySelector('[data-step-owner]').value.trim(),
+      ilerleme: stepProgress(status),
+      sira: index,
+      arsiv: false
+    };
+  });
+  return steps;
+}
+
 function setFormError(message = '') {
   $('#gantt-form-error').textContent = message;
 }
 
-function openModal(id = '') {
+function openModal(id = '', focusStepId = '') {
   if (!canWrite || isReadOnly()) {
     showToast(isReadOnly() ? 'Salt-okunur kilit açık.' : 'Proje düzenleme yetkiniz yok.', { variant: 'error' });
     return;
@@ -217,13 +342,17 @@ function openModal(id = '') {
   $('#gantt-progress').value = Number(project?.ilerleme) || 0;
   $('#gantt-progress-value').textContent = `${Number(project?.ilerleme) || 0}%`;
   $('#gantt-notes').value = project?.notlar || '';
+  renderStepEditor(project?.adimlar || {});
   refreshEventOptions(project?.takvimEtkinlikId || '');
   $('#gantt-dialog-title').textContent = project ? 'Projeyi düzenle' : 'Yeni proje';
   $('#gantt-archive').hidden = !project;
   setFormError();
   $('#gantt-modal').hidden = false;
   document.body.classList.add('gantt-modal-open');
-  requestAnimationFrame(() => $('#gantt-title').focus());
+  requestAnimationFrame(() => {
+    const stepField = focusStepId ? document.querySelector(`[data-step-id="${focusStepId}"] [data-step-name]`) : null;
+    (stepField || $('#gantt-title')).focus();
+  });
 }
 
 function closeModal() {
@@ -239,6 +368,11 @@ function projectFromForm() {
   if (end < start) { throw new Error('Bitiş tarihi başlangıç tarihinden önce olamaz.'); }
   const title = $('#gantt-title').value.trim();
   if (!title) { throw new Error('Proje adı zorunludur.'); }
+  const steps = collectSteps();
+  const activeSteps = Object.values(steps).filter((step) => step.durum !== 'iptal');
+  const progress = activeSteps.length
+    ? Math.round(activeSteps.reduce((sum, step) => sum + step.ilerleme, 0) / activeSteps.length)
+    : (Number($('#gantt-progress').value) || 0);
   return {
     ad: title,
     tur: $('#gantt-type').value,
@@ -247,7 +381,8 @@ function projectFromForm() {
     bitisTarihi: end,
     sorumlu: $('#gantt-owner').value.trim(),
     oncelik: $('#gantt-priority').value,
-    ilerleme: Number($('#gantt-progress').value) || 0,
+    ilerleme: progress,
+    adimlar: steps,
     takvimEtkinlikId: $('#gantt-event').value,
     notlar: $('#gantt-notes').value.trim(),
     arsiv: false
@@ -330,15 +465,17 @@ async function archiveCurrentProject() {
   }
 }
 
-async function updateProjectDates(id, startKey, endKey) {
+async function updateProjectDates(id, startKey, endKey, stepId = '') {
   const project = projects[id];
-  if (!project || !canWrite || isReadOnly() || endKey < startKey) { render(); return; }
+  const item = stepId ? project?.adimlar?.[stepId] : project;
+  if (!project || !item || !canWrite || isReadOnly() || endKey < startKey) { render(); return; }
   const updates = {};
-  updates[dbPath(`haberProjeleri/${id}/baslangicTarihi`)] = startKey;
-  updates[dbPath(`haberProjeleri/${id}/bitisTarihi`)] = endKey;
+  const itemPath = stepId ? `haberProjeleri/${id}/adimlar/${stepId}` : `haberProjeleri/${id}`;
+  updates[dbPath(`${itemPath}/baslangicTarihi`)] = startKey;
+  updates[dbPath(`${itemPath}/bitisTarihi`)] = endKey;
   updates[dbPath(`haberProjeleri/${id}/guncelleyen`)] = currentUserName || currentUserEmail;
   updates[dbPath(`haberProjeleri/${id}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
-  if (project.takvimEtkinlikId) {
+  if (!stepId && project.takvimEtkinlikId) {
     updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/tarih`)] = endKey;
     updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
   }
@@ -346,7 +483,7 @@ async function updateProjectDates(id, startKey, endKey) {
   const logKey = database.ref(logPath).push().key;
   updates[`${logPath}/${logKey}`] = {
     by: currentUserName || currentUserEmail, email: currentUserEmail,
-    action: `${project.ad || 'Haber projesi'} zaman çizelgesinde taşındı · ${startKey} → ${endKey}`,
+    action: `${item.ad || project.ad || 'Haber projesi'} ${stepId ? 'üretim adımı' : 'haber projesi'} zaman çizelgesinde taşındı · ${startKey} → ${endKey}`,
     target: project.ad || '', timestamp: firebase.database.ServerValue.TIMESTAMP
   };
   try {
@@ -370,12 +507,14 @@ function beginBarDrag(event) {
   if (!bar || event.button !== 0) { return; }
   if (!canWrite || isReadOnly()) { openModal(bar.dataset.projectId); return; }
   const project = projects[bar.dataset.projectId];
-  const start = parseDateKey(project?.baslangicTarihi);
-  const end = parseDateKey(project?.bitisTarihi);
+  const item = bar.dataset.stepId ? project?.adimlar?.[bar.dataset.stepId] : project;
+  const start = parseDateKey(item?.baslangicTarihi);
+  const end = parseDateKey(item?.bitisTarihi);
   if (!start || !end) { return; }
   const handle = event.target.closest('[data-resize]');
   dragState = {
     id: bar.dataset.projectId,
+    stepId: bar.dataset.stepId || '',
     bar,
     pointerId: event.pointerId,
     originX: event.clientX,
@@ -412,13 +551,13 @@ function endBarDrag(event) {
   const state = dragState;
   dragState = null;
   state.bar.classList.remove('is-dragging');
-  if (!state.delta) { openModal(state.id); render(); return; }
+  if (!state.delta) { openModal(state.id, state.stepId); render(); return; }
   let start = state.start;
   let end = state.end;
   if (state.mode === 'move') { start = addDays(start, state.delta); end = addDays(end, state.delta); }
   if (state.mode === 'start') { start = addDays(start, Math.min(dayDiff(start, end), state.delta)); }
   if (state.mode === 'end') { end = addDays(end, Math.max(-dayDiff(start, end), state.delta)); }
-  updateProjectDates(state.id, localDateKey(start), localDateKey(end));
+  updateProjectDates(state.id, localDateKey(start), localDateKey(end), state.stepId);
 }
 
 function bindUi() {
@@ -429,12 +568,32 @@ function bindUi() {
   $('#gantt-search').addEventListener('input', (event) => { searchText = event.target.value.trim(); render(); });
   $('#gantt-status-filter').addEventListener('change', (event) => { statusFilter = event.target.value; render(); });
   $('#gantt-progress').addEventListener('input', (event) => { $('#gantt-progress-value').textContent = `${event.target.value}%`; });
+  $('#gantt-add-step').addEventListener('click', addStepEditor);
+  $('#gantt-step-list').addEventListener('click', (event) => {
+    const removeButton = event.target.closest('[data-remove-step]');
+    if (!removeButton) { return; }
+    removeButton.closest('[data-step-row]').remove();
+    const rows = [...document.querySelectorAll('[data-step-row]')];
+    rows.forEach((row, index) => { row.querySelector('.gantt-step-order').textContent = index + 1; });
+    if (!rows.length) { $('#gantt-step-list').innerHTML = '<p class="gantt-step-empty">Henüz üretim adımı eklenmedi.</p>'; }
+    syncProjectProgressFromSteps();
+  });
+  $('#gantt-step-list').addEventListener('change', (event) => {
+    if (event.target.matches('[data-step-status]')) { syncProjectProgressFromSteps(); }
+  });
   $('#gantt-form').addEventListener('submit', saveProject);
   $('#gantt-archive').addEventListener('click', archiveCurrentProject);
   document.querySelectorAll('[data-gantt-close]').forEach((button) => button.addEventListener('click', closeModal));
   $('#gantt-board').addEventListener('click', (event) => {
+    const toggle = event.target.closest('[data-toggle-project]');
+    if (toggle) {
+      const id = toggle.dataset.toggleProject;
+      if (collapsedProjects.has(id)) { collapsedProjects.delete(id); } else { collapsedProjects.add(id); }
+      render();
+      return;
+    }
     const edit = event.target.closest('[data-edit-project]');
-    if (edit) { openModal(edit.dataset.editProject); }
+    if (edit) { openModal(edit.dataset.editProject, edit.dataset.focusStep || ''); }
   });
   $('#gantt-board').addEventListener('pointerdown', beginBarDrag);
   $('#gantt-board').addEventListener('pointermove', moveBarDrag);
@@ -444,7 +603,7 @@ function bindUi() {
     const bar = event.target.closest('.gantt-bar');
     if (bar && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();
-      openModal(bar.dataset.projectId);
+      openModal(bar.dataset.projectId, bar.dataset.stepId || '');
     }
   });
   document.addEventListener('keydown', (event) => {
