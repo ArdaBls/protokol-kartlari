@@ -174,6 +174,13 @@ function makeMockDatabase(initial) {
       const rules = parsed.rules;
       assert.ok(rules.staffProfiles, 'staffProfiles kural bloğu eksik');
       assert.ok(!(rules.test && rules.test.staffProfiles), 'staffProfiles Test Modu altında gölgelenmemeli (kimlik verisi)');
+      // KRİTİK (kullanıcı bulgusu: "editörlere Kişi rehberi yüklenemedi"): .read
+      // SADECE $staffUid altında tanımlıysa, database.ref('staffProfiles')
+      // (TÜM LİSTEYİ .on('value')/.once('value') ile okuma -- subscribeStaffProfiles
+      // ve kisiler.html'in ikisi de bunu yapıyor) Firebase'de PERMISSION_DENIED alır;
+      // bir alt-yoldaki .read kuralı üst/liste seviyesindeki okumayı YETKİLENDİRMEZ.
+      // .read LİSTE düğümünün kendisinde tanımlı olmalı (aşağı doğru kademeleniyor).
+      assert.ok(rules.staffProfiles['.read'], 'staffProfiles .read LİSTE düzeyinde tanımlı olmalı (yalnızca $staffUid altında değil) -- aksi halde tüm listeyi okuma PERMISSION_DENIED alır');
       const staffWrite = rules.staffProfiles.$staffUid['.write'];
       assert.match(staffWrite, /\$staffUid\s*===\s*auth\.uid|auth\.uid\s*===\s*\$staffUid/, 'kullanıcı yalnızca kendi staffProfiles kaydını yazabilmeli (ya da admin/owner)');
       console.log('PASS: yerel kurallar dosyasında staffProfiles temel yapı doğru');

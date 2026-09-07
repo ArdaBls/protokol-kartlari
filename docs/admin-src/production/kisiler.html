@@ -107,8 +107,13 @@ function render(users, events) {
     // kullanıcı isteği: "kişiler sekmesinde de herkes birbirinin profil
     // fotoğrafını görüntüleyebilsin" (yalnızca editör görünümünde değil).
     const hasPhoto = isSafeAvatarUrl(u.avatarUrl);
+    // KRİTİK: style niteliği ÇİFT TIRNAKLA sarılı (style="...") -- içine LİTERAL
+    // " konursa HTML ayrıştırıcı niteliği ORADA erken kapatır, geri kalan her şey
+    // (base64 veri dahil) bozulur ve arka plan resmi hiç uygulanmaz (kullanıcı
+    // bulgusu: "sadece resim ekleyenler boş gözüküyor"). &quot; kullanılmalı
+    // (bkz. staff-profiles.js renderStaffAvatar'daki AYNI çözüm).
     const avStyle = hasPhoto
-      ? `background-image:url("${String(u.avatarUrl).replace(/["'()]/g, '')}")`
+      ? `background-image:url(&quot;${String(u.avatarUrl).replace(/["'()]/g, '')}&quot;)`
       : `background:${ROLE_COLOR[role] || ROLE_COLOR.pending}`;
     return `
       <div class="contact-card">
@@ -152,8 +157,9 @@ function renderStaffDirectory(profiles) {
       const name = String(p.displayName || '').trim() || '(isim yok)';
       const initial = name.charAt(0).toUpperCase() || '?';
       const hasPhoto = isSafeAvatarUrl(p.avatarUrl);
+      // &quot; kullanılmalı, literal " DEĞİL -- bkz. render()'daki AYNI notu.
       const avStyle = hasPhoto
-        ? `background-image:url("${String(p.avatarUrl).replace(/["'()]/g, '')}")`
+        ? `background-image:url(&quot;${String(p.avatarUrl).replace(/["'()]/g, '')}&quot;)`
         : 'background:linear-gradient(135deg,var(--blue),#0550a0)';
       return `
         <div class="contact-card">
