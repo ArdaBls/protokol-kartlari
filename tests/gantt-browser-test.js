@@ -83,7 +83,7 @@ function serve() {
     assert.equal(stepMove.data['haberProjeleri/proje1/adimlar/adim1/baslangicTarihi'], '2026-09-04');
     assert.equal(stepMove.data['haberProjeleri/proje1/adimlar/adim1/bitisTarihi'], '2026-09-09');
 
-    await page.locator('.gantt-project-main[data-edit-project="proje1"]').click();
+    await page.locator('.gantt-parent-row .gantt-project-main[data-edit-project="proje1"]').click();
     await page.waitForSelector('#gantt-modal:not([hidden])');
     assert.equal(await page.locator('#gantt-title').inputValue(), 'Kampüs belgeseli');
     await page.locator('[data-gantt-close]').last().click();
@@ -92,7 +92,7 @@ function serve() {
     // yazılması + modalın kapanması.
     await page.evaluate(() => { window.__mockUpdates = []; });
     page.once('dialog', (dialog) => dialog.accept());
-    await page.locator('.gantt-project-main[data-edit-project="proje1"]').click();
+    await page.locator('.gantt-parent-row .gantt-project-main[data-edit-project="proje1"]').click();
     await page.waitForSelector('#gantt-modal:not([hidden])');
     await page.locator('#gantt-remove').click();
     await page.waitForFunction(() => Array.isArray(window.__mockUpdates) && window.__mockUpdates.length > 0);

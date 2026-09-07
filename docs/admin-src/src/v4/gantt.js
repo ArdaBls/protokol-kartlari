@@ -4,6 +4,7 @@
 
 import { showToast } from './toast.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
+import { openMenu } from './menus.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -238,13 +239,56 @@ function projectSteps(project) {
     .sort(([, a], [, b]) => (Number(a.sira) || 0) - (Number(b.sira) || 0));
 }
 
+// shadcn/reui'nin Badge bileşenindeki gibi ("border-warning/15 bg-warning/10
+// text-warning ... rounded-full") soluk dolgu + kendi tonunda ince kenarlık +
+// koyu-yeterli metin rengi -- rastgele shadcn renk adları yerine kendi
+// PALETTE/STATUS_COLOR eşlememiz kullanılıyor (bar renkleriyle aynı dil).
+function statusBadgeHtml(status, label) {
+  const hex = PALETTE[STATUS_COLOR[status]] || PALETTE.indigo;
+  return `<span class="gantt-status-badge" style="--badge-color:${hex}">${escapeHtml(label)}</span>`;
+}
+
+// Proje adının hemen sağındaki dairesel ilerleme göstergesi -- stroke-dasharray
+// ile doldurulan bir SVG halka, üzerine gelince (mevcut [data-tooltip] CSS
+// sistemiyle) yüzdeyi gösterir. Her render()'da progress'e göre yeniden
+// çizildiğinden ilerleme her değiştiğinde (anlık) güncellenir.
+function progressRingHtml(progress, colorHex) {
+  const clamped = Math.min(100, Math.max(0, progress));
+  const r = 6.5;
+  const c = 2 * Math.PI * r;
+  const offset = (c * (1 - clamped / 100)).toFixed(2);
+  // [data-tooltip] ::before/::after tutarlı çalışsın diye SVG'nin kendisine
+  // değil, onu saran normal bir <span>'e konuyor.
+  return `<span class="gantt-progress-ring-wrap" data-tooltip="%${clamped}"><svg class="gantt-progress-ring" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+    <circle cx="8" cy="8" r="${r}" fill="none" stroke="currentColor" stroke-opacity=".2" stroke-width="2.4"></circle>
+    <circle cx="8" cy="8" r="${r}" fill="none" stroke="${colorHex}" stroke-width="2.4" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 8 8)"></circle>
+  </svg></span>`;
+}
+
+// Satırın sağ ucundaki "⋮" butonu -- reui.io referansındaki satır menüsü.
+// Nested Assignee/Status/Priority alt-menüleri KASITLI OLARAK yok: bunların
+// hepsi zaten Düzenle modalında var, burada tekrarlamak menus.js'in düz
+// (alt-menüsüz) openMenu() API'sini zorlardı. Adımlarda Arşivle/Sil yok --
+// adımlar modal içindeki "×" ile kaldırılıyor.
+function rowMenuHtml(id, stepId = '') {
+  const attrs = stepId
+    ? `data-row-menu="${escapeHtml(id)}" data-row-menu-step="${escapeHtml(stepId)}"`
+    : `data-row-menu="${escapeHtml(id)}"`;
+  return `<button type="button" class="gantt-row-menu" ${attrs} aria-label="Diğer işlemler" aria-haspopup="menu" aria-expanded="false">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
+  </button>`;
+}
+
 function renderStepRow(projectId, stepId, step, start, days, dayWidth) {
-  const status = STEP_STATUSES[step.durum] || STEP_STATUSES.yapilacak;
+  const statusKey = step.durum || 'yapilacak';
   return `<div class="gantt-project-row gantt-step-row" data-parent-project="${escapeHtml(projectId)}">
-    <button type="button" class="gantt-project-info gantt-step-info" data-edit-project="${escapeHtml(projectId)}" data-focus-step="${escapeHtml(stepId)}">
-      <span class="gantt-project-title"><i class="step-status-${escapeHtml(step.durum || 'yapilacak')}"></i>${escapeHtml(step.ad || 'Adsız adım')}</span>
-      <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${step.sorumlu ? ` · ${escapeHtml(step.sorumlu)}` : ''} · ${escapeHtml(step.bitisTarihi || 'Tarihsiz')}</span>
-    </button>
+    <div class="gantt-project-info gantt-project-info--step">
+      <button type="button" class="gantt-project-main" data-edit-project="${escapeHtml(projectId)}" data-focus-step="${escapeHtml(stepId)}">
+        <span class="gantt-project-title"><i class="step-status-${escapeHtml(statusKey)}"></i>${escapeHtml(step.ad || 'Adsız adım')}</span>
+        <span class="gantt-project-meta">${statusBadgeHtml(statusKey, STEP_STATUSES[statusKey] || STEP_STATUSES.yapilacak)}<span class="gantt-project-meta-text">${step.sorumlu ? ` · ${escapeHtml(step.sorumlu)}` : ''} · ${escapeHtml(step.bitisTarihi || 'Tarihsiz')}</span></span>
+      </button>
+      ${rowMenuHtml(projectId, stepId)}
+    </div>
     <div class="gantt-track" style="--gantt-days:${days}">${renderTimelineBar(projectId, step, start, days, dayWidth, stepId)}</div>
   </div>`;
 }
@@ -252,7 +296,8 @@ function renderStepRow(projectId, stepId, step, start, days, dayWidth) {
 function renderProjectRow(id, project, start, days, dayWidth) {
   const steps = projectSteps(project);
   const expanded = !collapsedProjects.has(id);
-  const status = STATUSES[project.durum] || 'Fikir';
+  const statusKey = project.durum || 'fikir';
+  const status = STATUSES[statusKey] || 'Fikir';
   const progress = Math.min(100, Math.max(0, Number(project.ilerleme) || 0));
   const disclosure = steps.length
     ? `<button type="button" class="gantt-disclosure" data-toggle-project="${escapeHtml(id)}" aria-expanded="${expanded}" aria-label="${escapeHtml(project.ad)} adımlarını ${expanded ? 'daralt' : 'genişlet'}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l5 5-5 5"/></svg></button>`
@@ -260,7 +305,7 @@ function renderProjectRow(id, project, start, days, dayWidth) {
   // Sol akordeon: reui.io/preview/base/gantt-2 referansındaki grup satırlarında
   // olduğu gibi başlığın hemen altında ince, renkli bir ilerleme çubuğu --
   // sadece adımlı projelerde (tek başlarına ilerleme metni yeterli).
-  const barColor = barColorHex(project, project.durum || 'fikir', true);
+  const barColor = barColorHex(project, statusKey, true);
   const miniProgress = steps.length
     ? `<span class="gantt-project-progress" aria-hidden="true"><span style="width:${progress}%;background:${barColor}"></span></span>`
     : '';
@@ -268,10 +313,14 @@ function renderProjectRow(id, project, start, days, dayWidth) {
     <div class="gantt-project-info gantt-project-info--parent">
       ${disclosure}
       <button type="button" class="gantt-project-main" data-edit-project="${escapeHtml(id)}">
-        <span class="gantt-project-title"><i class="priority-${escapeHtml(project.oncelik || 'normal')}"></i>${escapeHtml(project.ad || 'Adsız proje')}</span>
+        <span class="gantt-project-title-row">
+          <span class="gantt-project-title"><i class="priority-${escapeHtml(project.oncelik || 'normal')}"></i>${escapeHtml(project.ad || 'Adsız proje')}</span>
+          ${progressRingHtml(progress, barColor)}
+        </span>
         ${miniProgress}
-        <span class="gantt-project-meta"><b>${escapeHtml(status)}</b>${project.sorumlu ? ` · ${escapeHtml(project.sorumlu)}` : ''}${project.tur === 'ozel' ? ' · Özel' : ''}${steps.length ? ` · ${steps.length} adım · %${progress}` : ''}</span>
+        <span class="gantt-project-meta">${statusBadgeHtml(statusKey, status)}<span class="gantt-project-meta-text">${project.sorumlu ? ` · ${escapeHtml(project.sorumlu)}` : ''}${project.tur === 'ozel' ? ' · Özel' : ''}${steps.length ? ` · ${steps.length} adım · %${progress}` : ''}</span></span>
       </button>
+      ${rowMenuHtml(id)}
     </div>
     <div class="gantt-track" style="--gantt-days:${days}">${renderTimelineBar(id, project, start, days, dayWidth)}</div>
   </div>`;
@@ -302,7 +351,6 @@ function renderConnectors() {
   const gridRect = grid.getBoundingClientRect();
   let paths = '';
   document.querySelectorAll('.gantt-parent-row').forEach((parentRow) => {
-    const parentBar = parentRow.querySelector('.gantt-bar');
     const stepBars = [];
     let sibling = parentRow.nextElementSibling;
     while (sibling && sibling.classList.contains('gantt-step-row')) {
@@ -310,17 +358,12 @@ function renderConnectors() {
       if (bar) { stepBars.push(bar); }
       sibling = sibling.nextElementSibling;
     }
-    if (!stepBars.length) { return; }
-    // Ana proje çubuğu tüm adımların süresini kapsayan bir ÖZET (bitişi ilk
-    // adımdan SONRA, çoğu zaman en son adımla aynı gün biter) -- bu yüzden
-    // "bitiş -> başlangıç" bağımlılık okuyla bağlamak (reui'deki gibi) tersten
-    // bir ok gibi görünürdü. Ana projeden ilk adıma "sol kenardan sol kenara"
-    // (başlangıç -> başlangıç) bağlanıyor: "buradan çıkıyor" hissi. Adımlar
-    // kendi aralarında normal bitiş->başlangıç zinciriyle bağlanır.
-    // Ana proje çubuğu şu an görünür yıl aralığının dışındaysa (barGeometry
-    // null döner) parentBar yoktur -- o durumda sadece o TEK bağlantıyı atla,
-    // adımların kendi aralarındaki zinciri yine de çiz.
-    if (parentBar) { paths += connectorPath(parentBar, stepBars[0], gridRect, true); }
+    // Ana proje çubuğundan ilk adıma ok ÇEKİLMİYOR: ana proje çubuğu tüm
+    // adımların süresini kapsayan bir ÖZET olduğundan (kullanıcının kendi
+    // ifadesiyle "ana projenin [oku] saçma oluyor") -- ne bitiş->başlangıç
+    // (tersten görünüyordu) ne de başlangıç->başlangıç (yine saçma bulundu)
+    // mantıklı bir bağlantı üretmiyor. Sadece adımlar kendi aralarında
+    // sıralı bitiş->başlangıç zinciriyle bağlanır.
     for (let i = 0; i < stepBars.length - 1; i += 1) {
       paths += connectorPath(stepBars[i], stepBars[i + 1], gridRect, false);
     }
@@ -551,6 +594,24 @@ function setFormError(message = '') {
   $('#gantt-form-error').textContent = message;
 }
 
+// Satır "⋮" menüsü -- menus.js'in paylaşılan openMenu() popover'ı (kanban.js
+// vb. yerlerde de kullanılıyor). Adımlarda Arşivle/Sil yok, sadece Düzenle.
+function openRowMenu(trigger) {
+  const id = trigger.dataset.rowMenu;
+  const stepId = trigger.dataset.rowMenuStep || '';
+  const items = [
+    { label: 'Düzenle', action: () => openModal(id, stepId) }
+  ];
+  if (!stepId) {
+    items.push(
+      '-',
+      { label: 'Arşivle', action: () => archiveCurrentProject(id) },
+      { label: 'Sil', variant: 'danger', action: () => deleteCurrentProject(id) }
+    );
+  }
+  openMenu(trigger, items);
+}
+
 function renderColorPicker(selected) {
   const el = $('#gantt-color-picker');
   if (!el) { return; }
@@ -677,8 +738,7 @@ async function saveProject(event) {
   }
 }
 
-async function archiveCurrentProject() {
-  const id = $('#gantt-id').value;
+async function archiveCurrentProject(id = $('#gantt-id').value) {
   const project = projects[id];
   if (!id || !project || !canWrite || isReadOnly()) { return; }
   const updates = {};
@@ -705,8 +765,7 @@ async function archiveCurrentProject() {
 
 // Arşivle geri alınabilir (arsiv:true); bu kalıcı silme -- calendar.js'teki
 // etkinlik silme onayıyla aynı desen (window.confirm + kırmızı buton).
-async function deleteCurrentProject() {
-  const id = $('#gantt-id').value;
+async function deleteCurrentProject(id = $('#gantt-id').value) {
   const project = projects[id];
   if (!id || !project || !canWrite || isReadOnly()) { return; }
   if (!window.confirm(`"${project.ad || 'Bu proje'}" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) { return; }
@@ -890,10 +949,16 @@ function bindUi() {
     if (!wasSelected) { btn.classList.add('is-selected'); btn.setAttribute('aria-checked', 'true'); }
   });
   $('#gantt-form').addEventListener('submit', saveProject);
-  $('#gantt-archive').addEventListener('click', archiveCurrentProject);
-  $('#gantt-remove').addEventListener('click', deleteCurrentProject);
+  // NOT: doğrudan archiveCurrentProject/deleteCurrentProject referansı VERME --
+  // addEventListener click Event nesnesini ilk argüman olarak geçer, bu da
+  // varsayılan `id = $('#gantt-id').value` parametresini geçersiz kılar
+  // (varsayılan sadece argüman tam olarak undefined ise devreye girer).
+  $('#gantt-archive').addEventListener('click', () => archiveCurrentProject());
+  $('#gantt-remove').addEventListener('click', () => deleteCurrentProject());
   document.querySelectorAll('[data-gantt-close]').forEach((button) => button.addEventListener('click', closeModal));
   $('#gantt-board').addEventListener('click', (event) => {
+    const menuBtn = event.target.closest('[data-row-menu]');
+    if (menuBtn) { openRowMenu(menuBtn); return; }
     const toggle = event.target.closest('[data-toggle-project]');
     if (toggle) {
       const id = toggle.dataset.toggleProject;

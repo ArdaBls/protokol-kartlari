@@ -440,6 +440,8 @@ table.table tbody tr:hover { background: var(--bg-surface-secondary); }
   transition: background 100ms;
 }
 .menu-item:hover, .menu-item:focus-visible { background: var(--bg-surface-secondary); }
+.menu-item-danger { color: var(--red); }
+.menu-item-danger:hover, .menu-item-danger:focus-visible { background: color-mix(in srgb, var(--red) 10%, transparent); }
 .menu-separator {
   height: 1px;
   background: var(--border-color-light);

@@ -28,7 +28,7 @@ function buildMenu(items) {
     }
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'menu-item';
+    btn.className = item.variant === 'danger' ? 'menu-item menu-item-danger' : 'menu-item';
     btn.setAttribute('role', 'menuitem');
     btn.textContent = item.label;
     btn.addEventListener('click', () => {

@@ -932,7 +932,7 @@
   cursor: pointer;
   min-width: 0;
 }
-.gantt-project-info--parent { display: flex; align-items: center; gap: 2px; cursor: default; }
+.gantt-project-info--parent, .gantt-project-info--step { display: flex; align-items: center; gap: 2px; cursor: default; }
 .gantt-project-main {
   flex: 1;
   min-width: 0;
@@ -942,6 +942,29 @@
   text-align: start;
   cursor: pointer;
 }
+// reui.io referansındaki satır menüsü ("⋮"). Varsayılan olarak soluk, satır
+// üzerine gelince/odaklanınca belirginleşir -- her satırda kalıcı görünür
+// olsaydı akordeon çok gürültülü olurdu.
+.gantt-row-menu {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0;
+  cursor: pointer;
+}
+.gantt-project-row:hover .gantt-row-menu, .gantt-row-menu:focus-visible, .gantt-row-menu[aria-expanded='true'] { opacity: 1; }
+// Dokunmatik cihazlarda hover hiç tetiklenmez -- "⋮" sonsuza kadar
+// görünmez kalırdı. Kaba işaretçili (touch) cihazlarda her zaman görünür.
+@media (hover: none) { .gantt-row-menu { opacity: 1; } }
+.gantt-row-menu:hover, .gantt-row-menu:focus-visible { color: var(--primary); background: var(--primary-lt); }
+.gantt-row-menu svg { width: 14px; height: 14px; fill: currentColor; }
 .gantt-disclosure {
   width: 24px;
   height: 32px;
@@ -961,6 +984,13 @@
 .gantt-disclosure-placeholder { width: 24px; flex: 0 0 24px; }
 .gantt-project-title, .gantt-project-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gantt-project-title { color: var(--text); font-size: 12.5px; font-weight: var(--font-weight-bold); }
+// Proje adının hemen sağındaki dairesel ilerleme göstergesi (bkz. gantt.js
+// progressRingHtml) -- başlık kendi satırında kısalır, halka her zaman
+// tam boyutta kalır.
+.gantt-project-title-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.gantt-project-title-row .gantt-project-title { flex: 1; min-width: 0; }
+.gantt-progress-ring-wrap { flex: 0 0 auto; display: inline-flex; color: var(--text-muted); }
+.gantt-progress-ring { display: block; }
 .gantt-project-title i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-inline-end: 7px; background: var(--text-muted); }
 .gantt-project-title .priority-yuksek { background: var(--yellow); }
 .gantt-project-title .priority-kritik { background: var(--red); }
@@ -970,7 +1000,35 @@
 .gantt-project-progress { display: block; margin-top: 5px; height: 3px; border-radius: 2px; background: var(--bg-surface-secondary); overflow: hidden; }
 .gantt-project-progress span { display: block; height: 100%; border-radius: 2px; }
 .gantt-project-meta { margin-top: 4px; color: var(--text-muted); font-size: 10.5px; }
-.gantt-project-meta b { color: var(--text-secondary); font-weight: var(--font-weight-medium); }
+// shadcn/reui'nin Badge bileşenindeki gibi ("border-warning/15 bg-warning/10
+// text-warning ... rounded-full"): soluk dolgu + kendi tonunda ince kenarlık.
+// Metin rengi ham PALETTE tonu DEĞİL -- o, neredeyse beyaz bir dolgu üzerinde
+// WCAG AA'yı geçemezdi (amber/camgobegi gibi açık tonlarda ~2:1). Koyu
+// temada ise dolgu neredeyse siyah olduğundan ters yönde açık bir metin
+// gerekiyor -- aşağıdaki [data-theme="dark"] override'ı bunu sağlıyor.
+.gantt-project-meta { display: flex; align-items: center; gap: 5px; min-width: 0; }
+// Rozet sabit genişlikte kalır, geri kalan metin (sorumlu/tarih vb.) kendi
+// içinde kısalır -- flex satırında text-overflow doğrudan çalışmaz, bu yüzden
+// ayrı bir span'e taşındı (yoksa dar sütunda ortasından sert kesiliyordu).
+.gantt-project-meta-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gantt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 17px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--badge-color, var(--primary)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--badge-color, var(--primary)) 30%, transparent);
+  // %65 -> %55: code-review'de amber tonunun (en açık palet rengi) AA'yı
+  // (4.5:1) geçemediği bulundu (~3.99:1). %55'te en kötü durum (amber) 5.24:1.
+  color: color-mix(in srgb, var(--badge-color, var(--primary)) 55%, black);
+}
+[data-theme="dark"] .gantt-status-badge { color: color-mix(in srgb, var(--badge-color, var(--primary)) 55%, white); }
 .gantt-parent-row { box-shadow: inset 3px 0 0 var(--primary); }
 .gantt-step-row { min-height: 58px; background: color-mix(in srgb, var(--bg-surface-secondary) 45%, transparent); }
 .gantt-step-row .gantt-project-info { padding-inline-start: 42px; background: color-mix(in srgb, var(--bg-surface-secondary) 60%, var(--bg-surface)); }
@@ -1090,7 +1148,7 @@ body.gantt-modal-open { overflow: hidden; }
 }
 .gantt-dialog-head { flex: 0 0 auto; padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
 .gantt-dialog-head h2 { margin: 2px 0 0; font-size: 20px; color: var(--text); }
-.gantt-close { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg-surface-secondary); color: var(--text-muted); font-size: 22px; cursor: pointer; }
+.gantt-close { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg-surface-secondary); color: var(--text-muted); font-size: 22px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
 #gantt-form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .gantt-form-grid { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .gantt-field { color: var(--text-secondary); font-size: 11.5px; font-weight: var(--font-weight-medium); display: flex; flex-direction: column; gap: 7px; }
