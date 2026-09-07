@@ -11,7 +11,7 @@ import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 import { initStreak } from './streak.js';
 import { dbPath, initDbMode, onDbModeChange } from './db-mode.js';
-import { syncStaffProfile } from './staff-profiles.js';
+import { syncStaffProfile, isSafeAvatarUrl } from './staff-profiles.js';
 
 function injectShellIfMissing() {
   const body = document.body;
@@ -655,10 +655,17 @@ export function syncShellUser() {
         // staffProfiles/{uid} yalnızca kişi profil.html/ayarlar.html'de adını/
         // fotoğrafını KAYDETTİĞİNDE oluşuyordu -- hiç oraya girmemiş kullanıcılar
         // Kişiler sayfasında ve Kanban/Yapılacaklar avatarlarında hiç görünmüyordu.
-        // Her girişte sessizce senkronlanır (kişi profilini hiç açmasa bile en
-        // azından adı staffProfiles'a düşer) -- kisiler.html'deki admin/owner
-        // geri-doldurma ile birlikte listeyi tam tutar.
-        syncStaffProfile(firebase.database(), user.uid, { displayName: name }).catch(() => { /* sessiz -- kritik değil */ });
+        // Her girişte sessizce senkronlanır -- KRİTİK: avatarUrl de dahil (yalnızca
+        // displayName göndermek, kisiler.html'deki admin/owner geri-doldurmasını
+        // BOZUYORDU: shell.js her sayfada Kişiler'den ÖNCE çalıştığı için önce
+        // displayName-only bir kayıt oluşturuyor, sonra geri-doldurma "zaten var"
+        // deyip fotoğrafı hiç eklemiyordu -- kullanıcı bulgusu: "editörler adminin/
+        // kurucunun fotoğrafını göremiyor").
+        {
+          const syncPatch = { displayName: name };
+          if (isSafeAvatarUrl(u.avatarUrl)) { syncPatch.avatarUrl = u.avatarUrl; }
+          syncStaffProfile(firebase.database(), user.uid, syncPatch).catch(() => { /* sessiz -- kritik değil */ });
+        }
         const nameEl = document.querySelector('.sidebar-user-info .name');
         const roleEl = document.querySelector('.sidebar-user-info .role');
         if (nameEl) {nameEl.textContent = name;}

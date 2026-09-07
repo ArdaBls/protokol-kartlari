@@ -25,4 +25,20 @@ const urlUsages = source.match(/background-image:url\(&quot;/g) || [];
 assert.ok(urlUsages.length >= 2, 'hem admin/owner hem editör görünümü avatarUrl\'i güvenli şekilde render etmeli');
 
 console.log('PASS: kisiler.html avatarUrl\'i style niteliğini bozmadan (&quot; ile) render ediyor');
+
+// Kullanıcı bulgusu: "editörler adminin/kurucunun fotoğrafını göremiyor". Kök
+// sebep: shell.js her sayfada (Kişiler'den ÖNCE) yalnızca displayName ile
+// staffProfiles kaydı oluşturuyordu; kisiler.html'in geri-doldurması da "zaten
+// var" deyip TAMAMEN eksik kayıtları atlıyordu -- fotoğrafı eksik ama kaydı
+// var olanlar hiç tamamlanmıyordu.
+assert.doesNotMatch(source, /if \(existing\[uid\]\) \{ return; \}/,
+  'geri doldurma yalnızca TAMAMEN eksik kayıtları değil, fotoğrafı eksik olanları da tamamlamalı');
+assert.match(source, /isSafeAvatarUrl\(mevcut\.avatarUrl\)/,
+  'geri doldurma, var olan ama fotoğrafsız staffProfiles kayıtlarını da tamamlamalı');
+
+const shellSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'shell.js'), 'utf8');
+assert.match(shellSource, /syncPatch\.avatarUrl = u\.avatarUrl/,
+  'shell.js giriş-anı senkronu SADECE displayName değil, varsa avatarUrl\'i de göndermeli (aksi halde ilk girişte fotoğrafsız kayıt oluşup geri doldurmayı engeller)');
+
+console.log('PASS: shell.js giriş senkronu ve kisiler.html geri doldurması eksik fotoğrafları da tamamlıyor');
 console.log('ALL_TESTS_PASSED: true');

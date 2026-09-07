@@ -142,11 +142,20 @@ function backfillStaffProfiles(users) {
     const existing = snap.val() || {};
     const updates = {};
     Object.keys(users).forEach((uid) => {
-      if (existing[uid]) { return; }
       const u = users[uid];
       if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) { return; }
-      updates['staffProfiles/' + uid + '/displayName'] = fullNameOf(u);
-      if (isSafeAvatarUrl(u.avatarUrl)) { updates['staffProfiles/' + uid + '/avatarUrl'] = u.avatarUrl; }
+      const mevcut = existing[uid];
+      // KRİTİK: sadece TAMAMEN eksik kayıtları değil, FOTOĞRAFI eksik olanları
+      // da tamamla -- shell.js her sayfada (Kişiler'den önce) çalışıp SADECE
+      // displayName ile bir kayıt oluşturabiliyor; o zaman "zaten var" deyip
+      // atlarsak fotoğraf hiç eklenmiyor (kullanıcı bulgusu: "editörler adminin/
+      // kurucunun fotoğrafını göremiyor").
+      if (!mevcut) {
+        updates['staffProfiles/' + uid + '/displayName'] = fullNameOf(u);
+        if (isSafeAvatarUrl(u.avatarUrl)) { updates['staffProfiles/' + uid + '/avatarUrl'] = u.avatarUrl; }
+      } else if (!isSafeAvatarUrl(mevcut.avatarUrl) && isSafeAvatarUrl(u.avatarUrl)) {
+        updates['staffProfiles/' + uid + '/avatarUrl'] = u.avatarUrl;
+      }
     });
     if (Object.keys(updates).length) {
       database.ref('/').update(updates).catch((err) => console.error('staffProfiles geri doldurulamadı:', err));
