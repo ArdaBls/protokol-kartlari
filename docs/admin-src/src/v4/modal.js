@@ -34,7 +34,7 @@ export function closeModal({ skipHook = false } = {}) {
  * @typedef {Object} ModalAction
  * @property {string} label
  * @property {'primary' | 'outline' | 'danger' | 'ghost'} [variant]
- * @property {(ctx: { dialog: HTMLElement, body: HTMLElement, close: () => void }) => void} [action]
+ * @property {(ctx: { dialog: HTMLElement, body: HTMLElement, close: () => void }) => void | boolean | Promise<void | boolean>} [action]
  * @property {boolean} [closeOnAction] If true (default), the modal closes after `action` runs.
  */
 
@@ -86,12 +86,22 @@ export function showModal({ title, body = '', actions = [], size = 'md', onClose
       btn.type = 'button';
       btn.className = `btn btn-${a.variant || 'outline'}`;
       btn.textContent = a.label;
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const ctx = { dialog, body: bodyEl, close: () => closeModal() };
-        const result = typeof a.action === 'function' ? a.action(ctx) : null;
-        // Action can return false to keep the modal open (e.g. validation failed).
-        if (result === false) {return;}
-        if (a.closeOnAction !== false) {closeModal();}
+        btn.disabled = true;
+        try {
+          const result = typeof a.action === 'function' ? await a.action(ctx) : null;
+          // Action can return/resolve false to keep the modal open (e.g. validation
+          // or an asynchronous database write failed).
+          if (result === false) {return;}
+          if (a.closeOnAction !== false) {closeModal();}
+        } catch (err) {
+          // The action owns its user-facing error message. Keeping the dialog open
+          // prevents entered form data from being lost on a rejected async action.
+          console.error('Modal işlemi tamamlanamadı:', err);
+        } finally {
+          if (btn.isConnected) {btn.disabled = false;}
+        }
       });
       footer.appendChild(btn);
     });

@@ -1,5 +1,4 @@
 tests/node_modules/
-tests/package-lock.json
 tests/smoke-screenshot.png
 # Faz 15: admin paneli artik ayri bir Vite alt-projesi (docs/admin-src/) -- kaynak commit edilir
 # ama node_modules (~170MB) ASLA. Derlenmis cikti docs/ kokune (staging: docs/admin/) yazilir,

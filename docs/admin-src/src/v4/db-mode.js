@@ -64,27 +64,79 @@ export function initDbMode(database) {
   if (startedPromise) { return startedPromise; }
   if (!database) { return Promise.resolve(); }
 
-  let resolveTest, resolveRead;
-  const firstTest = new Promise((r) => { resolveTest = r; });
-  const firstRead = new Promise((r) => { resolveRead = r; });
+  startedPromise = new Promise((resolve) => {
+    let attempt = 0;
+    let authUnsubscribe = null;
+    let retriedAfterAuth = false;
 
-  database.ref('ayarlar/testModuAcik').on('value', (snap) => {
-    const next = !!snap.val();
-    const changed = next !== testModeEnabled;
-    testModeEnabled = next;
-    resolveTest();
-    if (changed) { notify(); }
-  }, (err) => { console.error('Test modu durumu okunamadı:', err); resolveTest(); });
+    const startAttempt = () => {
+      const token = ++attempt;
+      const testRef = database.ref('ayarlar/testModuAcik');
+      const readRef = database.ref('ayarlar/saltOkunur');
+      let gotTest = false;
+      let gotRead = false;
+      let failed = false;
 
-  database.ref('ayarlar/saltOkunur').on('value', (snap) => {
-    const next = !!snap.val();
-    const changed = next !== readOnlyEnabled;
-    readOnlyEnabled = next;
-    resolveRead();
-    if (changed) { notify(); }
-  }, (err) => { console.error('Salt-okunur durumu okunamadı:', err); resolveRead(); });
+      const finishIfReady = () => {
+        if (!failed && gotTest && gotRead) { resolve(); }
+      };
+      const retryAfterAuth = (label, err) => {
+        if (failed || token !== attempt) { return; }
+        failed = true;
+        console.error(label, err);
+        testRef.off('value', onTestValue);
+        readRef.off('value', onReadValue);
 
-  startedPromise = Promise.all([firstTest, firstRead]);
+        // Ayar yolları giriş gerektiriyor. Modül sayfa açılır açılmaz çalışıp ilk
+        // denemede permission_denied alırsa o başarısız promise'i sonsuza kadar
+        // önbelleğe almak yerine, Auth oturumu hazır olduğunda iki dinleyiciyi de
+        // temiz bir denemeyle yeniden kuruyoruz.
+        const auth = globalThis.firebase?.auth?.();
+        if (!auth) { resolve(); return; }
+        if (auth.currentUser) {
+          if (retriedAfterAuth) { resolve(); return; }
+          retriedAfterAuth = true;
+          setTimeout(startAttempt, 250);
+          return;
+        }
+        if (!authUnsubscribe) {
+          authUnsubscribe = auth.onAuthStateChanged((user) => {
+            if (!user) { return; }
+            const unsubscribe = authUnsubscribe;
+            authUnsubscribe = null;
+            if (typeof unsubscribe === 'function') { unsubscribe(); }
+            retriedAfterAuth = true;
+            startAttempt();
+          });
+        }
+      };
+
+      const onTestValue = (snap) => {
+        if (failed || token !== attempt) { return; }
+        const next = !!snap.val();
+        const changed = next !== testModeEnabled;
+        testModeEnabled = next;
+        gotTest = true;
+        if (changed) { notify(); }
+        finishIfReady();
+      };
+
+      const onReadValue = (snap) => {
+        if (failed || token !== attempt) { return; }
+        const next = !!snap.val();
+        const changed = next !== readOnlyEnabled;
+        readOnlyEnabled = next;
+        gotRead = true;
+        if (changed) { notify(); }
+        finishIfReady();
+      };
+
+      testRef.on('value', onTestValue, (err) => retryAfterAuth('Test modu durumu okunamadı:', err));
+      readRef.on('value', onReadValue, (err) => retryAfterAuth('Salt-okunur durumu okunamadı:', err));
+    };
+
+    startAttempt();
+  });
   return startedPromise;
 }
 

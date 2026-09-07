@@ -158,6 +158,7 @@
 <script type="module">
 // Görev 3: ayarlar.html gerçek kullanıcı verisiyle çalışır + tüm veriyi dışa aktarır.
 import { showToast } from '/src/v4/toast.js';
+import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -215,19 +216,23 @@ function applyJsonSectionAccess(role) {
   if (tamYetkili) { initTestModeSection(); initJsonSection(); }
 }
 
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
   if (!user) { window.location.href = 'giris.html'; return; }
   currentUid = user.uid;
   currentEmail = user.email || '';
-  database.ref('users/' + currentUid).once('value').then((snap) => {
+  try {
+    const snap = await database.ref('users/' + currentUid).once('value');
     currentData = snap.val() || {};
+    await initDbMode(database);
+    renderDbModeBanner();
     fillSettingsForm();
     applyJsonSectionAccess(currentData.role || 'pending');
-  }).catch((err) => {
+  } catch (err) {
     console.error('Ayarlar yüklenemedi:', err);
     showToast('Ayarlar yüklenemedi.', { variant: 'error' });
-  });
+  }
 });
+onDbModeChange(renderDbModeBanner);
 
 // ── Ad soyad ayrıştırma: kullanici-yonetimi.html'deki fullNameOf()'un tersi ──
 // İlk kelime firstName, kalan kelimeler lastName.
@@ -320,10 +325,10 @@ exportBtn.addEventListener('click', () => {
   exportBtn.textContent = 'İndiriliyor…';
 
   Promise.all([
-    database.ref('ilProtokolVerileri').once('value'),
-    database.ref('universiteProtokolVerileri').once('value'),
-    database.ref('etkinlikler').once('value'),
-    database.ref('haberProjeleri').once('value')
+    database.ref(dbPath('ilProtokolVerileri')).once('value'),
+    database.ref(dbPath('universiteProtokolVerileri')).once('value'),
+    database.ref(dbPath('etkinlikler')).once('value'),
+    database.ref(dbPath('haberProjeleri')).once('value')
   ]).then(([ilSnap, uniSnap, etkinlikSnap, projeSnap]) => {
     const payload = {
       ilProtokolVerileri: ilSnap.val(),
@@ -456,6 +461,31 @@ function initJsonSection() {
       return { unvan, baslangic: cleanDate(g.baslangic), bitis: cleanDate(g.bitis) };
     }).filter(Boolean);
   }
+  function safeDbKey(key) {
+    return /^[A-Za-z0-9_-]+$/.test(key) && key !== '__proto__' && key !== 'constructor' && key !== 'prototype';
+  }
+  function sanitizePerson(item) {
+    const status = (item.status && VALID_STATUS[item.status]) ? item.status : 'aktif';
+    const record = {
+      prefix: item.prefix ? String(item.prefix) : '', name: String(item.name).trim(), title: String(item.title).trim(),
+      unit: item.unit ? String(item.unit) : '', status, rank: cleanRank(item.rank),
+      photo: safePhotoUrl(item.photo), start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
+    };
+    const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
+    if (Array.isArray(item.faculties)) { record.faculties = item.faculties.map(String); }
+    if (Array.isArray(item.gorevGecmisi)) { record.gorevGecmisi = sanitizeGorevGecmisi(item.gorevGecmisi); }
+    if (item.ekGorevAciklamasi !== undefined) { record.ekGorevAciklamasi = String(item.ekGorevAciklamasi || ''); }
+    if (item.prevStatus && VALID_STATUS[item.prevStatus]) { record.prevStatus = item.prevStatus; }
+    if (Number.isFinite(Number(item.sonDogrulamaTs)) && Number(item.sonDogrulamaTs) >= 0) { record.sonDogrulamaTs = Number(item.sonDogrulamaTs); }
+    if (item.dogrulamaKaynak !== undefined) { record.dogrulamaKaynak = String(item.dogrulamaKaynak || ''); }
+    if (item.dogrulayan !== undefined) { record.dogrulayan = String(item.dogrulayan || ''); }
+    return record;
+  }
+  function ensureImportWritable() {
+    if (!isReadOnly()) { return true; }
+    showToast('Salt-okunur kilit açıkken JSON içe aktarılamaz.', { variant: 'error' });
+    return false;
+  }
 
   // ── İl / Üniversite Protokolü: ikisi de AYNI şema, yalnızca Firebase yolu farklı ──
   function registerPeopleCategory(key, dbPathName, fileLabel) {
@@ -465,7 +495,7 @@ function initJsonSection() {
 
     downloadBtn.addEventListener('click', () => {
       downloadBtn.disabled = true;
-      database.ref(dbPathName).once('value').then((snap) => {
+      database.ref(dbPath(dbPathName)).once('value').then((snap) => {
         downloadFile(JSON.stringify(snap.val() || {}, null, 2), `${fileLabel}.json`, 'application/json');
         showToast('JSON yedeği indirildi.', { variant: 'success' });
       }).catch((err) => {
@@ -474,7 +504,7 @@ function initJsonSection() {
       }).finally(() => { downloadBtn.disabled = false; });
     });
 
-    uploadBtn.addEventListener('click', () => fileInput.click());
+    uploadBtn.addEventListener('click', () => { if (ensureImportWritable()) { fileInput.click(); } });
     fileInput.addEventListener('change', () => {
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
@@ -484,8 +514,11 @@ function initJsonSection() {
         let parsed;
         try { parsed = JSON.parse(ev.target.result); } catch (err) { showToast('Dosya hatalı veya bozuk!', { variant: 'error' }); return; }
         // Hem eski dizi-tabanlı bir yedeği hem de push-ID'li nesne formatını kabul et.
-        const data = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === 'object' ? Object.values(parsed) : null);
+        const data = Array.isArray(parsed)
+          ? parsed.map((item) => ['', item])
+          : (parsed && typeof parsed === 'object' ? Object.entries(parsed) : null);
         if (!data) { showToast('Format hatalı.', { variant: 'error' }); return; }
+        if (!ensureImportWritable()) { return; }
 
         const fullRestoreWanted = confirm(
           'İçe Aktarma Modu\n\n' +
@@ -496,35 +529,26 @@ function initJsonSection() {
         let skipped = 0;
         try {
           if (fullRestoreWanted) {
-            const existingSnap = await database.ref(dbPathName).once('value');
+            const existingSnap = await database.ref(dbPath(dbPathName)).once('value');
             const existingCount = Object.keys(existingSnap.val() || {}).length;
             if (!confirm(`TAMAMEN GERİ YÜKLE seçildi. Mevcut ${existingCount} kayıt SİLİNECEK ve yerine bu dosyadaki kayıtlar yazılacak. Bu işlem GERİ ALINAMAZ. Devam edilsin mi?`)) {
               showToast('İçe aktarma iptal edildi.', { variant: 'warning' }); return;
             }
             const fresh = {};
-            data.forEach((item) => {
+            data.forEach(([rawId, item]) => {
               if (!item || typeof item !== 'object' || !item.name || !item.title) { skipped++; return; }
-              const id = database.ref(dbPathName).push().key;
-              const status = (item.status && VALID_STATUS[item.status]) ? item.status : 'aktif';
-              const record = {
-                prefix: item.prefix ? String(item.prefix) : '', name: String(item.name).trim(), title: String(item.title).trim(),
-                unit: item.unit ? String(item.unit) : '', status, rank: cleanRank(item.rank),
-                photo: safePhotoUrl(item.photo), start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
-              };
-              const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
-              if (Array.isArray(item.faculties)) { record.faculties = item.faculties.map(String); }
-              if (Array.isArray(item.gorevGecmisi)) { record.gorevGecmisi = sanitizeGorevGecmisi(item.gorevGecmisi); }
-              fresh[id] = record;
+              const id = safeDbKey(rawId) ? rawId : database.ref(dbPath(dbPathName)).push().key;
+              fresh[id] = sanitizePerson(item);
             });
             if (!Object.keys(fresh).length) { showToast('İçe aktarılacak geçerli kayıt yok.', { variant: 'error' }); return; }
-            await database.ref(dbPathName).set(fresh);
+            await database.ref(dbPath(dbPathName)).set(fresh);
             showToast(`${Object.keys(fresh).length} kayıtla liste tamamen değiştirildi.${skipped ? ' ' + skipped + ' geçersiz satır atlandı.' : ''}`, { variant: 'success' });
           } else {
-            const existingSnap = await database.ref(dbPathName).once('value');
+            const existingSnap = await database.ref(dbPath(dbPathName)).once('value');
             const existing = existingSnap.val() || {};
             const patch = {};
             let matchCount = 0, newCount = 0;
-            data.forEach((item) => {
+            data.forEach(([, item]) => {
               if (!item || typeof item !== 'object' || !item.name || !item.title) { skipped++; return; }
               const name = String(item.name).trim(), title = String(item.title).trim();
               const status = (item.status && VALID_STATUS[item.status]) ? item.status : 'aktif';
@@ -538,20 +562,12 @@ function initJsonSection() {
                 if (Array.isArray(item.faculties)) { patch[existingId + '/faculties'] = item.faculties.map(String); }
               } else {
                 newCount++;
-                const newId = database.ref(dbPathName).push().key;
-                const record = {
-                  prefix: item.prefix ? String(item.prefix) : '', name, title, unit: item.unit ? String(item.unit) : '',
-                  status, rank: cleanRank(item.rank), photo: safePhotoUrl(item.photo),
-                  start: cleanDate(item.start), end: cleanDate(item.end), note: item.note ? String(item.note) : ''
-                };
-                const ord = cleanRank(item.order); if (ord !== '') { record.order = ord; }
-                if (Array.isArray(item.faculties)) { record.faculties = item.faculties.map(String); }
-                if (Array.isArray(item.gorevGecmisi)) { record.gorevGecmisi = sanitizeGorevGecmisi(item.gorevGecmisi); }
-                patch[newId] = record;
+                const newId = database.ref(dbPath(dbPathName)).push().key;
+                patch[newId] = sanitizePerson(item);
               }
             });
             if (!Object.keys(patch).length) { showToast('İçe aktarılacak geçerli kayıt yok.', { variant: 'error' }); return; }
-            await database.ref(dbPathName).update(patch);
+            await database.ref(dbPath(dbPathName)).update(patch);
             showToast(`${matchCount} kayıt güncellendi. ${newCount} kayıt eklendi.${skipped ? ' ' + skipped + ' geçersiz satır atlandı.' : ''}`, { variant: 'success' });
           }
         } catch (err) {
@@ -574,7 +590,7 @@ function initJsonSection() {
 
   calDownloadBtn.addEventListener('click', () => {
     calDownloadBtn.disabled = true;
-    database.ref('etkinlikler').once('value').then((snap) => {
+    database.ref(dbPath('etkinlikler')).once('value').then((snap) => {
       const etkinlikler = snap.val() || {};
       const payload = { yedekTarihi: new Date().toISOString(), kayitSayisi: Object.keys(etkinlikler).length, etkinlikler };
       const d = new Date();
@@ -587,7 +603,7 @@ function initJsonSection() {
     }).finally(() => { calDownloadBtn.disabled = false; });
   });
 
-  calUploadBtn.addEventListener('click', () => calFileInput.click());
+  calUploadBtn.addEventListener('click', () => { if (ensureImportWritable()) { calFileInput.click(); } });
   calFileInput.addEventListener('change', () => {
     const file = calFileInput.files && calFileInput.files[0];
     calFileInput.value = '';
@@ -598,6 +614,7 @@ function initJsonSection() {
       try { parsed = JSON.parse(ev.target.result); } catch (err) { showToast('Dosya hatalı veya bozuk!', { variant: 'error' }); return; }
       const raw = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.etkinlikler && typeof parsed.etkinlikler === 'object') ? parsed.etkinlikler : parsed;
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { showToast('Format hatalı.', { variant: 'error' }); return; }
+      if (!ensureImportWritable()) { return; }
 
       function parseKeyValid(tarih) { return /^\d{4}-\d{2}-\d{2}$/.test(String(tarih || '')); }
       const clean = {}; let kept = 0, skipped = 0;
@@ -608,20 +625,26 @@ function initJsonSection() {
         // ozellik EKLEMEZ, clean nesnesinin PROTOTIPINI degistirir; o etkinlik
         // Object.keys(clean)/JSON.stringify'da sessizce KAYBOLUR ("TAMAMEN GERI
         // YUKLE" gibi geri alinamaz bir islemde fark edilmeden veri kaybi olur).
-        const isSafeKey = /^[A-Za-z0-9_-]+$/.test(rawKey) && rawKey !== '__proto__' && rawKey !== 'constructor' && rawKey !== 'prototype';
-        const key = isSafeKey ? rawKey : database.ref('etkinlikler').push().key;
+        const key = safeDbKey(rawKey) ? rawKey : database.ref(dbPath('etkinlikler')).push().key;
         clean[key] = {
           ad: String(item.ad).trim(), tur: item.tur ? String(item.tur) : 'diger', durum: item.durum ? String(item.durum) : 'planlandi',
           tarih: String(item.tarih), saat: item.saat ? String(item.saat) : '', bitisSaat: item.bitisSaat ? String(item.bitisSaat) : '',
+          bitisTarihi: parseKeyValid(item.bitisTarihi) && String(item.bitisTarihi) >= String(item.tarih) ? String(item.bitisTarihi) : null,
           yer: item.yer ? String(item.yer) : '', birim: item.birim ? String(item.birim) : '',
           planlayan: item.planlayan ? String(item.planlayan) : '', gorevli: item.gorevli ? String(item.gorevli) : '',
           haberYazanlari: item.haberYazanlari ? String(item.haberYazanlari) : '', haberMetni: item.haberMetni ? String(item.haberMetni) : '',
           katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter((a) => a && typeof a === 'object').map((a) => ({ prefix: String(a.prefix || ''), name: String(a.name || ''), title: String(a.title || ''), rank: (a.rank !== undefined && a.rank !== null) ? a.rank : '', kaynak: a.kaynak === 'il' ? 'il' : 'universite' })),
           locked: !!item.locked,
+          projeId: safeDbKey(String(item.projeId || '')) ? String(item.projeId) : null,
+          renk: item.renk !== undefined ? String(item.renk || '') : null,
+          taslak: item.taslak === true ? true : null,
           rozetler: Array.isArray(item.rozetler) ? item.rozetler.map(String) : [],
           haberKaynagi: ['İHA', 'AA', 'DHA', 'ANKA'].indexOf(item.haberKaynagi) !== -1 ? item.haberKaynagi : '',
           arsiv: item.arsiv ? String(item.arsiv) : '', not: item.not ? String(item.not) : '',
-          olusturan: item.olusturan ? String(item.olusturan) : '', olusturmaTs: item.olusturmaTs || firebase.database.ServerValue.TIMESTAMP,
+          tamamlayan: item.tamamlayan ? String(item.tamamlayan) : null,
+          tamamlayanEmail: item.tamamlayanEmail ? String(item.tamamlayanEmail) : null,
+          guncelleyen: item.guncelleyen ? String(item.guncelleyen) : null,
+          olusturan: item.olusturan ? String(item.olusturan) : '', olusturmaTs: Number.isFinite(Number(item.olusturmaTs)) ? Number(item.olusturmaTs) : firebase.database.ServerValue.TIMESTAMP,
           guncellemeTs: firebase.database.ServerValue.TIMESTAMP
         };
         kept++;
@@ -629,12 +652,12 @@ function initJsonSection() {
       if (!kept) { showToast('Yedekte geçerli etkinlik bulunamadı.', { variant: 'error' }); return; }
 
       try {
-        const existingSnap = await database.ref('etkinlikler').once('value');
+        const existingSnap = await database.ref(dbPath('etkinlikler')).once('value');
         const existingCount = Object.keys(existingSnap.val() || {}).length;
         if (!confirm(`${kept} etkinlik içeren bu yedek, veritabanındaki MEVCUT TÜM ETKİNLİKLERİN (${existingCount} kayıt) YERİNE GEÇECEK. Bu işlem geri alınamaz. Devam edilsin mi?`)) { return; }
-        await database.ref('etkinlikler').set(clean);
+        await database.ref(dbPath('etkinlikler')).set(clean);
         if (currentUid) {
-          database.ref('logs/etkinlik').push({
+          database.ref(dbPath('logs/etkinlik')).push({
             by: ((currentData.firstName || '') + ' ' + (currentData.lastName || '')).trim() || currentEmail,
             email: currentEmail, action: `Etkinlik takvimi JSON yedekten geri yüklendi (${kept} kayıt${skipped ? ', ' + skipped + ' geçersiz satır atlandı' : ''})`,
             target: '', timestamp: firebase.database.ServerValue.TIMESTAMP

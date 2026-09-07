@@ -90,6 +90,9 @@ function parseKey(s) {
   return d;
 }
 function addDays(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+function dayDiff(a, b) {
+  return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000);
+}
 function startOfWeek(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay() + 6) % 7; return addDays(x, -wd); }
 function isSameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function todayDate() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
@@ -268,7 +271,7 @@ function maybeOpenDeepLinkedEvent() {
   window.history.replaceState({}, '', url);
 }
 
-async function persistEvent(id, patch, logLabel) {
+async function persistEvent(id, patch, logLabel, expectedUpdateTs) {
   if (id !== null && id !== undefined && !safeEventId(id)) { return null; }
   if (!canWrite) { showToast('Bu işlem için düzenleme yetkiniz yok.', { variant: 'error' }); return null; }
   if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return null; }
@@ -281,7 +284,7 @@ async function persistEvent(id, patch, logLabel) {
     try {
       const freshSnap = await database.ref(dbPath('etkinlikler/' + id + '/guncellemeTs')).once('value');
       const freshTs = freshSnap.val();
-      if (current.guncellemeTs && freshTs && freshTs !== current.guncellemeTs) {
+      if (expectedUpdateTs !== undefined && (freshTs ?? null) !== (expectedUpdateTs ?? null)) {
         showToast('Bu etkinlik siz düzenlerken başka biri tarafından değiştirildi, sayfa yenilenip tekrar denenecek.', { variant: 'error' });
         return null;
       }
@@ -432,7 +435,7 @@ async function toggleEventLock(id) {
   const wasLocked = !!ev.locked;
   const patch = { locked: !wasLocked };
   const label = evLogName(ev.ad) + ' etkinliği ' + (wasLocked ? 'kilidi açıldı' : 'kilitlendi');
-  const res = await persistEvent(id, patch, label);
+  const res = await persistEvent(id, patch, label, ev.guncellemeTs ?? null);
   if (res) { renderCalendar(); }
 }
 
@@ -839,6 +842,12 @@ async function calMoveEvent(id, dateKey, timeInfo) {
   const ev = EVENTS[id];
   if (ev.locked) { showToast('Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.', { variant: 'error' }); renderCalendar(); return; }
   const patch = { tarih: dateKey };
+  const oldStart = parseKey(ev.tarih);
+  const oldEnd = parseKey(ev.bitisTarihi);
+  const newStart = parseKey(dateKey);
+  if (oldStart && oldEnd && newStart && oldEnd >= oldStart && dateKey !== ev.tarih) {
+    patch.bitisTarihi = dKey(addDays(newStart, dayDiff(oldStart, oldEnd)));
+  }
   if (timeInfo && timeInfo.isDayCol && timeInfo.xy) {
     const grabOffset = timeInfo.grabOffsetY || 0;
     const mins0 = Math.round(((timeInfo.xy.y - timeInfo.rectTop - grabOffset) / CAL_HOUR_H) * 60 / 30) * 30;
@@ -852,7 +861,7 @@ async function calMoveEvent(id, dateKey, timeInfo) {
   if (ev.tarih === patch.tarih && patch.saat === undefined) { renderCalendar(); return; }
   const moved = Object.assign({}, ev, patch);
   const changes = describeChanges(ev, moved);
-  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(dateKey) + ')' + (changes.length ? ' · ' + changes.join(' · ') : ''));
+  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(dateKey) + ')' + (changes.length ? ' · ' + changes.join(' · ') : ''), ev.guncellemeTs ?? null);
   renderCalendar();
   if (res) { showToast('Etkinlik taşındı.', { variant: 'success' }); }
 }
@@ -862,7 +871,7 @@ async function calResizeEvent(id, patch) {
   if (ev.locked) { showToast('Bu etkinlik kilitli, süresi değiştirilemez. Önce kilidi açın.', { variant: 'error' }); renderCalendar(); return; }
   const moved = Object.assign({}, ev, patch);
   const changes = describeChanges(ev, moved);
-  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliğinin süresi ayarlandı' + (changes.length ? ' · ' + changes.join(' · ') : ''));
+  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliğinin süresi ayarlandı' + (changes.length ? ' · ' + changes.join(' · ') : ''), ev.guncellemeTs ?? null);
   renderCalendar();
   if (res) { showToast('Etkinlik güncellendi.', { variant: 'success' }); }
 }
@@ -871,7 +880,7 @@ async function calMoveMultiDayEvent(id, newTarih, newBitisTarihi) {
   const ev = EVENTS[id];
   if (ev.locked) { showToast('Bu etkinlik kilitli, taşınamaz. Önce kilidi açın.', { variant: 'error' }); renderCalendar(); return; }
   const patch = { tarih: newTarih, bitisTarihi: newBitisTarihi };
-  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(newTarih) + '–' + fmtTrDate(newBitisTarihi) + ')');
+  const res = await persistEvent(id, patch, evLogName(ev.ad) + ' etkinliği takvimde taşındı (' + fmtTrDate(newTarih) + '–' + fmtTrDate(newBitisTarihi) + ')', ev.guncellemeTs ?? null);
   renderCalendar();
   if (res) { showToast('Etkinlik taşındı.', { variant: 'success' }); }
 }
@@ -1376,6 +1385,7 @@ function renderAttendeePicker(bodyEl, calAttendees) {
 // yazma başlatıldıysa (calConfirmPendingCreate bekleyen ghost'u temizlemek için kullanır).
 function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose) {
   const ev = id ? EVENTS[id] : null;
+  const openedUpdateTs = ev?.guncellemeTs ?? null;
   const tarih = ev ? (ev.tarih || '') : (presetDate || dKey(calAnchor));
   const saat = ev ? (ev.saat || '') : (presetTime || '');
   const bitisSaat = ev ? (ev.bitisSaat || '') : (presetEndTime || '');
@@ -1434,7 +1444,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
 
   let saveCommitted = false;
   if (canWrite) {
-    actions.push({ label: id ? 'Kaydet' : 'Oluştur', variant: 'primary', action: ({ body }) => {
+    actions.push({ label: id ? 'Kaydet' : 'Oluştur', variant: 'primary', action: async ({ body }) => {
       const form = body.querySelector('#calEvForm');
       const ad = form.querySelector('#cef-ad').value.trim();
       if (!ad) { showToast('Etkinlik adı zorunlu.', { variant: 'warning' }); return false; }
@@ -1483,17 +1493,22 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         // (kanban panosundaki "Tamamlandı" kartında avatar olarak gösterilir, bkz. kanban.js).
         // Durum tamamlandı DEĞİLSE alanlar temizlenir -- yoksa eski bir tamamlama izi,
         // etkinlik yeniden planlandı/yazılıyor durumuna dönünce yanlışlıkla kalmış olurdu.
-        tamamlayan: form.querySelector('#cef-durum').value === 'tamamlandi' ? (currentUserName || currentUserEmail) : null,
-        tamamlayanEmail: form.querySelector('#cef-durum').value === 'tamamlandi' ? currentUserEmail : null
+        tamamlayan: form.querySelector('#cef-durum').value === 'tamamlandi'
+          ? (ev?.durum === 'tamamlandi' ? (ev.tamamlayan || currentUserName || currentUserEmail) : (currentUserName || currentUserEmail))
+          : null,
+        tamamlayanEmail: form.querySelector('#cef-durum').value === 'tamamlandi'
+          ? (ev?.durum === 'tamamlandi' ? (ev.tamamlayanEmail || currentUserEmail) : currentUserEmail)
+          : null
       };
       const ref = EVENTS[id];
       const logLabel = id
         ? evLogName(ad) + ' etkinliği düzenlendi' + (ref ? (() => { const c = describeChanges(ref, Object.assign({}, ref, patch)); return c.length ? ' · ' + c.join(' · ') : ''; })() : '')
         : evLogName(ad) + ' etkinliği oluşturuldu';
+      const res = await persistEvent(id, patch, logLabel, id ? openedUpdateTs : undefined);
+      if (!res) { return false; }
       saveCommitted = true;
-      persistEvent(id, patch, logLabel).then((res) => {
-        if (res) { showToast(id ? 'Etkinlik kaydedildi.' : 'Etkinlik oluşturuldu.', { variant: 'success' }); renderCalendar(); }
-      });
+      showToast(id ? 'Etkinlik kaydedildi.' : 'Etkinlik oluşturuldu.', { variant: 'success' });
+      renderCalendar();
       return true;
     } });
   }

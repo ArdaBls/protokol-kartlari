@@ -6,12 +6,13 @@ Basın ve Halkla İlişkiler için etkinlik öncesi/sonrası protokoldeki kişil
 
 ## Nedir bu proje
 
-Tek dosyalık (`index.html`) bir web uygulaması — derleme adımı yok, doğrudan tarayıcıda çalışır. Firebase Realtime Database ve Firebase Auth ile bulut tabanlı, birden çok kullanıcı aynı anda veri üzerinde çalışabiliyor. GitHub Pages üzerinden yayınlanıyor ve bir Progressive Web App (PWA) olarak (servis çalışanı ile) çevrimdışı da kısmen kullanılabiliyor.
+Firebase Realtime Database ve Firebase Auth kullanan, birden çok kullanıcının aynı anda çalışabildiği bir web uygulamasıdır. Kaynak kod `docs/admin-src/` altındaki Vite projesindedir; production derlemesi GitHub Pages'in yayınladığı `docs/` köküne alınır. Uygulama servis çalışanıyla PWA olarak kurulabilir ve çevrimdışı durumda sınırlı işlev sunar.
 
 İki ana bölümü var:
 
 - **Protokol kartları** — İl ve Üniversite protokol sıralarındaki kişilerin fotoğraf, unvan ve sıra bilgisini gösteren kart listesi. Arşivleme, çöp kutusu, dosyadan toplu içe/dışa aktarma gibi işlemleri destekler.
 - **Etkinlik takvimi** — Gün, hafta, ay, yıl ve liste görünümleriyle etkinlikleri planlama; her etkinlik için tür, durum, yer, sorumlu kişi, basın görevlisi(leri) ve katılımcı (protokol kartlarından seçilen) bilgisi tutulur. Etkinliklerden otomatik haber metni taslağı da üretilebiliyor.
+- **Haber üretim Gantt'ı** — Özel ve normal haber projelerini, alt üretim adımlarını, sorumluları ve takvim etkinliği bağlantılarını zaman çizelgesinde yönetir.
 
 ## Rol sistemi
 
@@ -20,18 +21,19 @@ Kayıt olan her kullanıcı `pending` (onay bekliyor) durumunda başlar ve sadec
 - **editor** — kart ve etkinlik verilerini ekleyip düzenleyebilir.
 - **admin** — editor yetkisine ek olarak: kullanıcı yetkilerini yönetir, kullanıcıları "basın görevlisi" olarak işaretler (bu kişiler etkinlik formundaki basın görevlisi seçicisinde görünür hâle gelir), değişiklik geçmişini (loglar) görür, veritabanı yedeği indirip geri yükleyebilir, regresyon testlerini GitHub Actions üzerinden tetikleyebilir.
 
-Admin paneli, sağ üstteki kullanıcı rozetinden (yalnızca admin rolündeki kullanıcılara) açılır.
+`owner` rolü kurucu hesabı için en yüksek yetki düzeyidir. Yönetim ekranları kullanıcı rolüne göre menüde gösterilir.
 
 ## Geliştirme
 
-Derleme adımı yok. `index.html`'i doğrudan bir HTTP sunucusuyla servis edip açmanız yeterli (servis çalışanı ve Firebase SDK'sı `file://` üzerinden düzgün çalışmayabilir), örneğin:
+Node.js 22 ile:
 
 ```bash
-python3 -m http.server 8000
-# sonra tarayıcıda http://localhost:8000
+cd docs/admin-src
+npm ci
+npm run dev
 ```
 
-`index.html`, satır sonları **CRLF** ve girintisi **tab** kullanılarak tutuluyor — düzenleme yaparken editörünüzün bunu bozmadığından emin olun.
+Production çıktısını yenilemek için `npm run build` çalıştırılır. Bu komut önce Vite derlemesini yapar, ardından yayınlanacak dosyaları `docs/` köküne kopyalar. Kaynak değişiklikleriyle birlikte üretilen `docs/` çıktısı da commit edilmelidir.
 
 ## Testler
 
@@ -39,7 +41,7 @@ python3 -m http.server 8000
 
 ```bash
 cd tests
-npm install
+npm ci
 node smoke-test.js               # ör. tek bir testi çalıştırmak için
 ```
 
@@ -47,8 +49,7 @@ Tüm testleri sırayla çalıştırmak için:
 
 ```bash
 cd tests
-npm install
-for f in smoke-test.js notes-fix-test.js news-template-test.js news-rich-template-test.js calendar-lock-undo-test.js admin-test-panel-test.js calendar-rail-now-test.js calendar-year-list-admin-test.js press-officer-lock-test.js; do
+for f in *-test.js; do
   node "$f"
 done
 ```
@@ -57,11 +58,11 @@ Aynı testler, admin panelindeki **Test** sekmesinden **"Testi Çalıştır"** b
 
 ## Dağıtım (Deploy)
 
-`main` dalına yapılan her `push`, GitHub Pages tarafından otomatik olarak canlıya alınır — ayrı bir build/deploy adımı yok.
+Önce `docs/admin-src/` içinde `npm run build` çalıştırılmalı ve oluşan `docs/` dosyaları commit edilmelidir. `main` dalına yapılan push sonrasında GitHub Pages, `docs/` klasöründeki hazır çıktıyı yayınlar.
 
 ## Firebase yapılandırması
 
-Firebase bağlantı bilgileri (`firebaseConfig`) `index.html` içinde açıkça yazılıdır — bu normaldir, Firebase istemci uygulamalarında bu bilgiler zaten gizli tutulmaz; gerçek güvenlik sınırı **Realtime Database kurallarıdır** (Firebase Konsolu → Realtime Database → Rules). O kuralların yedek bir kopyası `docs/firebase-database-rules.json` dosyasında tutuluyor — **konsoldaki kurallar değiştiğinde bu dosyanın da elle güncellenmesi gerekir**, otomatik senkron yoktur.
+Firebase istemci bağlantı bilgileri tarayıcı paketinde görünür; gerçek güvenlik sınırı **Realtime Database kurallarıdır** (Firebase Konsolu → Realtime Database → Rules). Kuralların yerel çalışma kopyası `yerel-notlar/firebase-database-rules.json` dosyasındadır ve güvenlik nedeniyle Git'e eklenmez. Değişiklikler Firebase Console'a elle yapıştırılıp yayınlanmalıdır.
 
 Yeni bir Firebase okuma/yazma yolu eklerken (kod tarafında) kurallara karşılığını eklemeyi unutmayın; aksi hâlde yetkili bir kullanıcı bile "izin reddedildi" hatası alır.
 

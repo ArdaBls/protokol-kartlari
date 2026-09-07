@@ -76,17 +76,22 @@ export function initQuickEvent() {
   database = firebase.database();
   const auth = firebase.auth();
 
-  initDbMode(database).then(renderDbModeBanner);
   onDbModeChange(renderDbModeBanner);
 
-  auth.onAuthStateChanged((user) => {
+  auth.onAuthStateChanged(async (user) => {
     if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; return; }
     currentUserEmail = user.email || '';
-    database.ref('users/' + user.uid).once('value').then((snap) => {
+    try {
+      const snap = await database.ref('users/' + user.uid).once('value');
       const u = snap.val() || {};
+      await initDbMode(database);
+      renderDbModeBanner();
       canWrite = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
-    }).catch(() => { canWrite = false; });
+    } catch (err) {
+      console.error('Hızlı etkinlik yetkisi çözülemedi:', err);
+      canWrite = false;
+    }
   });
 
   btn.addEventListener('click', createDraft);

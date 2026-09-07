@@ -13,10 +13,6 @@
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
     "analyze": "npm run build && open dist/stats.html",
-    "new": "node scripts/new-page.mjs",
-    "screenshots": "node scripts/screenshots.mjs",
-    "smoke": "node scripts/smoke.mjs",
-    "deploy:preview": "bash scripts/deploy-preview.sh",
     "prepublishOnly": "npm run build"
   },
   "private": true,

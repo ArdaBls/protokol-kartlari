@@ -78,6 +78,8 @@ const collapsedProjects = new Set();
 let ownerPool = [];
 let ownerValue = '';
 let ownerPoolRequest = 0;
+let openedProjectSnapshot = null;
+let openedProjectUpdateTs = null;
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -380,7 +382,22 @@ function updatePeriodLabel() {
 
 function scrollByDays(days) {
   const board = $('#gantt-board');
-  if (!board) { return; }
+  if (!board || !currentRangeStart) { return; }
+  const visibleCenter = board.scrollLeft + (board.clientWidth - nameColWidth()) / 2;
+  const visibleDayIndex = Math.max(0, Math.min(currentRangeDays - 1, Math.round(visibleCenter / currentDayWidth())));
+  const targetDate = addDays(currentRangeStart, visibleDayIndex + days);
+  if (targetDate.getFullYear() !== anchor.getFullYear()) {
+    anchor = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    render();
+    requestAnimationFrame(() => {
+      const targetOffset = dayDiff(currentRangeStart, targetDate) * currentDayWidth();
+      board.scrollTo({
+        left: Math.max(0, targetOffset - (board.clientWidth - nameColWidth()) / 2),
+        behavior: 'smooth'
+      });
+    });
+    return;
+  }
   board.scrollBy({ left: days * currentDayWidth(), behavior: 'smooth' });
 }
 
@@ -445,15 +462,19 @@ function attachData() {
   });
   eventsRef.on('value', (snapshot) => {
     events = snapshot.val() || {};
-    refreshEventOptions($('#gantt-event').value);
+    refreshEventOptions($('#gantt-event').value, $('#gantt-id').value);
   });
 }
 
-function refreshEventOptions(selectedId = '') {
+function refreshEventOptions(selectedId = '', projectId = '') {
   const select = $('#gantt-event');
   if (!select) { return; }
   const options = Object.entries(events)
     .filter(([, event]) => event && event.arsiv !== true)
+    // Bir takvim etkinliği aynı anda yalnızca bir haber projesine bağlı olabilir.
+    // Düzenlenen projenin mevcut etkinliği görünür kalır; başka projelerin sahip
+    // olduğu etkinlikler yeni seçim listesine girmez.
+    .filter(([id, event]) => !event.projeId || event.projeId === projectId || id === selectedId)
     .sort(([, a], [, b]) => String(a.tarih || '').localeCompare(String(b.tarih || '')))
     .map(([id, event]) => `<option value="${escapeHtml(id)}"${id === selectedId ? ' selected' : ''}>${escapeHtml(event.tarih || 'Tarihsiz')} — ${escapeHtml(event.ad || 'Adsız etkinlik')}</option>`)
     .join('');
@@ -630,6 +651,8 @@ function openModal(id = '', focusStepId = '') {
     return;
   }
   const project = id ? projects[id] : null;
+  openedProjectSnapshot = project ? JSON.parse(JSON.stringify(project)) : null;
+  openedProjectUpdateTs = project?.guncellemeTs ?? null;
   const today = localDateKey(new Date());
   $('#gantt-id').value = id;
   $('#gantt-title').value = project?.ad || '';
@@ -649,7 +672,7 @@ function openModal(id = '', focusStepId = '') {
   $('#gantt-progress-value').textContent = `${Number(project?.ilerleme) || 0}%`;
   renderColorPicker(project?.renk || '');
   renderStepEditor(project?.adimlar || {});
-  refreshEventOptions(project?.takvimEtkinlikId || '');
+  refreshEventOptions(project?.takvimEtkinlikId || '', id);
   $('#gantt-dialog-title').textContent = project ? 'Projeyi düzenle' : 'Yeni proje';
   $('#gantt-archive').hidden = !project;
   $('#gantt-remove').hidden = !project;
@@ -666,6 +689,23 @@ function closeModal() {
   $('#gantt-modal').hidden = true;
   document.body.classList.remove('gantt-modal-open');
   setFormError();
+  openedProjectSnapshot = null;
+  openedProjectUpdateTs = null;
+}
+
+function linkedEventDatePatch(linkedEvent, projectEndKey) {
+  const oldStart = parseDateKey(linkedEvent?.tarih);
+  const oldEnd = parseDateKey(linkedEvent?.bitisTarihi);
+  const nextEnd = parseDateKey(projectEndKey);
+  if (oldStart && oldEnd && nextEnd && oldEnd >= oldStart) {
+    const duration = dayDiff(oldStart, oldEnd);
+    return { tarih: localDateKey(addDays(nextEnd, -duration)), bitisTarihi: projectEndKey };
+  }
+  return { tarih: projectEndKey };
+}
+
+function eventDatesWouldChange(linkedEvent, patch) {
+  return Object.entries(patch).some(([key, value]) => (linkedEvent?.[key] ?? null) !== (value ?? null));
 }
 
 function projectFromForm() {
@@ -703,14 +743,26 @@ async function saveProject(event) {
   try { next = projectFromForm(); } catch (error) { setFormError(error.message); return; }
   const currentId = $('#gantt-id').value;
   const id = currentId || database.ref(dbPath('haberProjeleri')).push().key;
-  const previous = currentId ? projects[currentId] : null;
+  const previous = currentId ? openedProjectSnapshot : null;
   const button = $('#gantt-save');
   button.disabled = true;
   setFormError();
   try {
-    if (previous?.guncellemeTs) {
+    if (currentId) {
       const fresh = await database.ref(dbPath(`haberProjeleri/${id}/guncellemeTs`)).once('value');
-      if (fresh.val() !== previous.guncellemeTs) { throw new Error('Bu proje başka biri tarafından değiştirildi. Pencereyi kapatıp yeniden açın.'); }
+      if ((fresh.val() ?? null) !== openedProjectUpdateTs) { throw new Error('Bu proje başka biri tarafından değiştirildi. Pencereyi kapatıp yeniden açın.'); }
+    }
+    const previousEventId = previous?.takvimEtkinlikId || '';
+    const nextEventId = next.takvimEtkinlikId || '';
+    const eventIds = [...new Set([previousEventId, nextEventId].filter(Boolean))];
+    const eventSnapshots = await Promise.all(eventIds.map((eventId) => database.ref(dbPath(`etkinlikler/${eventId}`)).once('value')));
+    const latestEvents = Object.fromEntries(eventIds.map((eventId, index) => [eventId, eventSnapshots[index].val()]));
+    const nextEvent = nextEventId ? latestEvents[nextEventId] : null;
+    if (nextEventId && !nextEvent) { throw new Error('Bağlanacak takvim etkinliği artık mevcut değil.'); }
+    if (nextEvent?.projeId && nextEvent.projeId !== id) { throw new Error('Bu takvim etkinliği başka bir haber projesine bağlı.'); }
+    const nextEventDates = nextEvent ? linkedEventDatePatch(nextEvent, next.bitisTarihi) : null;
+    if (nextEvent?.locked && eventDatesWouldChange(nextEvent, nextEventDates)) {
+      throw new Error('Bağlı takvim etkinliği kilitli. Tarihleri eşlemek için önce takvimden kilidi açın.');
     }
     const updates = {};
     updates[dbPath(`haberProjeleri/${id}`)] = {
@@ -720,13 +772,13 @@ async function saveProject(event) {
       guncelleyen: currentUserName || currentUserEmail,
       guncellemeTs: firebase.database.ServerValue.TIMESTAMP
     };
-    if (previous?.takvimEtkinlikId && previous.takvimEtkinlikId !== next.takvimEtkinlikId) {
-      updates[dbPath(`etkinlikler/${previous.takvimEtkinlikId}/projeId`)] = null;
+    if (previousEventId && previousEventId !== nextEventId && latestEvents[previousEventId]?.projeId === id) {
+      updates[dbPath(`etkinlikler/${previousEventId}/projeId`)] = null;
     }
-    if (next.takvimEtkinlikId) {
-      updates[dbPath(`etkinlikler/${next.takvimEtkinlikId}/projeId`)] = id;
-      updates[dbPath(`etkinlikler/${next.takvimEtkinlikId}/tarih`)] = next.bitisTarihi;
-      updates[dbPath(`etkinlikler/${next.takvimEtkinlikId}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
+    if (nextEventId) {
+      updates[dbPath(`etkinlikler/${nextEventId}/projeId`)] = id;
+      Object.entries(nextEventDates).forEach(([key, value]) => { updates[dbPath(`etkinlikler/${nextEventId}/${key}`)] = value; });
+      updates[dbPath(`etkinlikler/${nextEventId}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
     }
     const logPath = dbPath('logs/haberProje');
     const logKey = database.ref(logPath).push().key;
@@ -753,7 +805,6 @@ async function archiveCurrentProject(id = $('#gantt-id').value) {
   updates[dbPath(`haberProjeleri/${id}/arsiv`)] = true;
   updates[dbPath(`haberProjeleri/${id}/guncelleyen`)] = currentUserName || currentUserEmail;
   updates[dbPath(`haberProjeleri/${id}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
-  if (project.takvimEtkinlikId) { updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/projeId`)] = null; }
   const logPath = dbPath('logs/haberProje');
   const logKey = database.ref(logPath).push().key;
   updates[`${logPath}/${logKey}`] = {
@@ -762,6 +813,10 @@ async function archiveCurrentProject(id = $('#gantt-id').value) {
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
   try {
+    if (project.takvimEtkinlikId) {
+      const linked = await database.ref(dbPath(`etkinlikler/${project.takvimEtkinlikId}`)).once('value');
+      if (linked.val()?.projeId === id) { updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/projeId`)] = null; }
+    }
     await database.ref('/').update(updates);
     closeModal();
     showToast('Proje arşivlendi.', { variant: 'success' });
@@ -779,7 +834,6 @@ async function deleteCurrentProject(id = $('#gantt-id').value) {
   if (!window.confirm(`"${project.ad || 'Bu proje'}" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) { return; }
   const updates = {};
   updates[dbPath(`haberProjeleri/${id}`)] = null;
-  if (project.takvimEtkinlikId) { updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/projeId`)] = null; }
   const logPath = dbPath('logs/haberProje');
   const logKey = database.ref(logPath).push().key;
   updates[`${logPath}/${logKey}`] = {
@@ -788,6 +842,10 @@ async function deleteCurrentProject(id = $('#gantt-id').value) {
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
   try {
+    if (project.takvimEtkinlikId) {
+      const linked = await database.ref(dbPath(`etkinlikler/${project.takvimEtkinlikId}`)).once('value');
+      if (linked.val()?.projeId === id) { updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/projeId`)] = null; }
+    }
     await database.ref('/').update(updates);
     closeModal();
     showToast('Proje silindi.', { variant: 'success' });
@@ -797,7 +855,7 @@ async function deleteCurrentProject(id = $('#gantt-id').value) {
   }
 }
 
-async function updateProjectDates(id, startKey, endKey, stepId = '') {
+async function updateProjectDates(id, startKey, endKey, stepId = '', expectedUpdateTs) {
   const project = projects[id];
   const item = stepId ? project?.adimlar?.[stepId] : project;
   if (!project || !item || !canWrite || isReadOnly() || endKey < startKey) { render(); return; }
@@ -807,10 +865,6 @@ async function updateProjectDates(id, startKey, endKey, stepId = '') {
   updates[dbPath(`${itemPath}/bitisTarihi`)] = endKey;
   updates[dbPath(`haberProjeleri/${id}/guncelleyen`)] = currentUserName || currentUserEmail;
   updates[dbPath(`haberProjeleri/${id}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
-  if (!stepId && project.takvimEtkinlikId) {
-    updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/tarih`)] = endKey;
-    updates[dbPath(`etkinlikler/${project.takvimEtkinlikId}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
-  }
   const logPath = dbPath('logs/haberProje');
   const logKey = database.ref(logPath).push().key;
   updates[`${logPath}/${logKey}`] = {
@@ -819,11 +873,23 @@ async function updateProjectDates(id, startKey, endKey, stepId = '') {
     target: project.ad || '', timestamp: firebase.database.ServerValue.TIMESTAMP
   };
   try {
-    if (project.guncellemeTs) {
+    if (expectedUpdateTs !== undefined) {
       const fresh = await database.ref(dbPath(`haberProjeleri/${id}/guncellemeTs`)).once('value');
-      if (fresh.val() !== project.guncellemeTs) {
+      if ((fresh.val() ?? null) !== (expectedUpdateTs ?? null)) {
         throw new Error('Bu proje başka biri tarafından değiştirildi.');
       }
+    }
+    if (!stepId && project.takvimEtkinlikId) {
+      const eventId = project.takvimEtkinlikId;
+      const eventSnap = await database.ref(dbPath(`etkinlikler/${eventId}`)).once('value');
+      const linkedEvent = eventSnap.val();
+      if (linkedEvent?.projeId !== id) { throw new Error('Bağlı takvim etkinliği artık bu projeye ait değil.'); }
+      const datePatch = linkedEventDatePatch(linkedEvent, endKey);
+      if (linkedEvent.locked && eventDatesWouldChange(linkedEvent, datePatch)) {
+        throw new Error('Bağlı takvim etkinliği kilitli. Önce takvimden kilidi açın.');
+      }
+      Object.entries(datePatch).forEach(([key, value]) => { updates[dbPath(`etkinlikler/${eventId}/${key}`)] = value; });
+      updates[dbPath(`etkinlikler/${eventId}/guncellemeTs`)] = firebase.database.ServerValue.TIMESTAMP;
     }
     await database.ref('/').update(updates);
     showToast('Proje tarihleri güncellendi.', { variant: 'success' });
@@ -882,7 +948,8 @@ function beginBarDrag(event) {
     mode: handle?.dataset.resize || 'move',
     start,
     end,
-    originalWidth: bar.offsetWidth
+    originalWidth: bar.offsetWidth,
+    expectedUpdateTs: project?.guncellemeTs ?? null
   };
   bar.setPointerCapture(event.pointerId);
   bar.classList.add('is-dragging');
@@ -918,7 +985,7 @@ function endBarDrag(event) {
   if (state.mode === 'move') { start = addDays(start, state.delta); end = addDays(end, state.delta); }
   if (state.mode === 'start') { start = addDays(start, Math.min(dayDiff(start, end), state.delta)); }
   if (state.mode === 'end') { end = addDays(end, Math.max(-dayDiff(start, end), state.delta)); }
-  updateProjectDates(state.id, localDateKey(start), localDateKey(end), state.stepId);
+  updateProjectDates(state.id, localDateKey(start), localDateKey(end), state.stepId, state.expectedUpdateTs);
 }
 
 function bindUi() {

@@ -29,7 +29,17 @@
 		if (!data) return null;
 		var keys = Object.keys(data);
 		for (var i = 0; i < keys.length; i++) {
-			if (path.indexOf(keys[i]) !== -1) return data[keys[i]];
+			var key = keys[i];
+			var marker = path.indexOf(key);
+			var bounded = marker >= 0 && (marker === 0 || path[marker - 1] === "/") && (marker + key.length === path.length || path[marker + key.length] === "/");
+			if (!bounded) continue;
+			var value = data[key];
+			var rest = path.slice(marker + key.length).split("/").filter(Boolean);
+			for (var j = 0; j < rest.length; j++) {
+				if (!value || typeof value !== "object" || value[rest[j]] === undefined) return null;
+				value = value[rest[j]];
+			}
+			return value;
 		}
 		return null;
 	}

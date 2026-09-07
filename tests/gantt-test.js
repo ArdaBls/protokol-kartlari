@@ -26,8 +26,10 @@ assert.match(source, /dbPath\(`haberProjeleri\/\$\{id\}/,
   'Proje güncellemeleri Test Modu veri yolundan geçmelidir');
 assert.match(source, /database\.ref\('\/'\)\.update\(updates\)/,
   'proje ve takvim bağlantısı atomik çok-yollu güncellemeyle yazılmalıdır');
-assert.match(source, /etkinlikler\/\$\{next\.takvimEtkinlikId\}\/tarih/,
-  'bağlı takvim etkinliğinin teslim tarihi eşlenmelidir');
+assert.match(source, /linkedEventDatePatch\(nextEvent, next\.bitisTarihi\)/,
+  'bağlı takvim etkinliğinin teslim tarihi süre korunarak eşlenmelidir');
+assert.match(source, /etkinlikler\/\$\{nextEventId\}\/\$\{key\}/,
+  'bağlı takvim etkinliğinin tarih alanları atomik güncellemeye eklenmelidir');
 assert.match(source, /isReadOnly\(\)/,
   'salt-okunur kilit Gantt yazmalarını engellemelidir');
 assert.match(source, /haberProjeleri\/\$\{id\}\/guncellemeTs/,

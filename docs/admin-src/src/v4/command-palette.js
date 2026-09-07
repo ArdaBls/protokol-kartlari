@@ -44,9 +44,22 @@ function buildItems() {
         body: '<p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0">Panele erişmek için tekrar giriş yapmanız gerekecek.</p>',
         actions: [
           { label: 'Vazgeç', variant: 'ghost' },
-          { label: 'Çıkış yap', variant: 'primary', action: () => {
-            showToast('Çıkış yapıldı', { variant: 'success' });
-            setTimeout(() => { window.location.href = 'giris.html'; }, 600);
+          { label: 'Çıkış yap', variant: 'primary', action: async () => {
+            const auth = globalThis.firebase?.auth?.();
+            if (!auth) {
+              showToast('Oturum servisine ulaşılamadı.', { variant: 'error' });
+              return false;
+            }
+            try {
+              await auth.signOut();
+              showToast('Çıkış yapıldı', { variant: 'success' });
+              setTimeout(() => { window.location.href = 'giris.html'; }, 300);
+              return true;
+            } catch (err) {
+              console.error('Çıkış yapılamadı:', err);
+              showToast('Çıkış yapılamadı. Lütfen tekrar deneyin.', { variant: 'error' });
+              return false;
+            }
           } }
         ]
       })

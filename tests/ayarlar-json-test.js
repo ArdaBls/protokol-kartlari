@@ -71,6 +71,8 @@ async function openAyarlar(browser) {
 			pid1: {
 				name: 'Geçmişi Olan Kişi', title: 'Rektör', prefix: 'Prof. Dr.', unit: 'Rektörlük',
 				status: 'aktif', rank: 1, photo: '', start: '2020-01-01', end: '', note: 'Önemli not',
+				prevStatus: 'pasif', sonDogrulamaTs: 1720000000000, dogrulamaKaynak: 'omu_web', dogrulayan: 'Test Admin',
+				ekGorevAciklamasi: 'Koordinatör',
 				gorevGecmisi: [
 					{ unvan: 'Dekan', baslangic: '2015-01-01', bitis: '2019-12-31' },
 					{ unvan: 'Bölüm Başkanı', baslangic: '2010-01-01', bitis: '2014-12-31' }
@@ -82,16 +84,49 @@ async function openAyarlar(browser) {
 		await page.waitForTimeout(500);
 		const veri = await page.evaluate(() => {
 			const s = (window.__mockSets || []).find((x) => x.path === 'ilProtokolVerileri');
-			const kayit = s ? Object.values(s.data)[0] : null;
+			const kayit = s ? s.data.pid1 : null;
 			return {
 				yazildiMi: !!s,
+				kimlikKorundu: !!kayit,
 				kayitSayisi: s ? Object.keys(s.data).length : 0,
 				gecmisSayisi: kayit && Array.isArray(kayit.gorevGecmisi) ? kayit.gorevGecmisi.length : 0,
 				ilkUnvan: kayit && kayit.gorevGecmisi ? kayit.gorevGecmisi[0].unvan : null,
-				ilkBaslangic: kayit && kayit.gorevGecmisi ? kayit.gorevGecmisi[0].baslangic : null
+				ilkBaslangic: kayit && kayit.gorevGecmisi ? kayit.gorevGecmisi[0].baslangic : null,
+				dogrulamaKorundu: !!kayit && kayit.sonDogrulamaTs === 1720000000000 && kayit.dogrulamaKaynak === 'omu_web' && kayit.dogrulayan === 'Test Admin',
+				durumGecmisiKorundu: !!kayit && kayit.prevStatus === 'pasif',
+				ekGorevKorundu: !!kayit && kayit.ekGorevAciklamasi === 'Koordinatör'
 			};
 		});
 		sonuc.tamGeriYukle = { ...veri, hataSayisi: hatalar.length };
+		await ctx.close();
+	}
+
+	// ── 3) TAKVİM GERİ YÜKLEME: çok günlü/proje/taslak/tamamlama alanları kaybolmamalı ──
+	{
+		const { ctx, page, hatalar } = await openAyarlar(browser);
+		await page.evaluate(() => { window.confirm = () => true; });
+		const dosya = JSON.stringify({ etkinlikler: {
+			ev1: {
+				ad: 'Çok günlük etkinlik', tur: 'diger', durum: 'tamamlandi', tarih: '2026-09-10', bitisTarihi: '2026-09-12',
+				saat: '', bitisSaat: '', projeId: 'proje1', renk: 'mavi', taslak: true,
+				tamamlayan: 'Test Admin', tamamlayanEmail: 'admin@test.com', olusturmaTs: 1710000000000
+			}
+		} });
+		await page.setInputFiles('#json-file-takvim', { name: 'takvim.json', mimeType: 'application/json', buffer: Buffer.from(dosya, 'utf-8') });
+		await page.waitForTimeout(500);
+		sonuc.takvimGeriYukle = await page.evaluate(() => {
+			const s = (window.__mockSets || []).find((x) => x.path === 'etkinlikler');
+			const e = s?.data?.ev1;
+			return {
+				yazildiMi: !!e,
+				kimlikKorundu: !!e,
+				cokGunluKorundu: e?.bitisTarihi === '2026-09-12',
+				projeKorundu: e?.projeId === 'proje1',
+				taslakKorundu: e?.taslak === true,
+				tamamlayanKorundu: e?.tamamlayan === 'Test Admin' && e?.tamamlayanEmail === 'admin@test.com'
+			};
+		});
+		sonuc.takvimGeriYukle.hataSayisi = hatalar.length;
 		await ctx.close();
 	}
 
@@ -132,15 +167,25 @@ async function openAyarlar(browser) {
 	console.log(JSON.stringify(sonuc, null, 2));
 	const basarisiz = [];
 	if (!sonuc.tamGeriYukle.yazildiMi) basarisiz.push('Tamamen Geri Yükle: ilProtokolVerileri hiç yazılmadı');
+	if (!sonuc.tamGeriYukle.kimlikKorundu) basarisiz.push('Tamamen Geri Yükle: mevcut Firebase kimliği korunmadı');
 	if (sonuc.tamGeriYukle.kayitSayisi !== 1) basarisiz.push('Tamamen Geri Yükle: kayıt sayısı 1 değil: ' + sonuc.tamGeriYukle.kayitSayisi);
 	if (sonuc.tamGeriYukle.gecmisSayisi !== 2) basarisiz.push('Tamamen Geri Yükle: görev geçmişi kayboldu (beklenen 2, gelen ' + sonuc.tamGeriYukle.gecmisSayisi + ')');
 	if (sonuc.tamGeriYukle.ilkUnvan !== 'Dekan') basarisiz.push('Tamamen Geri Yükle: görev geçmişi içeriği bozuldu: ' + sonuc.tamGeriYukle.ilkUnvan);
 	if (sonuc.tamGeriYukle.ilkBaslangic !== '2015-01-01') basarisiz.push('Tamamen Geri Yükle: görev geçmişi tarihi bozuldu: ' + sonuc.tamGeriYukle.ilkBaslangic);
+	if (!sonuc.tamGeriYukle.dogrulamaKorundu) basarisiz.push('Tamamen Geri Yükle: doğrulama bilgileri kayboldu');
+	if (!sonuc.tamGeriYukle.durumGecmisiKorundu) basarisiz.push('Tamamen Geri Yükle: önceki durum bilgisi kayboldu');
+	if (!sonuc.tamGeriYukle.ekGorevKorundu) basarisiz.push('Tamamen Geri Yükle: ek görev açıklaması kayboldu');
 	if (sonuc.tamGeriYukle.hataSayisi !== 0) basarisiz.push('Tamamen Geri Yükle: sayfa hatası oluştu (' + sonuc.tamGeriYukle.hataSayisi + ')');
 	if (!sonuc.birlestir.yeniKayitEklendi) basarisiz.push('Birleştir: yeni kayıt eklenmedi');
 	if (sonuc.birlestir.yeniKayitGecmisi !== 1) basarisiz.push('Birleştir: yeni kaydın görev geçmişi eklenmedi');
 	if (!sonuc.birlestir.mevcutKayitDokunulmadi) basarisiz.push('Birleştir: mevcut kayda gereksiz yere dokunuldu');
 	if (sonuc.birlestir.hataSayisi !== 0) basarisiz.push('Birleştir: sayfa hatası oluştu (' + sonuc.birlestir.hataSayisi + ')');
+	if (!sonuc.takvimGeriYukle.yazildiMi || !sonuc.takvimGeriYukle.kimlikKorundu) basarisiz.push('Takvim Geri Yükle: kayıt veya kimlik korunmadı');
+	if (!sonuc.takvimGeriYukle.cokGunluKorundu) basarisiz.push('Takvim Geri Yükle: çok günlük bitiş tarihi kayboldu');
+	if (!sonuc.takvimGeriYukle.projeKorundu) basarisiz.push('Takvim Geri Yükle: proje bağlantısı kayboldu');
+	if (!sonuc.takvimGeriYukle.taslakKorundu) basarisiz.push('Takvim Geri Yükle: taslak bilgisi kayboldu');
+	if (!sonuc.takvimGeriYukle.tamamlayanKorundu) basarisiz.push('Takvim Geri Yükle: tamamlayan bilgisi kayboldu');
+	if (sonuc.takvimGeriYukle.hataSayisi !== 0) basarisiz.push('Takvim Geri Yükle: sayfa hatası oluştu (' + sonuc.takvimGeriYukle.hataSayisi + ')');
 
 	console.log('ALL_TESTS_PASSED:', basarisiz.length === 0);
 	if (basarisiz.length) console.log('BASARISIZ:', JSON.stringify(basarisiz, null, 2));
