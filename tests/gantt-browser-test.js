@@ -88,6 +88,19 @@ function serve() {
     assert.equal(await page.locator('#gantt-title').inputValue(), 'Kampüs belgeseli');
     await page.locator('[data-gantt-close]').last().click();
 
+    // Kalıcı silme: window.confirm onayı + haberProjeleri düğümünün null'a
+    // yazılması + modalın kapanması.
+    await page.evaluate(() => { window.__mockUpdates = []; });
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('.gantt-project-main[data-edit-project="proje1"]').click();
+    await page.waitForSelector('#gantt-modal:not([hidden])');
+    await page.locator('#gantt-remove').click();
+    await page.waitForFunction(() => Array.isArray(window.__mockUpdates) && window.__mockUpdates.length > 0);
+    const deleteUpdate = await page.evaluate(() => window.__mockUpdates.at(-1));
+    assert.equal(deleteUpdate.data['haberProjeleri/proje1'], null);
+    assert.ok(Object.keys(deleteUpdate.data).some((key) => /^logs\/haberProje\//.test(key)));
+    assert.equal(await page.locator('#gantt-modal').isHidden(), true);
+
     await page.locator('#gantt-new').click();
     await page.locator('#gantt-title').fill('Yeni özel haber');
     await page.locator('#gantt-start').fill('2026-09-10');

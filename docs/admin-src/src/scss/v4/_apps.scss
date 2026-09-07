@@ -1015,7 +1015,7 @@
   // kullanıcı "arkasından takvim çizgileri gözükecek bir saydamlık" istedi,
   // bu yüzden transparent ile karıştırılıyor: gerçek alfa karışımı, altındaki
   // .gantt-track gün/hafta sonu çizgileri çubuğun içinden görünür kalır.
-  background: color-mix(in srgb, var(--bar-color, var(--primary)) 22%, transparent);
+  background: color-mix(in srgb, var(--bar-color, var(--primary)) 16%, transparent);
   color: var(--text);
   padding: 0 12px;
   overflow: hidden;
@@ -1030,10 +1030,14 @@
   transition: left .16s ease, width .16s ease;
 }
 .gantt-bar:focus-visible { outline: 3px solid var(--bar-color, var(--primary)); outline-offset: 2px; }
-.gantt-bar:hover { background: color-mix(in srgb, var(--bar-color, var(--primary)) 32%, transparent); }
+.gantt-bar:hover { background: color-mix(in srgb, var(--bar-color, var(--primary)) 24%, transparent); }
 .gantt-bar.is-dragging { cursor: grabbing; opacity: .82; z-index: 6; transition: none; }
 @media (prefers-reduced-motion: reduce) { .gantt-bar { transition: none; } }
-.gantt-bar-progress { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--bar-color, var(--primary)) 38%, transparent); pointer-events: none; }
+// %16/24/30 -- code-review'de doğrulanan (koyu tema amber'de bileşik kontrast
+// dahil, üst üste bindiği metin dahil) en güvenli oranlar; daha yükseği
+// (denenen %22/32/38) koyu temada amber'de metin kontrastını AA'nın (4.5:1)
+// altına düşürüyordu.
+.gantt-bar-progress { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--bar-color, var(--primary)) 30%, transparent); pointer-events: none; }
 .gantt-bar-label { position: relative; z-index: 2; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10.5px; font-weight: var(--font-weight-bold); }
 .gantt-bar.status-iptal { opacity: .6; text-decoration: line-through; }
 .gantt-bar--step { top: 13px; height: 32px; }
@@ -1148,7 +1152,10 @@ body.gantt-modal-open { overflow: hidden; }
   .gantt-grid { min-width: calc(210px + var(--gantt-width)); }
   .gantt-form-grid { grid-template-columns: 1fr; }
   .gantt-field--wide { grid-column: auto; }
-  .gantt-dialog-actions { grid-template-columns: auto 1fr auto; }
+  // Masaüstüyle aynı 5 sütun (Arşivle, Sil, boşluk, Vazgeç, Kaydet) -- eskiden
+  // burada 3 sütunluk bir kalıntı vardı, "Sil" eklenince Kaydet'i örtük yeni
+  // bir satıra düşürüyordu.
+  .gantt-dialog-actions { grid-template-columns: auto auto 1fr auto auto; }
   .gantt-dialog-actions > span { display: none; }
   // İki satırlı adım düzeni artık sabit genişlik gerektirmiyor -- mobilde de
   // doğal olarak sığıyor, yatay scroll'a gerek kalmadı.

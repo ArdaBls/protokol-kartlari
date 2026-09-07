@@ -310,14 +310,17 @@ function renderConnectors() {
       if (bar) { stepBars.push(bar); }
       sibling = sibling.nextElementSibling;
     }
-    if (!parentBar || !stepBars.length) { return; }
+    if (!stepBars.length) { return; }
     // Ana proje çubuğu tüm adımların süresini kapsayan bir ÖZET (bitişi ilk
     // adımdan SONRA, çoğu zaman en son adımla aynı gün biter) -- bu yüzden
     // "bitiş -> başlangıç" bağımlılık okuyla bağlamak (reui'deki gibi) tersten
     // bir ok gibi görünürdü. Ana projeden ilk adıma "sol kenardan sol kenara"
     // (başlangıç -> başlangıç) bağlanıyor: "buradan çıkıyor" hissi. Adımlar
     // kendi aralarında normal bitiş->başlangıç zinciriyle bağlanır.
-    paths += connectorPath(parentBar, stepBars[0], gridRect, true);
+    // Ana proje çubuğu şu an görünür yıl aralığının dışındaysa (barGeometry
+    // null döner) parentBar yoktur -- o durumda sadece o TEK bağlantıyı atla,
+    // adımların kendi aralarındaki zinciri yine de çiz.
+    if (parentBar) { paths += connectorPath(parentBar, stepBars[0], gridRect, true); }
     for (let i = 0; i < stepBars.length - 1; i += 1) {
       paths += connectorPath(stepBars[i], stepBars[i + 1], gridRect, false);
     }
