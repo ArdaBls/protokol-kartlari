@@ -12,8 +12,11 @@
      alt-yolunda aynı origin'de servis edildiği için, kullanıcı ana siteye zaten giriş yapmışsa
      Firebase Auth oturumu buraya da otomatik taşınır. Admin/owner için Kullanıcı yönetimi
      sayfasıyla aynı "users" düğümünü (salt-okunur, kart görünümlü) okur; editör için ise
-     users/ yerine herkese açık staffProfiles/{uid} (yalnızca ad+fotoğraf) okunur -- kullanıcı
-     isteği: "editörler de sitede kaç kişi var görebilsin", e-posta/rol editöre YİNE sızmaz. -->
+     users/ yerine herkese açık staffProfiles/{uid} okunur (kullanıcı isteği: "editörler de
+     sitede kaç kişi var görebilsin", kart TASARIMI admin/owner ile birebir aynı olsun).
+     KULLANICI KARARIYLA (2026): rol ve e-posta artık editöre DE gösteriliyor -- staffProfiles
+     bunları da taşıyor, ama SADECE admin/owner tarafından yazılabiliyor (bkz. kurallar,
+     kişinin kendi rolünü/e-postasını kendi kendine yazamaması için). -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -134,9 +137,19 @@ function render(users, events) {
 // kaydettiğinde oluşuyor -- çoğu kullanıcı henüz hiç oraya girmediyse editörün
 // gördüğü liste neredeyse boş kalır (kullanıcı bulgusu: "editörlerde kişi
 // kartları gözükmüyordu"). Admin/owner zaten TÜM users/ listesini okuyabildiği
-// için, Kişiler sayfasını her açtığında eksik staffProfiles kayıtlarını
-// (yalnızca ad + varsa mevcut avatarUrl) SESSİZCE geri dolduruyor -- editör bir
-// sonraki ziyaretinde tam listeyi görür, e-posta/rol yine hiç yazılmıyor/sızmıyor.
+// için, Kişiler sayfasını her açtığında staffProfiles'ı users/ ile senkron
+// tutuyor -- editör bir sonraki ziyaretinde tam listeyi (fotoğraf + rol +
+// e-posta dahil) görür.
+//
+// KULLANICI KARARIYLA rol ve e-posta da editöre gösteriliyor artık -- bu
+// yüzden role/email HER ZAMAN users/{uid}'deki GÜNCEL değerle senkron tutulur
+// (yalnızca eksikse değil, ör. biri terfi ettiğinde eski rol staffProfiles'ta
+// takılı kalmasın). Yalnızca admin/owner yazabildiği için (bkz. kurallardaki
+// role/email .validate) kişi kendi rolünü/e-postasını kendi kendine yazamaz.
+// avatarUrl ise KİŞİNİN KENDİ yüklediği gerçek kaynak -- yalnızca eksikse
+// tamamlanır, üzerine yazılmaz (shell.js her sayfada displayName-only bir
+// kayıt oluşturabiliyor, o durumda fotoğraf hiç eklenmiyordu -- kullanıcı
+// bulgusu: "editörler adminin/kurucunun fotoğrafını göremiyor").
 function backfillStaffProfiles(users) {
   database.ref('staffProfiles').once('value').then((snap) => {
     const existing = snap.val() || {};
@@ -144,16 +157,12 @@ function backfillStaffProfiles(users) {
     Object.keys(users).forEach((uid) => {
       const u = users[uid];
       if (!u || (u.role !== 'editor' && u.role !== 'admin' && u.role !== 'owner')) { return; }
-      const mevcut = existing[uid];
-      // KRİTİK: sadece TAMAMEN eksik kayıtları değil, FOTOĞRAFI eksik olanları
-      // da tamamla -- shell.js her sayfada (Kişiler'den önce) çalışıp SADECE
-      // displayName ile bir kayıt oluşturabiliyor; o zaman "zaten var" deyip
-      // atlarsak fotoğraf hiç eklenmiyor (kullanıcı bulgusu: "editörler adminin/
-      // kurucunun fotoğrafını göremiyor").
-      if (!mevcut) {
-        updates['staffProfiles/' + uid + '/displayName'] = fullNameOf(u);
-        if (isSafeAvatarUrl(u.avatarUrl)) { updates['staffProfiles/' + uid + '/avatarUrl'] = u.avatarUrl; }
-      } else if (!isSafeAvatarUrl(mevcut.avatarUrl) && isSafeAvatarUrl(u.avatarUrl)) {
+      const mevcut = existing[uid] || {};
+      const name = fullNameOf(u);
+      if (mevcut.displayName !== name) { updates['staffProfiles/' + uid + '/displayName'] = name; }
+      if (mevcut.role !== u.role) { updates['staffProfiles/' + uid + '/role'] = u.role; }
+      if ((mevcut.email || '') !== (u.email || '')) { updates['staffProfiles/' + uid + '/email'] = u.email || ''; }
+      if (!isSafeAvatarUrl(mevcut.avatarUrl) && isSafeAvatarUrl(u.avatarUrl)) {
         updates['staffProfiles/' + uid + '/avatarUrl'] = u.avatarUrl;
       }
     });
@@ -178,13 +187,12 @@ function loadUsersAndEvents() {
   });
 }
 
-// ── Editör görünümü: users/ (e-posta/rol -- editöre kapalı) YERİNE, herkese
-// açık staffProfiles/{uid} (yalnızca ad + fotoğraf) okunur. Kullanıcı isteği:
-// "editörler de sitede kaç kişi var görebilsin" -- amaç sayı ve fotoğraf,
-// e-posta/rol/hesap durumu editöre YİNE sızmaz (bkz. staffProfiles kuralları).
-// etkinlikler zaten editöre açık (dbPath üzerinden okunuyor) -- admin/owner
-// görünümündeki AYNI Etkinlik/Haber istatistiği kartları burada da gösterilir
-// (kullanıcı isteği: "istatistikler gizli olmasın").
+// ── Editör görünümü: users/ (yazma yetkisi editöre kapalı) YERİNE, herkese
+// açık staffProfiles/{uid} okunur. Kullanıcı kararıyla kart TASARIMI ve
+// alanları (fotoğraf, ad, rol, e-posta, istatistikler) admin/owner ile
+// BİREBİR AYNI -- staffProfiles'taki role/email SADECE admin/owner tarafından
+// yazılabiliyor (bkz. kurallar), yani editör bunları görebilir ama kimse
+// kendi rolünü/e-postasını kendi kendine buraya yazamaz.
 function renderStaffDirectory(profiles, events) {
   const uids = Object.keys(profiles || {});
   if (!uids.length) { setState('Henüz profil fotoğrafı/adı paylaşan kimse yok.'); return; }
@@ -192,22 +200,24 @@ function renderStaffDirectory(profiles, events) {
   const eventList = Object.values(events || {});
   const gorevliCounts = countByName(eventList, 'gorevli');
   const haberCounts = countByName(eventList, 'haberYazanlari');
-  grid.innerHTML = `<div style="grid-column:1/-1;color:var(--text-muted);font-size:13px;margin-bottom:4px">${uids.length} kişi</div>` +
-    uids.map((uid) => {
+  grid.innerHTML = uids.map((uid) => {
       const p = profiles[uid] || {};
+      const role = p.role || 'pending';
       const name = String(p.displayName || '').trim() || '(isim yok)';
       const initial = name.charAt(0).toUpperCase() || '?';
       const hasPhoto = isSafeAvatarUrl(p.avatarUrl);
       // &quot; kullanılmalı, literal " DEĞİL -- bkz. render()'daki AYNI notu.
       const avStyle = hasPhoto
         ? `background-image:url(&quot;${String(p.avatarUrl).replace(/["'()]/g, '')}&quot;)`
-        : 'background:linear-gradient(135deg,var(--blue),#0550a0)';
+        : `background:${ROLE_COLOR[role] || ROLE_COLOR.pending}`;
       const etkinlikSayisi = gorevliCounts[name] || 0;
       const haberSayisi = haberCounts[name] || 0;
       return `
         <div class="contact-card">
           <div class="av${hasPhoto ? ' has-photo' : ''}" style="${avStyle}">${hasPhoto ? '' : escapeHtml(initial)}</div>
           <div class="name">${escapeHtml(name)}</div>
+          <div class="role">${escapeHtml(ROLE_LABEL[role] || role)}</div>
+          <div style="font-size:12px;color:var(--text-muted);word-break:break-word;margin-bottom:12px">${escapeHtml(p.email || '')}</div>
           <div class="stats">
             <div><strong>${etkinlikSayisi}</strong>Etkinlik</div>
             <div><strong>${haberSayisi}</strong>Haber</div>

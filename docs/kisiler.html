@@ -12,8 +12,11 @@
      alt-yolunda aynı origin'de servis edildiği için, kullanıcı ana siteye zaten giriş yapmışsa
      Firebase Auth oturumu buraya da otomatik taşınır. Admin/owner için Kullanıcı yönetimi
      sayfasıyla aynı "users" düğümünü (salt-okunur, kart görünümlü) okur; editör için ise
-     users/ yerine herkese açık staffProfiles/{uid} (yalnızca ad+fotoğraf) okunur -- kullanıcı
-     isteği: "editörler de sitede kaç kişi var görebilsin", e-posta/rol editöre YİNE sızmaz. -->
+     users/ yerine herkese açık staffProfiles/{uid} okunur (kullanıcı isteği: "editörler de
+     sitede kaç kişi var görebilsin", kart TASARIMI admin/owner ile birebir aynı olsun).
+     KULLANICI KARARIYLA (2026): rol ve e-posta artık editöre DE gösteriliyor -- staffProfiles
+     bunları da taşıyor, ama SADECE admin/owner tarafından yazılabiliyor (bkz. kurallar,
+     kişinin kendi rolünü/e-postasını kendi kendine yazamaması için). -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -33,7 +36,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/kisiler-B6ozwfDE.js"></script>
+  <script type="module" crossorigin src="/js/kisiler-C6mXKVEH.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-F_jprkvV.js">
   <link rel="modulepreload" crossorigin href="/js/main-v4-Cg3z8lNJ.js">

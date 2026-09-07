@@ -12,8 +12,9 @@
 //   3. editor -> izin verilen 12 sekme (Bildirimler ve Kişiler artık dahil --
 //                sonraki isteklerle editöre açıldı: Bildirimler kendi
 //                notifications/{uid} bildirimlerini gösteriyor, logs/* hâlâ
-//                kapalı; Kişiler ise users/ yerine güvenli staffProfiles/{uid}
-//                -- ad+fotoğraf, e-posta/rol YOK -- kaynağına geçti); Kullanıcı
+//                kapalı; Kişiler ise users/ yerine staffProfiles/{uid}
+//                kaynağına geçti -- kullanıcı kararıyla rol/e-posta dahil,
+//                kart tasarımı admin/owner ile birebir aynı); Kullanıcı
 //                yönetimi/Geliştirici Araçları hâlâ gizli, boşalan grup
 //                başlığı da gizli
 //   4. editor izinsiz bir sayfanın adresini elle yazarsa erisim-engellendi.html

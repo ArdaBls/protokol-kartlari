@@ -1,12 +1,14 @@
 // Ortak "personel profili" (ad + profil fotoğrafı) modülü.
 //
-// users/{uid} özel bir kayıttır (e-posta, rol, hesap durumu) ve editörler
-// BAŞKA kullanıcıların bu düğümünü okuyamaz (bkz. Firebase kuralları) --
-// bu yüzden avatarUrl orada dururken ortak ekranlarda (Kanban/Yapılacaklar
-// "Tamamlandı" kartları, Gantt vb.) hiç gösterilemiyordu. staffProfiles/{uid}
-// SADECE {displayName, avatarUrl} taşıyan, ayrı ve asgari bir yol -- giriş
-// yapmış her editor/admin/owner okuyabilir, kullanıcı sadece KENDİ kaydını
-// yazabilir (bkz. kurallar).
+// users/{uid} özel bir kayıttır ve editörler BAŞKA kullanıcıların bu düğümünü
+// okuyamaz (bkz. Firebase kuralları) -- bu yüzden avatarUrl orada dururken
+// ortak ekranlarda (Kanban/Yapılacaklar "Tamamlandı" kartları, Gantt vb.) hiç
+// gösterilemiyordu. staffProfiles/{uid} {displayName, avatarUrl, role, email}
+// taşıyan ayrı bir yol -- giriş yapmış her editor/admin/owner okuyabilir.
+// Kullanıcı KENDİ displayName/avatarUrl'ini yazabilir; role/email'i ise
+// SADECE admin/owner yazabilir (bkz. kurallar) -- kişi kendi rolünü/e-postasını
+// kendi kendine buraya yazamaz (kisiler.html'deki admin/owner senkronu
+// tarafından users/ ile eşleştirilir).
 //
 // profil.html ve ayarlar.html, kullanıcı adını/avatarını her güncellediğinde
 // bu yolu da eşzamanlı günceller (syncStaffProfile). Kanban/Yapılacaklar gibi

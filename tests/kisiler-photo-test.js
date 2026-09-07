@@ -56,4 +56,36 @@ assert.match(source, /database\.ref\(dbPath\('etkinlikler'\)\)\.once\('value'\)/
   'editör görünümü istatistik için etkinlikler verisini de okumalı');
 
 console.log('PASS: editör görünümünde de Etkinlik/Haber istatistikleri gösteriliyor');
+
+// Kullanıcı kararı: editör görünümü artık admin/owner ile BİREBİR AYNI --
+// rol ve e-posta da gösteriliyor. Ama role/email SADECE admin/owner tarafından
+// yazılabilmeli (kişi kendi rolünü/e-postasını kendi kendine yazamasın) --
+// bkz. yerel kurallardaki .validate. kisiler.html'in admin/owner geri
+// doldurması bu iki alanı HER ZAMAN (yalnızca eksikse değil, güncel tutmak
+// için) senkronlamalı.
+assert.match(source, /<div class="role">\$\{escapeHtml\(ROLE_LABEL\[role\] \|\| role\)\}<\/div>/,
+  'editör görünümü de rol rozetini göstermeli (admin/owner ile aynı kart tasarımı)');
+const emailLineCount = (source.match(/word-break:break-word;margin-bottom:12px">\$\{escapeHtml\(/g) || []).length;
+assert.ok(emailLineCount >= 2, 'hem admin/owner hem editör görünümü e-posta satırını aynı şekilde göstermeli');
+assert.match(source, /updates\['staffProfiles\/' \+ uid \+ '\/role'\] = u\.role/,
+  'admin/owner geri doldurması rolü users/ ile güncel tutmalı');
+assert.match(source, /updates\['staffProfiles\/' \+ uid \+ '\/email'\] = u\.email/,
+  'admin/owner geri doldurması e-postayı users/ ile güncel tutmalı');
+
+const rulesPath = path.join(__dirname, '..', 'yerel-notlar', 'firebase-database-rules.json');
+if (fs.existsSync(rulesPath)) {
+  const rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8')).rules;
+  const staffRules = rules.staffProfiles.$staffUid;
+  assert.ok(staffRules.role, 'staffProfiles kuralları role alanını doğrulamalı');
+  assert.ok(staffRules.email, 'staffProfiles kuralları email alanını doğrulamalı');
+  assert.match(staffRules.role['.validate'], /admin|owner/,
+    'role alanı SADECE admin/owner tarafından yazılabilmeli (kendi kendine rol yazamama)');
+  assert.match(staffRules.email['.validate'], /admin|owner/,
+    'email alanı SADECE admin/owner tarafından yazılabilmeli (kendi kendine e-posta yazamama)');
+  console.log('PASS: yerel kurallarda staffProfiles role/email yalnızca admin/owner tarafından yazılabiliyor');
+} else {
+  console.log('ATLANDI: yerel kurallar dosyası bulunamadı (yerel-notlar/ .gitignore ile izole)');
+}
+
+console.log('PASS: editör görünümü rol ve e-postayı admin/owner ile aynı şekilde gösteriyor');
 console.log('ALL_TESTS_PASSED: true');
