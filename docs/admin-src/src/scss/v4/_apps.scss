@@ -854,13 +854,6 @@
 .gantt-board.is-panning { cursor: grabbing; }
 .gantt-board.is-panning .gantt-bar { cursor: grabbing; }
 .gantt-grid { min-width: calc(270px + var(--gantt-width)); position: relative; }
-// reui.io/preview/base/gantt-1 referansındaki bağımlılık okları: ana proje ->
-// 1. adım -> 2. adım zinciri (bkz. gantt.js renderConnectors). Gerçek DOM
-// konumlarından hesaplanıyor; z-index 1 -- track arka planının üstünde,
-// çubukların (z-index 2) altında, oklar çubuk kenarına "değiyor" hissi verir.
-.gantt-connectors { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; overflow: visible; }
-.gantt-connector-line { fill: none; stroke: var(--text-muted); stroke-width: 1.5; }
-.gantt-connector-arrowhead { fill: var(--text-muted); }
 .gantt-project-row { display: grid; grid-template-columns: 270px var(--gantt-width); }
 // Başlık artık iki üst üste satır: hafta üst-başlığı (reui.io referansındaki
 // "W28 Jul 5-11" bandı) + gün başlığı -- bu yüzden .gantt-grid-head kendisi
@@ -1156,7 +1149,28 @@ body.gantt-modal-open { overflow: hidden; }
 .gantt-field textarea { resize: vertical; }
 .gantt-field input[type='range'] { width: 100%; accent-color: var(--primary); }
 .gantt-help { color: var(--text-muted); font-size: 10.5px; font-weight: 400; }
-.gantt-steps-field { border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden; }
+.gantt-owner-picker { position: relative; min-height: 38px; }
+.gantt-owner-search { width: 100%; min-height: 38px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); padding: 8px 10px; font: inherit; }
+.gantt-owner-search:focus { outline: 2px solid color-mix(in srgb, var(--primary) 28%, transparent); border-color: var(--primary); }
+.gantt-owner-chip { min-height: 38px; display: inline-flex; align-items: center; gap: 7px; max-width: 100%; padding: 6px 8px 6px 10px; border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border-color)); border-radius: var(--radius); background: color-mix(in srgb, var(--primary) 10%, var(--bg-surface)); color: var(--text); font-size: 12px; font-weight: 600; }
+.gantt-owner-chip button { width: 20px; height: 20px; flex: 0 0 20px; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 17px; line-height: 1; }
+.gantt-owner-chip button:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.gantt-owner-suggestions { position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; left: 0; max-height: 196px; overflow-y: auto; padding: 4px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-surface); box-shadow: 0 10px 24px rgba(15, 23, 42, .16); }
+.gantt-owner-suggestion { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: calc(var(--radius) - 2px); background: transparent; color: var(--text); cursor: pointer; text-align: left; font: inherit; font-size: 12px; }
+.gantt-owner-suggestion:hover, .gantt-owner-suggestion:focus-visible { background: var(--bg-surface-secondary); outline: none; }
+.gantt-owner-empty { margin: 5px 7px; color: var(--text-muted); font-size: 12px; }
+// overflow:hidden KALDIRILDI: CSS Grid'de bir grid item'ın overflow'u
+// "visible" DEĞİLSE, satırının (track) otomatik boyutlandırması content-tabanlı
+// olmak yerine küçülüyor. .gantt-form-grid artık sabit yükseklikli/kaydırmalı
+// olduğundan (sabit alt bar için) bu, .gantt-steps-field'in satırını (ve
+// dolayısıyla TÜM üretim adımı satırlarını) sadece başlığı kadar sıkıştırıp
+// altındaki alanların (Takvim etkinliği, Renk) üzerine bindiriyordu --
+// kullanıcının "adım ekleme yeri çok küçüldü, hiçbir şey okunmuyor" dediği
+// bug buydu. min-height ile telafi etmek satırı büyütmedi (sonraki alanlarla
+// çakıştı); kökten çözüm overflow'u kaldırmak -- yuvarlak köşe artık
+// .gantt-steps-head'in kendi üst köşe radius'una emanet.
+.gantt-steps-field { border: 1px solid var(--border-color); border-radius: var(--radius); }
+.gantt-steps-head { border-radius: var(--radius) var(--radius) 0 0; }
 .gantt-steps-head { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--bg-surface-secondary); }
 .gantt-steps-head strong, .gantt-steps-head span { display: block; }
 .gantt-steps-head strong { color: var(--text); font-size: 12px; }

@@ -38,6 +38,12 @@ assert.match(source, /project\.adimlar/,
   'alt üretim adımları proje hiyerarşisinden okunmalıdır');
 assert.match(source, /data-step-status/,
   'üretim adımları kendi durum alanıyla düzenlenebilmelidir');
+assert.match(source, /loadPressOfficerPool/,
+  'sorumlu seçimi ortak basın görevlisi havuzundan yüklenmelidir');
+assert.match(page, /id="gantt-owner-picker"/,
+  'sorumlu alanı serbest metin yerine seçim bileşeni olmalıdır');
+assert.match(source, /sorumlu: ownerValue/,
+  'seçilen sorumlu form kaydına yazılmalıdır');
 assert.doesNotMatch(source, /innerHTML\s*=.*project\.ad/,
   'Firebase kullanıcı metni doğrudan innerHTML içine yazılmamalıdır');
 

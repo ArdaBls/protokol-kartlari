@@ -5,6 +5,7 @@
 import { showToast } from './toast.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 import { openMenu } from './menus.js';
+import { loadPressOfficerPool } from './roster.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -70,6 +71,13 @@ let scrollRaf = null;
 let initialScrollDone = false;
 let dataLoaded = false;
 const collapsedProjects = new Set();
+// "Sorumlu" artık serbest metin DEĞİL -- calendar.js'teki katılımcı seçici
+// gibi havuzdan (basinGorevlileri) tıklayarak seçilen tek bir kişi (chip,
+// yanında kaldırmak için ×). Ham JSON string yerine ownerValue tutulur,
+// projectFromForm() bunu okur.
+let ownerPool = [];
+let ownerValue = '';
+let ownerPoolRequest = 0;
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -259,7 +267,12 @@ function progressRingHtml(progress, colorHex) {
   const offset = (c * (1 - clamped / 100)).toFixed(2);
   // [data-tooltip] ::before/::after tutarlı çalışsın diye SVG'nin kendisine
   // değil, onu saran normal bir <span>'e konuyor.
-  return `<span class="gantt-progress-ring-wrap" data-tooltip="%${clamped}"><svg class="gantt-progress-ring" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+  // data-tooltip-pos="bottom": yukarı açılan varsayılan konum ilk satırda
+  // .gantt-grid-head'in (sticky, daha yüksek stacking context) ARKASINDA
+  // kalıyordu -- z-index'i ne kadar yükseltilirse yükseltilsin, ata
+  // .gantt-project-info'nun kendi (daha düşük) stacking context'i içine
+  // hapsolduğu için başlığı geçemiyordu. Aşağı açmak bu çakışmayı ortadan kaldırıyor.
+  return `<span class="gantt-progress-ring-wrap" data-tooltip="%${clamped}" data-tooltip-pos="bottom"><svg class="gantt-progress-ring" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
     <circle cx="8" cy="8" r="${r}" fill="none" stroke="currentColor" stroke-opacity=".2" stroke-width="2.4"></circle>
     <circle cx="8" cy="8" r="${r}" fill="none" stroke="${colorHex}" stroke-width="2.4" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 8 8)"></circle>
   </svg></span>`;
@@ -328,58 +341,6 @@ function renderProjectRow(id, project, start, days, dayWidth) {
   return parentRow + childRows;
 }
 
-// reui.io/preview/base/gantt-1 referansındaki bağımlılık okları: ana proje ->
-// 1. adım -> 2. adım -> ... şeklinde zincir. Konumlar CSS grid matematiğinden
-// yeniden türetilmek yerine gerçek DOM dikdörtgenlerinden (getBoundingClientRect)
-// okunuyor -- zoom/satır yüksekliği/açılıp-kapanma her ne olursa olsun doğru
-// kalır. Yatay kaydırma redraw gerektirmez: bar ve grid birlikte kayar, aradaki
-// fark (gridRect'e göre konum) sabit kalır.
-function connectorPath(fromBar, toBar, gridRect, fromLeftEdge) {
-  const from = fromBar.getBoundingClientRect();
-  const to = toBar.getBoundingClientRect();
-  const x1 = (fromLeftEdge ? from.left : from.right) - gridRect.left;
-  const y1 = from.top + from.height / 2 - gridRect.top;
-  const x2 = to.left - gridRect.left;
-  const y2 = to.top + to.height / 2 - gridRect.top;
-  const midX = fromLeftEdge ? x1 : x1 + 10;
-  return `<path class="gantt-connector-line" d="M${x1},${y1} L${midX},${y1} L${midX},${y2} L${x2},${y2}" marker-end="url(#gantt-arrow)"/>`;
-}
-
-function renderConnectors() {
-  const grid = $('.gantt-grid');
-  if (!grid) { return; }
-  const gridRect = grid.getBoundingClientRect();
-  let paths = '';
-  document.querySelectorAll('.gantt-parent-row').forEach((parentRow) => {
-    const stepBars = [];
-    let sibling = parentRow.nextElementSibling;
-    while (sibling && sibling.classList.contains('gantt-step-row')) {
-      const bar = sibling.querySelector('.gantt-bar');
-      if (bar) { stepBars.push(bar); }
-      sibling = sibling.nextElementSibling;
-    }
-    // Ana proje çubuğundan ilk adıma ok ÇEKİLMİYOR: ana proje çubuğu tüm
-    // adımların süresini kapsayan bir ÖZET olduğundan (kullanıcının kendi
-    // ifadesiyle "ana projenin [oku] saçma oluyor") -- ne bitiş->başlangıç
-    // (tersten görünüyordu) ne de başlangıç->başlangıç (yine saçma bulundu)
-    // mantıklı bir bağlantı üretmiyor. Sadece adımlar kendi aralarında
-    // sıralı bitiş->başlangıç zinciriyle bağlanır.
-    for (let i = 0; i < stepBars.length - 1; i += 1) {
-      paths += connectorPath(stepBars[i], stepBars[i + 1], gridRect, false);
-    }
-  });
-  let svg = grid.querySelector('.gantt-connectors');
-  if (!svg) {
-    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'gantt-connectors');
-    svg.setAttribute('aria-hidden', 'true');
-    grid.prepend(svg);
-  }
-  svg.setAttribute('width', grid.offsetWidth);
-  svg.setAttribute('height', grid.offsetHeight);
-  svg.innerHTML = `<defs><marker id="gantt-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" class="gantt-connector-arrowhead"/></marker></defs>${paths}`;
-}
-
 function render() {
   const board = $('#gantt-board');
   if (!board) { return; }
@@ -394,7 +355,6 @@ function render() {
     <div class="gantt-grid-head">${renderWeekHead(start, days, dayWidth)}${renderDayHead(start, days)}</div>
     ${list.map(([id, project]) => renderProjectRow(id, project, start, days, dayWidth)).join('') || '<div class="gantt-empty"><strong>Bu görünümde proje yok.</strong><span>Yeni proje ekleyin veya filtreleri temizleyin.</span></div>'}
   </div>`;
-  renderConnectors();
   updatePeriodLabel();
   // Firebase verisi henüz gelmeden (auth/rol çözümü asenkron) kullanıcı
   // ctrl+tekerlek veya +/- ile yakınlaştırırsa da render() tetiklenir --
@@ -612,6 +572,48 @@ function openRowMenu(trigger) {
   openMenu(trigger, items);
 }
 
+// reui.io/preview/base/gantt-1 referansındaki combobox-chips deseni: arama
+// kutusuna yazınca havuzdan filtrelenmiş öneriler açılır, birine tıklanınca
+// arama kutusunun yerini kişi rozeti (chip) alır, rozetin × ile kaldırılması
+// arama kutusuna geri döner. Havuzda olmayan bir isim asla YAZILAMAZ --
+// kullanıcının "sadece kişi ekleme yapalım, yazmayalım" isteği.
+function renderOwnerPicker() {
+  const chips = $('#gantt-owner-chips');
+  const search = $('#gantt-owner-search');
+  if (!chips || !search) { return; }
+  chips.innerHTML = ownerValue
+    ? `<span class="gantt-owner-chip">${escapeHtml(ownerValue)}<button type="button" data-owner-remove aria-label="${escapeHtml(ownerValue)} kişisini kaldır">×</button></span>`
+    : '';
+  search.hidden = !!ownerValue;
+  if (ownerValue) { search.value = ''; }
+}
+
+function renderOwnerSuggestions(query) {
+  const box = $('#gantt-owner-suggestions');
+  if (!box) { return; }
+  const q = query.trim().toLocaleLowerCase('tr');
+  const matches = (q ? ownerPool.filter((p) => p.name.toLocaleLowerCase('tr').includes(q)) : ownerPool).slice(0, 8);
+  box.innerHTML = matches.length
+    ? matches.map((p) => `<button type="button" class="gantt-owner-suggestion" data-owner-pick="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`).join('')
+    : '<p class="gantt-owner-empty">Kişi bulunamadı.</p>';
+  box.hidden = false;
+}
+
+function hideOwnerSuggestions() {
+  const box = $('#gantt-owner-suggestions');
+  if (box) { box.hidden = true; }
+}
+
+// Havuz verisi modal her açıldığında tazelenir. Böylece Kullanıcı Yönetimi'nde
+// sonradan basın görevlisi yapılan kişi, sayfayı yenilemeden de seçilebilir.
+async function refreshOwnerPool() {
+  if (!database) { return; }
+  const request = ++ownerPoolRequest;
+  ownerPool = await loadPressOfficerPool(database);
+  if (request !== ownerPoolRequest || $('#gantt-modal')?.hidden) { return; }
+  renderOwnerPicker();
+}
+
 function renderColorPicker(selected) {
   const el = $('#gantt-color-picker');
   if (!el) { return; }
@@ -635,7 +637,13 @@ function openModal(id = '', focusStepId = '') {
   $('#gantt-status').value = project?.durum || 'fikir';
   $('#gantt-start').value = project?.baslangicTarihi || today;
   $('#gantt-end').value = project?.bitisTarihi || localDateKey(addDays(new Date(), 7));
-  $('#gantt-owner').value = project?.sorumlu || currentUserName;
+  // Yeni projede boş başlamak, havuzda olmayan oturum sahibinin yanlışlıkla
+  // serbest metin sorumlu olarak kaydedilmesini engeller. Eski kayıtlardaki
+  // isim ise veri kaybetmeden chip olarak gösterilip korunabilir.
+  ownerValue = project?.sorumlu || '';
+  renderOwnerPicker();
+  hideOwnerSuggestions();
+  refreshOwnerPool().catch(() => { ownerPool = []; });
   $('#gantt-priority').value = project?.oncelik || 'normal';
   $('#gantt-progress').value = Number(project?.ilerleme) || 0;
   $('#gantt-progress-value').textContent = `${Number(project?.ilerleme) || 0}%`;
@@ -678,7 +686,7 @@ function projectFromForm() {
     durum: $('#gantt-status').value,
     baslangicTarihi: start,
     bitisTarihi: end,
-    sorumlu: $('#gantt-owner').value.trim(),
+    sorumlu: ownerValue,
     oncelik: $('#gantt-priority').value,
     ilerleme: progress,
     adimlar: steps,
@@ -924,6 +932,22 @@ function bindUi() {
   $('#gantt-search').addEventListener('input', (event) => { searchText = event.target.value.trim(); render(); });
   $('#gantt-status-filter').addEventListener('change', (event) => { statusFilter = event.target.value; render(); });
   $('#gantt-progress').addEventListener('input', (event) => { $('#gantt-progress-value').textContent = `${event.target.value}%`; });
+  $('#gantt-owner-search').addEventListener('focus', (event) => renderOwnerSuggestions(event.target.value));
+  $('#gantt-owner-search').addEventListener('input', (event) => renderOwnerSuggestions(event.target.value));
+  $('#gantt-owner-picker').addEventListener('click', (event) => {
+    const pick = event.target.closest('[data-owner-pick]');
+    if (pick) {
+      ownerValue = pick.dataset.ownerPick || '';
+      renderOwnerPicker();
+      hideOwnerSuggestions();
+      return;
+    }
+    if (event.target.closest('[data-owner-remove]')) {
+      ownerValue = '';
+      renderOwnerPicker();
+      requestAnimationFrame(() => $('#gantt-owner-search')?.focus());
+    }
+  });
   $('#gantt-add-step').addEventListener('click', addStepEditor);
   $('#gantt-step-list').addEventListener('click', (event) => {
     const removeButton = event.target.closest('[data-remove-step]');
@@ -1007,13 +1031,6 @@ function bindUi() {
     if (scrollRaf) { return; }
     scrollRaf = requestAnimationFrame(() => { scrollRaf = null; updatePeriodLabel(); });
   }, { passive: true });
-  // Pencere genişliği 760px kırılma noktasını geçince isim sütunu (270px<->210px)
-  // daralıp/genişleyerek tüm bar konumlarını kaydırır -- oklar yeniden çizilmeli.
-  let resizeRaf = null;
-  window.addEventListener('resize', () => {
-    if (resizeRaf) { return; }
-    resizeRaf = requestAnimationFrame(() => { resizeRaf = null; renderConnectors(); });
-  });
 }
 
 export function initGantt() {

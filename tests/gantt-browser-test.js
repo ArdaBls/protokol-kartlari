@@ -50,6 +50,10 @@ function serve() {
           }
         }
       },
+      basinGorevlileri: {
+        gorevli1: 'Haber Ekibi',
+        gorevli2: 'Derya Editör'
+      },
       etkinlikler: {
         ev1: { ad: 'Belgesel yayını', tarih: '2026-09-30', durum: 'planlandi', arsiv: false }
       }
@@ -105,7 +109,8 @@ function serve() {
     await page.locator('#gantt-title').fill('Yeni özel haber');
     await page.locator('#gantt-start').fill('2026-09-10');
     await page.locator('#gantt-end').fill('2026-09-18');
-    await page.locator('#gantt-owner').fill('Haber Ekibi');
+    await page.locator('#gantt-owner-search').fill('Haber');
+    await page.locator('[data-owner-pick="Haber Ekibi"]').click();
     await page.locator('#gantt-add-step').click();
     await page.locator('[data-step-name]').last().fill('Metin yazımı');
     await page.locator('[data-step-status]').last().selectOption('yapiliyor');
@@ -122,6 +127,7 @@ function serve() {
     assert.equal(Object.keys(projectValue.adimlar).length, 1);
     assert.equal(Object.values(projectValue.adimlar)[0].durum, 'yapiliyor');
     assert.equal(projectValue.ilerleme, 50);
+    assert.equal(projectValue.sorumlu, 'Haber Ekibi');
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(150);

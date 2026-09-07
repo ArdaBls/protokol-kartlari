@@ -101,9 +101,14 @@
         <label class="gantt-field">Bitiş / teslim
           <input type="date" class="form-control" id="gantt-end" required>
         </label>
-        <label class="gantt-field">Sorumlu
-          <input class="form-control" id="gantt-owner" maxlength="120" autocomplete="off">
-        </label>
+        <div class="gantt-field">
+          <span>Sorumlu</span>
+          <div class="gantt-owner-picker" id="gantt-owner-picker">
+            <div class="gantt-owner-chips" id="gantt-owner-chips"></div>
+            <input type="text" class="gantt-owner-search" id="gantt-owner-search" placeholder="Kişi ara…" autocomplete="off">
+            <div class="gantt-owner-suggestions" id="gantt-owner-suggestions" hidden></div>
+          </div>
+        </div>
         <label class="gantt-field">Öncelik
           <select class="form-control" id="gantt-priority"><option value="normal">Normal</option><option value="yuksek">Yüksek</option><option value="kritik">Kritik</option></select>
         </label>
