@@ -440,6 +440,16 @@ function editorEventActivity(echarts, el, t) {
 // gün çalışmış" sorusuna cevap. editorEventActivity ile BİREBİR aynı görsel
 // dil (bağımsız kişi çizgileri, aynı renk paleti, aynı legend/grid deseni),
 // tek fark: x ekseni ay değil, İÇİNDE BULUNDUĞUMUZ AYIN GÜNLERİ.
+// Kullanıcı bulgusu: "iki kişi aynı gün aynı sayıda etkinliğe gidiyorsa Gün
+// sekmesinde üst üste çakışıyor" -- iki kişinin bir günkü sayısı eşitse
+// çizgileri TAM aynı noktadan geçiyor, aynı renk+düz çizgi ile biri diğerinin
+// arkasında tamamen kayboluyordu. Her seri farklı bir sembol şekli + (3'te 1
+// oranında) kesikli çizgi deseniyle ayırt edilebiliyor -- iki çizgi aynı
+// koordinattan geçse bile üstteki farklı şekildeki nokta işareti alttakinin
+// varlığını ele verir.
+const DAILY_SYMBOLS = ['circle', 'diamond', 'triangle', 'rect', 'roundRect', 'pin', 'arrow'];
+function dailyLineDash(i) { return i % 3 === 1 ? [6, 3] : (i % 3 === 2 ? [2, 3] : undefined); }
+
 function editorDailyActivity(echarts, el, t) {
   const chart = echarts.init(el);
   const basePalette = [t.primary, t.azure, t.yellow, t.green, t.purple, t.red, t.blue];
@@ -516,8 +526,12 @@ function editorDailyActivity(echarts, el, t) {
         // NOT: stack:'total' KULLANMA -- editorEventActivity'deki aynı gerekçe,
         // bkz. o fonksiyondaki yorum.
         smooth: true,
-        showSymbol: false,
-        lineStyle: { color, width: 1.5 },
+        // Eşit değerli günlerde çizgiler tam üst üste bindiğinde hangi
+        // isimlerin orada olduğunu ayırt etmek için semboller AÇIK.
+        showSymbol: true,
+        symbol: DAILY_SYMBOLS[i % DAILY_SYMBOLS.length],
+        symbolSize: 6,
+        lineStyle: { color, width: 1.5, type: dailyLineDash(i) || 'solid' },
         itemStyle: { color },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
