@@ -175,6 +175,24 @@ async function ac(browser, rol, hedef) {
 	assert.match(jsSource, /mailto:\?bcc=/, 'Gizli Gönder mailto:?bcc= linki oluşturmalı (alıcılar birbirini görmemeli)');
 	assert.doesNotMatch(jsSource, /mailto:\?(to|cc)=/, 'Gizli Gönder to/cc DEĞİL, sadece bcc kullanmalı');
 
+	// Kullanıcı bulgusu: "mobilde yeni kişi oluştura basınca iki modal birden
+	// açılıyor". Kök sebep: "İçe Aktar"/"+ Yeni Kişi" .card-opt-btn sınıfını
+	// kullanıyor, main-v4.js'teki genel delegated tıklama işleyicisi bu sınıfa
+	// sahip HER butona (task-add/quick-event-btn hariç) "Refresh/Move up/Move
+	// down/Hide card" menüsünü de açıyordu -- press-add/press-import istisna
+	// listesine eklenmeliydi.
+	const mainSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'main-v4.js'), 'utf8');
+	assert.match(mainSource, /data-press-add/, 'main-v4.js genel .card-opt-btn menüsü data-press-add\'i dışlamalı (çift modal açılmasın)');
+	assert.match(mainSource, /data-press-import/, 'main-v4.js genel .card-opt-btn menüsü data-press-import\'u dışlamalı (çift modal açılmasın)');
+
+	// Kullanıcı bulgusu: "isim kısmına gelince ekran yakınlaşıyor" -- iOS
+	// Safari, font-size 16px'ten küçük bir input'a odaklanınca sayfayı
+	// otomatik yakınlaştırır. .form-control (Yeni Kişi modalındaki alanlar
+	// dahil TÜM formlar) 13px'ti -- dar ekranda 16px'e çıkarılmalı.
+	const formsSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'scss', 'v4', '_forms.scss'), 'utf8');
+	assert.match(formsSource, /\.form-control \{ font-size: 16px; \}/,
+		'.form-control dar ekranda 16px olmalı (iOS Safari otomatik yakınlaştırmasını önlemek için)');
+
 	const navSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'shell-render.js'), 'utf8');
 	assert.match(navSource, /'press-directory'/, 'EDITOR_NAV_KEYS Basın Rehberi\'ni içermeli -- editör de erişebilmeli');
 	assert.match(navSource, /key: 'press-directory'.*href: 'basin-rehberi\.html'/, 'NAV listesinde Basın Rehberi girdisi olmalı');

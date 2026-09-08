@@ -135,6 +135,12 @@ select.form-control {
 .form-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 768px) {
   .form-row, .form-row.cols-3 { grid-template-columns: 1fr; }
+  // Kullanıcı bulgusu: "isim kısmına gelince ekran yakınlaşıyor" -- iOS
+  // Safari, font-size 16px'ten KÜÇÜK bir input'a odaklanınca sayfayı otomatik
+  // yakınlaştırır (erişilebilirlik önlemi). .form-control 13px olduğu için
+  // TÜM formlar (bu modal dahil her yerdeki .form-control) bu zoom'u
+  // tetikliyordu -- kök sebep burada, tek bir yerden düzeltildi.
+  .form-control { font-size: 16px; }
 }
 
 // Input group (icon prefix/suffix)

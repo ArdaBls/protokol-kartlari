@@ -139,12 +139,16 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.card-opt-btn');
   if (!btn) {return;}
-  // Tasks kartındaki "+" (yeni görev) ve "📍 Bir Etkinliğe Gidiyorum"
-  // butonları da görsel tutarlılık için .card-opt-btn stilini kullanıyor,
-  // ama kendi tıklama işleyicileri var (bkz. tasks-widget.js, quick-event.js)
-  // -- bu genel dropdown menüsüne düşmemeli, aksi halde İngilizce
-  // "Refresh/Edit/Duplicate" menüsü açılırdı.
-  if (btn.hasAttribute('data-task-add') || btn.hasAttribute('data-quick-event-btn')) {return;}
+  // Tasks kartındaki "+" (yeni görev), "📍 Bir Etkinliğe Gidiyorum" ve Basın
+  // Rehberi'ndeki "İçe Aktar"/"+ Yeni Kişi" butonları da görsel tutarlılık
+  // için .card-opt-btn stilini kullanıyor, ama kendi tıklama işleyicileri var
+  // (bkz. tasks-widget.js, quick-event.js, press-directory.js) -- bu genel
+  // dropdown menüsüne düşmemeli, aksi halde İngilizce "Refresh/Move up/Move
+  // down/Hide card" menüsü AYNI ANDA kendi modallarıyla birlikte açılırdı
+  // (kullanıcı bulgusu: "mobilde yeni kişi oluştura basınca iki modal
+  // birden açılıyor").
+  if (btn.hasAttribute('data-task-add') || btn.hasAttribute('data-quick-event-btn')
+    || btn.hasAttribute('data-press-add') || btn.hasAttribute('data-press-import')) {return;}
   // Skip if the click was already handled (e.g. calendar prev/next).
   if (e.defaultPrevented) {return;}
   e.preventDefault();
