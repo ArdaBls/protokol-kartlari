@@ -527,6 +527,38 @@ onDbModeChange(() => { if (attendanceRozetiRole) { attendanceRozetiniBagla(atten
 // bildirimler rozette hiç görünmez. onDbModeChange ile mod değişince (başka
 // bir sekmeden Test Modu açılıp kapanınca) dinleyici doğru dala yeniden bağlanır.
 let bildirimRozetiUid = null;
+
+function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Kullanıcı isteği: "bir kişiden bildirim alınca yanlızca zilde beliriyor,
+// ekranına bir modal açıp bu kişi sizinle satranç oynamak istiyor diye
+// belirtelim" -- satranç daveti (type:'chess_invite') geldiğinde, hangi
+// sayfada olursa olsun (bu fonksiyon HER admin sayfasında çalışır) bir modal
+// açılır. Aynı bildirim tekrar tekrar (her .on('value') tetiklenişinde)
+// gösterilmesin diye görülen anahtarlar oturum boyunca hatırlanır. Kullanıcı
+// zaten o oyunun sayfasındaysa (davet zaten ekranda görünüyor) modal atlanır.
+const gosterilenSatrancDavetleri = new Set();
+function satrancDavetModaliniKontrolEt(hepsi) {
+  Object.keys(hepsi).forEach((key) => {
+    const n = hepsi[key];
+    if (!n || n.read === true || n.type !== 'chess_invite' || !n.relatedGameId) { return; }
+    if (gosterilenSatrancDavetleri.has(key)) { return; }
+    gosterilenSatrancDavetleri.add(key);
+    const gameId = n.relatedGameId;
+    const zatenOSayfada = /oyun-satranc\.html$/.test(window.location.pathname) &&
+      new URLSearchParams(window.location.search).get('oyun') === gameId;
+    if (zatenOSayfada) { return; }
+    showModal({
+      title: 'Satranç daveti',
+      body: '<p>' + escapeHtml(n.message || 'Sizi bir satranç oyununa davet etti.') + '</p>',
+      actions: [
+        { label: 'Kapat', variant: 'ghost' },
+        { label: 'Oyuna Git', variant: 'primary', action: () => { window.location.href = 'oyun-satranc.html?oyun=' + encodeURIComponent(gameId); } }
+      ]
+    });
+  });
+}
+
 function bildirimRozetiniBagla(uid) {
   bildirimRozetiUid = uid || null;
   if (bildirimRozetiListenerRef) { bildirimRozetiListenerRef.off('value'); bildirimRozetiListenerRef = null; }
@@ -540,6 +572,7 @@ function bildirimRozetiniBagla(uid) {
       const hepsi = snap.val() || {};
       pendingNotifsCount = Object.values(hepsi).filter((n) => n && n.read !== true).length;
       renderBildirimRozeti();
+      satrancDavetModaliniKontrolEt(hepsi);
     }, (err) => console.error('Bildirim sayısı okunamadı:', err));
   });
 }

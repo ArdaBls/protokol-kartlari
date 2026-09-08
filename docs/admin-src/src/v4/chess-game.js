@@ -200,6 +200,14 @@ function ensureBoard(fen) {
     coordinates: true,
     highlight: { lastMove: true, check: true },
     movable: { free: false, color: undefined, dests: new Map(), showDests: true, events: { after: onUserMove } },
+    // Lichess'teki gibi önceden hamle (premove): sıra rakipteyken movable.color
+    // KENDİ rengimde SABİT kalmalı (viewOnly'yi de false tutuyoruz) -- chessground
+    // bunu görüp "sıra bende değil ama kendi taşımı sürüklüyorum" durumunu premove
+    // olarak ayırt ediyor (bkz. chessground/board.js isPremovable). Rakibin hamlesi
+    // gelince syncBoardFromGame() cg.playPremove() çağırır, kuyruktaki hamle varsa
+    // otomatik oynanır (movable.events.after yine tetiklenir, normal hamle gibi
+    // Firebase'e yazılır).
+    premovable: { enabled: true, showDests: true },
     draggable: { enabled: true, showGhost: true }
   });
 }
@@ -228,16 +236,27 @@ function onUserMove(orig, dest) {
   }
   finalizeMove(orig, dest);
 }
+function hamleListesi(game) {
+  return Object.keys((game && game.hamleler) || {}).map(Number).sort((a, b) => a - b).map((k) => game.hamleler[k]);
+}
+
 function finalizeMove(orig, dest, promotion) {
   const oncekiFen = chess.fen();
   const oncekiSira = chess.turn();
   const result = chess.move({ from: orig, to: dest, promotion: promotion || 'q' });
   if (!result) { cg.set({ fen: chess.fen() }); return; }
   const info = gameOverInfo(chess);
+  const hamleIndex = hamleListesi(currentGame).length;
   const patch = {
     fen: chess.fen(), sira: chess.turn(), guncellemeTs: firebase.database.ServerValue.TIMESTAMP,
     beraberlikTeklifEden: null, geriAlmaTeklifEden: null, oncekiFen, oncekiSira
   };
+  // Hamle geçmişi: sadece geri alma (bir sonraki hamleden önce) VE oyun bitince
+  // Lichess'teki gibi adım adım gezinme (ileri/geri/başa/sona) için gerekiyor --
+  // sadece güncel FEN yeterli değil, chess.js'e new Chess(fen) ile yüklenen bir
+  // pozisyonun kendi hamle geçmişi YOK (bkz. syncBoardFromGame'deki eski lastMove
+  // hatası -- chess.history() hep boştu, o yüzden lastMove hiç görünmüyordu).
+  patch['hamleler/' + hamleIndex] = { from: orig, to: dest, promotion: promotion || null };
   if (info.over) { patch.durum = 'bitti'; patch.sonuc = info.sonuc; patch.sonNot = info.sonNot; }
   database.ref(dbPath('satranc/' + currentGameId)).update(patch)
     .catch((err) => { console.error('Hamle kaydedilemedi:', err); showToast('Hamle kaydedilemedi.', { variant: 'error' }); });
@@ -247,23 +266,125 @@ function syncBoardFromGame(game) {
   chess = new Chess(game.fen);
   ensureBoard(game.fen);
   const mine = myColor(game);
-  const isMyTurn = game.durum === 'oynaniyor' && mine && chess.turn() === mine;
-  const history = chess.history({ verbose: true });
-  const last = history[history.length - 1];
+  const active = game.durum === 'oynaniyor';
+  const isMyTurn = active && mine && chess.turn() === mine;
+  const canInteract = active && !!mine;
+  const liste = hamleListesi(game);
+  const last = liste[liste.length - 1];
   cg.set({
     fen: game.fen,
     orientation: mine === 'b' ? 'black' : 'white',
     turnColor: chess.turn() === 'w' ? 'white' : 'black',
     check: chess.inCheck() ? (chess.turn() === 'w' ? 'white' : 'black') : false,
     lastMove: last ? [last.from, last.to] : undefined,
-    viewOnly: !isMyTurn,
+    viewOnly: !canInteract,
     movable: {
       free: false,
-      color: isMyTurn ? (mine === 'w' ? 'white' : 'black') : undefined,
+      // movable.color sıra rakipteyken de KENDİ rengimde sabit kalır (premove
+      // için gerekli -- bkz. ensureBoard'daki not); sadece dests, gerçek
+      // hamle hakkı sırada olduğumuzda dolduruluyor.
+      color: canInteract ? (mine === 'w' ? 'white' : 'black') : undefined,
       dests: isMyTurn ? toDests(chess) : new Map(),
       showDests: true
     }
   });
+  // Rakibin hamlesi geldi ve artık sıra bende: kuyrukta bekleyen bir premove
+  // varsa şimdi oynanır (yoksa no-op).
+  if (isMyTurn) { cg.playPremove(); }
+}
+
+// ── Oyun bitince adım adım inceleme (Lichess'teki |< < > >| gibi) ──
+let reviewFens = null;
+let reviewLastMoves = null;
+let reviewIndex = 0;
+let reviewGameId = null;
+
+function buildReviewData(game) {
+  const c = new Chess();
+  const fens = [c.fen()];
+  const lastMoves = [null];
+  hamleListesi(game).forEach((m) => {
+    const res = c.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' });
+    fens.push(c.fen());
+    lastMoves.push(res ? [res.from, res.to] : lastMoves[lastMoves.length - 1]);
+  });
+  return { fens, lastMoves };
+}
+
+function renderReviewPosition() {
+  if (!cg || !reviewFens) { return; }
+  const fen = reviewFens[reviewIndex];
+  const posEl = document.querySelector('[data-chess-review-pos]');
+  if (posEl) { posEl.textContent = reviewIndex + ' / ' + (reviewFens.length - 1); }
+  const c = new Chess(fen);
+  cg.set({
+    fen,
+    lastMove: reviewLastMoves[reviewIndex] || undefined,
+    check: c.inCheck() ? (c.turn() === 'w' ? 'white' : 'black') : false,
+    viewOnly: true,
+    movable: { free: false, color: undefined, dests: new Map() }
+  });
+  const startBtn = document.querySelector('[data-chess-review-start]');
+  const prevBtn = document.querySelector('[data-chess-review-prev]');
+  const nextBtn = document.querySelector('[data-chess-review-next]');
+  const endBtn = document.querySelector('[data-chess-review-end]');
+  if (startBtn) { startBtn.disabled = reviewIndex === 0; }
+  if (prevBtn) { prevBtn.disabled = reviewIndex === 0; }
+  if (nextBtn) { nextBtn.disabled = reviewIndex === reviewFens.length - 1; }
+  if (endBtn) { endBtn.disabled = reviewIndex === reviewFens.length - 1; }
+}
+
+function updateReviewNav(game) {
+  const nav = document.querySelector('[data-chess-review-nav]');
+  if (!nav) { return; }
+  if (game.durum !== 'bitti') {
+    nav.hidden = true;
+    reviewFens = null; reviewLastMoves = null; reviewGameId = null;
+    return;
+  }
+  if (reviewGameId !== currentGameId || !reviewFens) {
+    const data = buildReviewData(game);
+    reviewFens = data.fens;
+    reviewLastMoves = data.lastMoves;
+    reviewIndex = reviewFens.length - 1;
+    reviewGameId = currentGameId;
+  }
+  nav.hidden = false;
+  renderReviewPosition();
+}
+
+// ── Oyun bitince yeniden oyna teklifi (renkler değişir) ──
+let rematchRedirected = false;
+
+function maybeStartRematch(game) {
+  if (!game || game.durum !== 'bitti' || game.yeniOyunId) { return; }
+  if (!game.yenidenOynaBeyaz || !game.yenidenOynaSiyah) { return; }
+  // Çakışmayı önlemek için yeni oyunu SADECE eski siyah taraf oluşturur --
+  // KRİTİK: Firebase kuralı yeni bir satranc/{id} oluşturmak için
+  // "newData.child('beyazUid').val() === auth.uid" istiyor; renkler değiştiği
+  // için yeni oyunun beyazUid'i eski siyah oyuncu -- yazma yetkisi de o yüzden
+  // SADECE ona ait olabilir (eski beyaz oyuncu bu yazıyı yapmaya çalışsa
+  // PERMISSION_DENIED alır).
+  if (myColor(game) !== 'b') { return; }
+  const yeniId = database.ref(dbPath('satranc')).push().key;
+  const yeniOyun = {
+    beyazUid: game.siyahUid, beyazAd: game.siyahAd,
+    siyahUid: game.beyazUid, siyahAd: game.beyazAd,
+    fen: new Chess().fen(), sira: 'w', durum: 'oynaniyor', sonuc: null, sonNot: '',
+    beraberlikTeklifEden: null,
+    olusturmaTs: firebase.database.ServerValue.TIMESTAMP, guncellemeTs: firebase.database.ServerValue.TIMESTAMP
+  };
+  const updates = {};
+  updates[dbPath('satranc/' + yeniId)] = yeniOyun;
+  updates[dbPath('satranc/' + currentGameId + '/yeniOyunId')] = yeniId;
+  database.ref('/').update(updates).catch((err) => console.error('Yeniden oyun başlatılamadı:', err));
+}
+
+function redirectToRematchIfReady(game) {
+  if (!game.yeniOyunId || rematchRedirected) { return; }
+  rematchRedirected = true;
+  showToast('Yeni oyun başlıyor…', { variant: 'success' });
+  setTimeout(() => { window.location.href = 'oyun-satranc.html?oyun=' + encodeURIComponent(game.yeniOyunId); }, 500);
 }
 
 function renderStatus(game) {
@@ -321,6 +442,22 @@ function renderStatus(game) {
   } else if (game.durum === 'bitti') {
     const sonucText = game.sonuc === 'beraberlik' ? 'Berabere' : (game.sonuc === 'beyaz' ? (game.beyazAd || 'Beyaz') + ' kazandı' : (game.siyahAd || 'Siyah') + ' kazandı');
     statusText = sonucText + (game.sonNot ? ' · ' + game.sonNot : '');
+    if (mine && !game.yeniOyunId) {
+      const benIstiyorum = mine === 'w' ? game.yenidenOynaBeyaz : game.yenidenOynaSiyah;
+      const rakipIstiyor = mine === 'w' ? game.yenidenOynaSiyah : game.yenidenOynaBeyaz;
+      if (rakipIstiyor && !benIstiyorum) {
+        statusText += ' · ' + (mine === 'w' ? (game.siyahAd || 'Rakibiniz') : (game.beyazAd || 'Rakibiniz')) + ' yeniden oynamak istiyor.';
+        actionsEl.innerHTML =
+          '<button type="button" class="btn btn-primary" data-chess-rematch-accept>Yeniden Oynamayı Kabul Et</button>' +
+          '<button type="button" class="btn btn-outline" data-chess-rematch-reject>Reddet</button>';
+      } else if (benIstiyorum) {
+        actionsEl.innerHTML = '<button type="button" class="btn btn-outline" disabled>Yeniden oyna teklifiniz bekleniyor…</button>';
+      } else {
+        actionsEl.innerHTML = '<button type="button" class="btn btn-primary" data-chess-rematch-offer>Yeniden Oyna</button>';
+      }
+    } else if (game.yeniOyunId) {
+      statusText += ' · Yeni oyun başlıyor…';
+    }
   } else if (game.durum === 'iptal') {
     statusText = 'Oyun iptal edildi' + (game.sonNot ? ' · ' + game.sonNot : '') + '.';
   }
@@ -336,6 +473,9 @@ function attachGameListener(id) {
     currentGame = game;
     syncBoardFromGame(game);
     renderStatus(game);
+    updateReviewNav(game);
+    maybeStartRematch(game);
+    redirectToRematchIfReady(game);
   }, (err) => { console.error('Oyun yüklenemedi:', err); showToast('Oyun yüklenemedi.', { variant: 'error' }); });
 }
 
@@ -350,6 +490,13 @@ function initGameView(id) {
         '<div class="chess-board" data-chess-board></div>' +
         '<div class="chess-promo" data-chess-promo hidden>' +
           [['q', '♕'], ['r', '♖'], ['b', '♗'], ['n', '♘']].map(([p, glyph]) => '<button type="button" class="chess-promo-btn" data-chess-promo-pick="' + p + '">' + glyph + '</button>').join('') +
+        '</div>' +
+        '<div class="chess-review-nav" data-chess-review-nav hidden>' +
+          '<button type="button" class="chess-review-btn" data-chess-review-start title="Başa dön">⏮</button>' +
+          '<button type="button" class="chess-review-btn" data-chess-review-prev title="Geri">◀</button>' +
+          '<span class="chess-review-pos" data-chess-review-pos></span>' +
+          '<button type="button" class="chess-review-btn" data-chess-review-next title="İleri">▶</button>' +
+          '<button type="button" class="chess-review-btn" data-chess-review-end title="Sona git">⏭</button>' +
         '</div>' +
       '</div>' +
       '<div class="chess-side">' +
@@ -366,6 +513,11 @@ function initGameView(id) {
     if (btn) { resolvePromotion(btn.dataset.chessPromoPick); }
   });
   view.addEventListener('click', (e) => {
+    // İnceleme (gezinme) okları yazma yapmaz, salt-okunur kilit altında da çalışır.
+    if (e.target.closest('[data-chess-review-start]')) { reviewIndex = 0; renderReviewPosition(); return; }
+    if (e.target.closest('[data-chess-review-prev]')) { reviewIndex = Math.max(0, reviewIndex - 1); renderReviewPosition(); return; }
+    if (e.target.closest('[data-chess-review-next]')) { reviewIndex = Math.min(reviewFens ? reviewFens.length - 1 : 0, reviewIndex + 1); renderReviewPosition(); return; }
+    if (e.target.closest('[data-chess-review-end]')) { reviewIndex = reviewFens ? reviewFens.length - 1 : 0; renderReviewPosition(); return; }
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
     if (e.target.closest('[data-chess-accept]')) { database.ref(dbPath('satranc/' + id)).update({ durum: 'oynaniyor', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
     if (e.target.closest('[data-chess-reject]')) { database.ref(dbPath('satranc/' + id)).update({ durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
@@ -379,6 +531,10 @@ function initGameView(id) {
     if (e.target.closest('[data-chess-draw-offer]')) {
       const mine = myColor(currentGame);
       if (!mine) { return; }
+      // Firebase'den yeni anlık görüntü gelene kadar (ağ gecikmesi) buton anında
+      // kilitlensin -- kullanıcı isteği: "teklif eden kişinin tuşu karşı taraf
+      // seçim yapana kadar basılamaz hale gelsin", çift tıklamayı da önler.
+      e.target.closest('[data-chess-draw-offer]').disabled = true;
       database.ref(dbPath('satranc/' + id)).update({ beraberlikTeklifEden: mine, guncellemeTs: firebase.database.ServerValue.TIMESTAMP });
       return;
     }
@@ -393,19 +549,42 @@ function initGameView(id) {
     if (e.target.closest('[data-chess-undo-offer]')) {
       const mine = myColor(currentGame);
       if (!mine || !currentGame.oncekiFen || currentGame.geriAlmaTeklifEden) { return; }
+      e.target.closest('[data-chess-undo-offer]').disabled = true;
       database.ref(dbPath('satranc/' + id)).update({ geriAlmaTeklifEden: mine, guncellemeTs: firebase.database.ServerValue.TIMESTAMP });
       return;
     }
     if (e.target.closest('[data-chess-undo-accept]')) {
       if (!currentGame.oncekiFen) { return; }
-      database.ref(dbPath('satranc/' + id)).update({
+      const anahtarlar = Object.keys(currentGame.hamleler || {}).map(Number).sort((a, b) => a - b);
+      const sonIndex = anahtarlar[anahtarlar.length - 1];
+      const patch = {
         fen: currentGame.oncekiFen, sira: currentGame.oncekiSira, geriAlmaTeklifEden: null,
         oncekiFen: null, oncekiSira: null, guncellemeTs: firebase.database.ServerValue.TIMESTAMP
-      });
+      };
+      if (sonIndex !== undefined) { patch['hamleler/' + sonIndex] = null; }
+      database.ref(dbPath('satranc/' + id)).update(patch);
       return;
     }
     if (e.target.closest('[data-chess-undo-reject]')) {
       database.ref(dbPath('satranc/' + id)).update({ geriAlmaTeklifEden: null, guncellemeTs: firebase.database.ServerValue.TIMESTAMP });
+      return;
+    }
+    if (e.target.closest('[data-chess-rematch-offer]') || e.target.closest('[data-chess-rematch-accept]')) {
+      const mine = myColor(currentGame);
+      if (!mine) { return; }
+      const patch = {};
+      patch[mine === 'w' ? 'yenidenOynaBeyaz' : 'yenidenOynaSiyah'] = true;
+      patch.guncellemeTs = firebase.database.ServerValue.TIMESTAMP;
+      database.ref(dbPath('satranc/' + id)).update(patch);
+      return;
+    }
+    if (e.target.closest('[data-chess-rematch-reject]')) {
+      const mine = myColor(currentGame);
+      if (!mine) { return; }
+      const patch = {};
+      patch[mine === 'w' ? 'yenidenOynaSiyah' : 'yenidenOynaBeyaz'] = false;
+      patch.guncellemeTs = firebase.database.ServerValue.TIMESTAMP;
+      database.ref(dbPath('satranc/' + id)).update(patch);
     }
   });
 

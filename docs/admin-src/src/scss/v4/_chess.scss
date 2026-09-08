@@ -54,6 +54,30 @@
 }
 .chess-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
+// Oyun bitince Lichess'teki gibi adım adım gezinme (başa/geri/ileri/sona).
+.chess-review-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.chess-review-nav[hidden] { display: none; }
+.chess-review-btn {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.chess-review-btn:hover:not(:disabled) { background: var(--bg-surface-secondary); }
+.chess-review-btn:disabled { opacity: 0.4; cursor: default; }
+.chess-review-pos { font-size: 12px; color: var(--text-muted); min-width: 44px; text-align: center; }
+
 // Terfi (piyon son sıraya ulaşınca) seçim kutusu -- tahtanın üzerine biner.
 .chess-promo {
   position: absolute;
