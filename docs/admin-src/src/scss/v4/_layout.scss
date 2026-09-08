@@ -67,8 +67,14 @@
 }
 
 .sidebar-brand {
-  height: 56px;
+  // Kullanıcı bulgusu: mobil çekmece (drawer) modunda "Protokol" logo/yazı
+  // satırı iPhone'un çentik/Dynamic Island bölgesine giriyor, tıklanamıyordu
+  // -- .sidebar (position:fixed; top:0) hiç safe-area payı almıyordu, oysa
+  // .topbar bunu zaten yapıyordu (height: 56px + inset, padding-top: inset).
+  // AYNI desen burada da uygulanıyor.
+  height: calc(56px + env(safe-area-inset-top, 0px));
   padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   align-items: center;
   gap: 10px;
