@@ -44,6 +44,8 @@
     "vite": "^8.2.0"
   },
   "dependencies": {
+    "chess.js": "^1.4.0",
+    "chessground": "^9.2.1",
     "datatables.net": "^3.0.1",
     "echarts": "^6.1.0",
     "leaflet": "^1.9.4",

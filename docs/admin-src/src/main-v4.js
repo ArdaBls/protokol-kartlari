@@ -79,6 +79,9 @@ if (document.querySelector('[data-operations-overview]')) {
 if (document.querySelector('[data-concert-ticket-slot]')) {
   import('./v4/concert-ticket-popup.js').then((m) => m.initConcertTicketPopup());
 }
+// chess-game.js kendi kendini yükler (oyun-satranc.html'in sonundaki inline
+// <script type="module">) -- press-directory.js/calendar.js ile AYNI desen,
+// burada TEKRAR tetiklenmiyor (çift initChessGame() çağrısı olurdu).
 
 // ────────────────────────
 //  Delegated interactions

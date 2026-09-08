@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/chess-game-DMmuWoY7.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js"])))=>i.map(i=>d[i]);
+import{n as s}from"./main-v4-DctZlEXy.js";s(()=>import("./chess-game-DMmuWoY7.js").then(s=>s.initChessGame()),__vite__mapDeps([0,1,2]));

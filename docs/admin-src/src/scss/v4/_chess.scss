@@ -1,0 +1,153 @@
+// Satranç (oyun-satranc.html) — bkz. chess-game.js.
+//
+// Lichess'in kendi açık kaynak "chessground" bileşeninin CSS'i -- tahta
+// (brown tema) + taş seti (cburnett, base64 gömülü SVG, npm paketinin
+// İÇİNDE geliyor, dışarıdan hiçbir dosya indirilmiyor). Sass'ın düz .css
+// dosyalarını @use ile "olduğu gibi" geçirme özelliği kullanılıyor.
+// Sass, üç dosyanın da adını "chessground" olarak (ilk nokta öncesi) namespace
+// çıkarmaya çalışıp çakışma hatası verdiği için -- bu saf CSS geçişleri
+// olduğundan (hiçbir Sass değişkeni/mixin'i kullanılmıyor) her birine ayrı,
+// isteğe bağlı bir takma ad veriliyor.
+@use "../../../node_modules/chessground/assets/chessground.base.css" as cg-base;
+@use "../../../node_modules/chessground/assets/chessground.brown.css" as cg-brown;
+@use "../../../node_modules/chessground/assets/chessground.cburnett.css" as cg-pieces;
+
+.chess-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 1050px;
+  margin: 0 auto;
+}
+.chess-board-wrap {
+  position: relative;
+  width: min(720px, 100%);
+  flex-shrink: 0;
+}
+// chessground kendi genişliğini almaz, kapsayıcının boyutuna uyar --
+// kare (1:1) tutmak için aspect-ratio kullanılıyor.
+.chess-board {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+.chess-side {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chess-player {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-surface-secondary);
+}
+.chess-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-height: 18px;
+}
+.chess-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+// Terfi (piyon son sıraya ulaşınca) seçim kutusu -- tahtanın üzerine biner.
+.chess-promo {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: var(--radius);
+}
+.chess-promo[hidden] { display: none; }
+.chess-promo-btn {
+  width: 56px; height: 56px;
+  font-size: 32px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 100ms;
+}
+.chess-promo-btn:hover { transform: scale(1.08); background: var(--primary-lt); }
+
+// Oyunlarım listesi (lobi).
+.chess-game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-color-light);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 100ms;
+}
+.chess-game-row:last-child { border-bottom: none; }
+.chess-game-row:hover { background: var(--bg-surface-secondary); }
+.chess-game-row-status { color: var(--text-muted); font-size: 12px; }
+
+// Rakip seçme modalı -- modal.js'in genel showModal'ını KULLANMIYOR (arama
+// kutusu + canlı filtrelenen liste her tuş vuruşunda modal.js'in tüm
+// body'sini yeniden basmasını gerektirirdi) -- kendi hafif katmanı.
+.chess-invite-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.chess-invite-modal[hidden] { display: none; }
+.chess-invite-modal-inner {
+  width: 100%;
+  max-width: 360px;
+  max-height: calc(100dvh - 48px);
+  margin: 24px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chess-invite-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+.chess-invite-list { overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+.chess-invite-row {
+  text-align: start;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.chess-invite-row:hover { background: var(--bg-surface-secondary); }
+
+@media (max-width: 640px) {
+  .chess-layout { flex-direction: column; }
+  .chess-board-wrap { width: 100%; }
+  .chess-side { width: 100%; }
+}

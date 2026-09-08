@@ -259,16 +259,24 @@ function renderPersonalNotifications(items) {
     return;
   }
   empty.hidden = true;
-  list.innerHTML = items.map((n) => `
-    <div class="notification-row${n.read === true ? '' : ' notification-row--unread'}">
+  // Kullanıcı isteği: satranç daveti bildirimine tıklanınca doğrudan oyun
+  // sayfasına gidip "Kabul Et" ile oynamaya başlayabilsin (bkz. chess-game.js).
+  // Diğer bildirim türlerinin relatedGameId'si olmadığı için normal <div>
+  // olarak kalır (tıklanamaz), bu SADECE satranç davetleri için <a>.
+  list.innerHTML = items.map((n) => {
+    const tag = n.relatedGameId ? 'a' : 'div';
+    const hrefAttr = n.relatedGameId ? ` href="oyun-satranc.html?oyun=${encodeURIComponent(n.relatedGameId)}"` : '';
+    return `
+    <${tag} class="notification-row${n.read === true ? '' : ' notification-row--unread'}"${hrefAttr}>
       <span class="notif-icon notif-info" aria-hidden="true">${ICON.info}</span>
       <span class="notif-body">
         <span class="notif-from">${escapeHtml(n.title || 'Bildirim')}</span>
         <span class="notif-text">${escapeHtml(n.message || '')}</span>
       </span>
       <span class="notif-time">${n.createdAt ? new Date(n.createdAt).toLocaleString('tr-TR') : ''}</span>
-    </div>
-  `).join('');
+    </${tag}>
+  `;
+  }).join('');
 }
 // Kullanıcı bulgusu: "bildirimler kısmına girince gördüğüm bildirimler
 // sağdaki zil işaretinden silinmiyor" -- görüntülenen bildirimler hiçbir

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Satranç | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. chess-game.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Satranç">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">Satranç</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- Oyun yokken (?oyun= parametresi yok): yeni oyun başlat + bekleyen/devam
+       eden oyunlarım listesi. Kullanıcı isteği: "kendi sitemizde arkadaşımla
+       oynamak istiyorum" -- Lichess/dış site YOK, hamle mantığı (chess.js) +
+       tahta (elle çizilmiş) + senkron (Firebase Realtime Database, sitenin
+       zaten her yerde kullandığı desen) tamamen bu sitede. -->
+  <div data-chess-lobby>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Yeni oyun</div>
+          <div class="card-subtitle">Bir davet linki oluşturur, arkadaşınıza gönderirsiniz</div>
+        </div>
+        <div class="card-options">
+          <button type="button" class="btn btn-primary" data-chess-new-game>+ Yeni Oyun</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Oyunlarım</div>
+          <div class="card-subtitle" data-chess-my-games-count>Yükleniyor…</div>
+        </div>
+      </div>
+      <div class="card-body" data-chess-my-games style="padding:0"></div>
+    </div>
+  </div>
+
+  <!-- Oyun ekranı (?oyun=<id> varken) -- JS ile doldurulur. -->
+  <div data-chess-game-view hidden></div>
+
+</div>
+</main>
+
+<!-- Rakip seçme modalı -- staffProfiles'tan (editör de okuyabiliyor) arama. -->
+<div class="chess-invite-modal" data-chess-invite-modal hidden>
+  <div class="chess-invite-modal-inner">
+    <div class="chess-invite-modal-header">
+      <span>Rakip seç</span>
+      <button type="button" class="modal-close" data-chess-invite-close aria-label="Kapat">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5l10 10M15 5L5 15"/></svg>
+      </button>
+    </div>
+    <input type="text" class="form-control" data-chess-invite-search placeholder="İsim ara…">
+    <div class="chess-invite-list" data-chess-invite-list></div>
+  </div>
+</div>
+
+<script type="module">
+import('/src/v4/chess-game.js').then((m) => m.initChessGame());
+</script>
+
+</body>
+</html>

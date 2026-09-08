@@ -184,6 +184,11 @@
   position: relative;
 }
 .notification-row:last-child { border-bottom: none; }
+// Kullanıcı isteği: satranç daveti bildirimine tıklanınca oyuna gidilsin --
+// bu türler <div> yerine <a> olarak basılıyor (bkz. bildirimler.html),
+// tarayıcının varsayılan link rengini/altını miras almasın.
+a.notification-row { color: inherit; text-decoration: none; cursor: pointer; }
+a.notification-row:hover { background: var(--bg-surface-secondary); }
 // Kişisel bildirim listesinde (bkz. bildirimler.html renderPersonalNotifications)
 // henüz okundu işaretlenmemiş kayıt -- sol kenarda ince bir vurgu.
 .notification-row--unread { box-shadow: inset 3px 0 0 var(--primary); background: var(--primary-lt); }
