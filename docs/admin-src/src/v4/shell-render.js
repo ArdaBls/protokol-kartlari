@@ -41,6 +41,10 @@ export const EDITOR_NAV_KEYS = [
   // "editörler de sitede kaç kişi var görebilsin", rol/e-posta dahil, kart
   // tasarımı admin/owner ile birebir aynı; bu yüzden sekme editöre de açıldı.
   'users',          // Kişiler
+  // Basın Rehberi: kullanıcı isteği -- editörler de basına haber geçerken
+  // rehberi (telefon/e-posta, yıldızlama, Gizli Gönder) kullanabilmeli;
+  // editör/admin/owner hepsi ekleyip düzenleyebiliyor (bkz. basinRehberi kuralları).
+  'press-directory', // Basın Rehberi
   'gantt',          // Haber Üretim Takvimi
   'projects',       // Tüm haberler
   'project-detail', // Haber detayı
@@ -92,6 +96,7 @@ export const NAV = [
     label: 'Yönetim',
     items: [
       { key: 'users',           href: 'kisiler.html',         text: 'Kişiler',            icon: 'users' },
+      { key: 'press-directory', href: 'basin-rehberi.html',   text: 'Basın Rehberi',      icon: 'mail' },
       { key: 'user_management', href: 'kullanici-yonetimi.html',  text: 'Kullanıcı yönetimi', icon: 'profile' },
       { key: 'profile',         href: 'profil.html',          text: 'Profiliniz',         icon: 'profile' },
       { key: 'settings',        href: 'ayarlar.html',         text: 'Ayarlar',            icon: 'settings' },

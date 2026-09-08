@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Basın Rehberi | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. press-directory.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="press-directory" data-breadcrumb="Anasayfa|index.html > Basın Rehberi">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">İletişim</div>
+        <h1 class="page-title">Basın Rehberi</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Kişiler</div>
+        <div class="card-subtitle" data-press-count>Yükleniyor…</div>
+      </div>
+      <div class="card-options">
+        <input type="search" class="form-control press-search" data-press-search placeholder="Ara: isim, kurum, telefon, e-posta" style="width:220px">
+        <button type="button" class="card-opt-btn card-opt-btn-labeled" data-press-import aria-label="Listeyi içe aktar" title="Outlook formatındaki listeyi yapıştırıp içe aktar">İçe Aktar</button>
+        <button type="button" class="card-opt-btn card-opt-btn-labeled" data-press-add aria-label="Yeni kişi ekle" title="Yeni kişi ekle">+ Yeni Kişi</button>
+      </div>
+    </div>
+    <div class="press-list-head">
+      <label class="press-select-all-label">
+        <input type="checkbox" data-press-select-all>
+        <span>Tümünü seç</span>
+      </label>
+      <span class="press-list-hint">☆ ikonuna basarak sık kullandığınız kişileri yıldızlayın -- yıldızlılar listenin başında görünür.</span>
+    </div>
+    <div class="card-body" data-press-list style="padding:0"></div>
+  </div>
+
+</div>
+</main>
+
+<!-- "Gizli Gönder" çubuğu -- yalnızca en az bir seçim varken görünür, sayfanın
+     altına sabitlenir. Kullanıcı isteği: "gizli gitmesi lazım, kimse hangi
+     kişilere gönderdiğimizi görmesin" -- BCC ile açılan mailto: linki tam
+     olarak bunu sağlıyor (bkz. press-directory.js sendHidden). -->
+<div class="press-send-bar" data-press-send-bar hidden>
+  <span data-press-selected-count>0 kişi seçildi</span>
+  <button type="button" class="btn btn-primary" data-press-send-btn>
+    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4l6 4 6-4M2 4v8h12V4"/></svg>
+    Gizli Gönder (BCC)
+  </button>
+</div>
+
+<script type="module">
+import('/src/v4/press-directory.js').then((m) => m.initPressDirectory());
+</script>
+
+</body>
+</html>

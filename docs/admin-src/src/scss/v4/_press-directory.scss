@@ -1,0 +1,106 @@
+// Basın Rehberi (basin-rehberi.html) — bkz. press-directory.js.
+
+.press-search { height: 32px; font-size: 12.5px; }
+
+.press-list-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-color-light);
+  flex-wrap: wrap;
+}
+.press-select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.press-list-hint { font-size: 11.5px; color: var(--text-muted); }
+
+.press-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-color-light);
+  transition: background 100ms;
+}
+.press-contact-row:last-child { border-bottom: none; }
+.press-contact-row:hover { background: var(--bg-surface-secondary); }
+.press-contact-row.is-starred { background: var(--yellow-lt); }
+
+.press-star-btn {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  transition: background 120ms, color 120ms;
+}
+.press-star-btn:hover { background: var(--bg-surface-secondary); }
+.press-star-btn.is-active { color: var(--yellow); }
+
+.press-contact-main { flex: 1; min-width: 0; }
+.press-contact-name { font-size: 13.5px; font-weight: var(--font-weight-medium); color: var(--text); }
+.press-contact-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.press-contact-tel {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  background: var(--green-lt);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  transition: filter 120ms;
+}
+.press-contact-tel:hover { filter: brightness(0.95); }
+
+.press-icon-btn {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  transition: background 120ms, color 120ms;
+}
+.press-icon-btn:hover { background: var(--bg-surface-secondary); color: var(--text); }
+.press-icon-btn--danger:hover { color: var(--red); }
+
+// Kullanıcı isteği: "gizli gitmesi lazım" -- seçim varken beliren, sayfanın
+// altına sabitlenen gönderim çubuğu. Sadece renkle değil metinle de net (seçim
+// sayısı yazıyor).
+.press-send-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--sidebar-bg);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  z-index: 50;
+  font-size: 12.5px;
+}
+.press-send-bar .btn { height: 32px; padding: 0 14px; font-size: 12.5px; }
+@media (max-width: 700px) {
+  .press-send-bar { left: 12px; right: 12px; bottom: 12px; transform: none; }
+}
