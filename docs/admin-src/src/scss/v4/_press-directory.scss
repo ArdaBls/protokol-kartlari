@@ -1,6 +1,23 @@
 // Basın Rehberi (basin-rehberi.html) — bkz. press-directory.js.
 
-.press-search { height: 32px; font-size: 12.5px; }
+.press-search { height: 32px; font-size: 12.5px; width: 220px; }
+
+// Kullanıcı bulgusu: "mobil görünümde ... sağ tarafa ekrandan taşma yapıyor" --
+// arama kutusu sabit 220px + iki etiketli buton (İçe Aktar/+ Yeni Kişi) dar
+// ekranda .card-options'ın (kaymayan, sarmayan) tek satırına sığmıyordu.
+// Dar ekranda satır kırılır, arama kutusu tam genişliğe yayılır.
+@media (max-width: 640px) {
+  // .card-header varsayılan olarak tek satır (flex-wrap yok) -- diğer
+  // sayfaları etkilememek için bu kırılma YALNIZCA Basın Rehberi kartına
+  // uygulanıyor (.press-list-header sınıfı bu sayfaya özel).
+  .press-list-header { flex-wrap: wrap; }
+  .press-header-options {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 8px;
+  }
+  .press-search { width: 100%; flex: 1 1 100%; order: -1; }
+}
 
 .press-list-head {
   display: flex;
@@ -80,6 +97,15 @@
 }
 .press-icon-btn:hover { background: var(--bg-surface-secondary); color: var(--text); }
 .press-icon-btn--danger:hover { color: var(--red); }
+
+// Kullanıcı bulgusu: satırdaki sabit genişlikli öğeler (kutu, yıldız, telefon
+// rozeti, düzenle/sil) dar ekranda toplamda satırı taşırıyordu -- satır
+// kırılır, isim/kurum kendi satırında, telefon+aksiyonlar altta kalır.
+@media (max-width: 640px) {
+  .press-contact-row { flex-wrap: wrap; row-gap: 8px; padding: 10px 14px; }
+  .press-contact-main { flex: 1 1 100%; order: 1; }
+  .press-contact-tel { order: 2; }
+}
 
 // Kullanıcı isteği: "gizli gitmesi lazım" -- seçim varken beliren, sayfanın
 // altına sabitlenen gönderim çubuğu. Sadece renkle değil metinle de net (seçim
