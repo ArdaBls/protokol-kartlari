@@ -122,12 +122,21 @@
 .press-icon-btn--danger:hover { color: var(--red); }
 
 // Kullanıcı bulgusu: satırdaki sabit genişlikli öğeler (kutu, yıldız, telefon
-// rozeti, düzenle/sil) dar ekranda toplamda satırı taşırıyordu -- satır
-// kırılır, isim/kurum kendi satırında, telefon+aksiyonlar altta kalır.
+// rozeti, düzenle/sil) dar ekranda toplamda satırı taşırıyordu. Önceki
+// çözüm ismi kendi tam-genişlik satırına zorluyordu ama kullanıcı bunu
+// istemedi ("yıldızın sağında isim, en sağda düzenle/sil olsun") -- şimdi
+// DOM sırası (kutu, yıldız, isim, [telefon], düzenle, sil) korunuyor; isim
+// küçülebilir (min-width) ama satırda kalır, yalnızca sığmazsa telefon
+// rozeti (ve gerekirse ardından düzenle/sil) doğal olarak alt satıra kayar.
 @media (max-width: 640px) {
   .press-contact-row { flex-wrap: wrap; row-gap: 8px; padding: 10px 14px; }
-  .press-contact-main { flex: 1 1 100%; order: 1; }
-  .press-contact-tel { order: 2; }
+  .press-contact-main { min-width: 90px; }
+  // Telefon rozeti isim+düzenle+sil'in aynı satırda kalmasına yer bırakmadığı
+  // için (kullanıcı isteği: yıldızın sağında isim, en sağda düzenle/sil aynı
+  // satırda olsun) `order` ile DOM sırasından bağımsız olarak EN SONA
+  // alınıyor -- satıra sığmazsa yalnızca telefon kendi tam-genişlik alt
+  // satırına düşer, düzenle/sil satırda kalır.
+  .press-contact-tel { order: 1; flex: 1 1 100%; }
   // Kullanıcı isteği: "mobil için çok küçük olmasın" -- yıldız/düzenle/sil
   // ikon butonları dokunma hedefi olarak masaüstündeki 30px'ten büyütülüyor.
   .press-star-btn, .press-icon-btn { width: 38px; height: 38px; }
