@@ -101,12 +101,15 @@
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
+  border: none;
   border-radius: var(--radius);
   background: var(--green-lt);
   color: var(--green);
   font-size: 12px;
+  font-family: inherit;
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
+  cursor: pointer;
   transition: filter 120ms;
 }
 .press-contact-tel:hover { filter: brightness(0.95); }

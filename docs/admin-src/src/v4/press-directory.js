@@ -45,6 +45,22 @@ function telHref(telefon) {
   return digits ? 'tel:' + digits : '';
 }
 
+// Kullanıcı isteği: numaraya basınca DİREKT aramak yerine önce onay istensin
+// ("aramak istiyor musunuz?") -- yanlışlıkla dokunup rastgele biri aranmasın.
+function confirmCall(id) {
+  const c = CONTACTS[id];
+  const tel = c && telHref(c.telefon);
+  if (!tel) { return; }
+  showModal({
+    title: 'Aramak istiyor musunuz?',
+    body: '<p>' + escapeHtml(c.ad || 'Bu kişi') + ' (' + escapeHtml(c.telefon) + ') aranacak.</p>',
+    actions: [
+      { label: 'Vazgeç', variant: 'ghost' },
+      { label: 'Ara', variant: 'primary', action: () => { window.location.href = tel; } }
+    ]
+  });
+}
+
 function sortedEntries() {
   const q = filterText.trim().toLocaleLowerCase('tr');
   return Object.entries(CONTACTS)
@@ -99,7 +115,7 @@ function render() {
           <div class="press-contact-name">${escapeHtml(c.ad || '(isim yok)')}</div>
           <div class="press-contact-meta">${[c.kurum, c.eposta].filter(Boolean).map(escapeHtml).join(' · ')}</div>
         </div>
-        ${tel ? `<a class="press-contact-tel" href="${escapeHtml(tel)}" title="Ara: ${escapeHtml(c.telefon)}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h2.5l1 3.5-1.5 1.5a9 9 0 004.5 4.5l1.5-1.5 3.5 1V14a1 1 0 01-1 1C7.5 15 1 8.5 1 3a1 1 0 011-1z"/></svg><span>${escapeHtml(c.telefon)}</span></a>` : ''}
+        ${tel ? `<button type="button" class="press-contact-tel" data-press-call="${escapeHtml(id)}" title="Ara: ${escapeHtml(c.telefon)}"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h2.5l1 3.5-1.5 1.5a9 9 0 004.5 4.5l1.5-1.5 3.5 1V14a1 1 0 01-1 1C7.5 15 1 8.5 1 3a1 1 0 011-1z"/></svg><span>${escapeHtml(c.telefon)}</span></button>` : ''}
         ${canWrite ? `
           <button type="button" class="press-icon-btn" data-press-edit="${escapeHtml(id)}" aria-label="Düzenle"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2l2.5 2.5-7 7-3 .5.5-3 7-7z"/></svg></button>
           <button type="button" class="press-icon-btn press-icon-btn--danger" data-press-delete="${escapeHtml(id)}" aria-label="Sil"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
@@ -362,6 +378,8 @@ export function initPressDirectory() {
   listEl.addEventListener('click', (e) => {
     const star = e.target.closest('[data-press-star]');
     if (star) { toggleStar(star.dataset.pressStar); return; }
+    const call = e.target.closest('[data-press-call]');
+    if (call) { confirmCall(call.dataset.pressCall); return; }
     const edit = e.target.closest('[data-press-edit]');
     if (edit) { openContactModal(edit.dataset.pressEdit); return; }
     const del = e.target.closest('[data-press-delete]');
