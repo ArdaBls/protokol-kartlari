@@ -9,10 +9,11 @@
 // genel adlarla ÇAKIŞMASIN diye "cal-ticket-" öneki eklendi -- bu SADECE isim
 // alanı izolasyonu, görsel/davranış birebir aynı kalıyor. İçerik (metinler)
 // orijinaldeki "Day pass / May 14th 2026 / Venue.../ Seat E7" yerine etkinlik
-// adı/tarihi/yeri ve BİLETİ GÖREN KİŞİNİN (etkinliği oluşturanın DEĞİL) adı+
-// rolü ile dolduruluyor -- her kullanıcı kendi adını taşıyan bir bilet görür
+// adı/tarihi/yeri ve BİLETİ GÖREN KİŞİNİN (etkinliği oluşturanın DEĞİL) hesap
+// adıyla dolduruluyor -- her kullanıcı kendi adını taşıyan bir bilet görür
 // (bkz. concert-ticket-popup.js). Artık Takvim düzenleme modalında DEĞİL,
-// Operasyonlar (index.html) sayfasında kullanılıyor.
+// Operasyonlar (index.html) sayfasında kullanılıyor. Kullanıcı isteği: rol
+// (admin/kurucu vb.) veya "Bilet Sahibi" etiketi YOK, yalnızca ham hesap adı.
 //
 // Kullanıcı bulgusu: orijinal tasarımın header'ı (beyaz + mix-blend-mode)
 // ve gövde metni bizim renk şemamızda GÖRÜNMÜYORDU -- tüm metin rengi düz
@@ -20,7 +21,6 @@
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-const TICKET_ROLE_LABEL = { editor: 'Editör', admin: 'Admin', owner: 'Kurucu' };
 const TICKET_AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 function fmtTicketDate(tarih) {
@@ -36,10 +36,10 @@ function fmtTicketDate(tarih) {
 // header+sembol, body (3 satır), footer (numara + barkod), sonda bg+holografik
 // katman ve SVG bump filtresi. Filtre id'si "cal-ticket-bump" olarak
 // isimlendirildi (orijinali "bump") -- sayfadaki başka bir id ile çakışmasın.
-export function ticketBadgeHtml({ ad, tarih, saat, yer, kisiAdi, kisiRol }) {
-  const rolLabel = TICKET_ROLE_LABEL[kisiRol] || '';
+export function ticketBadgeHtml({ ad, tarih, saat, yer, kisiAdi }) {
   const dateLabel = fmtTicketDate(tarih) + (saat ? ' · ' + saat : '');
-  const personLabel = (kisiAdi ? escapeHtml(kisiAdi) : '') + (rolLabel ? ' (' + escapeHtml(rolLabel) + ')' : '');
+  // Kullanıcı isteği: "Bilet Sahibi (rol)" değil, yalnızca kişinin hesap adı.
+  const personLabel = kisiAdi ? escapeHtml(kisiAdi) : '';
   return (
     '<div class="cal-ticket">' +
       '<div class="cal-ticket-notes">♪♪♪♪♪</div>' +
@@ -52,7 +52,7 @@ export function ticketBadgeHtml({ ad, tarih, saat, yer, kisiAdi, kisiRol }) {
         '<span data-cal-ticket-venue>' + escapeHtml(yer || '') + '</span>' +
       '</div>' +
       '<div class="cal-ticket-footer">' +
-        '<div class="cal-ticket-number">Bilet Sahibi <span class="cal-ticket-bold" data-cal-ticket-person>' + personLabel + '</span></div>' +
+        '<div class="cal-ticket-number"><span class="cal-ticket-bold" data-cal-ticket-person>' + personLabel + '</span></div>' +
         '<div class="cal-ticket-barcode"></div>' +
       '</div>' +
       '<div class="cal-ticket-bg cal-ticket-holographic"></div>' +

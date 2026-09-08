@@ -363,8 +363,16 @@
     transform: translateY(-7px) scale(1.02);
   }
 }
+// Kullanıcı bulgusu: telefonda biletin renkleri bilgisayardakiyle aynı
+// değildi -- muhtemel neden, telefonun "Hareketi Azalt" (Reduce Motion)
+// erişilebilirlik ayarı AÇIKKEN holografik renk kayması (bg-pos) da
+// duruyordu; bilet rengi başladığı KAREDE donuk kalıyor, masaüstündeki
+// (reduce-motion kapalı) sürekli kayan/değişen tonlarla eşleşmiyordu. Kartın
+// "yüzme" (transform) animasyonu HÂLÂ durduruluyor (gerçek hareket, sallanma
+// hissi verebilir) ama renk kayması artık reduce-motion'dan ETKİLENMİYOR --
+// bu saf bir renk animasyonu, konum/hareket değil.
 @media (prefers-reduced-motion: reduce) {
-  .cal-ticket, .cal-ticket-holographic::after { animation: none; }
+  .cal-ticket { animation: none; }
 }
 
 .cal-ticket-filter-svg { position: absolute; }
@@ -403,6 +411,26 @@
     left var(--cutouts-adjust), right var(--cutouts-adjust),
     0 calc(var(--cutouts-adjust) + 7px);
   mask-composite: intersect, exclude, add, add;
+  // Safari/iOS eski sürümlerde önek gerektirebiliyor -- aynı değerler
+  // -webkit- önekiyle tekrarlanıyor (kullanıcı bulgusu: telefonda görünüm
+  // farklıydı).
+  -webkit-mask-image:
+    radial-gradient(circle at 50% 0, #fff0 calc(var(--perforation-size) - 5px), #000 calc(var(--perforation-size) - 4px)),
+    radial-gradient(circle at 50% 100%, #fff0 calc(var(--perforation-size) - 5px), #000 calc(var(--perforation-size) - 4px)),
+    radial-gradient(circle 8px at left center, #000 98%, #0000 100%),
+    radial-gradient(circle 8px at right center, #000 98%, #0000 100%),
+    repeating-linear-gradient(90deg, #000 10px, #000 15px, #0000 16px, #0000 24px);
+  -webkit-mask-repeat: repeat-x, repeat-x, no-repeat, no-repeat, repeat-x;
+  -webkit-mask-size:
+    calc(var(--perforation-size) * 2) 100%,
+    calc(var(--perforation-size) * 2) 100%,
+    16px 16px, 16px 16px, 10px 2px;
+  -webkit-mask-position:
+    calc(0.5 * var(--perforation-size)) top,
+    calc(0.5 * var(--perforation-size)) bottom,
+    left var(--cutouts-adjust), right var(--cutouts-adjust),
+    0 calc(var(--cutouts-adjust) + 7px);
+  -webkit-mask-composite: source-in, xor, source-over, source-over;
 }
 
 // Holografik folyo görünümü: conic-gradient + iki blend-mode katmanı, alttaki
