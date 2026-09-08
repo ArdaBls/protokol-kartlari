@@ -204,6 +204,20 @@ async function ac(browser, rol, hedef) {
 	const pageSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'production', 'basin-rehberi.html'), 'utf8');
 	assert.match(pageSource, /viewport-fit=cover/, 'env(safe-area-inset-*) çalışması için <meta viewport> viewport-fit=cover içermeli');
 
+	// Kullanıcı isteği: uiverse.io'daki yıldız ikonu kullanılsın ama sitede
+	// uiverse reklamı/markası GÖRÜNMESİN (kaynak koduna kısa bir atıf yorumu
+	// kalması sorun değil -- örneğin erisim-kisitlandi.html'de de aynı desen
+	// var -- önemli olan üretilen SAYFADA kullanıcıya görünen bir "Uiverse"
+	// metni OLMAMASI).
+	assert.doesNotMatch(pageSource, /uiverse/i, 'basin-rehberi.html sayfasında görünür Uiverse markası/reklamı olmamalı');
+	assert.match(jsSource, /M9\.362,9\.158/, 'Yıldız SVG path\'i (uiverse.io/andrew-demchenk0/light-lionfish-40 kaynaklı) mevcut olmalı');
+	assert.doesNotMatch(jsSource, /uiverse\.io\/[a-z]/i, 'press-directory.js render() çıktısında (kullanıcıya giden HTML) uiverse linki olmamalı');
+
+	// Kullanıcı isteği: "mobil için çok küçük olmasın" -- yıldız/düzenle/sil
+	// ikon butonları dar ekranda masaüstü boyutundan (30px) büyütülmeli.
+	assert.match(pressCssSource, /@media \(max-width: 640px\)[\s\S]*\.press-star-btn, \.press-icon-btn \{ width: 38px; height: 38px; \}/,
+		'Dar ekranda yıldız/düzenle/sil butonları 30px\'ten büyütülmeli (dokunma hedefi)');
+
 	const navSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'shell-render.js'), 'utf8');
 	assert.match(navSource, /'press-directory'/, 'EDITOR_NAV_KEYS Basın Rehberi\'ni içermeli -- editör de erişebilmeli');
 	assert.match(navSource, /key: 'press-directory'.*href: 'basin-rehberi\.html'/, 'NAV listesinde Basın Rehberi girdisi olmalı');
