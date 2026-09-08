@@ -59,14 +59,16 @@
 .press-star-btn {
   flex-shrink: 0;
   width: 30px; height: 30px;
+  border: none; background: transparent;
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius);
   cursor: pointer;
   transition: background 120ms;
 }
+.press-star-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 .press-star-btn:hover { background: var(--bg-surface-secondary); }
 .press-star-btn svg {
-  width: 19px; height: 19px;
+  width: 23px; height: 23px;
   fill: var(--text-muted);
   transition: fill 0.3s, transform 0.3s;
 }
@@ -105,11 +107,14 @@
 .press-icon-btn {
   flex-shrink: 0;
   width: 30px; height: 30px;
+  border: none; background: transparent;
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius);
   color: var(--text-muted);
+  cursor: pointer;
   transition: background 120ms, color 120ms;
 }
+.press-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 .press-icon-btn svg { transition: transform 0.3s; }
 .press-icon-btn:hover, .press-icon-btn:active { background: var(--bg-surface-secondary); }
 .press-icon-btn:hover svg, .press-icon-btn:active svg { transform: scale(1.15); }
@@ -126,7 +131,7 @@
   // Kullanıcı isteği: "mobil için çok küçük olmasın" -- yıldız/düzenle/sil
   // ikon butonları dokunma hedefi olarak masaüstündeki 30px'ten büyütülüyor.
   .press-star-btn, .press-icon-btn { width: 38px; height: 38px; }
-  .press-star-btn svg { width: 23px; height: 23px; }
+  .press-star-btn svg { width: 27px; height: 27px; }
 }
 
 // Kullanıcı isteği: "gizli gitmesi lazım" -- seçim varken beliren, sayfanın
