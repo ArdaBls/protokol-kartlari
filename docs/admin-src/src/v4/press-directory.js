@@ -15,6 +15,7 @@
 import { showModal, closeModal } from './modal.js';
 import { showToast } from './toast.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
+import { initPhoneDirectory, refreshPhoneDirectory, setPhoneDirectoryWritable } from './phone-directory.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -65,7 +66,10 @@ function updateSendBar() {
   const countLabel = document.querySelector('[data-press-selected-count]');
   if (!bar || !countLabel) { return; }
   countLabel.textContent = selected.size + ' kişi seçildi';
-  bar.hidden = selected.size === 0;
+  // Telefon Rehberi sekmesindeyken (e-posta seçimi yapılamayan bir görünüm)
+  // çubuk hiçbir koşulda görünmemeli.
+  const emailTabActive = document.querySelector('[data-press-view].active')?.dataset.pressView !== 'telefon';
+  bar.hidden = selected.size === 0 || !emailTabActive;
 }
 
 function render() {
@@ -306,19 +310,43 @@ export function initPressDirectory() {
   database = firebase.database();
   const auth = firebase.auth();
 
+  // Telefon Rehberi (2. "klasör") -- kullanıcı isteği: mail atılmayacak,
+  // sadece telefon/ajans bilgisi tutulan kişiler için AYRI bir Firebase
+  // koleksiyonu (bkz. phone-directory.js). Aynı sayfa, aynı database/yetki.
+  initPhoneDirectory(database, canWrite);
+
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; render(); return; }
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; render(); setPhoneDirectoryWritable(false); return; }
     currentUserEmail = user.email || '';
     database.ref('users/' + user.uid).once('value').then((snap) => {
       const u = snap.val() || {};
       canWrite = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
       render();
-    }).catch(() => { canWrite = false; render(); });
+      setPhoneDirectoryWritable(canWrite);
+    }).catch(() => { canWrite = false; render(); setPhoneDirectoryWritable(false); });
   });
 
-  initDbMode(database).then(() => { renderDbModeBanner(); attachContactsListener(); });
-  onDbModeChange(() => { renderDbModeBanner(); attachContactsListener(); });
+  initDbMode(database).then(() => { renderDbModeBanner(); attachContactsListener(); refreshPhoneDirectory(); });
+  onDbModeChange(() => { renderDbModeBanner(); attachContactsListener(); refreshPhoneDirectory(); });
+
+  // Sekme geçişi: "E-posta Listesi" ↔ "Telefon Rehberi". Telefon
+  // sekmesindeyken "Gizli Gönder" çubuğu (e-posta seçimine bağlı) hiçbir
+  // koşulda görünmemeli -- o sekmede e-posta seçimi yapılamıyor zaten.
+  document.querySelectorAll('[data-press-view]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const view = tab.dataset.pressView;
+      document.querySelectorAll('[data-press-view]').forEach((t) => {
+        t.classList.toggle('active', t === tab);
+        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-press-view-panel]').forEach((panel) => {
+        panel.hidden = panel.dataset.pressViewPanel !== view;
+      });
+      const bar = document.querySelector('[data-press-send-bar]');
+      if (bar) { bar.hidden = view !== 'email' || selected.size === 0; }
+    });
+  });
 
   document.querySelector('[data-press-add]')?.addEventListener('click', () => openContactModal(null));
   document.querySelector('[data-press-import]')?.addEventListener('click', openImportModal);

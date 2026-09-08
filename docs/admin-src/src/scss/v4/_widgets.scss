@@ -244,10 +244,13 @@
   opacity: 0;
   transition: opacity 100ms;
 }
-.todo-cb:hover { border-color: var(--primary); }
+// Kullanıcı isteği: işaretlenince --primary (koyu deniz yeşili/turkuaz) ile
+// dolan tik kutusu ekranda yeterince görünür/ayırt edilir değildi -- sadece
+// bu bileşen için maviye çevrildi (site geneli --primary marka rengi DEĞİL).
+.todo-cb:hover { border-color: var(--blue); }
 .todo-cb.done {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--blue);
+  border-color: var(--blue);
 }
 .todo-cb.done::after { opacity: 1; }
 .todo-text {

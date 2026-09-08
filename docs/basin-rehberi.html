@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Basın Rehberi | Protokol</title>
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,11 +28,11 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/basin-rehberi-mEYo21Uh.js"></script>
+  <script type="module" crossorigin src="/js/basin-rehberi-dVox3w7n.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-F_jprkvV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-DZ8eVfBk.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-RPwbtwsr.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-B0yxqL3J.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-BgCPnWe-.css">
 </head>
 <body data-shell="admin" data-page="press-directory" data-breadcrumb="Anasayfa|index.html > Basın Rehberi">
 
@@ -214,7 +214,15 @@
     </div>
   </div>
 
-  <div class="card">
+  <!-- Kullanıcı isteği: rehber kendi içinde "klasörlü" olsun -- biri mail
+       gönderilen kişiler (E-posta Listesi), diğeri mail atılmayacak, sadece
+       telefon/ajans bilgisi tutulan kişiler (Telefon Rehberi). -->
+  <div class="chart-tabs press-view-tabs" role="tablist">
+    <button type="button" class="chart-tab active" data-press-view="email" role="tab" aria-selected="true">E-posta Listesi</button>
+    <button type="button" class="chart-tab" data-press-view="telefon" role="tab" aria-selected="false">Telefon Rehberi</button>
+  </div>
+
+  <div class="card" data-press-view-panel="email">
     <div class="card-header press-list-header">
       <div>
         <div class="card-title">Kişiler</div>
@@ -234,6 +242,23 @@
       <span class="press-list-hint">☆ ikonuna basarak sık kullandığınız kişileri yıldızlayın -- yıldızlılar listenin başında görünür.</span>
     </div>
     <div class="card-body" data-press-list style="padding:0"></div>
+  </div>
+
+  <div class="card" data-press-view-panel="telefon" hidden>
+    <div class="card-header press-list-header">
+      <div>
+        <div class="card-title">Telefon Rehberi</div>
+        <div class="card-subtitle" data-phone-count>Yükleniyor…</div>
+      </div>
+      <div class="card-options press-header-options">
+        <input type="search" class="form-control press-search" data-phone-search placeholder="Ara: isim, ajans/haber sitesi, telefon">
+        <button type="button" class="card-opt-btn card-opt-btn-labeled" data-phone-add aria-label="Yeni kişi ekle" title="Yeni kişi ekle">+ Yeni Kişi</button>
+      </div>
+    </div>
+    <div class="press-list-head">
+      <span class="press-list-hint">Bu listedeki kişilere e-posta gönderilmez -- yalnızca telefon/ajans bilgisi tutulur.</span>
+    </div>
+    <div class="card-body" data-phone-list style="padding:0"></div>
   </div>
 
 </div>

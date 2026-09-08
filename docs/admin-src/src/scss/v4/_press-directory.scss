@@ -1,5 +1,12 @@
 // Basın Rehberi (basin-rehberi.html) — bkz. press-directory.js.
 
+// Kullanıcı isteği: rehber kendi içinde "klasörlü" olsun (E-posta Listesi /
+// Telefon Rehberi sekmeleri) -- .chart-tabs bileşeni normalde bir kart
+// başlığının İÇİNDE kullanılıyor, burada sayfa düzeyinde (kartın ÜZERİNDE)
+// kullanıldığı için genişliği içeriğe göre sınırlanıyor ve alttaki karta
+// boşluk bırakılıyor.
+.press-view-tabs { width: fit-content; margin-bottom: 12px; }
+
 .press-search { height: 32px; font-size: 12.5px; width: 220px; }
 
 // Kullanıcı bulgusu: "mobil görünümde ... sağ tarafa ekrandan taşma yapıyor" --
@@ -146,6 +153,11 @@
 // Kullanıcı isteği: "gizli gitmesi lazım" -- seçim varken beliren, sayfanın
 // altına sabitlenen gönderim çubuğu. Sadece renkle değil metinle de net (seçim
 // sayısı yazıyor).
+// BUG düzeltmesi: aşağıdaki `display: flex` [hidden] özniteliğiyle EŞİT
+// özgüllükte olduğu için (ikisi de 0,1,0) `hidden` özniteliği hiç etkili
+// olmuyordu -- çubuk seçim SIFIRKEN de her zaman görünüyordu. Açık bir
+// [hidden] kuralı gerekiyor.
+.press-send-bar[hidden] { display: none; }
 .press-send-bar {
   position: fixed;
   left: 50%;

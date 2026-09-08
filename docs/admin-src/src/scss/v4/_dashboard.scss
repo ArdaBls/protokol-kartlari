@@ -49,10 +49,9 @@
   border-bottom: 1px solid var(--border-color-light);
 }
 .overview-list .overview-card:last-child { border-bottom: none; }
-// "Şu anda" devam eden etkinlik: sol kenarda yeşil vurgu şeridi -- ama TEK
-// başına renk yeterli değil (erişilebilirlik), her zaman yanında metin
-// rozeti de var (bkz. .overview-badge--now).
-.overview-card.is-ongoing { box-shadow: inset 3px 0 0 var(--green); }
+// Kullanıcı isteği: "şu anda"/devam eden etkinliğin sol kenarındaki yeşil
+// vurgu şeridi kaldırıldı -- görünürlüğü zayıftı, "Şu anda" METİN rozeti
+// (bkz. .overview-badge--now) zaten aynı bilgiyi tek başına veriyor.
 // Kullanıcı isteği: soldaki gün işareti -- Bugün yeşil, Bu hafta sarı, Yaklaşan
 // mavi (eski Mini Takvim widget'ındaki .mini-cal-date kutusuyla aynı boyut/biçim).
 .overview-date {
@@ -98,6 +97,7 @@
 }
 .overview-badge--now { background: var(--green-lt); color: var(--green); }
 .overview-badge--today { background: var(--primary-lt); color: var(--primary); }
+.overview-badge--ended { background: var(--bg-surface-secondary); color: var(--text-muted); }
 // Kullanıcı isteği: eski Mini Takvim widget'ındaki kalem/"Düzenle" ikonu geri
 // geldi -- satırın SADECE bu kısmı /takvim.html?duzenle=<id>'ye gidiyor.
 .overview-edit {

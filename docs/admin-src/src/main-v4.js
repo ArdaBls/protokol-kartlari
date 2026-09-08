@@ -148,7 +148,8 @@ document.addEventListener('click', (e) => {
   // (kullanıcı bulgusu: "mobilde yeni kişi oluştura basınca iki modal
   // birden açılıyor").
   if (btn.hasAttribute('data-task-add') || btn.hasAttribute('data-quick-event-btn')
-    || btn.hasAttribute('data-press-add') || btn.hasAttribute('data-press-import')) {return;}
+    || btn.hasAttribute('data-press-add') || btn.hasAttribute('data-press-import')
+    || btn.hasAttribute('data-phone-add')) {return;}
   // Skip if the click was already handled (e.g. calendar prev/next).
   if (e.defaultPrevented) {return;}
   e.preventDefault();

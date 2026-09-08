@@ -641,7 +641,13 @@ body.modal-open { overflow: hidden; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  // Kullanıcı bulgusu: mobilde modal üstteki/alttaki görev çubuğunun ALTINDA
+  // kalıyor, çarpıya (X) basılamıyor. Kök sebep z-index DEĞİL -- 100vh, iOS
+  // Safari'de adres çubuğu açıkken GERÇEK görünür yükseklikten BÜYÜK, bu
+  // yüzden ortalanan modal görünür alanın dışına taşıp üst/alt kenarları
+  // (başlık/X ve alt buton satırı) tarayıcı arayüzünün arkasında kalıyor.
+  // Ayrıca güvenli alan (çentik/home indicator) payı da ekleniyor.
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
   opacity: 0;
   transition: opacity 180ms ease;
 }
@@ -654,7 +660,11 @@ body.modal-open { overflow: hidden; }
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18), 0 0 0 1px var(--border-translucent);
   width: 100%;
   max-width: 480px;
-  max-height: calc(100vh - 48px);
+  // dvh (dynamic viewport height) -- adres çubuğu açılıp kapandıkça değişen
+  // GERÇEK görünür yüksekliği izler; desteklenmeyen tarayıcılarda geçersiz
+  // sayılıp bir önceki vh değeri geçerli kalır (kademeli iyileştirme).
+  max-height: calc(100vh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   transform: translateY(8px) scale(0.98);

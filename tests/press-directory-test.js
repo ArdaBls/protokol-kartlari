@@ -230,7 +230,30 @@ async function ac(browser, rol, hedef) {
 			if (!/editor/.test(rules.basinRehberi.$contactId['.write'])) { basarisiz.push('yerelKurallar.editorYazamiyor'); }
 			if (!(rules.test && rules.test.basinRehberi)) { basarisiz.push('yerelKurallar.testDalindaYok'); }
 		}
+		if (!rules.telefonRehberi) { basarisiz.push('yerelKurallar.telefonRehberiEksik'); }
+		else {
+			if (!/editor/.test(rules.telefonRehberi.$contactId['.write'])) { basarisiz.push('yerelKurallar.telefonEditorYazamiyor'); }
+			if (!(rules.test && rules.test.telefonRehberi)) { basarisiz.push('yerelKurallar.telefonTestDalindaYok'); }
+		}
 	}
+
+	// Kullanıcı isteği: rehber kendi içinde "klasörlü" olsun -- E-posta Listesi
+	// (mevcut basinRehberi) / Telefon Rehberi (yeni, mail atılmayacak kişiler,
+	// ajans/haber sitesi bilgisi tutulur) sekmeleri.
+	assert.match(pageSource, /data-press-view="email"/, 'Sayfada "E-posta Listesi" sekmesi olmalı');
+	assert.match(pageSource, /data-press-view="telefon"/, 'Sayfada "Telefon Rehberi" sekmesi olmalı');
+	assert.match(pageSource, /data-phone-list/, 'Telefon Rehberi paneli data-phone-list konteynerine sahip olmalı');
+	const phoneJsPath = path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'phone-directory.js');
+	assert.ok(fs.existsSync(phoneJsPath), 'phone-directory.js dosyası bulunmalı');
+	const phoneJsSource = fs.readFileSync(phoneJsPath, 'utf8');
+	assert.match(phoneJsSource, /dbPath\('telefonRehberi/, 'phone-directory.js telefonRehberi yoluna dbPath() ile erişmeli (Test Modu uyumu)');
+	assert.doesNotMatch(phoneJsSource, /eposta/, 'Telefon Rehberi kişilerinde e-posta alanı OLMAMALI (mail atılmayacak kişiler)');
+	assert.match(mainSource, /data-phone-add/, 'main-v4.js genel .card-opt-btn menüsü data-phone-add\'i dışlamalı (çift modal açılmasın)');
+
+	// BUG düzeltmesi (bu oturumda bulundu): [hidden] özniteliği .press-send-bar'ın
+	// kendi `display: flex` kuralıyla AYNI özgüllükte olduğu için hiç etkili
+	// olmuyordu -- çubuk seçim SIFIRKEN de görünüyordu. Regresyon koruması.
+	assert.match(pressCssSource, /\.press-send-bar\[hidden\]\s*\{\s*display:\s*none;?\s*\}/, '.press-send-bar[hidden] açık bir display:none kuralına sahip olmalı');
 
 	console.log('ALL_TESTS_PASSED:', basarisiz.length === 0);
 	if (basarisiz.length) console.log('BASARISIZ ALANLAR:', JSON.stringify(basarisiz));

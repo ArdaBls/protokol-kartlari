@@ -41,20 +41,24 @@ const SECTION_DATE_CLASS = { today: 'overview-date--today', week: 'overview-date
 function overviewCardHtml(e, now, section) {
   const ongoing = overviewOngoing(e, now);
   const isToday = isSameDay(getEventStartDate(e), todayDate());
-  // Yalnızca renkle anlam verilmiyor -- "Şu anda"/"Bugün" METİN rozeti de var.
+  const s = getEventStartDate(e);
+  const en = getEventEndDate(e);
+  // Kullanıcı isteği: bugün için saati geçmiş (artık devam etmeyen) etkinlikler
+  // "Bugün" değil "Bitti" rozeti göstersin.
+  const ended = !ongoing && isToday && en && en.getTime() < now.getTime();
+  // Yalnızca renkle anlam verilmiyor -- "Şu anda"/"Bugün"/"Bitti" METİN rozeti de var.
   const badge = ongoing ? '<span class="overview-badge overview-badge--now">Şu anda</span>'
-    : (isToday ? '<span class="overview-badge overview-badge--today">Bugün</span>' : '');
+    : (ended ? '<span class="overview-badge overview-badge--ended">Bitti</span>'
+    : (isToday ? '<span class="overview-badge overview-badge--today">Bugün</span>' : ''));
   const meta = [];
   if (e.saat) { meta.push(e.saat + (e.bitisSaat ? '–' + e.bitisSaat : '')); }
   if (e.yer) { meta.push(escapeHtml(e.yer)); }
   else if (e.birim) { meta.push(escapeHtml(e.birim)); }
-  const s = getEventStartDate(e);
-  const en = getEventEndDate(e);
   const isMultiDay = !!e.bitisTarihi && e.bitisTarihi !== e.tarih;
   const dayNum = s ? s.getDate() : '?';
   const monLabel = isMultiDay && en ? (fmtTrDate(s) + '–' + fmtTrDate(en)) : (s ? AYLAR_KISA[s.getMonth()] : '');
   const dateClass = SECTION_DATE_CLASS[section] || '';
-  return `<div class="overview-card${ongoing ? ' is-ongoing' : ''}">
+  return `<div class="overview-card">
     <span class="overview-date ${dateClass}" aria-hidden="true">${isMultiDay ? `<span class="overview-date-range">${escapeHtml(monLabel)}</span>` : `<span class="d">${dayNum}</span><span class="m">${escapeHtml(monLabel)}</span>`}</span>
     <span class="overview-main">
       <span class="overview-title">${escapeHtml(e.ad || '(adsız)')}</span>
