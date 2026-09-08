@@ -193,6 +193,17 @@ async function ac(browser, rol, hedef) {
 	assert.match(formsSource, /\.form-control \{ font-size: 16px; \}/,
 		'.form-control dar ekranda 16px olmalı (iOS Safari otomatik yakınlaştırmasını önlemek için)');
 
+	// Kullanıcı bulgusu: "E posta gönder butonu ... iPhone 16 Pro'da alt
+	// kaydırma çubuğu ile iç içe duruyor" -- ev tuşu olmayan iPhone'ların alt
+	// "home indicator" bölgesiyle sabit-konumlu çubuk çakışıyordu.
+	// env(safe-area-inset-bottom) ile bu pay eklenmeli (viewport-fit=cover
+	// gerekiyor, aksi halde env() hep 0 döner).
+	const pressCssSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'scss', 'v4', '_press-directory.scss'), 'utf8');
+	const safeAreaCount = (pressCssSource.match(/env\(safe-area-inset-bottom/g) || []).length;
+	assert.ok(safeAreaCount >= 2, '.press-send-bar hem masaüstü hem mobil kuralında env(safe-area-inset-bottom) kullanmalı');
+	const pageSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'production', 'basin-rehberi.html'), 'utf8');
+	assert.match(pageSource, /viewport-fit=cover/, 'env(safe-area-inset-*) çalışması için <meta viewport> viewport-fit=cover içermeli');
+
 	const navSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'src', 'v4', 'shell-render.js'), 'utf8');
 	assert.match(navSource, /'press-directory'/, 'EDITOR_NAV_KEYS Basın Rehberi\'ni içermeli -- editör de erişebilmeli');
 	assert.match(navSource, /key: 'press-directory'.*href: 'basin-rehberi\.html'/, 'NAV listesinde Basın Rehberi girdisi olmalı');

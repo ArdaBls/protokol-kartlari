@@ -113,7 +113,12 @@
 .press-send-bar {
   position: fixed;
   left: 50%;
-  bottom: 20px;
+  // Kullanıcı bulgusu: "iPhone 16 Pro'da alt kaydırma çubuğu ile iç içe
+  // duruyor" -- ev tuşu olmayan iPhone'lardaki alt kaydırma göstergesi (home
+  // indicator) bu bölgeyi kaplıyor. env(safe-area-inset-bottom) bu payı
+  // verir (viewport-fit=cover zaten bu sayfanın <meta viewport>'unda var,
+  // aksi halde env() hep 0 dönerdi) -- skip-link'teki AYNI desen (üst için).
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -128,5 +133,8 @@
 }
 .press-send-bar .btn { height: 32px; padding: 0 14px; font-size: 12.5px; }
 @media (max-width: 700px) {
-  .press-send-bar { left: 12px; right: 12px; bottom: 12px; transform: none; }
+  .press-send-bar {
+    left: 12px; right: 12px; transform: none;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
 }
