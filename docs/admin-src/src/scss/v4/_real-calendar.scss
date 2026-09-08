@@ -321,83 +321,193 @@
   .cal-ev-ticket-wrap { align-self: center; }
 }
 
-// Konser bileti önizlemesi -- uiverse.io/dexter-st/slippery-bird-76 kaynaklı
-// "TICKET" kart tasarımından uyarlandı (bkz. ticket-badge.js dosya başı notu):
-// çentikli kenar + kesik-çizgi ayracı klasik bilet siluetiyle, holografik efekt
-// olmadan, "Konser" türünün kendi rengiyle (mor).
+// Konser bileti önizlemesi -- uiverse.io/dexter-st/slippery-bird-76 "TICKET"
+// kart tasarımının BİREBİR portu (kullanıcı isteği: "o ticketin aynı
+// görünmesini hareket etmesini istiyorum" -- bkz. ticket-badge.js dosya başı
+// notu). Sınıf adları site genelindeki .card/.header/.body/.footer gibi ÇOK
+// genel adlarla ÇAKIŞMASIN diye "cal-ticket-" öneki eklendi; bu SADECE isim
+// alanı izolasyonu -- değerler (renkler, animasyon süreleri, mask/filter
+// tanımları) orijinalle BİREBİR AYNI. isolation:isolate EKLENDİ (orijinalde
+// yok) -- içerideki mix-blend-mode katmanları (::before/::after, .header)
+// modalın DIŞINDAKİ içerikle karışmasın diye, görünümü DEĞİŞTİRMEZ.
 .cal-ticket {
+  --width: 180px;
+  --height: 320px;
+  --perforation-size: 12px;
+  --cutouts-adjust: 70px;
+
   position: relative;
-  width: 172px;
-  min-height: 232px;
-  border-radius: 12px;
-  background: linear-gradient(160deg, #9333ea, #6b21a8);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 24px rgba(88, 28, 135, 0.35);
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
+  grid-template-areas: "header" "body" "footer";
+
+  width: var(--width);
+  height: var(--height);
+  padding: var(--perforation-size) 0;
+
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  user-select: none;
+  overflow: hidden;
+
+  filter: drop-shadow(0 2px 1px #00000025) drop-shadow(0 4px 3px #00000025)
+    drop-shadow(0 10px 9px #00000025) drop-shadow(0 20px 20px #00000025)
+    drop-shadow(0 40px 40px #00000025);
+  animation: cal-ticket-hover 3s ease infinite;
+  will-change: transform, filter;
 }
-.cal-ticket-header {
-  padding: 12px 14px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-weight: var(--font-weight-bold);
-  font-size: 12.5px;
-  letter-spacing: 2px;
-  opacity: 0.85;
+@keyframes cal-ticket-hover {
+  50% {
+    filter: drop-shadow(0 4px 3px #00000015) drop-shadow(0 6px 6px #00000015)
+      drop-shadow(0 16px 14px #00000015) drop-shadow(0 30px 28px #00000015)
+      drop-shadow(0 60px 60px #00000015);
+    transform: translateY(-7px) scale(1.02);
+  }
 }
-.cal-ticket-scissors { font-size: 12px; opacity: 0.5; transform: rotate(90deg); }
-.cal-ticket-body {
-  flex: 1;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  text-align: center;
+@media (prefers-reduced-motion: reduce) {
+  .cal-ticket, .cal-ticket-holographic::after { animation: none; }
 }
-.cal-ticket-name { font-size: 15px; font-weight: var(--font-weight-bold); line-height: 1.3; overflow-wrap: break-word; }
-.cal-ticket-date { font-size: 11.5px; opacity: 0.92; }
-.cal-ticket-venue { font-size: 11px; opacity: 0.72; min-height: 14px; overflow-wrap: break-word; }
-.cal-ticket-footer {
-  position: relative;
-  padding: 14px 14px 16px;
-  border-top: 1.5px dashed rgba(255, 255, 255, 0.4);
-  text-align: center;
-}
-// Çentikler ayraç çizgisinin ÜZERİNDE (footer'ın kendi üst kenarı) -- bilet
-// içeriğinin yüksekliği değişse de her zaman doğru hizada kalır. Arkaplan
-// modal yüzeyinin rengiyle (var(--bg-surface)) "kesilmiş" görünümü verir.
-.cal-ticket-footer::before, .cal-ticket-footer::after {
-  content: '';
+
+.cal-ticket-filter-svg { position: absolute; }
+
+// Biletin "kağıt" katmanı: mask ile üst/alt dalgalı (perfore) kenar + sol/sağ
+// çentik + ortadaki kesik-çizgi ayracı BİRLİKTE oyuluyor (mask-composite:
+// intersect, exclude, add, add -- 5 katmanı ardışık olarak birleştirir).
+.cal-ticket-bg {
   position: absolute;
-  top: -8px;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: var(--bg-surface);
+  inset: 0;
+  border-radius: inherit;
+  background-color: #fff;
+  filter: url(#cal-ticket-bump);
+  mask:
+    radial-gradient(
+      circle at 50% 0,
+      #fff0 calc(var(--perforation-size) - 5px),
+      #000 calc(var(--perforation-size) - 4px)
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      #fff0 calc(var(--perforation-size) - 5px),
+      #000 calc(var(--perforation-size) - 4px)
+    ),
+    radial-gradient(circle 8px at left center, #000 98%, #0000 100%),
+    radial-gradient(circle 8px at right center, #000 98%, #0000 100%),
+    repeating-linear-gradient(90deg, #000 10px, #000 15px, #0000 16px, #0000 24px);
+  mask-repeat: repeat-x, repeat-x, no-repeat, no-repeat, repeat-x;
+  mask-size:
+    calc(var(--perforation-size) * 2) 100%,
+    calc(var(--perforation-size) * 2) 100%,
+    16px 16px, 16px 16px, 10px 2px;
+  mask-position:
+    calc(0.5 * var(--perforation-size)) top,
+    calc(0.5 * var(--perforation-size)) bottom,
+    left var(--cutouts-adjust), right var(--cutouts-adjust),
+    0 calc(var(--cutouts-adjust) + 7px);
+  mask-composite: intersect, exclude, add, add;
 }
-.cal-ticket-footer::before { left: -8px; }
-.cal-ticket-footer::after { right: -8px; }
-.cal-ticket-person { font-size: 11.5px; font-weight: var(--font-weight-medium); margin-bottom: 8px; overflow-wrap: break-word; }
-.cal-ticket-role {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 1px 7px;
-  border-radius: 999px;
-  margin-inline-start: 5px;
+
+// Holografik folyo görünümü: conic-gradient + iki blend-mode katmanı, alttaki
+// katman (::after) yavaşça kayarak (bg-pos) parlama hissi verir.
+.cal-ticket-holographic {
+  background-image: linear-gradient(to bottom, #fe58, 90%, #0002),
+    conic-gradient(
+      at 60% 50%,
+      #ccc, #ff6bfe, #00f9f8, #ddd, #0081fd, #eef0bc, #0081fd, #ff6bfe,
+      #0002, #0081fd, #ddd, #01fefb, #ccc
+    );
 }
+.cal-ticket-holographic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 70% 20%, #f0f, #0000),
+    repeating-radial-gradient(circle at 30% 80%, #fff, #f4a 48px, #eeeeee 150px);
+  mix-blend-mode: color-burn;
+}
+.cal-ticket-holographic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, #f205, #f00, #0f0, #f205);
+  mix-blend-mode: difference;
+  animation: cal-ticket-bg-pos 3s ease-in-out infinite alternate;
+  background-position: 0 0;
+  background-size: 100% 300%;
+  background-repeat: repeat;
+}
+@keyframes cal-ticket-bg-pos { to { background-position: 0 500px; } }
+
+.cal-ticket-header {
+  position: relative;
+  grid-area: header;
+  margin: 0 8px;
+  text-align: center;
+  z-index: 1;
+  font-family: "Impact", sans-serif;
+  font-size: 2.75rem;
+  letter-spacing: 2px;
+  color: #ffffff9f;
+  text-shadow: 0 0 0 #000;
+  -webkit-text-stroke: #fff 0.5px;
+  mix-blend-mode: difference;
+}
+.cal-ticket-body {
+  grid-area: body;
+  margin: 0 1em;
+  padding: 0.5em;
+  font-weight: 200;
+  z-index: 1;
+  overflow-wrap: break-word;
+}
+.cal-ticket-footer { grid-area: footer; z-index: 1; margin: 0 1em 1em 1em; }
+.cal-ticket-number {
+  margin-bottom: 0.75rem;
+  text-align: center;
+  border-radius: 999px 0;
+  color: #000;
+  font-weight: 200;
+  overflow-wrap: break-word;
+}
+.cal-ticket-number .cal-ticket-bold { font-weight: 600; }
 .cal-ticket-barcode {
-  height: 22px;
-  width: 78%;
-  margin: 0 auto;
-  background-image: repeating-linear-gradient(90deg, #fff 0 2px, #0000 2px 4px, #fff 4px 5px, #0000 5px 8px, #fff 8px 11px, #0000 11px 13px, #fff 13px 15px, #0000 15px 19px);
-  opacity: 0.85;
+  justify-self: center;
+  width: 0;
+  height: 32px;
+  box-shadow:
+    0px 0 0 1px #000, 5px 0 0 1px #000, 7px 0 0 1px #000, 11px 0 0 1px #000,
+    15px 0 0 1px #000, 16px 0 0 1px #000, 22px 0 0 1px #000, 27px 0 0 1px #000,
+    30px 0 0 1px #000, 35px 0 0 1px #000, 36px 0 0 1px #000, 39px 0 0 1px #000,
+    43px 0 0 1px #000, 47px 0 0 1px #000, 50px 0 0 1px #000, 55px 0 0 1px #000,
+    59px 0 0 1px #000, 60px 0 0 1px #000, 64px 0 0 1px #000, 69px 0 0 1px #000,
+    70px 0 0 1px #000, 74px 0 0 1px #000;
+  transform: translateX(37px);
 }
+.cal-ticket-symbol {
+  position: absolute;
+  top: 1.3em;
+  right: 0;
+  rotate: 185deg;
+  font-size: 1.1em;
+  color: #fff;
+  line-height: 0.5;
+  opacity: 0.2;
+}
+.cal-ticket-notes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-size: 5rem;
+  color: #e7e7e7;
+  mix-blend-mode: color-burn;
+  transform: translateY(20%);
+  z-index: 1;
+}
+.cal-ticket-notes:nth-child(2) { transform: translateY(40%); }
+.cal-ticket-notes:nth-child(3) { transform: translateY(60%); }
 
 .cal-ev-form { display: flex; flex-direction: column; gap: var(--space-3); }
 .cal-ev-form-row { display: flex; flex-direction: column; gap: 4px; }

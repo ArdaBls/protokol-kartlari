@@ -1,13 +1,16 @@
 // Takvim düzenleme modalında Tür "Konser" seçilince formun yanında gösterilen
 // bilet önizlemesi. Kullanıcının paylaştığı uiverse.io/dexter-st/slippery-bird-76
-// "TICKET" kart tasarımından uyarlandı -- perfore/çentikli bilet SİLUETİ (üst/alt
-// dalgalı kenar + yan çentikler + kesik-çizgi ayracı, hepsi CSS mask ile) birebir
-// taşındı; orijinaldeki holografik parlama animasyonu + SVG bump/turbulence
-// filtresi admin panelinin sade tasarım diliyle uyuşmadığı için ÇIKARILDI, yerine
-// "Konser" türünün kendi rengi (calendar.js EVENT_TYPES) kullanıldı.
-//
-// Kullanıcı isteği: bilet etkinlik adını (konser adı) taşısın, üzerinde o an
-// oturum açmış kişinin adı ve rolü (editör/admin/kurucu) yazsın.
+// "TICKET" kart tasarımının BİREBİR portu -- kullanıcı isteği: "o ticketin aynı
+// görünmesini hareket etmesini istiyorum". Holografik parlama (conic-gradient +
+// mix-blend-mode katmanları), SVG feTurbulence/feSpecularLighting "bump" doku
+// filtresi, kartın "yüzme" (translateY+scale, 3s infinite) animasyonu VE
+// holografik arka planın kayan (bg-pos, 3s infinite alternate) animasyonu
+// orijinal CSS'ten DEĞİŞTİRİLMEDEN taşındı (bkz. _real-calendar.scss ".cal-ticket"
+// bloğu). Sınıf adları site genelindeki .card/.header/.body/.footer gibi ÇOK
+// genel adlarla ÇAKIŞMASIN diye "cal-ticket-" öneki eklendi -- bu SADECE isim
+// alanı izolasyonu, görsel/davranış birebir aynı kalıyor. İçerik (metinler)
+// orijinaldeki "Day pass / May 14th 2026 / Venue.../ Seat E7" yerine etkinlik
+// adı/tarihi/yeri ve oturum açmış kişinin adı+rolü ile dolduruluyor.
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -23,31 +26,46 @@ function fmtTicketDate(tarih) {
   return d + ' ' + TICKET_AYLAR[m - 1] + ' ' + y;
 }
 
+// Orijinal HTML iskeleti (uiverse) birebir korunuyor: 3 "notes" dekor katmanı,
+// header+sembol, body (3 satır), footer (numara + barkod), sonda bg+holografik
+// katman ve SVG bump filtresi. Filtre id'si "cal-ticket-bump" olarak
+// isimlendirildi (orijinali "bump") -- sayfadaki başka bir id ile çakışmasın.
 export function ticketBadgeHtml({ ad, tarih, saat, yer, kisiAdi, kisiRol }) {
   const rolLabel = TICKET_ROLE_LABEL[kisiRol] || '';
   const dateLabel = fmtTicketDate(tarih) + (saat ? ' · ' + saat : '');
+  const personLabel = (kisiAdi ? escapeHtml(kisiAdi) : '') + (rolLabel ? ' (' + escapeHtml(rolLabel) + ')' : '');
   return (
     '<div class="cal-ticket">' +
-      '<div class="cal-ticket-bg"></div>' +
-      '<div class="cal-ticket-header">BİLET<span class="cal-ticket-scissors">✁</span></div>' +
+      '<div class="cal-ticket-notes">♪♪♪♪♪</div>' +
+      '<div class="cal-ticket-notes">♪♪♪♪</div>' +
+      '<div class="cal-ticket-notes">♪♪♪♪♪</div>' +
+      '<div class="cal-ticket-header">BİLET<div class="cal-ticket-symbol">✁</div></div>' +
       '<div class="cal-ticket-body">' +
-        '<div class="cal-ticket-name" data-cal-ticket-name>' + escapeHtml(ad || 'Konser Adı') + '</div>' +
-        '<div class="cal-ticket-date" data-cal-ticket-date>' + escapeHtml(dateLabel) + '</div>' +
-        '<div class="cal-ticket-venue" data-cal-ticket-venue>' + escapeHtml(yer || '') + '</div>' +
+        '<em data-cal-ticket-name>' + escapeHtml(ad || 'Konser Adı') + '</em><br>' +
+        '<span data-cal-ticket-date>' + escapeHtml(dateLabel) + '</span><br>' +
+        '<span data-cal-ticket-venue>' + escapeHtml(yer || '') + '</span>' +
       '</div>' +
       '<div class="cal-ticket-footer">' +
-        '<div class="cal-ticket-person">' +
-          '<span data-cal-ticket-person>' + escapeHtml(kisiAdi || '') + '</span>' +
-          (rolLabel ? ' <span class="cal-ticket-role" data-cal-ticket-role>' + escapeHtml(rolLabel) + '</span>' : '') +
-        '</div>' +
-        '<div class="cal-ticket-barcode" aria-hidden="true"></div>' +
+        '<div class="cal-ticket-number">Düzenleyen <span class="cal-ticket-bold" data-cal-ticket-person>' + personLabel + '</span></div>' +
+        '<div class="cal-ticket-barcode"></div>' +
       '</div>' +
+      '<div class="cal-ticket-bg cal-ticket-holographic"></div>' +
+      '<svg class="cal-ticket-filter-svg">' +
+        '<filter id="cal-ticket-bump">' +
+          '<feTurbulence result="noise" numOctaves="3" baseFrequency="0.7" type="fractalNoise"></feTurbulence>' +
+          '<feSpecularLighting in="noise" result="specular" lighting-color="#fffffc" specularExponent="25" specularConstant="0.8" surfaceScale="0.15">' +
+            '<fePointLight z="210" y="100" x="100"></fePointLight>' +
+          '</feSpecularLighting>' +
+          '<feComposite result="noise2" operator="in" in="specular" in2="SourceGraphic"></feComposite>' +
+          '<feBlend mode="screen" in2="noise2" in="SourceGraphic"></feBlend>' +
+        '</filter>' +
+      '</svg>' +
     '</div>'
   );
 }
 
 // Form alanları değiştikçe (Ad/Tarih/Saat/Yer) bileti YENİDEN OLUŞTURMADAN
-// (odak/animasyon kaybı olmadan) güncelleyen hafif fonksiyon.
+// (animasyon/odak kaybı olmadan) güncelleyen hafif fonksiyon.
 export function updateTicketBadge(container, { ad, tarih, saat, yer }) {
   if (!container) { return; }
   const nameEl = container.querySelector('[data-cal-ticket-name]');

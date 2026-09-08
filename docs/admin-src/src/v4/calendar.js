@@ -1683,7 +1683,12 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       // sayılıyordu. GEÇMİŞ (bitmiş) bir etkinliğe biri işaretlenmek istendiğinde
       // artık doğrudan eklenmiyor -- admin/owner onayı bekleyen bir talep açılır,
       // kutu kendiliğinden tekrar boş kalır (bkz. attendance.js).
-      if (t.checked && id && ev && calHasEventEnded(ev)) {
+      // Kullanıcı isteği: bu onay akışı SADECE editör işaretlerken çalışsın --
+      // admin/owner zaten kendi onayını bekleyen tarafın ta kendisi olduğu için
+      // (owner işaretleyip owner'a bildirim gidip owner'ın kendi kendini
+      // onaylaması anlamsız), admin/owner geçmiş etkinliklere de DOĞRUDAN
+      // (talep açmadan) ekleyebilir.
+      if (t.checked && id && ev && calHasEventEnded(ev) && currentUserRole === 'editor') {
         t.checked = false;
         if (!name) { return; }
         createAttendanceRequest(database, {
