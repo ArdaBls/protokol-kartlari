@@ -76,6 +76,9 @@ if (document.querySelector('[data-countdown-value]')) {
 if (document.querySelector('[data-operations-overview]')) {
   import('./v4/operations-overview-widget.js').then((m) => m.initOperationsOverviewWidget());
 }
+if (document.querySelector('[data-concert-ticket-slot]')) {
+  import('./v4/concert-ticket-popup.js').then((m) => m.initConcertTicketPopup());
+}
 
 // ────────────────────────
 //  Delegated interactions
@@ -149,7 +152,7 @@ document.addEventListener('click', (e) => {
   // birden açılıyor").
   if (btn.hasAttribute('data-task-add') || btn.hasAttribute('data-quick-event-btn')
     || btn.hasAttribute('data-press-add') || btn.hasAttribute('data-press-import')
-    || btn.hasAttribute('data-phone-add')) {return;}
+    || btn.hasAttribute('data-phone-add') || btn.hasAttribute('data-concert-ticket-chip')) {return;}
   // Skip if the click was already handled (e.g. calendar prev/next).
   if (e.defaultPrevented) {return;}
   e.preventDefault();

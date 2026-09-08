@@ -14,7 +14,6 @@ import { showModal } from './modal.js';
 import { facultyOptionsHtml, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 import { createAttendanceRequest } from './attendance.js';
-import { ticketBadgeHtml, updateTicketBadge } from './ticket-badge.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -1424,19 +1423,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   const bitisTarihi = (ev && ev.bitisTarihi) ? ev.bitisTarihi : tarih;
   const selectedBadges = new Set(ev && Array.isArray(ev.rozetler) ? ev.rozetler : []);
 
-  // Kullanıcı isteği: Tür "Konser" seçilince formun YANINDA (masaüstü) / ALTINDA
-  // (mobil, bkz. _real-calendar.scss @media(max-width:480px)) etkinlik adını ve
-  // oturum açmış kişinin adı+rolünü taşıyan bir bilet önizlemesi görünsün.
-  const ticketWrapHtml =
-    '<div class="cal-ev-ticket-wrap" id="cef-ticketWrap"' + (ev && ev.tur === 'konser' ? '' : ' hidden') + '>' +
-      ticketBadgeHtml({
-        ad: ev ? ev.ad : '', tarih, saat, yer: ev ? ev.yer : '',
-        kisiAdi: currentUserName || currentUserEmail, kisiRol: currentUserRole
-      }) +
-    '</div>';
-
   const bodyHtml =
-    '<div class="cal-ev-body-wrap">' +
     '<form class="cal-ev-form" id="calEvForm">' +
       '<div class="cal-ev-form-row"><label for="cef-ad">Etkinlik Adı</label><input type="text" id="cef-ad" class="form-control" value="' + escapeHtml(ev ? ev.ad : '') + '" required></div>' +
       '<div class="cal-ev-form-grid">' +
@@ -1462,9 +1449,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         '<input type="text" class="cal-ev-att-search" id="cef-attSearch" placeholder="İsim veya unvan ara…"><div class="cal-ev-att-box" id="cef-attendeeBox"></div></div>' +
       '<div class="cal-ev-form-row"><label for="cef-haberKaynagi">Haber Kaynağı <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="cef-haberKaynagi" class="form-control"><option value="">(Belirtilmedi)</option>' + ['İHA', 'AA', 'DHA', 'ANKA'].map((k) => '<option value="' + k + '"' + (ev && ev.haberKaynagi === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
-    '</form>' +
-    ticketWrapHtml +
-    '</div>';
+    '</form>';
 
   const actions = [];
   // "Sil" ESKİDEN sadece `id` varlığına bağlıydı, canWrite'a değil -- girişsiz ziyaretçi de
@@ -1562,10 +1547,8 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   }
 
   const modalHandle = showModal({
-    // Kullanıcı isteği: Konser bileti önizlemesi formun yanına sığsın diye
-    // modal 'md'den (480px) 'lg'ye (720px) genişletildi -- bilet panel gizliyken
-    // (Konser dışı türler) form tek başına genişlemiş modalda normal görünür,
-    // bu yüzden genişlik daraltmaya gerek yok.
+    // Kullanıcı isteği: modal genişliği 'lg' (720px) olarak kalsın -- bilet
+    // önizlemesi artık burada DEĞİL, index.html'de (bkz. concert-ticket-popup.js).
     title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'lg',
     onClose: onModalClose ? () => onModalClose(saveCommitted) : undefined
   });
@@ -1604,26 +1587,9 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     applyReadonly();
   });
 
-  // Bilet önizlemesi (Tür=Konser) canlı güncellenir -- kullanıcı isteği: bilet
-  // "konserin adını" (etkinlik adı) taşısın, bu yüzden Ad/Tarih/Saat/Yer
-  // alanlarındaki her değişiklik odak/animasyon KAYBETMEDEN (yeniden çizim
-  // yerine metin güncellemesi, bkz. ticket-badge.js updateTicketBadge)
-  // bilete yansır.
-  const refreshTicketBadge = () => {
-    const wrap = bodyEl.querySelector('#cef-ticketWrap');
-    if (!wrap || wrap.hidden) { return; }
-    updateTicketBadge(wrap, {
-      ad: bodyEl.querySelector('#cef-ad')?.value,
-      tarih: bodyEl.querySelector('#cef-tarih')?.value,
-      saat: bodyEl.querySelector('#cef-saat')?.value,
-      yer: bodyEl.querySelector('#cef-yer')?.value
-    });
-  };
-
   bodyEl.addEventListener('input', (e) => {
     if (e.target.id === 'cef-personSearch') { renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters); }
     else if (e.target.id === 'cef-attSearch') { renderAttendeePicker(bodyEl, calAttendees); }
-    else if (['cef-ad', 'cef-tarih', 'cef-saat', 'cef-yer'].indexOf(e.target.id) !== -1) { refreshTicketBadge(); }
   });
 
   bodyEl.addEventListener('click', (e) => {
@@ -1640,11 +1606,6 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
 
   bodyEl.addEventListener('change', (e) => {
     const t = e.target;
-    if (t.id === 'cef-tur') {
-      const wrap = bodyEl.querySelector('#cef-ticketWrap');
-      if (wrap) { wrap.hidden = t.value !== 'konser'; if (!wrap.hidden) { refreshTicketBadge(); } }
-      return;
-    }
     if (t.id === 'cef-cokgunlu') {
       const on = t.checked;
       bodyEl.querySelectorAll('.cal-ev-datetime-row .cal-ev-time-field').forEach((el) => { el.style.display = on ? 'none' : ''; });

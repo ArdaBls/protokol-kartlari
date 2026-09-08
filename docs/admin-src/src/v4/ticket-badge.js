@@ -1,5 +1,4 @@
-// Takvim düzenleme modalında Tür "Konser" seçilince formun yanında gösterilen
-// bilet önizlemesi. Kullanıcının paylaştığı uiverse.io/dexter-st/slippery-bird-76
+// Konser bileti -- kullanıcının paylaştığı uiverse.io/dexter-st/slippery-bird-76
 // "TICKET" kart tasarımının BİREBİR portu -- kullanıcı isteği: "o ticketin aynı
 // görünmesini hareket etmesini istiyorum". Holografik parlama (conic-gradient +
 // mix-blend-mode katmanları), SVG feTurbulence/feSpecularLighting "bump" doku
@@ -10,7 +9,14 @@
 // genel adlarla ÇAKIŞMASIN diye "cal-ticket-" öneki eklendi -- bu SADECE isim
 // alanı izolasyonu, görsel/davranış birebir aynı kalıyor. İçerik (metinler)
 // orijinaldeki "Day pass / May 14th 2026 / Venue.../ Seat E7" yerine etkinlik
-// adı/tarihi/yeri ve oturum açmış kişinin adı+rolü ile dolduruluyor.
+// adı/tarihi/yeri ve BİLETİ GÖREN KİŞİNİN (etkinliği oluşturanın DEĞİL) adı+
+// rolü ile dolduruluyor -- her kullanıcı kendi adını taşıyan bir bilet görür
+// (bkz. concert-ticket-popup.js). Artık Takvim düzenleme modalında DEĞİL,
+// Operasyonlar (index.html) sayfasında kullanılıyor.
+//
+// Kullanıcı bulgusu: orijinal tasarımın header'ı (beyaz + mix-blend-mode)
+// ve gövde metni bizim renk şemamızda GÖRÜNMÜYORDU -- tüm metin rengi düz
+// siyaha sabitlendi (bkz. _real-calendar.scss ".cal-ticket" bloğu).
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -46,7 +52,7 @@ export function ticketBadgeHtml({ ad, tarih, saat, yer, kisiAdi, kisiRol }) {
         '<span data-cal-ticket-venue>' + escapeHtml(yer || '') + '</span>' +
       '</div>' +
       '<div class="cal-ticket-footer">' +
-        '<div class="cal-ticket-number">Düzenleyen <span class="cal-ticket-bold" data-cal-ticket-person>' + personLabel + '</span></div>' +
+        '<div class="cal-ticket-number">Bilet Sahibi <span class="cal-ticket-bold" data-cal-ticket-person>' + personLabel + '</span></div>' +
         '<div class="cal-ticket-barcode"></div>' +
       '</div>' +
       '<div class="cal-ticket-bg cal-ticket-holographic"></div>' +

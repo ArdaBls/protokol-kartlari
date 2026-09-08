@@ -310,26 +310,20 @@
 }
 
 // Etkinlik düzenleme modalı — çekirdek alan formu (modal.js showModal ile açılır)
-// Kullanıcı isteği: Tür "Konser" seçilince form + bilet önizlemesi yan yana
-// (masaüstü) / alt alta (mobil) dursun.
-.cal-ev-body-wrap { display: flex; gap: var(--space-4); align-items: flex-start; }
-.cal-ev-body-wrap .cal-ev-form { flex: 1; min-width: 0; }
-.cal-ev-ticket-wrap { flex-shrink: 0; padding-top: 2px; }
-.cal-ev-ticket-wrap[hidden] { display: none; }
-@media (max-width: 640px) {
-  .cal-ev-body-wrap { flex-direction: column; }
-  .cal-ev-ticket-wrap { align-self: center; }
-}
 
-// Konser bileti önizlemesi -- uiverse.io/dexter-st/slippery-bird-76 "TICKET"
-// kart tasarımının BİREBİR portu (kullanıcı isteği: "o ticketin aynı
-// görünmesini hareket etmesini istiyorum" -- bkz. ticket-badge.js dosya başı
-// notu). Sınıf adları site genelindeki .card/.header/.body/.footer gibi ÇOK
-// genel adlarla ÇAKIŞMASIN diye "cal-ticket-" öneki eklendi; bu SADECE isim
-// alanı izolasyonu -- değerler (renkler, animasyon süreleri, mask/filter
+// Konser bileti -- uiverse.io/dexter-st/slippery-bird-76 "TICKET" kart
+// tasarımının BİREBİR portu (kullanıcı isteği: "o ticketin aynı görünmesini
+// hareket etmesini istiyorum" -- bkz. ticket-badge.js dosya başı notu).
+// ARTIK Takvim'in düzenleme modalında DEĞİL, Operasyonlar (index.html)
+// sayfasında -- bkz. concert-ticket-popup.js. Bu dosyada tanımlı kalması
+// (real-calendar.scss ayrı bir SCSS parçası olsa da) sorun değil: main.scss
+// TEK bir site geneli CSS paketine derleniyor, tüm sayfalar aynı bundle'ı
+// yüklüyor. Sınıf adları site genelindeki .card/.header/.body/.footer gibi
+// ÇOK genel adlarla ÇAKIŞMASIN diye "cal-ticket-" öneki eklendi; bu SADECE
+// isim alanı izolasyonu -- değerler (renkler, animasyon süreleri, mask/filter
 // tanımları) orijinalle BİREBİR AYNI. isolation:isolate EKLENDİ (orijinalde
 // yok) -- içerideki mix-blend-mode katmanları (::before/::after, .header)
-// modalın DIŞINDAKİ içerikle karışmasın diye, görünümü DEĞİŞTİRMEZ.
+// çevresindeki içerikle karışmasın diye, görünümü DEĞİŞTİRMEZ.
 .cal-ticket {
   --width: 180px;
   --height: 320px;
@@ -349,6 +343,9 @@
 
   font-family: "Inter", sans-serif;
   font-size: 1rem;
+  // Koyu temada sitenin varsayılan (açık renkli) metin rengini MİRAS ALMASIN --
+  // bilet holografik/açık renkli bir zemin, metin her zaman koyu kalmalı.
+  color: #000;
   user-select: none;
   overflow: hidden;
 
@@ -450,10 +447,11 @@
   font-family: "Impact", sans-serif;
   font-size: 2.75rem;
   letter-spacing: 2px;
-  color: #ffffff9f;
-  text-shadow: 0 0 0 #000;
-  -webkit-text-stroke: #fff 0.5px;
-  mix-blend-mode: difference;
+  // Kullanıcı bulgusu: orijinaldeki color:#ffffff9f + mix-blend-mode:difference
+  // (holografik arkaplana göre otomatik kontrast) bizim renk kombinasyonumuzda
+  // OKUNMUYORDU ("üstteki yazılar beyaz... siyah yapalım gözükmüyor çünkü") --
+  // düz siyaha sabitlendi, blend modu kaldırıldı.
+  color: #000;
 }
 .cal-ticket-body {
   grid-area: body;
@@ -508,6 +506,46 @@
 }
 .cal-ticket-notes:nth-child(2) { transform: translateY(40%); }
 .cal-ticket-notes:nth-child(3) { transform: translateY(60%); }
+
+// Operasyonlar (index.html) — bkz. concert-ticket-popup.js. Kullanıcı isteği:
+// "başarımlar gibi gelsin ama çarpı butonu vs olmasın, bir yere basınca
+// gitsin" -- header/footer/kapatma tuşu olmayan, sadece bileti gösteren bir
+// katman; modal.js'in .modal-backdrop'undan (z-index:1200) daha üstte
+// (1500) durur ki her koşulda görünür kalsın.
+.concert-ticket-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 200ms ease;
+}
+.concert-ticket-overlay.show { opacity: 1; }
+.concert-ticket-overlay-inner {
+  transform: scale(0.85) translateY(12px);
+  opacity: 0;
+  transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), opacity 220ms ease;
+}
+.concert-ticket-overlay.show .concert-ticket-overlay-inner { transform: scale(1) translateY(0); opacity: 1; }
+body.concert-ticket-overlay-open { overflow: hidden; }
+
+.concert-ticket-chip {
+  color: var(--yellow);
+  animation: concert-ticket-chip-pulse 1.8s ease-in-out infinite;
+}
+@keyframes concert-ticket-chip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .concert-ticket-chip { animation: none; }
+}
 
 .cal-ev-form { display: flex; flex-direction: column; gap: var(--space-3); }
 .cal-ev-form-row { display: flex; flex-direction: column; gap: 4px; }

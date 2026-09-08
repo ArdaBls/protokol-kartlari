@@ -30,8 +30,8 @@
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
   <script type="module" crossorigin src="/js/toast-C9dk_WzR.js"></script>
   <script type="module" crossorigin src="/js/db-mode-F_jprkvV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BXcthWSd.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-itIT6sJS.css">
+  <script type="module" crossorigin src="/js/main-v4-KqVKLRms.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CqG-8aGi.css">
 </head>
 <body data-shell="admin" data-page="dashboard" data-breadcrumb="Anasayfa|index.html > Operasyonlar">
 
@@ -317,6 +317,10 @@
             <div class="card-subtitle" data-todo-counter>Yükleniyor…</div>
           </div>
           <div class="card-options">
+            <!-- Kullanıcı isteği: bugün bir Konser etkinliği varsa (bitiş saatine
+                 kadar) burada küçük bir bilet rozeti dursun -- bkz.
+                 concert-ticket-popup.js. Konser yoksa hidden kalır. -->
+            <span data-concert-ticket-slot hidden></span>
             <button type="button" class="card-opt-btn card-opt-btn-labeled" data-quick-event-btn aria-label="Bir Etkinliğe Gidiyorum" title="Bir Etkinliğe Gidiyorum">📍 Bir Etkinliğe Gidiyorum</button>
             <button type="button" class="card-opt-btn" data-task-add aria-label="Yeni görev ekle"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg></button>
           </div>
