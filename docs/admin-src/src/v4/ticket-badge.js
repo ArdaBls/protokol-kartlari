@@ -36,6 +36,9 @@ function fmtTicketDate(tarih) {
 // header+sembol, body (3 satır), footer (numara + barkod), sonda bg+holografik
 // katman ve SVG bump filtresi. Filtre id'si "cal-ticket-bump" olarak
 // isimlendirildi (orijinali "bump") -- sayfadaki başka bir id ile çakışmasın.
+// (Bu filtre bir ara "iPhone'da çalışmıyor" bulgusuyla kaldırılmıştı, ama
+// masaüstündeki "soft" görünümün KENDİSİ olduğu için -- kullanıcı isteği:
+// "koddaki gibi olsun" -- geri getirildi.)
 export function ticketBadgeHtml({ ad, tarih, saat, yer, kisiAdi }) {
   const dateLabel = fmtTicketDate(tarih) + (saat ? ' · ' + saat : '');
   // Kullanıcı isteği: "Bilet Sahibi (rol)" değil, yalnızca kişinin hesap adı.

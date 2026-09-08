@@ -368,6 +368,13 @@
 // kural KASITLI OLARAK yok (orijinal uiverse kaynağında da yok). Cihazlardan
 // birinin işletim sistemi "Hareketi Azalt" açıksa bile bu SADECE bu bilete
 // özel, kullanıcının bilinçli tercihiyle bir istisna.
+// Kullanıcı bulgusu: SVG bump filtresi kaldırılınca masaüstündeki "soft"
+// (yumuşak, harmanlanmış) görünüm de bozuldu -- kullanıcı "koddaki gibi
+// olsun" dedi, filtre GERİ GETİRİLDİ (bkz. ticket-badge.js). iPhone'daki
+// holografik sorun (yalnızca düz bir renk değişikliği görünmesi) hâlâ
+// araştırılıyor -- muhtemel sebep WebKit'in feTurbulence/feSpecularLighting
+// desteğinin zayıf olması, ama bu filtre "soft" görünümün KENDİSİ olduğu
+// için kaldırmak çözüm değil.
 .cal-ticket-filter-svg { position: absolute; }
 
 // Biletin "kağıt" katmanı: mask ile üst/alt dalgalı (perfore) kenar + sol/sağ
@@ -439,6 +446,9 @@
 }
 @keyframes cal-ticket-bg-pos { to { background-position: 0 500px; } }
 
+// Kullanıcı isteği (son karar): header orijinal uiverse CSS'iyle BİREBİR --
+// color:#ffffff9f + mix-blend-mode:difference geri getirildi (daha önce
+// "görünmüyor" bulgusuyla düz siyaha sabitlenmişti, kullanıcı bunu istemedi).
 .cal-ticket-header {
   position: relative;
   grid-area: header;
@@ -448,11 +458,10 @@
   font-family: "Impact", sans-serif;
   font-size: 2.75rem;
   letter-spacing: 2px;
-  // Kullanıcı bulgusu: orijinaldeki color:#ffffff9f + mix-blend-mode:difference
-  // (holografik arkaplana göre otomatik kontrast) bizim renk kombinasyonumuzda
-  // OKUNMUYORDU ("üstteki yazılar beyaz... siyah yapalım gözükmüyor çünkü") --
-  // düz siyaha sabitlendi, blend modu kaldırıldı.
-  color: #000;
+  color: #ffffff9f;
+  text-shadow: 0 0 0 #000;
+  -webkit-text-stroke: #fff 0.5px;
+  mix-blend-mode: difference;
 }
 .cal-ticket-body {
   grid-area: body;
@@ -472,10 +481,22 @@
   overflow-wrap: break-word;
 }
 .cal-ticket-number .cal-ticket-bold { font-weight: 600; }
+// Kullanıcı isteği: barkod tam ortaya alınsın. ÖNEMLİ: width:0 KORUNMALI --
+// çubukları oluşturan box-shadow tekniği yalnızca kutunun kendisi SIFIR
+// genişlikteyken ince dikey çizgiler üretir (genişlik verilince her gölge
+// kutunun TAMAMINI kopyalayıp üst üste binen dolu siyah bir dikdörtgene
+// dönüşür). Orijinal uiverse tekniği (justify-self:center + translateX(37px))
+// tarayıcının justify-self'i düz blok kutularda destekleyip desteklemediğine
+// göre farklı sonuç veriyordu -- bunun yerine margin-left:50% (sıfır
+// genişlikli kutunun sol kenarını -- yani gölgelerin başlangıç noktasını --
+// üst kapsayıcının TAM ORTASINA taşır) + translateX(-37px) (çubukların
+// GERÇEK görsel genişliğinin -- 74px'in -- yarısı kadar sola kaydırır)
+// kullanılıyor -- tarayıcıdan bağımsız, deterministik ortalama.
 .cal-ticket-barcode {
-  justify-self: center;
   width: 0;
   height: 32px;
+  margin-left: 50%;
+  transform: translateX(-37px);
   box-shadow:
     0px 0 0 1px #000, 5px 0 0 1px #000, 7px 0 0 1px #000, 11px 0 0 1px #000,
     15px 0 0 1px #000, 16px 0 0 1px #000, 22px 0 0 1px #000, 27px 0 0 1px #000,
@@ -483,7 +504,6 @@
     43px 0 0 1px #000, 47px 0 0 1px #000, 50px 0 0 1px #000, 55px 0 0 1px #000,
     59px 0 0 1px #000, 60px 0 0 1px #000, 64px 0 0 1px #000, 69px 0 0 1px #000,
     70px 0 0 1px #000, 74px 0 0 1px #000;
-  transform: translateX(37px);
 }
 .cal-ticket-symbol {
   position: absolute;
