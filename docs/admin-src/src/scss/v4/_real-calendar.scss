@@ -310,6 +310,95 @@
 }
 
 // Etkinlik düzenleme modalı — çekirdek alan formu (modal.js showModal ile açılır)
+// Kullanıcı isteği: Tür "Konser" seçilince form + bilet önizlemesi yan yana
+// (masaüstü) / alt alta (mobil) dursun.
+.cal-ev-body-wrap { display: flex; gap: var(--space-4); align-items: flex-start; }
+.cal-ev-body-wrap .cal-ev-form { flex: 1; min-width: 0; }
+.cal-ev-ticket-wrap { flex-shrink: 0; padding-top: 2px; }
+.cal-ev-ticket-wrap[hidden] { display: none; }
+@media (max-width: 640px) {
+  .cal-ev-body-wrap { flex-direction: column; }
+  .cal-ev-ticket-wrap { align-self: center; }
+}
+
+// Konser bileti önizlemesi -- uiverse.io/dexter-st/slippery-bird-76 kaynaklı
+// "TICKET" kart tasarımından uyarlandı (bkz. ticket-badge.js dosya başı notu):
+// çentikli kenar + kesik-çizgi ayracı klasik bilet siluetiyle, holografik efekt
+// olmadan, "Konser" türünün kendi rengiyle (mor).
+.cal-ticket {
+  position: relative;
+  width: 172px;
+  min-height: 232px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #9333ea, #6b21a8);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 24px rgba(88, 28, 135, 0.35);
+}
+.cal-ticket-header {
+  padding: 12px 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: var(--font-weight-bold);
+  font-size: 12.5px;
+  letter-spacing: 2px;
+  opacity: 0.85;
+}
+.cal-ticket-scissors { font-size: 12px; opacity: 0.5; transform: rotate(90deg); }
+.cal-ticket-body {
+  flex: 1;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+}
+.cal-ticket-name { font-size: 15px; font-weight: var(--font-weight-bold); line-height: 1.3; overflow-wrap: break-word; }
+.cal-ticket-date { font-size: 11.5px; opacity: 0.92; }
+.cal-ticket-venue { font-size: 11px; opacity: 0.72; min-height: 14px; overflow-wrap: break-word; }
+.cal-ticket-footer {
+  position: relative;
+  padding: 14px 14px 16px;
+  border-top: 1.5px dashed rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+// Çentikler ayraç çizgisinin ÜZERİNDE (footer'ın kendi üst kenarı) -- bilet
+// içeriğinin yüksekliği değişse de her zaman doğru hizada kalır. Arkaplan
+// modal yüzeyinin rengiyle (var(--bg-surface)) "kesilmiş" görünümü verir.
+.cal-ticket-footer::before, .cal-ticket-footer::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+}
+.cal-ticket-footer::before { left: -8px; }
+.cal-ticket-footer::after { right: -8px; }
+.cal-ticket-person { font-size: 11.5px; font-weight: var(--font-weight-medium); margin-bottom: 8px; overflow-wrap: break-word; }
+.cal-ticket-role {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-inline-start: 5px;
+}
+.cal-ticket-barcode {
+  height: 22px;
+  width: 78%;
+  margin: 0 auto;
+  background-image: repeating-linear-gradient(90deg, #fff 0 2px, #0000 2px 4px, #fff 4px 5px, #0000 5px 8px, #fff 8px 11px, #0000 11px 13px, #fff 13px 15px, #0000 15px 19px);
+  opacity: 0.85;
+}
+
 .cal-ev-form { display: flex; flex-direction: column; gap: var(--space-3); }
 .cal-ev-form-row { display: flex; flex-direction: column; gap: 4px; }
 .cal-ev-form-row label { font-size: 12px; font-weight: var(--font-weight-medium); color: var(--text-secondary); }

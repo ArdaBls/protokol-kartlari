@@ -36,6 +36,7 @@ const EVENT_TYPES = [
   { key: 'ziyaret', ad: 'Protokol Ziyareti' }, { key: 'imza', ad: 'Protokol İmza Töreni' },
   { key: 'mezuniyet', ad: 'Mezuniyet Töreni' }, { key: 'odul', ad: 'Ödül Töreni' },
   { key: 'basin', ad: 'Basın Toplantısı' }, { key: 'sergi', ad: 'Sergi / Kültür-Sanat' },
+  { key: 'konser', ad: 'Konser' },
   { key: 'spor', ad: 'Spor Etkinliği' }, { key: 'gorevdegisimi', ad: 'Görev Değişimi' },
   { key: 'akademikbasari', ad: 'Akademik Başarı' }, { key: 'kariyer', ad: 'Kariyer Etkinliği' },
   { key: 'topluluk', ad: 'Öğrenci Toplulukları' }, { key: 'saglik', ad: 'Sağlık Etkinliği' },

@@ -14,6 +14,7 @@ import { showModal } from './modal.js';
 import { facultyOptionsHtml, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 import { createAttendanceRequest } from './attendance.js';
+import { ticketBadgeHtml, updateTicketBadge } from './ticket-badge.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -45,6 +46,7 @@ const EVENT_TYPES = [
   { key: 'odul',      ad: 'Ödül Töreni',               renk: '#b45309' },
   { key: 'basin',     ad: 'Basın Toplantısı',          renk: '#0369a1' },
   { key: 'sergi',     ad: 'Sergi / Kültür-Sanat',      renk: '#0f766e' },
+  { key: 'konser',    ad: 'Konser',                    renk: '#9333ea' },
   { key: 'spor',      ad: 'Spor Etkinliği',            renk: '#15803d' },
   { key: 'gorevdegisimi', ad: 'Görev Değişimi',        renk: '#4338ca' },
   { key: 'akademikbasari', ad: 'Akademik Başarı',      renk: '#047857' },
@@ -137,6 +139,7 @@ let eventsListenerRef = null;
 let currentUserName = '';
 let currentUserEmail = '';
 let currentUserUid = '';
+let currentUserRole = '';
 let canWrite = false;
 
 let EVENTS = Object.create(null); // id -> event; prototip anahtarları veri değildir.
@@ -407,7 +410,10 @@ function evLogName(s) { return String(s || 'Etkinlik').split(' · ').join(' - ')
 
 // ── Block styling helpers ──
 
-function calBlockStyle(ev) { const ty = evType(ev.tur); return 'background:' + ty.renk + '; color:#fff;'; }
+// Kullanıcı isteği: "renkler çok dolu dolu duruyor" -- tam opak (%100) renkler
+// yerine hafif saydamlık (hex alfa 'd9' ~%85) eklendi, hem daha yumuşak
+// görünüyor hem beyaz metin kontrastı hâlâ yeterli kalıyor.
+function calBlockStyle(ev) { const ty = evType(ev.tur); return 'background:' + ty.renk + 'd9; color:#fff;'; }
 function calBlockClasses(ev, dayDate) {
   let c = 'cal-block';
   const st = ev.durum || 'planlandi';
@@ -584,7 +590,7 @@ function renderWeekView(body) {
       // Kilitli çok-günlü etkinlikte kenar-sürükle-boyutlandır kolları hiç
       // render edilmez (calStartMultiDayGesture zaten .cal-multiday-handle
       // arıyor, kol yoksa jest hiç başlamaz).
-      return '<button type="button" class="' + cls + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="' + gc + ' background:' + ty.renk + '; border-color:' + ty.renk + '; color:#fff;">' +
+      return '<button type="button" class="' + cls + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="' + gc + ' background:' + ty.renk + 'd9; border-color:' + ty.renk + '; color:#fff;">' +
         '<span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) +
         (e.locked ? '' : '<span class="cal-multiday-handle cal-multiday-handle-l" data-act="multiday-resize-l" aria-hidden="true"></span>' +
         '<span class="cal-multiday-handle cal-multiday-handle-r" data-act="multiday-resize-r" aria-hidden="true"></span>') + '</button>';
@@ -602,7 +608,7 @@ function renderWeekView(body) {
       // bir etkinlik SADECE bu çip olarak çizildiği için, ana sitede kilitlenmiş bir tüm-gün
       // etkinliğinin kilidi admin panelinden açılamıyordu -- sürüklenmiyordu (calSortableFilter
       // engelliyor) ama kilidi görünmediği için nedeni de anlaşılmıyordu.
-      return '<button type="button" class="cal-allday-chip' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="background:' + ty.renk + '; border-left-color:' + ty.renk + '; color:#fff;"><span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) + '</button>';
+      return '<button type="button" class="cal-allday-chip' + ((e.durum === 'tamamlandi') ? ' done' : '') + ((e.durum === 'iptal') ? ' cancelled' : '') + '" data-evid="' + escapeHtml(e._id) + '" data-act="edit" style="background:' + ty.renk + 'd9; border-left-color:' + ty.renk + '; color:#fff;"><span class="t">' + escapeHtml(e.ad || '(adsız)') + '</span>' + badgeHtml(e) + lockIconHtml(e) + '</button>';
     }).join('') + '</div>';
   });
   allday += '</div>';
@@ -1418,7 +1424,19 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   const bitisTarihi = (ev && ev.bitisTarihi) ? ev.bitisTarihi : tarih;
   const selectedBadges = new Set(ev && Array.isArray(ev.rozetler) ? ev.rozetler : []);
 
+  // Kullanıcı isteği: Tür "Konser" seçilince formun YANINDA (masaüstü) / ALTINDA
+  // (mobil, bkz. _real-calendar.scss @media(max-width:480px)) etkinlik adını ve
+  // oturum açmış kişinin adı+rolünü taşıyan bir bilet önizlemesi görünsün.
+  const ticketWrapHtml =
+    '<div class="cal-ev-ticket-wrap" id="cef-ticketWrap"' + (ev && ev.tur === 'konser' ? '' : ' hidden') + '>' +
+      ticketBadgeHtml({
+        ad: ev ? ev.ad : '', tarih, saat, yer: ev ? ev.yer : '',
+        kisiAdi: currentUserName || currentUserEmail, kisiRol: currentUserRole
+      }) +
+    '</div>';
+
   const bodyHtml =
+    '<div class="cal-ev-body-wrap">' +
     '<form class="cal-ev-form" id="calEvForm">' +
       '<div class="cal-ev-form-row"><label for="cef-ad">Etkinlik Adı</label><input type="text" id="cef-ad" class="form-control" value="' + escapeHtml(ev ? ev.ad : '') + '" required></div>' +
       '<div class="cal-ev-form-grid">' +
@@ -1444,7 +1462,9 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         '<input type="text" class="cal-ev-att-search" id="cef-attSearch" placeholder="İsim veya unvan ara…"><div class="cal-ev-att-box" id="cef-attendeeBox"></div></div>' +
       '<div class="cal-ev-form-row"><label for="cef-haberKaynagi">Haber Kaynağı <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="cef-haberKaynagi" class="form-control"><option value="">(Belirtilmedi)</option>' + ['İHA', 'AA', 'DHA', 'ANKA'].map((k) => '<option value="' + k + '"' + (ev && ev.haberKaynagi === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
-    '</form>';
+    '</form>' +
+    ticketWrapHtml +
+    '</div>';
 
   const actions = [];
   // "Sil" ESKİDEN sadece `id` varlığına bağlıydı, canWrite'a değil -- girişsiz ziyaretçi de
@@ -1542,7 +1562,11 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   }
 
   const modalHandle = showModal({
-    title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'md',
+    // Kullanıcı isteği: Konser bileti önizlemesi formun yanına sığsın diye
+    // modal 'md'den (480px) 'lg'ye (720px) genişletildi -- bilet panel gizliyken
+    // (Konser dışı türler) form tek başına genişlemiş modalda normal görünür,
+    // bu yüzden genişlik daraltmaya gerek yok.
+    title: id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik', body: bodyHtml, actions, size: 'lg',
     onClose: onModalClose ? () => onModalClose(saveCommitted) : undefined
   });
   const bodyEl = modalHandle.body;
@@ -1580,9 +1604,26 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     applyReadonly();
   });
 
+  // Bilet önizlemesi (Tür=Konser) canlı güncellenir -- kullanıcı isteği: bilet
+  // "konserin adını" (etkinlik adı) taşısın, bu yüzden Ad/Tarih/Saat/Yer
+  // alanlarındaki her değişiklik odak/animasyon KAYBETMEDEN (yeniden çizim
+  // yerine metin güncellemesi, bkz. ticket-badge.js updateTicketBadge)
+  // bilete yansır.
+  const refreshTicketBadge = () => {
+    const wrap = bodyEl.querySelector('#cef-ticketWrap');
+    if (!wrap || wrap.hidden) { return; }
+    updateTicketBadge(wrap, {
+      ad: bodyEl.querySelector('#cef-ad')?.value,
+      tarih: bodyEl.querySelector('#cef-tarih')?.value,
+      saat: bodyEl.querySelector('#cef-saat')?.value,
+      yer: bodyEl.querySelector('#cef-yer')?.value
+    });
+  };
+
   bodyEl.addEventListener('input', (e) => {
     if (e.target.id === 'cef-personSearch') { renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters); }
     else if (e.target.id === 'cef-attSearch') { renderAttendeePicker(bodyEl, calAttendees); }
+    else if (['cef-ad', 'cef-tarih', 'cef-saat', 'cef-yer'].indexOf(e.target.id) !== -1) { refreshTicketBadge(); }
   });
 
   bodyEl.addEventListener('click', (e) => {
@@ -1599,6 +1640,11 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
 
   bodyEl.addEventListener('change', (e) => {
     const t = e.target;
+    if (t.id === 'cef-tur') {
+      const wrap = bodyEl.querySelector('#cef-ticketWrap');
+      if (wrap) { wrap.hidden = t.value !== 'konser'; if (!wrap.hidden) { refreshTicketBadge(); } }
+      return;
+    }
     if (t.id === 'cef-cokgunlu') {
       const on = t.checked;
       bodyEl.querySelectorAll('.cal-ev-datetime-row .cal-ev-time-field').forEach((el) => { el.style.display = on ? 'none' : ''; });
@@ -1729,7 +1775,7 @@ export function initCalendar() {
   renderCalendar();
 
   auth.onAuthStateChanged((user) => {
-    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; currentUserUid = ''; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); return; }
+    if (!user) { canWrite = false; currentUserName = ''; currentUserEmail = ''; currentUserUid = ''; currentUserRole = ''; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); return; }
     currentUserEmail = user.email || '';
     currentUserUid = user.uid;
     database.ref('users/' + user.uid).once('value').then((snap) => {
@@ -1737,6 +1783,7 @@ export function initCalendar() {
       const role = u.role;
       canWrite = (role === 'editor' || role === 'admin' || role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+      currentUserRole = role || '';
       renderCalendar();
       deepLinkAuthReady = true; maybeOpenDeepLinkedEvent();
     }).catch(() => { canWrite = false; renderCalendar(); deepLinkAuthReady = true; maybeOpenDeepLinkedEvent(); });
