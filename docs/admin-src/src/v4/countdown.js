@@ -63,6 +63,11 @@ function tick(valueEl, subEl, barEl) {
   subEl.textContent = 'Hedef: ' + tarihStr + (target.olusturan ? ' · ' + target.olusturan : '');
 }
 
+function updateTitle(titleEl) {
+  if (!titleEl) { return; }
+  titleEl.textContent = (target && target.baslik) ? target.baslik : 'Sayaç';
+}
+
 function logAction(action, targetLabel) {
   const logKey = database.ref(dbPath('logs/sayac')).push().key;
   return database.ref(dbPath('logs/sayac/' + logKey)).set({
@@ -74,17 +79,32 @@ function logAction(action, targetLabel) {
   });
 }
 
+// Kullanıcı isteği: saat girme ZORUNLULUĞU kaldırıldı (yalnızca tarih
+// yeterli, boş bırakılırsa 00:00 varsayılır), tarih ve saat AYRI alanlara
+// bölündü (tek datetime-local yerine), sayaca bir BAŞLIK eklenebilsin.
 function openEditModal() {
   if (!canWrite) { showToast('Hedef tarihi ayarlamak için giriş yapmanız gerekiyor.', { variant: 'error' }); return; }
   if (isReadOnly()) { showToast('Salt-okunur kilit açık, düzenleme yapılamaz.', { variant: 'error' }); return; }
-  const current = target && target.hedefTarih ? target.hedefTarih.slice(0, 16) : '';
+  const currentDate = target && target.hedefTarih ? target.hedefTarih.slice(0, 10) : '';
+  const currentTime = target && target.hedefTarih ? target.hedefTarih.slice(11, 16) : '';
+  const currentTitle = (target && target.baslik) || '';
   const { body } = showModal({
-    title: 'Sayaç hedef tarihi',
+    title: 'Sayaç',
     size: 'sm',
     body: `
       <div class="form-group">
-        <label class="form-label">Hedef tarih ve saat</label>
-        <input type="datetime-local" class="form-control" data-countdown-input value="${current}">
+        <label class="form-label">Başlık (opsiyonel)</label>
+        <input type="text" class="form-control" data-countdown-title-input maxlength="60" value="${currentTitle.replace(/"/g, '&quot;')}" placeholder="Sayaç">
+      </div>
+      <div class="form-row cols-2" style="margin-top:12px">
+        <div class="form-group">
+          <label class="form-label">Hedef tarih</label>
+          <input type="date" class="form-control" data-countdown-date value="${currentDate}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Saat (opsiyonel)</label>
+          <input type="time" class="form-control" data-countdown-time value="${currentTime}">
+        </div>
       </div>
     `,
     actions: [
@@ -94,16 +114,22 @@ function openEditModal() {
         variant: 'primary',
         closeOnAction: false,
         action: () => {
-          const input = body.querySelector('[data-countdown-input]');
-          const val = input.value;
-          if (!val) { input.focus(); return false; }
-          const hedefTarih = new Date(val).toISOString();
+          const dateInput = body.querySelector('[data-countdown-date]');
+          const timeInput = body.querySelector('[data-countdown-time]');
+          const titleInput = body.querySelector('[data-countdown-title-input]');
+          const dateVal = dateInput.value;
+          if (!dateVal) { dateInput.focus(); return false; }
+          const timeVal = timeInput.value || '00:00';
+          const hedefTarih = new Date(dateVal + 'T' + timeVal).toISOString();
           const baslangicTarih = new Date().toISOString();
-          database.ref(dbPath('ayarlar/sayac')).set({
+          const baslik = titleInput.value.trim();
+          const patch = {
             hedefTarih,
             baslangicTarih,
             olusturan: currentUserName || currentUserEmail
-          })
+          };
+          if (baslik) { patch.baslik = baslik; }
+          database.ref(dbPath('ayarlar/sayac')).set(patch)
             .then(() => logAction('Sayaç hedef tarihi ayarlandı: ' + hedefTarih, hedefTarih))
             .catch((err) => {
               console.error('Sayaç kaydedilemedi:', err);
@@ -148,6 +174,7 @@ export function initCountdown() {
   if (!valueEl) {return;}
   const subEl = document.querySelector('[data-countdown-sub]');
   const barEl = document.querySelector('[data-countdown-bar]');
+  const titleEl = document.querySelector('[data-countdown-title]');
   const editBtn = document.querySelector('[data-countdown-edit]');
   const resetBtn = document.querySelector('[data-countdown-reset]');
 
@@ -171,6 +198,7 @@ export function initCountdown() {
     sayacListenerRef.on('value', (snap) => {
       target = snap.val();
       tick(valueEl, subEl, barEl);
+      updateTitle(titleEl);
     }, (err) => {
       console.error('Sayaç yüklenemedi:', err);
     });
