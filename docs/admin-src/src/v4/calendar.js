@@ -1770,8 +1770,15 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   const hasIlAttendee = !!(ev && Array.isArray(ev.katilimcilar) && ev.katilimcilar.some((a) => a && a.kaynak === 'il'));
   const bitisTarihi = (ev && ev.bitisTarihi) ? ev.bitisTarihi : tarih;
   const selectedBadges = new Set(ev && Array.isArray(ev.rozetler) ? ev.rozetler : []);
+  // Kullanıcı isteği: kilit ESKİDEN sadece takvim ızgarasındaki sürükle/boyutlandır
+  // jestlerini engelliyordu -- düzenleme MODALINDAN kilit açılmadan kaydetmek hâlâ
+  // mümkündü. Artık kilitliyken form alanlarına dokunma/kaydetme/silme de engellenir,
+  // her denemede "kilidi açın" bildirimi çıkar (bkz. aşağıdaki mousedown yakalayıcı +
+  // Kaydet/Sil/Protokol Sırası Al eylemlerindeki isLocked kontrolü).
+  const isLocked = !!(ev && ev.locked);
 
   const bodyHtml =
+    (isLocked ? '<div class="cal-ev-locked-banner">🔒 Bu etkinlik kilitli — düzenlemek için önce kilidi açın.' + (canWrite ? ' <button type="button" class="btn btn-outline" id="cefUnlockBtn">Kilidi Aç</button>' : '') + '</div>' : '') +
     '<form class="cal-ev-form" id="calEvForm">' +
       '<div class="cal-ev-form-row"><label for="cef-ad">Etkinlik Adı</label><input type="text" id="cef-ad" class="form-control" value="' + escapeHtml(ev ? ev.ad : '') + '" required></div>' +
       '<div class="cal-ev-form-grid">' +
@@ -1822,6 +1829,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   // butonlarına dokunmuyor.)
   if (id && canWrite) {
     actions.push({ label: 'Sil', variant: 'danger', closeOnAction: false, action: ({ close }) => {
+      if (isLocked) { showToast('Bu etkinlik kilitli. Silmek için önce kilidi açın.', { variant: 'error' }); return false; }
       if (!window.confirm('Bu etkinliği silmek istediğinize emin misiniz?')) { return false; }
       deleteEvent(id); close(); return false;
     } });
@@ -1836,6 +1844,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   // olmadığından toast ile hangi mantığın uygulandığı bildirilir.
   if (canWrite) {
     actions.push({ label: 'Protokol Sırası Al', variant: 'outline', closeOnAction: false, action: ({ body }) => {
+      if (isLocked) { showToast('Bu etkinlik kilitli. Düzenlemek için önce kilidi açın.', { variant: 'error' }); return false; }
       const includeIlEl = body.querySelector('#cef-attIncludeIl');
       const useIl = !!(includeIlEl && includeIlEl.checked);
       const sorted = useIl ? sortAttendeesByProtocol(calAttendees) : sortAttendeesByUniversityRank(calAttendees);
@@ -1864,6 +1873,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   let saveCommitted = false;
   if (canWrite) {
     actions.push({ label: id ? 'Kaydet' : 'Oluştur', variant: 'primary', action: async ({ body }) => {
+      if (isLocked) { showToast('Bu etkinlik kilitli. Kaydetmek için önce kilidi açın.', { variant: 'error' }); return false; }
       const form = body.querySelector('#calEvForm');
       const ad = form.querySelector('#cef-ad').value.trim();
       if (!ad) { showToast('Etkinlik adı zorunlu.', { variant: 'warning' }); return false; }
@@ -1960,6 +1970,33 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       el.disabled = true;
     });
   };
+
+  // Kullanıcı isteği: kilitliyken form alanlarına dokunma denemesi "kilidi açın"
+  // bildirimiyle engellensin. Alanlar `disabled` YAPILMAZ -- disabled elemanlar
+  // tarayıcıda 'click' olayını hiç yaymadığı için güvenilir bir "denedi, bildir"
+  // mekanizması disabled ile kurulamazdı. Bunun yerine YAKALAMA AŞAMASINDA hem
+  // 'mousedown' hem 'click' engellenir: metin kutularında odaklanma 'click'in değil
+  // 'mousedown'ın varsayılan davranışıdır (bir metin alanına preventDefault sadece
+  // 'click'te uygulanırsa -- ilk denemede öğrenildi -- input yine odaklanıp yazılabilir
+  // kalıyordu); checkbox/buton aktivasyonu ise 'click'in varsayılanıdır -- ikisi de
+  // engellenmeden alan tam kilitli sayılamaz. Kilit açma tuşu ("Kilidi Aç") hariçtir.
+  if (isLocked) {
+    const blockLockedInteraction = (e) => {
+      if (e.target.closest('#cefUnlockBtn')) { return; }
+      const field = e.target.closest('input, select, textarea, button, .cal-ev-att-item, .cal-ev-role-item');
+      if (!field) { return; }
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.type === 'mousedown') { showToast('Bu etkinlik kilitli. Düzenlemek için önce kilidi açın.', { variant: 'error' }); }
+    };
+    bodyEl.addEventListener('mousedown', blockLockedInteraction, true);
+    bodyEl.addEventListener('click', blockLockedInteraction, true);
+    bodyEl.querySelector('#cefUnlockBtn')?.addEventListener('click', async () => {
+      await toggleEventLock(id);
+      modalHandle.close();
+      openEventModal(id, null, null, null, onModalClose);
+    });
+  }
 
   // "İl Protokolünü de dahil et" kutusu ilk işaretlendiğinde (veya var olan etkinlikte
   // zaten işaretliyse) TEK SEFERLİK il havuzunu okur/önbelleğe alır -- change handler'ı

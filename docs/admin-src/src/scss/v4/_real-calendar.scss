@@ -617,6 +617,23 @@ body.concert-ticket-overlay-open { overflow: hidden; }
 .cal-ev-il-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); cursor: pointer; margin: 2px 0 6px; }
 .cal-ev-il-toggle input { cursor: pointer; }
 
+// Kullanıcı isteği: kilitli bir etkinliğin düzenleme formunun en üstünde her zaman
+// görünen uyarı + tek tıkla kilit açma (bkz. calendar.js openEventModal isLocked).
+.cal-ev-locked-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--red-lt);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+}
+
 // "Protokol Sırası Al" sonrası açılan haber metni paneli (bkz. calendar.js renderNewsPanel) --
 // aynı düzenleme formunun İÇİNDE (ayrı bir modal DEĞİL), tuşa basılana kadar gizli durur.
 .cal-ev-news-panel { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border-color); }
