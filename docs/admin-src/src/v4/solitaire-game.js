@@ -50,9 +50,15 @@ export function initSolitaire() {
       target: null,
       origin: {},
       offset: { x: 0, y: 0 },
-      destinations: []
+      destinations: [],
+      originalParent: null,
+      originalNextSibling: null
     }
   };
+
+  // fitToViewport()'un hesapladığı güncel ölçek -- sürüklenen kart
+  // document.body'ye taşındığında görsel boyutunu korumak için kullanılıyor.
+  let currentScale = 1;
 
   const getCard = (index) => state.cards[index];
 
@@ -238,7 +244,10 @@ export function initSolitaire() {
   }
 
   function getPointerPosition(event) {
-    return { x: event.pageX, y: event.pageY };
+    // clientX/Y (viewport-göreli) kullanılıyor -- .pas-card--moving position:fixed,
+    // ve dropCard() hedefleri getBoundingClientRect() (viewport-göreli) ile
+    // karşılaştırıyor; pageX/Y (döküman-göreli) kaydırma varsa tutarsızlık yaratırdı.
+    return { x: event.clientX, y: event.clientY };
   }
 
   const handleMove = (event) => {
@@ -255,7 +264,21 @@ export function initSolitaire() {
     const el = state.moving.element;
     const { x, y } = getPointerPosition(event);
     const { top, left } = el.getBoundingClientRect();
+
+    // Kart, .pas-window'un transform:scale() ile küçültülen dalından TAMAMEN
+    // document.body'ye taşınıyor -- CSS transform'lu bir atanın, position:fixed
+    // torunları için (viewport yerine) YENİ bir containing block oluşturması,
+    // pencere mobilde küçültüldüğünde kartın parmaktan kopup sitenin ortasına
+    // zıplamasına yol açıyordu. Kart artık kendi transform:scale()'i ile aynı
+    // görsel boyutta çiziliyor, alt kartlar (nested pas-card'lar) da parçası
+    // olduğu için birlikte taşınıp ölçekleniyor.
+    state.moving.originalParent = el.parentNode;
+    state.moving.originalNextSibling = el.nextSibling;
+    document.body.appendChild(el);
+
     el.classList.add('pas-card--moving');
+    el.style.transformOrigin = 'top left';
+    el.style.transform = currentScale < 1 ? `scale(${currentScale})` : '';
 
     state.moving.offset = { x: x - left, y: y - top };
 
@@ -298,6 +321,7 @@ export function initSolitaire() {
   };
 
   const dropCard = (x, y) => {
+    let moved = false;
     for (const destination of state.moving.destinations) {
       const { width, height, left, top } = destination.offset;
       destination.el.classList.remove('pas-finish-dest');
@@ -306,6 +330,7 @@ export function initSolitaire() {
         moveCardTo(dest, pile, card);
 
         destination.el.appendChild(state.moving.element);
+        moved = true;
 
         gameFinish();
 
@@ -313,6 +338,7 @@ export function initSolitaire() {
         if (originLocation === 'desk') { faceUpLastOnDesk(originPile); }
       }
     }
+    return moved;
   };
 
   let release;
@@ -323,11 +349,17 @@ export function initSolitaire() {
       release = setTimeout(() => {
         const { x, y } = getPointerPosition(event);
         requestAnimationFrame(() => {
-          dropCard(x, y);
+          const moved = dropCard(x, y);
+          if (!moved) {
+            const { originalParent, originalNextSibling } = state.moving;
+            if (originalParent) { originalParent.insertBefore(state.moving.element, originalNextSibling); }
+          }
 
           state.moving.element.classList.remove('pas-card--moving');
           state.moving.element.style.left = '';
           state.moving.element.style.top = '';
+          state.moving.element.style.transform = '';
+          state.moving.element.style.transformOrigin = '';
           state.moving.element = null;
           state.moving.capture = false;
         });
@@ -471,6 +503,7 @@ export function initSolitaire() {
     const naturalHeight = windowEl.offsetHeight;
     const available = scaleWrapEl.clientWidth;
     const scale = naturalWidth > 0 ? Math.min(1, available / naturalWidth) : 1;
+    currentScale = scale;
     windowEl.style.transform = scale < 1 ? `scale(${scale})` : '';
     scaleWrapEl.style.height = `${naturalHeight * scale}px`;
   }
