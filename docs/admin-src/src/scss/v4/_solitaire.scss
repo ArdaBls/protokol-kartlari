@@ -1,0 +1,251 @@
+// Pasyans (Klondike Solitaire) -- rjanjic/js-solitaire (MIT) projesinden
+// portlanan CSS (bkz. solitaire-game.js dosya başı notu). Tüm sınıflar "pas-"
+// öneki ile yeniden adlandırıldı -- orijinaldeki ".card"/".window"/".deck" gibi
+// isimler bu admin panelinde ZATEN yoğun kullanılan genel sınıflarla (özellikle
+// ".card") çakışırdı.
+$pas-card-w: 71px;
+$pas-card-h: 96px;
+
+// Kullanıcı isteği: dar ekranda (telefon) sayfayı yatayda taşırmasın --
+// 671px'lik sabit pencere gerektiğinde küçültülür (bkz. solitaire-game.js
+// fitToViewport()). Sarmalayıcı ortalar, JS yüksekliği scale'e göre ayarlar.
+.pas-scale-wrap {
+  display: flex;
+  justify-content: center;
+  // Kullanıcı isteği: pencerenin altında boş kalan alan da oyunla dolsun --
+  // teal "masaüstü" arka planı sayfanın kalan yüksekliğini kaplasın, pencere
+  // bu geniş alanın İÇİNDE (üstte) dursun; sadece dar/kısa ekranlarda min-height
+  // aşağı çekilir ki içerik gereksiz yere kesilmesin.
+  align-items: flex-start;
+  min-height: calc(100vh - 220px);
+  overflow: hidden;
+  // Orijinaldeki Windows XP masaüstü rengi -- eskiden <body>'ye uygulanıyordu,
+  // burada admin panelinin GENEL arka planını ezmemesi için sadece oyun
+  // alanına verildi.
+  background: #008080;
+  border-radius: var(--radius-lg);
+  padding: 28px 8px;
+}
+
+.pas-card {
+  width: $pas-card-w;
+  height: $pas-card-h;
+  background-color: #fff;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-repeat: no-repeat;
+  background-position: center center;
+  border: 1px solid #000;
+  border-radius: 4px;
+  user-select: none;
+  margin: -1px;
+  box-shadow: 1px -1px 0px #000;
+  // Dokunmatik sürükleme tarayıcının kendi kaydırma/yakınlaştırma jestleriyle
+  // çakışmasın (chessground'daki AYNI gereksinim) -- Pointer Events ile
+  // sürüklemenin güvenilir çalışması için gerekli.
+  touch-action: none;
+
+  $type: (
+    h: 1,
+    c: 2,
+    d: 3,
+    s: 4
+  );
+  @each $t, $v in $type {
+    @for $i from 1 through 13 {
+      &--#{$t}-#{$i} {
+        background-position: -#{($pas-card-w * $v - $pas-card-w + 1)} -#{($pas-card-h * $i - $pas-card-h + 1)};
+      }
+    }
+  }
+
+  &--back {
+    background-position: 0 0;
+    background-repeat: repeat;
+    background-color: #02027f;
+    background-size: 4px 4px;
+    background-image: linear-gradient(45deg,
+      rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 44.9%,
+      rgba(255, 255, 255, 1) 45%, rgba(255, 255, 255, 1) 55%,
+      rgba(255, 255, 255, 0) 55.1%, rgba(255, 255, 255, 0)
+    ), linear-gradient(-45deg,
+      rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 44.9%,
+      rgba(255, 255, 255, 1) 45%, rgba(255, 255, 255, 1) 55%,
+      rgba(255, 255, 255, 0) 55.1%, rgba(255, 255, 255, 0)
+    );
+  }
+
+  &--front { cursor: pointer; }
+  &--moving { position: fixed; z-index: 1; }
+}
+
+.pas-solitaire {
+  width: 660px;
+  background-color: green;
+  height: 440px;
+  position: relative;
+}
+
+.pas-deck {
+  width: 250px;
+  position: absolute;
+  left: 20px;
+  top: 20px;
+
+  &__pile {
+    width: $pas-card-w;
+    height: $pas-card-h;
+    top: 0;
+    position: absolute;
+    border: 1px dotted;
+    border-radius: 4px;
+    cursor: pointer;
+    background-image: radial-gradient(green 30%, white 30.1%, white 40%, green 40.1%, green 100%);
+    background-size: 90px 90px;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    .pas-card + .pas-card {
+      margin-top: 4px;
+      margin-left: 2px;
+
+      + .pas-card { margin-left: 4px; margin-top: 8px; }
+    }
+  }
+
+  &__deal {
+    left: 95px;
+    top: 0;
+    position: absolute;
+
+    .pas-card:last-child { left: 20px; }
+    .pas-card:nth-last-child(2) { left: 10px; }
+    .pas-card:first-child { left: 0; }
+    .pas-card:first-child + .pas-card:last-child { left: 10px; }
+  }
+}
+
+.pas-finish-deck { position: absolute; left: 274px; top: 20px; }
+
+.pas-board-deck {
+  position: absolute;
+  top: 150px;
+
+  .pas-card--front > .pas-card--front { top: 15px; }
+  .pas-card--back {
+    > .pas-card--front, > .pas-card--back { top: 5px; }
+  }
+}
+
+.pas-seven {
+  position: relative;
+  float: left;
+  width: $pas-card-w;
+  top: 0;
+  margin-left: 20px;
+  height: $pas-card-h;
+  border: 1px dotted;
+  border-radius: 4px;
+}
+
+.pas-aces {
+  width: $pas-card-w;
+  position: relative;
+  margin-left: 20px;
+  height: $pas-card-h;
+  border: 1px dotted;
+  border-radius: 4px;
+  float: left;
+  background-size: 4px 4px;
+  background-image: linear-gradient(45deg,
+    rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 44.9%,
+    rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 1) 55%,
+    rgba(0, 0, 0, 0) 55.1%, rgba(0, 0, 0, 0)
+  ), linear-gradient(-45deg,
+    rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 44.9%,
+    rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 1) 55%,
+    rgba(0, 0, 0, 0) 55.1%, rgba(0, 0, 0, 0)
+  );
+}
+
+.pas-new-game {
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  outline: 0;
+  color: #000;
+  font-size: 11px;
+
+  &:active { background-color: #999; }
+}
+
+.pas-finish-dest { box-shadow: 0 0 0 1px #03ffff; }
+
+.pas-window {
+  margin: 20px auto;
+  width: 671px;
+  color: #000;
+  font-family: 'Arial', sans-serif;
+  background: #c0c0c0;
+  border: 1px solid;
+  border-top-color: #dfdfdf;
+  border-left-color: #dfdfdf;
+  border-right-color: #000;
+  border-bottom-color: #000;
+  // fitToViewport() top-center'dan ölçekler -- sarmalayıcı zaten flex ile
+  // ortaladığı için margin:auto'ya gerek yok, ama korunması zararsız.
+  transform-origin: top center;
+
+  &__inner {
+    border: 1px solid;
+    border-top-color: #fff;
+    border-left-color: #fff;
+    border-right-color: #808080;
+    border-bottom-color: #808080;
+  }
+
+  &__heading {
+    margin: 2px 2px 0;
+    padding: 1px 2px;
+    color: #fff;
+    background: linear-gradient(to right, #000080, #1084d0);
+    font-weight: bold;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  &__heading-icon {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAFVBMVEUAAAAAAAD///+AgIDAwMCAAAAAAIAAY5KrAAAAAXRSTlMAQObYZgAAAAFiS0dEAmYLfGQAAAAHdElNRQfhDAoMHRkpnFJaAAAAgElEQVQoz2NgwAoEIQDOZ1SCAAG4gDEEGMKViLiAgSOaESaOaEYIIwSCgFxVJAHVUKBAaBCmgCCaFkFjAbglTkpAQhhqDaOIi6OLEtApii4QFSIigoIijkCsDDWDUUQsLVEsLU1EGeZ0oAAIjBQBSLSIKMOiEhpvLopoEScIVgAAic47kFb3MSkAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTctMTItMTBUMTI6Mjk6MjUtMDU6MDAhZWq4AAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE3LTEyLTEwVDEyOjI5OjI1LTA1OjAwUDjSBAAAAABJRU5ErkJggg==');
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
+    margin-right: 4px;
+    width: 16px;
+    height: 16px;
+    float: left;
+  }
+
+  &__actions { padding: 4px 8px; font-size: 11px; }
+
+  &__content {
+    margin: 0 2px 2px 2px;
+    border: 1px solid;
+    border-top-color: #808080;
+    border-left-color: #808080;
+    border-bottom-color: #fff;
+    border-right-color: #fff;
+    font-size: 13px;
+  }
+
+  &__content-inner {
+    background: #fff;
+    border: 1px solid;
+    border-top-color: #000;
+    border-left-color: #000;
+    border-bottom-color: #dfdfdf;
+    border-right-color: #dfdfdf;
+  }
+}
