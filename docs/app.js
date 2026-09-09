@@ -5862,6 +5862,17 @@ const DEFAULT_NEWS_TEMPLATES = [
 	{ id:"mezuniyet", ad:"Mezuniyet Töreni",       tur:"mezuniyet", metin:"{yer} düzenlenen {etkinlik} mezuniyet törenine {kisiler}{gruplar} katıldı." },
 	{ id:"odul",      ad:"Ödül Töreni",            tur:"odul",      metin:"{yer} düzenlenen ödül törenine {kisiler}{gruplar} katıldı." },
 	{ id:"basin",     ad:"Basın Toplantısı",       tur:"basin",     metin:"{yer} düzenlenen basın toplantısına {kisiler} katıldı." },
+	{ id:"sergi",     ad:"Sergi / Kültür-Sanat",   tur:"sergi",     metin:"{yer} açılan “{etkinlik}” başlıklı sergiye {kisiler}{gruplar} katıldı." },
+	{ id:"konser",    ad:"Konser",                 tur:"konser",    metin:"{yer} düzenlenen {etkinlik} konserine {kisiler}{gruplar} katıldı." },
+	{ id:"spor",      ad:"Spor Etkinliği",         tur:"spor",      metin:"{yer} düzenlenen {etkinlik} spor etkinliğine {kisiler}{gruplar} katıldı." },
+	{ id:"akademikbasari", ad:"Akademik Başarı",   tur:"akademikbasari", metin:"{kisiler}{gruplar}, {etkinlik} kapsamında elde ettiği akademik başarıyla gurur yaşattı." },
+	{ id:"kariyer",   ad:"Kariyer Etkinliği",      tur:"kariyer",   metin:"{yer} düzenlenen {etkinlik} kariyer etkinliğine {kisiler}{gruplar} katıldı." },
+	{ id:"topluluk",  ad:"Öğrenci Toplulukları",   tur:"topluluk",  metin:"{yer} düzenlenen {etkinlik} öğrenci toplulukları etkinliğine {kisiler}{gruplar} katıldı." },
+	{ id:"saglik",    ad:"Sağlık Etkinliği",       tur:"saglik",    metin:"{yer} düzenlenen {etkinlik} sağlık etkinliğine {kisiler}{gruplar} katıldı." },
+	{ id:"uluslararasi", ad:"Uluslararası Etkinlik", tur:"uluslararasi", metin:"{yer} düzenlenen “{etkinlik}” başlıklı uluslararası etkinliğe {kisiler}{gruplar} katıldı." },
+	{ id:"yesiluniversite", ad:"Yeşil Üniversite", tur:"yesiluniversite", metin:"Yeşil Üniversite kapsamında {yer} düzenlenen {etkinlik} etkinliğine {kisiler}{gruplar} katıldı." },
+	{ id:"toplanti",  ad:"Toplantı",               tur:"toplanti",  metin:"{yer} gerçekleştirilen {etkinlik} toplantısına {kisiler}{gruplar} katıldı." },
+	{ id:"bayram",    ad:"Ulusal ve Resmî Bayramlar", tur:"bayram", metin:"{yer} düzenlenen {etkinlik} kutlamasına {kisiler}{gruplar} katıldı." },
 	{ id:"altyazi",   ad:"Fotoğraf Alt Yazısı",    tur:"",          metin:"Fotoğrafta soldan sağa; {kisilerDuz} yer alıyor." },
 	{ id:"gorevdegisimi", ad:"Görev Değişimi", tur:"gorevdegisimi", paragraphs:[
 		[
