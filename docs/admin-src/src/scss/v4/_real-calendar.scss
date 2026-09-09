@@ -617,6 +617,12 @@ body.concert-ticket-overlay-open { overflow: hidden; }
 .cal-ev-il-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); cursor: pointer; margin: 2px 0 6px; }
 .cal-ev-il-toggle input { cursor: pointer; }
 
+// "Protokol Sırası Al" sonrası açılan haber metni paneli (bkz. calendar.js renderNewsPanel) --
+// aynı düzenleme formunun İÇİNDE (ayrı bir modal DEĞİL), tuşa basılana kadar gizli durur.
+.cal-ev-news-panel { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border-color); }
+.cal-ev-news-panel[hidden] { display: none; }
+.cal-ev-news-title { font-size: 14px; font-weight: var(--font-weight-bold); color: var(--text); margin: 0 0 10px; }
+
 // Basın Görevlisi / Haberi Yazan birleşik listesi: her satırda isim + iki bağımsız
 // rol checkbox'ı (kullanıcı isteği: iki ayrı arama kutusu yerine tek liste).
 .cal-ev-role-box .cal-ev-role-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; padding: 5px 6px; border-radius: 6px; flex-wrap: wrap; }

@@ -99,6 +99,177 @@ function sortAttendeesByUniversityRank(list) {
   });
 }
 
+// ── Haber metni şablon motoru (ana sitedeki app.js'ten AYNEN taşındı --
+// kullanıcı isteği: "Protokol Sırası Al" sonrası, protokol.html'deki "Haber
+// Çıktısı Al" gibi bir modal, etkinliğin türüne/yerine göre otomatik dolsun.
+// AI-prompt modu buraya taşınmadı (kullanıcı istemedi, sadece şablon akışı).
+const ABBR_LETTER_VOWEL = { A: 'a', B: 'e', C: 'e', Ç: 'e', D: 'e', E: 'e', F: 'e', G: 'e', Ğ: 'e', H: 'e', I: 'ı', İ: 'i', J: 'e', K: 'e', L: 'e', M: 'e', N: 'e', O: 'o', Ö: 'ö', P: 'e', Q: 'e', R: 'e', S: 'e', Ş: 'e', T: 'e', U: 'u', Ü: 'ü', V: 'e', W: 'e', X: 'e', Y: 'e', Z: 'e' };
+function abbrevPronunciationVowel(token) {
+  const t = String(token || '');
+  if (!/^[A-ZÇĞİÖŞÜ]{2,}$/.test(t)) { return null; }
+  return ABBR_LETTER_VOWEL[t[t.length - 1]] || null;
+}
+function turkishGenitiveSuffix(fullName) {
+  const name = (fullName || '').trim(); if (!name) { return name; }
+  const toLowerTr = (ch) => { if (ch === 'İ') { return 'i'; } if (ch === 'I') { return 'ı'; } return ch.toLocaleLowerCase('tr-TR'); };
+  const vowelSet = 'aıoueiöü';
+  const words = name.split(/\s+/); const lastWord = words[words.length - 1];
+  const abbrevVowel = abbrevPronunciationVowel(lastWord);
+  let lastVowel = abbrevVowel;
+  if (!abbrevVowel) { lastVowel = null; for (let i = name.length - 1; i >= 0; i--) { const ch = toLowerTr(name[i]); if (vowelSet.includes(ch)) { lastVowel = ch; break; } } }
+  let sVowel = 'ı';
+  if (lastVowel) { if ('aı'.includes(lastVowel)) { sVowel = 'ı'; } else if ('ei'.includes(lastVowel)) { sVowel = 'i'; } else if ('ou'.includes(lastVowel)) { sVowel = 'u'; } else if ('öü'.includes(lastVowel)) { sVowel = 'ü'; } }
+  const lastChar = toLowerTr(name[name.length - 1]); const endsWithVowel = abbrevVowel ? true : vowelSet.includes(lastChar);
+  return name + "'" + (endsWithVowel ? 'n' : '') + sVowel + 'n';
+}
+function turkishDativeSuffix(word) {
+  const s = String(word || '').trim(); if (!s) { return ''; }
+  const words = s.split(/\s+/); const last = words[words.length - 1];
+  const lower = (ch) => { if (ch === 'İ') { return 'i'; } if (ch === 'I') { return 'ı'; } return ch.toLocaleLowerCase('tr-TR'); };
+  const vowels = 'aeıioöuü';
+  const abbrevVowel = abbrevPronunciationVowel(last);
+  let lastVowel = abbrevVowel || '';
+  if (!abbrevVowel) { for (let i = last.length - 1; i >= 0; i--) { const c = lower(last[i]); if (vowels.indexOf(c) > -1) { lastVowel = c; break; } } }
+  const back = 'aıou'.indexOf(lastVowel) > -1;
+  const lastCh = lower(last[last.length - 1]); const endsWithVowel = abbrevVowel ? true : vowels.indexOf(lastCh) > -1;
+  const needsN = words.length > 1 && 'ıiuü'.indexOf(lastCh) > -1;
+  const ek = back ? 'a' : 'e';
+  if (!endsWithVowel) { return s + "'" + ek; }
+  return s + "'" + (needsN ? 'n' : 'y') + ek;
+}
+function turkishAccusativeSuffix(word) {
+  const s = String(word || '').trim(); if (!s) { return ''; }
+  const words = s.split(/\s+/); const last = words[words.length - 1];
+  const lower = (ch) => { if (ch === 'İ') { return 'i'; } if (ch === 'I') { return 'ı'; } return ch.toLocaleLowerCase('tr-TR'); };
+  const vowels = 'aeıioöuü';
+  const abbrevVowel = abbrevPronunciationVowel(last);
+  let lastVowel = abbrevVowel || '';
+  if (!abbrevVowel) { for (let i = last.length - 1; i >= 0; i--) { const c = lower(last[i]); if (vowels.indexOf(c) > -1) { lastVowel = c; break; } } }
+  let ek = 'ı';
+  if (lastVowel) { if ('aı'.indexOf(lastVowel) > -1) { ek = 'ı'; } else if ('ei'.indexOf(lastVowel) > -1) { ek = 'i'; } else if ('ou'.indexOf(lastVowel) > -1) { ek = 'u'; } else if ('öü'.indexOf(lastVowel) > -1) { ek = 'ü'; } }
+  const lastCh = lower(last[last.length - 1]); const endsWithVowel = abbrevVowel ? true : vowels.indexOf(lastCh) > -1;
+  const needsN = words.length > 1 && 'ıiuü'.indexOf(lastCh) > -1;
+  if (!endsWithVowel) { return s + "'" + ek; }
+  return s + "'" + (needsN ? 'n' : 'y') + ek;
+}
+// "Atatürk Kongre Merkezi" + bulunma hâli = "Atatürk Kongre Merkezi'nde".
+function turkishLocative(place) {
+  const s = String(place || '').trim(); if (!s) { return ''; }
+  const words = s.split(/\s+/); const last = words[words.length - 1];
+  const lower = (ch) => { if (ch === 'İ') { return 'i'; } if (ch === 'I') { return 'ı'; } return ch.toLocaleLowerCase('tr-TR'); };
+  const vowels = 'aeıioöuü';
+  const abbrevVowel = abbrevPronunciationVowel(last);
+  let lastVowel = abbrevVowel || '';
+  if (!abbrevVowel) { for (let i = last.length - 1; i >= 0; i--) { const c = lower(last[i]); if (vowels.indexOf(c) > -1) { lastVowel = c; break; } } }
+  const back = 'aıou'.indexOf(lastVowel) > -1;
+  const lastCh = lower(last[last.length - 1]);
+  const hard = !abbrevVowel && 'fstkçşhp'.indexOf(lastCh) > -1;
+  const needsN = words.length > 1 && 'ıiuü'.indexOf(lastCh) > -1;
+  const ek = (hard ? 't' : 'd') + (back ? 'a' : 'e');
+  return s + "'" + (needsN ? 'n' : '') + ek;
+}
+
+const DEFAULT_NEWS_TEMPLATES = [
+  { id: 'serbest', ad: 'Serbest / Genel', tur: 'diger', metin: '{yer} {kisiler}{gruplar} katıldı.' },
+  { id: 'acilis', ad: 'Açılış Töreni', tur: 'acilis', metin: '{yer} düzenlenen {etkinlik} açılış törenine {kisiler}{gruplar} katıldı.' },
+  { id: 'konferans', ad: 'Konferans', tur: 'konferans', metin: '{yer} gerçekleştirilen "{etkinlik}" başlıklı konferansa {kisiler}{gruplar} katıldı.' },
+  { id: 'panel', ad: 'Panel', tur: 'panel', metin: '{yer} gerçekleştirilen "{etkinlik}" başlıklı panele {kisiler}{gruplar} katıldı.' },
+  { id: 'calistay', ad: 'Çalıştay', tur: 'calistay', metin: '{yer} gerçekleştirilen "{etkinlik}" başlıklı çalıştaya {kisiler}{gruplar} katıldı.' },
+  { id: 'ziyaret', ad: 'Protokol Ziyareti', tur: 'ziyaret', paragraphs: [
+    [
+      { text: '{yer} gerçekleştirilen ziyarette {kisiler} hazır bulundu.' },
+      { text: '{kisiler}, {yer} bir ziyaret gerçekleştirdi.' },
+      { text: '{ilkKisiIn} başkanlığındaki heyet {yer} bir araya geldi.', condition: (ctx) => !!ctx.digerKisiler }
+    ],
+    [
+      { text: 'Ziyarette {aciklama} konusu ele alındı.', condition: (ctx) => !!ctx.aciklama },
+      { text: 'Görüşmede {aciklama} gündeme geldi.', condition: (ctx) => !!ctx.aciklama },
+      { text: 'Taraflar, {aciklama} hakkında görüş alışverişinde bulundu.', condition: (ctx) => !!ctx.aciklama }
+    ],
+    [
+      { text: 'Ziyareti {evSahibi} kabul etti.', condition: (ctx) => !!ctx.evSahibi },
+      { text: 'Heyeti makamında kabul eden {evSahibi}, misafirlerine ilgisinden dolayı teşekkür etti.', condition: (ctx) => !!ctx.evSahibi },
+      { text: '{evSahibi}, ziyaretten duyduğu memnuniyeti dile getirdi.', condition: (ctx) => !!ctx.evSahibi }
+    ]
+  ] },
+  { id: 'imza', ad: 'Protokol İmza Töreni', tur: 'imza', metin: '{yer} düzenlenen protokol imza töreninde {kisiler} bir araya geldi.' },
+  { id: 'mezuniyet', ad: 'Mezuniyet Töreni', tur: 'mezuniyet', metin: '{yer} düzenlenen {etkinlik} mezuniyet törenine {kisiler}{gruplar} katıldı.' },
+  { id: 'odul', ad: 'Ödül Töreni', tur: 'odul', metin: '{yer} düzenlenen ödül törenine {kisiler}{gruplar} katıldı.' },
+  { id: 'basin', ad: 'Basın Toplantısı', tur: 'basin', metin: '{yer} düzenlenen basın toplantısına {kisiler} katıldı.' },
+  { id: 'altyazi', ad: 'Fotoğraf Alt Yazısı', tur: '', metin: 'Fotoğrafta soldan sağa; {kisilerDuz} yer alıyor.' },
+  { id: 'gorevdegisimi', ad: 'Görev Değişimi', tur: 'gorevdegisimi', paragraphs: [
+    [
+      { text: '{yeniGorevli}, {gorevDat} atandı.', condition: (ctx) => !!ctx.gorev },
+      { text: '{yeniGorevli}, {gorevDat} getirildi.', condition: (ctx) => !!ctx.gorev },
+      { text: '{birimIn} kadrosuna katılan {yeniGorevli}, yeni görevine başladı.', condition: (ctx) => !!ctx.birim },
+      { text: '{yeniGorevli} yeni görevine başladı.' }
+    ],
+    [
+      { text: '{yeniGorevliIn} yeni görevinde başarılı olması temenni edildi.' },
+      { text: '{yeniGorevli}, yeni görevinde üniversitemize katkılar sunmaya devam edecek.' },
+      { text: '{yeniGorevliDat} yeni görevinde başarılar dilendi.' }
+    ],
+    [
+      { text: 'Önceki dönemde bu görevi yürüten {eskiGorevliDat} yeni görevinde başarılar dilendi.', condition: (ctx) => !!ctx.eskiGorevli },
+      { text: '{eskiGorevliIn} ardından bu göreve {yeniGorevli} atandı.', condition: (ctx) => !!ctx.eskiGorevli },
+      { text: '{birim} bünyesinde uzun süre görev yapan {eskiGorevliAcc} uğurlandı.', condition: (ctx) => !!ctx.eskiGorevli && !!ctx.birim }
+    ]
+  ] }
+];
+const NEWS_PLACEHOLDER_FIELDS = [
+  { ph: 'etkinlik', label: 'Etkinlik Adı' },
+  { ph: 'birim', label: 'Birim' },
+  { ph: 'aciklama', label: 'Görüşme Konusu / Açıklama (opsiyonel)' },
+  { ph: 'evSahibi', label: 'Ev Sahibi (opsiyonel)' },
+  { ph: 'yeniGorevli', label: 'Yeni Görevli' },
+  { ph: 'eskiGorevli', label: 'Önceki Görevli (varsa)' },
+  { ph: 'gorev', label: 'Görev / Unvan' }
+];
+const NEWS_CATEGORIES = [
+  { value: 'öğrenci', label: 'Öğrenci' },
+  { value: 'akademisyen', label: 'Akademisyen' },
+  { value: 'idari personel', label: 'İdari Personel' },
+  { value: 'vatandaş', label: 'Vatandaş' },
+  { value: 'davetli', label: 'Davetli' }
+];
+function applyTemplate(tpl, ctx) {
+  return String(tpl || '').replace(/\{(\w+)\}/g, (_, k) => ((ctx[k] !== undefined && ctx[k] !== null) ? String(ctx[k]) : ''))
+    .replace(/[ \t]{2,}/g, ' ').replace(/ +([,.;:])/g, '$1').trim();
+}
+function strHash(str) {
+  let h = 0; const s = String(str || '');
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+function pickVariant(variants, ctx, seedStr) {
+  const usable = (variants || []).filter((v) => !v.condition || v.condition(ctx));
+  if (!usable.length) { return null; }
+  return usable[strHash(seedStr) % usable.length].text;
+}
+function templateAllText(tpl) {
+  if (tpl.metin) { return tpl.metin; }
+  if (!Array.isArray(tpl.paragraphs)) { return ''; }
+  let all = '';
+  tpl.paragraphs.forEach((group) => { (group || []).forEach((v) => { all += ' ' + (v.text || ''); }); });
+  return all;
+}
+function applyRichTemplate(tpl, ctx) {
+  if (!Array.isArray(tpl.paragraphs)) { return applyTemplate(tpl.metin, ctx); }
+  const paras = tpl.paragraphs.map((group, gi) => {
+    const seed = (ctx.ilkKisi || '') + '|' + (ctx.yer || '') + '|' + gi;
+    const text = pickVariant(group, ctx, seed);
+    return text ? applyTemplate(text, ctx) : '';
+  }).filter(Boolean);
+  return paras.join('\n\n');
+}
+function copyToClipboardWithToast(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Panoya kopyalandı!', { variant: 'success' })).catch(() => showToast('Kopyalanamadı, elle seçip kopyalayın.', { variant: 'error' }));
+  } else {
+    showToast('Kopyalanamadı, elle seçip kopyalayın.', { variant: 'error' });
+  }
+}
+
 const CAL_HOUR_H = 48;
 const CAL_GUTTER = 54;
 // Dokunmatikte ızgara-seç-oluştur jesti artık ANINDA değil, kısa bir basılı-tutma sonrası
@@ -1485,6 +1656,102 @@ function renderAttendeePicker(bodyEl, calAttendees) {
   box.innerHTML = html;
 }
 
+// "Protokol Sırası Al" tuşuna basılınca etkinlik düzenleme modalının İÇİNDEKİ (bkz. cngPanel
+// -- AYRI bir showModal DEĞİL, modal.js tek seferde tek modal kuralı KAYDEDİLMEMİŞ form
+// alanlarını kaybettirirdi) gizli paneli doldurup gösterir. sortedAttendees zaten protokol
+// sırasına dizilmiş (bkz. sortAttendeesByProtocol/sortAttendeesByUniversityRank çağrı yeri),
+// formValues ise düzenleme formundaki O ANKİ (henüz kaydedilmemiş olabilir) değerlerdir --
+// "hangi etkinlik türü/yerindeysek ona göre dolsun" isteği bu yüzden canlı form değerini okur.
+function renderNewsPanel(body, sortedAttendees, formValues) {
+  const panel = body.querySelector('#cngPanel');
+  if (!panel) { return; }
+  const textArray = sortedAttendees.map((p) => {
+    let str = p.title ? p.title.trim() + ' ' : '';
+    if (p.prefix) { str += p.prefix.trim() + ' '; }
+    str += p.name ? p.name.trim() : '';
+    return str.trim();
+  });
+  const kisilerDuz = textArray.join(', ');
+  const ilkKisi = textArray[0] || '';
+  const digerKisiler = textArray.slice(1).join(', ');
+  let peoplePart = ilkKisi;
+  if (textArray.length > 1) { peoplePart = turkishGenitiveSuffix(ilkKisi) + ' yanı sıra ' + digerKisiler; }
+
+  let idx = DEFAULT_NEWS_TEMPLATES.findIndex((t) => t.tur === formValues.tur);
+  if (idx < 0) { idx = 0; }
+  const selEl = panel.querySelector('#cng-template');
+  selEl.innerHTML = DEFAULT_NEWS_TEMPLATES.map((t, i) => '<option value="' + i + '"' + (i === idx ? ' selected' : '') + '>' + escapeHtml(t.ad) + '</option>').join('');
+  panel.querySelector('#cng-yer').value = formValues.yer ? turkishLocative(formValues.yer) : 'Törene';
+
+  function currentTpl() {
+    const i = Number(selEl.value);
+    return DEFAULT_NEWS_TEMPLATES[i] || DEFAULT_NEWS_TEMPLATES[0];
+  }
+  function renderPlaceholders() {
+    const wrap = panel.querySelector('#cngPlaceholders');
+    const allText = templateAllText(currentTpl());
+    const tokens = (allText.match(/\{(\w+)\}/g) || []).map((t) => t.slice(1, -1));
+    let html = '';
+    NEWS_PLACEHOLDER_FIELDS.forEach((f) => {
+      const used = tokens.some((t) => t === f.ph || t.indexOf(f.ph) === 0);
+      if (!used) { return; }
+      html += '<div class="cal-ev-form-row"><label>' + escapeHtml(f.label) + '</label><input type="text" class="form-control cng-ph" data-ph="' + f.ph + '"></div>';
+    });
+    wrap.innerHTML = html;
+    const ctxMap = { etkinlik: formValues.ad || '', birim: formValues.birim || '', aciklama: formValues.not || '' };
+    Object.keys(ctxMap).forEach((ph) => {
+      const el = wrap.querySelector('[data-ph="' + ph + '"]');
+      if (el) { el.value = ctxMap[ph]; }
+    });
+  }
+  function regenerate() {
+    const tpl = currentTpl();
+    const yer = (panel.querySelector('#cng-yer').value || 'Törene').trim();
+    const categories = Array.from(panel.querySelectorAll('.cng-cat:checked')).map((cb) => cb.value);
+    let categoryList = '';
+    if (categories.length === 1) { categoryList = categories[0]; }
+    else if (categories.length > 1) { const lastCat = categories.pop(); categoryList = categories.join(', ') + ' ve ' + lastCat; }
+    const categoryPart = categoryList ? ' ile çok sayıda ' + categoryList : '';
+    const get = (ph) => { const el = panel.querySelector('.cng-ph[data-ph="' + ph + '"]'); return el ? el.value.trim() : ''; };
+    const birim = get('birim') || formValues.birim || '';
+    const aciklama = get('aciklama'); const evSahibi = get('evSahibi');
+    const yeniGorevli = get('yeniGorevli'); const eskiGorevli = get('eskiGorevli'); const gorev = get('gorev');
+    const ctx = {
+      kisiler: peoplePart, kisilerDuz, ilkKisi, ilkKisiIn: turkishGenitiveSuffix(ilkKisi), digerKisiler,
+      yer, gruplar: categoryPart,
+      etkinlik: get('etkinlik') || formValues.ad || '',
+      birim, birimIn: birim ? turkishGenitiveSuffix(birim) : '',
+      tarih: formValues.tarih ? fmtTrDate(formValues.tarih) : '',
+      aciklama, evSahibi,
+      yeniGorevli, yeniGorevliIn: yeniGorevli ? turkishGenitiveSuffix(yeniGorevli) : '', yeniGorevliDat: yeniGorevli ? turkishDativeSuffix(yeniGorevli) : '',
+      eskiGorevli, eskiGorevliIn: eskiGorevli ? turkishGenitiveSuffix(eskiGorevli) : '', eskiGorevliDat: eskiGorevli ? turkishDativeSuffix(eskiGorevli) : '', eskiGorevliAcc: eskiGorevli ? turkishAccusativeSuffix(eskiGorevli) : '',
+      gorev, gorevDat: gorev ? turkishDativeSuffix(gorev) : ''
+    };
+    panel.querySelector('#cng-output').value = tpl.paragraphs ? applyRichTemplate(tpl, ctx) : applyTemplate(tpl.metin, ctx);
+  }
+
+  renderPlaceholders();
+  regenerate();
+  panel.hidden = false;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Panel HTML'i modal açılışında bir kez basılır (form içine gömülü) -- dinleyiciler de bu
+  // yüzden TEK SEFERLİK bağlanır, "Protokol Sırası Al" birden fazla kez tıklansa da birikmez.
+  if (!panel.dataset.wired) {
+    panel.dataset.wired = '1';
+    panel.addEventListener('change', (e) => {
+      if (e.target.id === 'cng-template') { renderPlaceholders(); regenerate(); return; }
+      if (e.target.classList.contains('cng-cat')) { regenerate(); }
+    });
+    panel.addEventListener('input', (e) => {
+      if (e.target.id === 'cng-yer' || e.target.classList.contains('cng-ph')) { regenerate(); }
+    });
+    panel.querySelector('#cngCopyBtn').addEventListener('click', () => {
+      copyToClipboardWithToast(panel.querySelector('#cng-output').value);
+    });
+  }
+}
+
 // onModalClose(committed): opsiyonel, modal HANGİ sebeple kapanırsa kapansın (X/backdrop/Vazgeç/
 // Kaydet fark etmez) bir kez çağrılır. committed=true sadece Kaydet/Oluştur eylemi tıklanıp
 // yazma başlatıldıysa (calConfirmPendingCreate bekleyen ghost'u temizlemek için kullanır).
@@ -1530,7 +1797,23 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         '<input type="text" class="cal-ev-att-search" id="cef-attSearch" placeholder="İsim veya unvan ara…"><div class="cal-ev-att-box" id="cef-attendeeBox"></div></div>' +
       '<div class="cal-ev-form-row"><label for="cef-haberKaynagi">Haber Kaynağı <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="cef-haberKaynagi" class="form-control"><option value="">(Belirtilmedi)</option>' + ['İHA', 'AA', 'DHA', 'ANKA'].map((k) => '<option value="' + k + '"' + (ev && ev.haberKaynagi === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
-    '</form>';
+    '</form>' +
+    // Kullanıcı isteği: "Protokol Sırası Al" sonrası protokol.html'deki "Haber Çıktısı Al"
+    // gibi -- etkinliğin türüne/yerine göre otomatik dolan bir haber metni önizlemesi.
+    // AYNI modal içinde (ikinci bir showModal AÇILMAZ -- modal.js "tek seferde bir modal"
+    // kuralı gereği bu, açık formdaki KAYDEDİLMEMİŞ alanları kaybettirirdi) gizli bir panel
+    // olarak durur, tuşa basılınca doldurulup gösterilir.
+    '<div class="cal-ev-news-panel" id="cngPanel" hidden>' +
+      '<h3 class="cal-ev-news-title">Haber Metni Çıktısı</h3>' +
+      '<div class="cal-ev-form-row"><label for="cng-template">Haber Şablonu</label><select id="cng-template" class="form-control"></select></div>' +
+      '<div id="cngPlaceholders"></div>' +
+      '<div class="cal-ev-form-row"><label for="cng-yer">Etkinlik / Yer İfadesi</label><input type="text" id="cng-yer" class="form-control"></div>' +
+      '<div class="cal-ev-form-row"><label>Katılımcı Grubu</label><div class="cal-ev-badge-box">' +
+        NEWS_CATEGORIES.map((c) => '<label><input type="checkbox" class="cng-cat" value="' + escapeHtml(c.value) + '"> ' + escapeHtml(c.label) + '</label>').join('') +
+      '</div></div>' +
+      '<div class="cal-ev-form-row"><label for="cng-output">Metin (elle düzenleyebilirsiniz)</label><textarea id="cng-output" class="form-control" rows="6"></textarea></div>' +
+      '<button type="button" class="btn btn-outline" id="cngCopyBtn">Panoya Kopyala</button>' +
+    '</div>';
 
   const actions = [];
   // "Sil" ESKİDEN sadece `id` varlığına bağlıydı, canWrite'a değil -- girişsiz ziyaretçi de
@@ -1558,7 +1841,16 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       const sorted = useIl ? sortAttendeesByProtocol(calAttendees) : sortAttendeesByUniversityRank(calAttendees);
       calAttendees.length = 0;
       calAttendees.push(...sorted);
+      if (!calAttendees.length) { showToast('Katılımcı eklenmemiş.', { variant: 'warning' }); return false; }
       showToast('Katılımcılar ' + (useIl ? 'Vali Tebrikat protokol' : 'üniversite protokol') + ' sırasına göre düzenlendi. Kaydetmeyi unutmayın.', { variant: 'success' });
+      renderNewsPanel(body, calAttendees.slice(), {
+        tur: body.querySelector('#cef-tur').value,
+        yer: body.querySelector('#cef-yer').value.trim(),
+        ad: body.querySelector('#cef-ad').value.trim(),
+        birim: body.querySelector('#cef-birim').value,
+        not: body.querySelector('#cef-not').value.trim(),
+        tarih: body.querySelector('#cef-tarih').value
+      });
       return false;
     } });
   }
