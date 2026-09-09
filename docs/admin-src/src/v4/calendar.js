@@ -22,6 +22,83 @@ const firebaseConfig = {
   projectId: 'omu-protokol'
 };
 
+// ── Protokol sıralaması (ana sitedeki app.js'ten AYNEN taşındı -- kullanıcı
+// isteği: "Protokol Sırası Al" tuşu, haber metni üretiminde zaten kullanılan
+// AYNI T.C. Samsun Valiliği Tebrikata Giriş Sırası hiyerarşisini uygulasın,
+// admin panelinde kaydedilen sıra ile haber metnindeki sıra TUTARLI olsun.
+// Küçük yardımcılar dosyalar arası paylaşılmaz kuralı gereği (bkz. roster.js
+// projesi kararı) burada AYRI bir kopya tutulur, app.js'teki DEĞİŞTİRİLİRSE
+// burası da elle güncellenmeli.
+const PREFIX_WEIGHTS = { 'Prof. Dr.': 1, 'Doç. Dr.': 2, 'Dr. Öğr. Üyesi': 3, 'Dr.': 4, 'Öğr. Gör.': 5, 'Arş. Gör.': 6, 'Av.': 7, 'Uzm.': 7, '': 8 };
+const TITLE_HIERARCHY = [
+  { key: 'vali yardımcısı', weight: 6 },
+  { key: 'vali', weight: 1 },
+  { key: 'milletvekili', weight: 2 },
+  { key: 'garnizon komutanı', weight: 3 },
+  { key: 'büyükşehir belediye başkanı', weight: 4 },
+  { key: 'ilçe belediye başkanı', weight: 6 },
+  { key: 'belediye başkanı', weight: 4 },
+  { key: 'cumhuriyet başsavcısı', weight: 5 },
+  { key: 'baro başkanı', weight: 5 },
+  { key: 'kaymakam', weight: 6 },
+  { key: 'rektör yardımcısı', weight: 7 },
+  { key: 'rektör', weight: 5 },
+  { key: 'dekan yardımcısı', weight: 12 },
+  { key: 'dekan vekili', weight: 7 },
+  { key: 'dekan v.', weight: 7 },
+  { key: 'dekan', weight: 7 },
+  { key: 'enstitü müdür yardımcısı', weight: 12 },
+  { key: 'yüksekokul müdür yardımcısı', weight: 12 },
+  { key: 'müdür yardımcısı', weight: 12 },
+  { key: 'enstitü müdürü', weight: 7 },
+  { key: 'yüksekokul müdürü', weight: 7 },
+  { key: 'müdür', weight: 7 },
+  { key: 'genel sekreter', weight: 8 },
+  { key: 'daire başkanı', weight: 13 },
+  { key: 'bölüm başkanı', weight: 13 },
+  { key: 'öğretim görevlisi', weight: 14 },
+  { key: 'araştırma görevlisi', weight: 14 }
+];
+function getTitleWeight(title) {
+  const t = (title || '').trim().toLocaleLowerCase('tr-TR');
+  if (!t) { return null; }
+  for (let i = 0; i < TITLE_HIERARCHY.length; i++) { if (t.includes(TITLE_HIERARCHY[i].key)) { return TITLE_HIERARCHY[i].weight; } }
+  return null;
+}
+function getHierarchyWeight(p) {
+  const titleW = getTitleWeight(p.title);
+  const prefixW = (PREFIX_WEIGHTS[p.prefix || ''] !== undefined) ? PREFIX_WEIGHTS[p.prefix || ''] : 8;
+  const tier = (titleW !== null) ? titleW : 100;
+  return tier * 100 + prefixW;
+}
+function getInstitutionWeight(p) {
+  const u = (p.unit || '').trim().toLocaleLowerCase('tr-TR');
+  if (!u) { return 1; }
+  if (u.includes('ondokuz mayıs') || u.includes('omü')) { return 1; }
+  return 2;
+}
+function sortAttendeesByProtocol(list) {
+  return list.slice().sort((a, b) => {
+    const ha = getHierarchyWeight(a); const hb = getHierarchyWeight(b); if (ha !== hb) { return ha - hb; }
+    const ia = getInstitutionWeight(a); const ib = getInstitutionWeight(b); if (ia !== ib) { return ia - ib; }
+    const ra = (a.rank === undefined || a.rank === null || a.rank === '' || isNaN(Number(a.rank))) ? Infinity : Number(a.rank);
+    const rb = (b.rank === undefined || b.rank === null || b.rank === '' || isNaN(Number(b.rank))) ? Infinity : Number(b.rank);
+    if (ra !== rb) { return ra - rb; }
+    return (a.name || '').localeCompare(b.name || '', 'tr');
+  });
+}
+// Kullanıcı isteği: "İl Protokolünü de dahil et" TİKİ İŞARETLİ DEĞİLSE (yani listede
+// sadece üniversite kişileri varsa/olması bekleniyorsa) Vali Tebrikat hiyerarşisi
+// DEĞİL, sadece üniversite protokol sırası (rank) esas alınsın.
+function sortAttendeesByUniversityRank(list) {
+  return list.slice().sort((a, b) => {
+    const ra = (a.rank === undefined || a.rank === null || a.rank === '' || isNaN(Number(a.rank))) ? Infinity : Number(a.rank);
+    const rb = (b.rank === undefined || b.rank === null || b.rank === '' || isNaN(Number(b.rank))) ? Infinity : Number(b.rank);
+    if (ra !== rb) { return ra - rb; }
+    return (a.name || '').localeCompare(b.name || '', 'tr');
+  });
+}
+
 const CAL_HOUR_H = 48;
 const CAL_GUTTER = 54;
 // Dokunmatikte ızgara-seç-oluştur jesti artık ANINDA değil, kısa bir basılı-tutma sonrası
@@ -1420,6 +1497,10 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   // Faz 11 (ana siteyle aynı v1 kapsam kararı): çok günlü etkinlikler HER ZAMAN "tüm gün" kabul
   // edilir, bitisTarihi tarih'ten FARKLIYSA anahtar başlangıçta işaretli gelir.
   const isMultiDay = !!(ev && ev.bitisTarihi && ev.bitisTarihi !== ev.tarih);
+  // Kullanıcı isteği: "İl Protokolü tiki işaretlendiğinde hep açık kalsın" -- var olan
+  // etkinlikte zaten il kaynaklı bir katılımcı varsa, modal her açıldığında tik baştan
+  // kapalı gelmesin, otomatik işaretli başlasın (ve aşağıda il havuzu otomatik yüklenir).
+  const hasIlAttendee = !!(ev && Array.isArray(ev.katilimcilar) && ev.katilimcilar.some((a) => a && a.kaynak === 'il'));
   const bitisTarihi = (ev && ev.bitisTarihi) ? ev.bitisTarihi : tarih;
   const selectedBadges = new Set(ev && Array.isArray(ev.rozetler) ? ev.rozetler : []);
 
@@ -1445,7 +1526,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       '<div class="cal-ev-form-row"><label for="cef-personSearch">Basın Görevlisi / Haberi Yazan <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından — her kişi için ayrı ayrı işaretlenebilir)</span></label>' +
         '<input type="text" class="cal-ev-att-search" id="cef-personSearch" placeholder="İsim ara…"><div class="cal-ev-att-box cal-ev-role-box" id="cef-personBox"></div></div>' +
       '<div class="cal-ev-form-row"><label for="cef-attSearch">Katılımcılar <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>' +
-        '<label class="cal-ev-il-toggle"><input type="checkbox" id="cef-attIncludeIl"> İl Protokolünü de dahil et</label>' +
+        '<label class="cal-ev-il-toggle"><input type="checkbox" id="cef-attIncludeIl"' + (hasIlAttendee ? ' checked' : '') + '> İl Protokolünü de dahil et</label>' +
         '<input type="text" class="cal-ev-att-search" id="cef-attSearch" placeholder="İsim veya unvan ara…"><div class="cal-ev-att-box" id="cef-attendeeBox"></div></div>' +
       '<div class="cal-ev-form-row"><label for="cef-haberKaynagi">Haber Kaynağı <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="cef-haberKaynagi" class="form-control"><option value="">(Belirtilmedi)</option>' + ['İHA', 'AA', 'DHA', 'ANKA'].map((k) => '<option value="' + k + '"' + (ev && ev.haberKaynagi === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></div>' +
       '<div class="cal-ev-form-row"><label for="cef-not">Not</label><textarea id="cef-not" class="form-control" rows="2">' + escapeHtml(ev ? ev.not : '') + '</textarea></div>' +
@@ -1463,6 +1544,24 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     } });
   }
   actions.push({ label: 'Vazgeç', variant: 'outline' });
+
+  // Kullanıcı isteği: katılımcı listesi elle sıralanmak yerine tek tuşla doğru protokol
+  // sırasına dizilsin. Tik KAPALIYSA sadece üniversite rank'ına göre (basit sayısal sıra),
+  // tik AÇIKSA T.C. Samsun Valiliği Tebrikata Giriş Sırası hiyerarşisine göre (il/üniversite
+  // karışık listede de doğru sonuç verir) -- bkz. sortAttendeesByProtocol/sortAttendeesByUniversityRank.
+  // Kaydedilen katilimcilar dizisinin sırası budur; anında modal içinde görünür bir liste
+  // olmadığından toast ile hangi mantığın uygulandığı bildirilir.
+  if (canWrite) {
+    actions.push({ label: 'Protokol Sırası Al', variant: 'outline', closeOnAction: false, action: ({ body }) => {
+      const includeIlEl = body.querySelector('#cef-attIncludeIl');
+      const useIl = !!(includeIlEl && includeIlEl.checked);
+      const sorted = useIl ? sortAttendeesByProtocol(calAttendees) : sortAttendeesByUniversityRank(calAttendees);
+      calAttendees.length = 0;
+      calAttendees.push(...sorted);
+      showToast('Katılımcılar ' + (useIl ? 'Vali Tebrikat protokol' : 'üniversite protokol') + ' sırasına göre düzenlendi. Kaydetmeyi unutmayın.', { variant: 'success' });
+      return false;
+    } });
+  }
 
   // calAttendees/calPressStaff/calNewsWriters -- ana sitedeki gibi GLOBAL değil, sadece bu
   // modal açıkken yaşayan yerel değişkenler (bkz. dosya başındaki state açıklaması).
@@ -1570,6 +1669,27 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     });
   };
 
+  // "İl Protokolünü de dahil et" kutusu ilk işaretlendiğinde (veya var olan etkinlikte
+  // zaten işaretliyse) TEK SEFERLİK il havuzunu okur/önbelleğe alır -- change handler'ı
+  // (kullanıcı tikliyor) ve aşağıdaki otomatik-açık-başlatma (kayıtlı etkinlik) AYNI yolu kullanır.
+  function loadIlPoolIfNeeded(checkboxEl) {
+    if (ilPoolCache !== null) { renderAttendeePicker(bodyEl, calAttendees); return; }
+    if (!database) { renderAttendeePicker(bodyEl, calAttendees); return; }
+    database.ref(dbPath('ilProtokolVerileri')).once('value').then((snap) => {
+      const v = snap.val() || {};
+      ilPoolCache = Object.keys(v).map((pid) => {
+        const p = v[pid];
+        return (p && typeof p === 'object') ? Object.assign({ _id: pid }, p) : null;
+      }).filter(Boolean);
+      if (modalToken === openEventModalToken) { renderAttendeePicker(bodyEl, calAttendees); }
+    }).catch((err) => {
+      console.error('İl Protokolü okunamadı:', err);
+      showToast('İl Protokolü okunamadı.', { variant: 'error' });
+      if (checkboxEl) { checkboxEl.checked = false; }
+      renderAttendeePicker(bodyEl, calAttendees);
+    });
+  }
+
   // Pickerlar önce (boş/eski önbellekle) render edilir, havuzlar tazelendikçe (bu modal hâlâ
   // AÇIKSA -- modalToken kontrolü ana sitedeki gorevliLoadToken yarış-durumu korumasının aynısı)
   // yeniden çizilir.
@@ -1586,6 +1706,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
     renderAttendeePicker(bodyEl, calAttendees);
     applyReadonly();
   });
+  if (hasIlAttendee) { loadIlPoolIfNeeded(bodyEl.querySelector('#cef-attIncludeIl')); }
 
   bodyEl.addEventListener('input', (e) => {
     if (e.target.id === 'cef-personSearch') { renderPersonRolesPicker(bodyEl, calPressStaff, calNewsWriters); }
@@ -1619,21 +1740,8 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       return;
     }
     if (t.id === 'cef-attIncludeIl') {
-      if (!t.checked || ilPoolCache !== null) { renderAttendeePicker(bodyEl, calAttendees); return; }
-      if (!database) { renderAttendeePicker(bodyEl, calAttendees); return; }
-      database.ref(dbPath('ilProtokolVerileri')).once('value').then((snap) => {
-        const v = snap.val() || {};
-        ilPoolCache = Object.keys(v).map((pid) => {
-          const p = v[pid];
-          return (p && typeof p === 'object') ? Object.assign({ _id: pid }, p) : null;
-        }).filter(Boolean);
-        if (modalToken === openEventModalToken) { renderAttendeePicker(bodyEl, calAttendees); }
-      }).catch((err) => {
-        console.error('İl Protokolü okunamadı:', err);
-        showToast('İl Protokolü okunamadı.', { variant: 'error' });
-        t.checked = false;
-        renderAttendeePicker(bodyEl, calAttendees);
-      });
+      if (!t.checked) { renderAttendeePicker(bodyEl, calAttendees); return; }
+      loadIlPoolIfNeeded(t);
       return;
     }
     if (t.classList.contains('cal-ev-role-basin') || t.classList.contains('cal-ev-role-haber')) {
