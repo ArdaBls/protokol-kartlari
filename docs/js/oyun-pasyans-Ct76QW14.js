@@ -1,1 +1,0 @@
-import{n as i}from"./main-v4-DfGGlFyM.js";i(()=>import("./solitaire-game-Cl6NG0bH.js").then(i=>i.initSolitaire()),[]);

@@ -278,7 +278,7 @@ export function initSolitaire() {
 
     el.classList.add('pas-card--moving');
     el.style.transformOrigin = 'top left';
-    el.style.transform = currentScale < 1 ? `scale(${currentScale})` : '';
+    el.style.transform = currentScale !== 1 ? `scale(${currentScale})` : '';
 
     state.moving.offset = { x: x - left, y: y - top };
 
@@ -496,15 +496,23 @@ export function initSolitaire() {
   // yatayda taşırmasın -- gerektiğinde küçültülüp (transform: scale) ortalanır.
   // transform layout kutusunu KÜÇÜLTMEZ (sadece boyanır), bu yüzden sarmalayıcının
   // yüksekliği elle scale ile çarpılıp ayarlanıyor (aksi halde altta boşluk kalırdı).
+  // Kullanıcı isteği: bilgisayarda oyun küçük kalıyordu -- geniş ekranlarda
+  // (available > 671px) pencere 1.35x'e kadar BÜYÜTÜLÜYOR da. Dar ekranlarda
+  // (telefon) available zaten naturalWidth'ten küçük olduğu için widthScale
+  // devreye girip önceki davranış (sadece küçültme) korunuyor.
   function fitToViewport() {
     if (!scaleWrapEl || !windowEl) { return; }
     windowEl.style.transform = '';
     const naturalWidth = windowEl.offsetWidth;
     const naturalHeight = windowEl.offsetHeight;
-    const available = scaleWrapEl.clientWidth;
-    const scale = naturalWidth > 0 ? Math.min(1, available / naturalWidth) : 1;
+    const availableWidth = scaleWrapEl.clientWidth;
+    const wrapTop = scaleWrapEl.getBoundingClientRect().top;
+    const availableHeight = Math.max(naturalHeight, window.innerHeight - wrapTop - 40);
+    const widthScale = naturalWidth > 0 ? availableWidth / naturalWidth : 1;
+    const heightScale = naturalHeight > 0 ? availableHeight / naturalHeight : 1;
+    const scale = Math.min(widthScale, heightScale, 1.35);
     currentScale = scale;
-    windowEl.style.transform = scale < 1 ? `scale(${scale})` : '';
+    windowEl.style.transform = scale !== 1 ? `scale(${scale})` : '';
     scaleWrapEl.style.height = `${naturalHeight * scale}px`;
   }
   let resizeTimer = null;
