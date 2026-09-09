@@ -177,11 +177,22 @@
 .notification-row {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: var(--space-3);
   padding: 14px 20px;
   border-bottom: 1px solid var(--border-color-light);
   transition: background 100ms;
   position: relative;
+}
+// Kullanıcı isteği: "Hesap" ve "Katılım Talepleri" sekmelerindeki satırlarda
+// zaman damgası + Onayla/Reddet butonları eskiden tek satırda sıkışıp
+// telefonda sayfa dışına taşıyordu -- flex-wrap: wrap ile artık sığmadıklarında
+// (gövde metninin altına) alt satıra düşerler, sayfayı yatayda hiç taşırmazlar.
+@media (max-width: 480px) {
+  .notification-row { padding: 12px 14px; }
+  .notification-row .notif-time,
+  .notification-row > a.btn,
+  .notification-row > button.btn { margin-left: 44px; }
 }
 .notification-row:last-child { border-bottom: none; }
 // Kullanıcı isteği: satranç daveti bildirimine tıklanınca oyuna gidilsin --
