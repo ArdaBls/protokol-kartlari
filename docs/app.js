@@ -1046,11 +1046,13 @@
 			// Sol paneldeki hangi fakülte/birim grubu (akordiyon) başlığının açık olduğu
 			let openedFacultyGroups = new Set();
 
-			// Rektör / Rektör Yardımcıları / Genel Sekreter ve Daire Başkanları — bu kişiler belirli bir fakülteye
-			// bağlı olmadıklarından "Protokol Sırası (Referans)" panelindeki 1, 2 ve 11. katmanlara (rank) göre belirlenir.
+			// Rektör / Rektör Yardımcıları / Genel Sekreter / Daire Başkanları — bu kişiler belirli bir fakülteye
+			// bağlı olmadıklarından "Protokol Sırası (Referans)" panelindeki 1, 2, 3 ve 12. katmanlara (rank) göre belirlenir.
+			// (Genel Sekreter 3. sıraya taşındı, Daire Başkanları listenin en altında 12. sıraya kaldı --
+			// bkz. UNIVERSITY_PROTOCOL_TITLES.)
 			function isCentralAdminPerson(p) {
 				const r = Number(p.rank);
-				return r === 1 || r === 2 || r === 11;
+				return r === 1 || r === 2 || r === 3 || r === 12;
 			}
 
 			const PREFIX_WEIGHTS = { "Prof. Dr.": 1, "Doç. Dr.": 2, "Dr. Öğr. Üyesi": 3, "Dr.": 4, "Öğr. Gör.": 5, "Arş. Gör.": 6, "Av.": 7, "Uzm.": 7, "": 8 };
@@ -2707,6 +2709,7 @@
 			const UNIVERSITY_PROTOCOL_TITLES = [
 				"Rektör",
 				"Rektör Yardımcıları",
+				"Genel Sekreter",
 				"Fakülte Dekanları",
 				"Enstitü ve Yüksekokul Müdürleri",
 				"Dekan Yardımcıları ve Müdür Yardımcıları",
@@ -2715,7 +2718,7 @@
 				"Doktor Öğretim Üyeleri",
 				"Bölüm Başkanları ve Anabilim Dalı Başkanları",
 				"Öğretim Görevlileri ve Araştırma Görevlileri",
-				"Genel Sekreter ve Daire Başkanları"
+				"Daire Başkanları"
 			];
 			function renderRankReferencePanel() {
 				const panel = document.getElementById("rankReference");
