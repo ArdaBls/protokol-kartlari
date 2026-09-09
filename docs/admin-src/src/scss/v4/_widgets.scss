@@ -100,6 +100,19 @@
   background: var(--body-bg);
   border-radius: var(--radius-sm);
   padding: 2px;
+  // .card-header'ın flex çocuğu olduğu için min-width olmadan içeriği kadar
+  // genişlemekte ısrar edip .card-header'ı (dolayısıyla sayfayı) taşırabilirdi --
+  // min-width:0 aşağıdaki overflow-x:auto'nun gerçekten devreye girmesini sağlar.
+  min-width: 0;
+  // Kullanıcı isteği: bildirimler.html'deki 7 sekme (Tümü/İl Protokolü/Üniversite
+  // Protokolü/Etkinlik Takvimi/Hesap/Katılım Talepleri/Bildirimlerim) telefonda
+  // tek satıra sığmayınca eskiden SAYFAYI yatayda taşırıyordu (hiç sarma/kaydırma
+  // yoktu). Artık kendi içinde yatayda kaydırılabiliyor -- sayfa genişliği sabit
+  // kalır, sekmeler kendi şeridinde kaydırılır.
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 .chart-tab {
   padding: 4px 10px;
@@ -111,6 +124,8 @@
   border: none;
   background: transparent;
   transition: background 120ms, color 120ms;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .chart-tab.active {
   background: var(--bg-surface);
