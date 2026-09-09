@@ -90,7 +90,11 @@ export function getCalendarOverviewBuckets(events, now) {
   const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   const weekStartDay = startOfWeek(now);
   const weekEndDay = addDays(weekStartDay, 6);
-  const weekStart = new Date(weekStartDay.getFullYear(), weekStartDay.getMonth(), weekStartDay.getDate(), 0, 0, 0, 0);
+  // Kullanıcı isteği: "Bu hafta" bugünden ÖNCEKİ (haftanın geçmiş/bitmiş) günlerini
+  // göstermesin -- pazartesiden değil, bugünün BİTİMİNDEN (dayEnd+1ms) başlar. Bugünün
+  // kendisi zaten "today" kovasında (yukarıda), böylece hiçbir gün iki kovada birden
+  // görünmez ve geçmiş günler bu kovaya hiç girmez.
+  const weekStart = new Date(dayEnd.getTime() + 1);
   const weekEnd = new Date(weekEndDay.getFullYear(), weekEndDay.getMonth(), weekEndDay.getDate(), 23, 59, 59, 999);
   const upcomingStart = new Date(weekEnd.getTime() + 1);
   const upcomingEnd = addDays(weekEndDay, 30);
