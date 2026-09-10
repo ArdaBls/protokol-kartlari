@@ -204,7 +204,7 @@ async function rozet(page) {
 	//     EZMEMELİ -- 10 Eylül 2026'daki birleştirme refactor'ünden sonra bu artık
 	//     rol bazlı dal içermeyen TEK bir tab-click handler ile sağlanıyor: editörün
 	//     ENTRIES'i zaten SADECE kendi kişisel bildirimlerinden oluşuyor
-	//     (loadEditorEntries, _list:'kisisel' etiketiyle), handler role bakmaksızın
+	//     (attachEditor, _list:'kisisel' etiketiyle), handler role bakmaksızın
 	//     her tıklamada aynı ENTRIES'i filtresiz render ediyor -- yani eski hata artık
 	//     mimari olarak imkansız,
 	// (b) görüntülenen kişisel bildirimler read:true olarak işaretlenmeli, yoksa
@@ -216,7 +216,7 @@ async function rozet(page) {
 		const tabsHandlerMatch = notifSource.match(/document\.getElementById\('notif-tabs'\)\.addEventListener\('click', \(e\) => \{([\s\S]*?)\}\);/);
 		const tabsHandlerBody = tabsHandlerMatch ? tabsHandlerMatch[1] : '';
 		sonuc.bildirimlerHtmlDuzeltmeleri = {
-			editorTumuSekmesiKisiselBildirimlereGidiyor: /function loadEditorEntries/.test(notifSource) && /_list:\s*'kisisel'/.test(notifSource) && !/currentRole/.test(tabsHandlerBody),
+			editorTumuSekmesiKisiselBildirimlereGidiyor: /function attachEditor/.test(notifSource) && /_list:\s*'kisisel'/.test(notifSource) && !/currentRole/.test(tabsHandlerBody),
 			okunduIsaretlemeVar: /function markNotificationsRead/.test(notifSource) && /markNotificationsRead\(val\)/.test(notifSource),
 			adminIcinKisiselSekmeVar: /notif-tab-kisisel/.test(notifSource) && /getElementById\('notif-tab-kisisel'\)\.hidden = false/.test(notifSource)
 		};

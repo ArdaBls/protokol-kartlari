@@ -60,7 +60,7 @@
 <script type="module">
 import { dbPath, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
 import { showToast } from '/src/v4/toast.js';
-import { approveAttendanceRequest, rejectAttendanceRequest, loadPendingAttendanceRequests } from '/src/v4/attendance.js';
+import { approveAttendanceRequest, rejectAttendanceRequest } from '/src/v4/attendance.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -168,19 +168,6 @@ function render() {
   }).join('');
 }
 
-// ── Admin/owner: bekleyen "geçmiş etkinliğe kişi ekle" katılım talepleri ──
-// Artık ayrı tutulmuyor -- ENTRIES içine _list:'katilim' etiketiyle birleşiyor,
-// böylece hem "Tümü" hem "Katılım Talepleri" sekmesinde görünüyor.
-function refreshKatilim() {
-  return loadPendingAttendanceRequests(database).then((items) => {
-    const katilimEntries = items.map((r) => Object.assign({}, r, { _list: 'katilim', timestamp: r.requestedAt }));
-    ENTRIES = ENTRIES.filter((e) => e._list !== 'katilim').concat(katilimEntries)
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    render();
-  }).catch((err) => {
-    console.error('Katılım talepleri yüklenemedi:', err);
-  });
-}
 document.getElementById('notif-list').addEventListener('click', (e) => {
   const approveBtn = e.target.closest('[data-approve]');
   const rejectBtn = e.target.closest('[data-reject]');
@@ -190,18 +177,20 @@ document.getElementById('notif-list').addEventListener('click', (e) => {
     ? approveAttendanceRequest(database, requestId, currentUid, currentUserName)
     : rejectAttendanceRequest(database, requestId, currentUid, currentUserName);
   (approveBtn || rejectBtn).disabled = true;
+  // NOT: onay/red sonrası elle yenileme YOK -- attendanceRequests üzerindeki
+  // .on('value') dinleyicisi (bkz. attachAll) status 'pending' olmaktan
+  // çıkınca listeyi otomatik günceller.
   action.then(() => {
     showToast(approveBtn ? 'Talep onaylandı.' : 'Talep reddedildi.', { variant: 'success' });
-    refreshKatilim();
   }).catch((err) => {
     console.error('Talep işlenemedi:', err);
     showToast(err && err.message ? err.message : 'Talep işlenemedi.', { variant: 'error' });
-    refreshKatilim();
   });
 });
 
-// Artık ENTRIES rolüne göre baştan TAM olarak yükleniyor (loadAll/loadEditorEntries) --
-// sekmeye tıklamak sadece aynı listeyi client-side filtreliyor, yeniden fetch YOK.
+// Artık ENTRIES rolüne göre gerçek zamanlı dinleyicilerle güncel tutuluyor
+// (bkz. attachAll/attachEditor) -- sekmeye tıklamak sadece client-side filtre
+// uyguluyor, yeniden fetch YOK.
 document.getElementById('notif-tabs').addEventListener('click', (e) => {
   const btn = e.target.closest('.chart-tab');
   if (!btn) return;
@@ -214,9 +203,9 @@ document.getElementById('notif-tabs').addEventListener('click', (e) => {
 // Kullanıcı bulgusu: "bildirimler kısmına girince gördüğüm bildirimler
 // sağdaki zil işaretinden silinmiyor" -- görüntülenen bildirimler hiçbir
 // zaman read:true olarak işaretlenmiyordu, bu yüzden shell.js'teki rozet
-// (okunmamış sayısı) sonsuza dek aynı kalıyordu. Sayfayı her açtığında/
-// yeniden yüklediğinde o an listelenen okunmamışlar tek seferlik read:true
-// yapılır -- dbPath() ÜZERİNDEN (attendance.js'in yazdığı yolla AYNI dal).
+// (okunmamış sayısı) sonsuza dek aynı kalıyordu. notifications/{uid}
+// dinleyicisi her tetiklenişinde o an listelenen okunmamışlar tek seferlik
+// read:true yapılır -- dbPath() ÜZERİNDEN (attendance.js'in yazdığı yolla AYNI dal).
 function markNotificationsRead(idToItem) {
   const updates = {};
   Object.keys(idToItem).forEach((id) => {
@@ -229,75 +218,105 @@ function markNotificationsRead(idToItem) {
   }
 }
 
-// ── Admin/owner: TÜM kaynakları (loglar + bekleyen kayıtlar + katılım
-// talepleri + kişisel bildirimler) TEK seferde yükleyip ENTRIES'te birleştirir.
-// Kullanıcı bulgusu: "Tümü" sekmesinde katılım talepleri ve bildirimlerim
-// hiç görünmüyordu -- çünkü eskiden bu ikisi ayrı değişkende tutulup sadece
-// kendi sekmeleri seçiliyken yükleniyordu. Artık hepsi aynı ENTRIES'te, tab
-// tıklaması sadece client-side filtre uyguluyor (bkz. yukarıdaki click handler).
-function loadAll() {
-  setState('Yükleniyor…');
-  Promise.all([
-    database.ref('users').once('value'),
-    database.ref(dbPath('logs/il')).limitToLast(50).once('value'),
-    database.ref(dbPath('logs/universite')).limitToLast(50).once('value'),
-    database.ref(dbPath('logs/etkinlik')).limitToLast(50).once('value'),
-    database.ref(dbPath('logs/hesap')).limitToLast(50).once('value'),
-    database.ref(dbPath('logs/dictionary')).limitToLast(50).once('value'),
-    loadPendingAttendanceRequests(database),
-    database.ref(dbPath('notifications/' + currentUid)).limitToLast(50).once('value')
-  ]).then(([usersSnap, ilSnap, uniSnap, etkSnap, hesapSnap, dictSnap, katilimItems, kisiselSnap]) => {
-    const kullanicilar = usersSnap.val() || {};
-    const snaps = [ilSnap, uniSnap, etkSnap, hesapSnap, dictSnap];
-    const lists = ['il', 'universite', 'etkinlik', 'hesap', 'dictionary'];
-    const loglar = snaps.flatMap((snap, i) => Object.values(snap.val() || {}).map((e) => ({ ...e, _list: lists[i] })));
-    // Rolü editor/admin/owner OLMAYAN her kayıt 'onay bekliyor' demektir.
-    const ONAYLI = ['editor', 'admin', 'owner'];
-    const bekleyenKayitlari = Object.keys(kullanicilar)
-      .filter((uid) => ONAYLI.indexOf(kullanicilar[uid] && kullanicilar[uid].role) === -1)
-      .map((uid) => {
-        const k = kullanicilar[uid] || {};
-        const isim = ((k.firstName || '') + ' ' + (k.lastName || '')).trim() || '(isim girilmemiş)';
-        return {
-          _list: 'hesap',
-          _bekleyen: true,
-          by: isim,
-          email: k.email || '',
-          target: k.email || isim,
-          action: 'Yeni kayıt talebi · onay bekliyor',
-          timestamp: k.createdAt || 0
-        };
-      });
-    // Onay bekleyen KAYIT TALEPLERİ de bu listeye giriyor (kullanıcı isteği:
-    // "yeni kullanıcı onay bekliyor diye bildirim gelmeli, kişinin tüm bilgileri:
-    // ismi, hangi e-postayla, hangi saatte kayıt yapıp onay beklediği").
-    // logs/hesap'a yazılamıyor çünkü log yazma yetkisi editor/admin/owner'da;
-    // kayıt olan kişi ise henüz 'pending'. Bu yüzden kayıtlar doğrudan users/
-    // düğümünden türetiliyor -- bu sayfa zaten yalnızca admin/owner'a açık.
-    const katilimEntries = katilimItems.map((r) => Object.assign({}, r, { _list: 'katilim', timestamp: r.requestedAt }));
-    const kisiselVal = kisiselSnap.val() || {};
-    const kisiselEntries = Object.entries(kisiselVal).map(([id, n]) => Object.assign({ _id: id }, n, { _list: 'kisisel', timestamp: n.createdAt }));
-    ENTRIES = loglar.concat(bekleyenKayitlari).concat(katilimEntries).concat(kisiselEntries)
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-      .slice(0, 150);
-    if (!ENTRIES.length) { setState('Henüz kayıt yok.'); return; }
-    render();
-    markNotificationsRead(kisiselVal);
-  }).catch((err) => {
-    console.error('Kayıtlar yüklenemedi:', err);
-    setState('Kayıtlar yüklenemedi.');
-  });
+// ── Admin/owner: TÜM kaynaklar (loglar + bekleyen kayıtlar + katılım
+// talepleri + kişisel bildirimler) GERÇEK ZAMANLI .on('value') dinleyicileriyle
+// ayrı "kova"larda tutulup her değişiklikte ENTRIES'te yeniden birleştirilir.
+// Kullanıcı bulgusu: "Tümü sekmesi açıkken bildirimler anlık olarak düşmüyor"
+// -- eskiden .once('value') ile TEK SEFERLİK çekiliyordu, sayfa açıkken gelen
+// yeni bir kayıt sayfa yenilenmeden asla görünmüyordu. Artık her kova kendi
+// canlı dinleyicisiyle güncelleniyor.
+const LOG_LISTS = ['il', 'universite', 'etkinlik', 'hesap', 'dictionary'];
+let logRefs = {};
+let usersRef = null;
+let attendanceRef = null;
+let personalRef = null;
+let LOG_BUCKETS = { il: [], universite: [], etkinlik: [], hesap: [], dictionary: [] };
+let PENDING_ACCOUNTS = [];
+let KATILIM_BUCKET = [];
+let KISISEL_BUCKET = [];
+let usersVal = {};
+
+function bekleyenKayitlariHesapla() {
+  // Rolü editor/admin/owner OLMAYAN her kayıt 'onay bekliyor' demektir.
+  // Onay bekleyen KAYIT TALEPLERİ bu listeye giriyor (kullanıcı isteği:
+  // "yeni kullanıcı onay bekliyor diye bildirim gelmeli, kişinin tüm bilgileri:
+  // ismi, hangi e-postayla, hangi saatte kayıt yapıp onay beklediği").
+  // logs/hesap'a yazılamıyor çünkü log yazma yetkisi editor/admin/owner'da;
+  // kayıt olan kişi ise henüz 'pending'. Bu yüzden kayıtlar doğrudan users/
+  // düğümünden türetiliyor -- bu sayfa zaten yalnızca admin/owner'a açık.
+  const ONAYLI = ['editor', 'admin', 'owner'];
+  PENDING_ACCOUNTS = Object.keys(usersVal)
+    .filter((uid) => ONAYLI.indexOf(usersVal[uid] && usersVal[uid].role) === -1)
+    .map((uid) => {
+      const k = usersVal[uid] || {};
+      const isim = ((k.firstName || '') + ' ' + (k.lastName || '')).trim() || '(isim girilmemiş)';
+      return {
+        _list: 'hesap', _bekleyen: true, by: isim, email: k.email || '', target: k.email || isim,
+        action: 'Yeni kayıt talebi · onay bekliyor', timestamp: k.createdAt || 0
+      };
+    });
 }
 
-// ── Editör: SADECE kendi kişisel bildirimleri (notifications/{uid}) ──
-// KRİTİK: editör için logs/* düğümlerine HİÇ dokunulmuyor -- indirip arayüzde
-// gizlemek yerine, bu rol dalı o kod yolunu hiç çalıştırmıyor (Firebase
-// kuralları da zaten editöre logs/* okumasını engelliyor, bu istemci tarafı
-// bunu tekrarlamıyor sadece gereksiz denemeyi baştan önlüyor). Editörün
-// görünen tek sekmesi "Tümü" zaten bu listeye eşit.
-function loadEditorEntries() {
+function rebuildEntries() {
+  const loglar = LOG_LISTS.flatMap((list) => LOG_BUCKETS[list]);
+  ENTRIES = loglar.concat(PENDING_ACCOUNTS).concat(KATILIM_BUCKET).concat(KISISEL_BUCKET)
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+    .slice(0, 150);
+  if (!ENTRIES.length) { setState('Henüz kayıt yok.'); return; }
+  render();
+}
+
+function detachAll() {
+  if (usersRef) { usersRef.off('value'); usersRef = null; }
+  LOG_LISTS.forEach((list) => { if (logRefs[list]) { logRefs[list].off('value'); logRefs[list] = null; } });
+  if (attendanceRef) { attendanceRef.off('value'); attendanceRef = null; }
+  if (personalRef) { personalRef.off('value'); personalRef = null; }
+}
+
+function attachAll() {
+  detachAll();
   setState('Yükleniyor…');
-  database.ref(dbPath('notifications/' + currentUid)).limitToLast(50).once('value').then((snap) => {
+  usersRef = database.ref('users');
+  usersRef.on('value', (snap) => {
+    usersVal = snap.val() || {};
+    bekleyenKayitlariHesapla();
+    rebuildEntries();
+  }, (err) => console.error('Kullanıcılar okunamadı:', err));
+
+  LOG_LISTS.forEach((list) => {
+    logRefs[list] = database.ref(dbPath('logs/' + list)).limitToLast(50);
+    logRefs[list].on('value', (snap) => {
+      LOG_BUCKETS[list] = Object.values(snap.val() || {}).map((e) => ({ ...e, _list: list }));
+      rebuildEntries();
+    }, (err) => console.error('logs/' + list + ' okunamadı:', err));
+  });
+
+  attendanceRef = database.ref(dbPath('attendanceRequests')).orderByChild('status').equalTo('pending');
+  attendanceRef.on('value', (snap) => {
+    const val = snap.val() || {};
+    KATILIM_BUCKET = Object.keys(val).map((id) => Object.assign({ _id: id }, val[id], { _list: 'katilim', timestamp: val[id].requestedAt }));
+    rebuildEntries();
+  }, (err) => console.error('Katılım talepleri okunamadı:', err));
+
+  personalRef = database.ref(dbPath('notifications/' + currentUid)).limitToLast(50);
+  personalRef.on('value', (snap) => {
+    const val = snap.val() || {};
+    KISISEL_BUCKET = Object.entries(val).map(([id, n]) => Object.assign({ _id: id }, n, { _list: 'kisisel', timestamp: n.createdAt }));
+    rebuildEntries();
+    markNotificationsRead(val);
+  }, (err) => console.error('Bildirimler okunamadı:', err));
+}
+
+// ── Editör: SADECE kendi kişisel bildirimleri (notifications/{uid}), gerçek
+// zamanlı. KRİTİK: editör için logs/* düğümlerine HİÇ dokunulmuyor -- indirip
+// arayüzde gizlemek yerine, bu rol dalı o kod yolunu hiç çalıştırmıyor
+// (Firebase kuralları da zaten editöre logs/* okumasını engelliyor). Editörün
+// görünen tek sekmesi "Tümü" zaten bu listeye eşit.
+function attachEditor() {
+  detachAll();
+  setState('Yükleniyor…');
+  personalRef = database.ref(dbPath('notifications/' + currentUid)).limitToLast(50);
+  personalRef.on('value', (snap) => {
     const val = snap.val() || {};
     ENTRIES = Object.entries(val)
       .map(([id, n]) => Object.assign({ _id: id }, n, { _list: 'kisisel', timestamp: n.createdAt }))
@@ -305,10 +324,7 @@ function loadEditorEntries() {
     if (!ENTRIES.length) { setState('Henüz bildiriminiz yok.'); return; }
     render();
     markNotificationsRead(val);
-  }).catch((err) => {
-    console.error('Bildirimler yüklenemedi:', err);
-    setState('Bildirimler yüklenemedi.');
-  });
+  }, (err) => console.error('Bildirimler okunamadı:', err));
 }
 
 let authorized = false;
@@ -332,7 +348,7 @@ auth.onAuthStateChanged((user) => {
       // görüp okundu işaretleyecek HİÇBİR yer yoktu, zil rozeti sonsuza dek
       // aynı kalıyordu (kullanıcı bulgusu: "adminde de bunlar olmuyor").
       document.getElementById('notif-tab-kisisel').hidden = false;
-      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); loadAll(); });
+      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); attachAll(); });
     } else if (role === 'editor' && u.blocked !== true) {
       // Editöre yönetim sekmeleri (İl/Üniversite/Etkinlik/Hesap/Katılım
       // Talepleri) hiç GÖSTERİLMİYOR -- sadece "Tümü" sekmesi kalır ve o da
@@ -342,7 +358,7 @@ auth.onAuthStateChanged((user) => {
         const el = document.querySelector(`#notif-tabs [data-filter="${f}"]`);
         if (el) { el.hidden = true; }
       });
-      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); loadEditorEntries(); });
+      initDbMode(database).then(() => { modeReady = true; renderDbModeBanner(); attachEditor(); });
     } else {
       setState('Bildirimler yalnızca onaylı editör/admin/kurucu rolündeki kullanıcılara açıktır.');
     }
@@ -352,12 +368,15 @@ auth.onAuthStateChanged((user) => {
   });
 });
 
+// Test Modu açılıp kapanınca (başka bir sekmeden bile olsa) dbPath() değişir --
+// eski dala bağlı dinleyiciler artık YANLIŞ dalı izler, bu yüzden hepsi
+// kapatılıp doğru dala yeniden bağlanır.
 onDbModeChange(() => {
   if (!modeReady) {return;}
   renderDbModeBanner();
   if (!authorized) {return;}
-  if (currentRole === 'editor') { loadEditorEntries(); }
-  else { loadAll(); }
+  if (currentRole === 'editor') { attachEditor(); }
+  else { attachAll(); }
 });
 </script>
 

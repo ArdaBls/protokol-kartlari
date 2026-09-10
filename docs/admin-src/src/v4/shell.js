@@ -484,11 +484,15 @@ function bildirimAudioBaglaminiAl() {
     if (ctx && ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
   }, { once: true, passive: true });
 });
-function bildirimSesiCal() {
-  const ctx = bildirimAudioBaglaminiAl();
-  if (!ctx) { return; }
-  if (ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
+function bildirimSesiCaliciDon(ctx) {
   try {
+    // 'now' MUTLAKA resume() TAMAMLANDIKTAN SONRA okunmalı -- context suspended
+    // iken currentTime donuk kalıyor, önceden okunan bir 'now' üzerine
+    // zamanlanan notalar resume olunca ANINDA/GECİKMELİ ve GARİP çalıyordu
+    // (kullanıcı bulgusu: "sitede biraz gezinince sesi geliyor" -- iOS Safari'de
+    // ilk dokunuşa kadar ses kilitli kalıyor, o ana kadar SESSİZCE bekletilip
+    // gerçek dokunuş anında TAZE bir 'now' ile çalınmalı, geçmişte kalmış bir
+    // zamana kuyruklanmamalı).
     const now = ctx.currentTime;
     [{ freq: 1318.51, start: 0, dur: 0.16 }, { freq: 1046.50, start: 0.14, dur: 0.28 }].forEach((n) => {
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
@@ -501,6 +505,36 @@ function bildirimSesiCal() {
     });
   } catch (e) { /* Web Audio başarısız olursa sessizce geç */ }
 }
+function bildirimSesiCal() {
+  const ctx = bildirimAudioBaglaminiAl();
+  if (!ctx) { return; }
+  if (ctx.state === 'suspended') {
+    // Tarayıcı sesi henüz kilitlememişse (iOS Safari: kullanıcı sayfada henüz
+    // hiçbir yere dokunmadıysa) resume() hemen sonuçlanmaz, ilk gerçek
+    // dokunuşta (bkz. click/keydown/touchstart dinleyicileri) çözülür -- o ana
+    // kadar ses SESSİZCE ertelenir, geçmiş bir zamana kuyruklanmaz.
+    ctx.resume().then(() => { if (ctx.state === 'running') { bildirimSesiCaliciDon(ctx); } }).catch(() => {});
+    return;
+  }
+  bildirimSesiCaliciDon(ctx);
+}
+
+// Kullanıcı isteği: "ana ekrana eklediğim uygulamada bildirim gelince telefonun
+// sağ üstüne kaç tane bildirim geldiğini gösterebiliyor muyuz" -- App Badging
+// API (navigator.setAppBadge) ana ekrana eklenmiş bir PWA'nın ikonuna sayı
+// rozeti koyar. NOT: bu SADECE sayfa açıkken/arka planda sekme olarak
+// çalışırken güncellenir -- tarayıcı/PWA TAMAMEN kapalıyken (uygulama hiç
+// açık değilken) bir bildirim gelse bile rozet güncellenmez, bunun için
+// gerçek Web Push (arka planda çalışan bir push sunucusu + izin isteme akışı)
+// gerekir, bu çok daha büyük ayrı bir özellik. iOS Safari 16.4+ ana ekrana
+// eklenmiş siteler için bunu destekliyor; desteklenmeyen tarayıcılarda
+// fonksiyon zaten yok, try/catch ile sessizce geçiliyor.
+function uygulamaRozetiniGuncelle(total) {
+  try {
+    if (total > 0 && navigator.setAppBadge) { navigator.setAppBadge(total).catch(() => {}); }
+    else if (total === 0 && navigator.clearAppBadge) { navigator.clearAppBadge().catch(() => {}); }
+  } catch (e) { /* App Badging API desteklenmiyorsa sessizce geç */ }
+}
 
 function renderBildirimRozeti() {
   const rozet = document.getElementById('tb-onay-rozeti');
@@ -508,6 +542,7 @@ function renderBildirimRozeti() {
   const total = pendingAccountsCount + pendingAttendanceCount + pendingNotifsCount;
   rozet.textContent = total > 99 ? '99+' : String(total);
   rozet.hidden = total === 0;
+  uygulamaRozetiniGuncelle(total);
   const zil = rozet.closest('.tb-btn');
   if (zil) {
     const parts = [];

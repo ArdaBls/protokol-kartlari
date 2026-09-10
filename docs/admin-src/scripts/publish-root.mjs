@@ -14,7 +14,7 @@
 // docs/ İÇİNDE SADECE bu izin listesindeki dosya/klasörler kalmalı -- geri kalan HER ŞEY (eski
 // derleme çıktıları, artık kullanılmayan eski sayfalar) her build'de silinip docs/admin/'in
 // güncel içeriğiyle değiştiriliyor. Böylece docs/ içinde asla eski/öksüz dosya birikmez.
-import { readdirSync, rmSync, cpSync, existsSync } from 'node:fs';
+import { readdirSync, rmSync, cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const DOCS_ROOT = resolve(import.meta.dirname, '..', '..');
@@ -58,5 +58,30 @@ for (const entry of KEEP) {
 
 cpSync(STAGING, DOCS_ROOT, { recursive: true });
 rmSync(STAGING, { recursive: true, force: true });
+
+// KEEP korumasının bilinen bir yan etkisi: protokol.html KEEP'te olduğu için bu build
+// asla ONU güncellemiyor, ama admin panelinin main-v4 JS/CSS bundle'ları HER build'de
+// içerik-hash'li yeni dosya adlarıyla üretiliyor -- protokol.html içindeki hardcoded
+// <script src="/js/main-v4-HASH.js"> ve <link href="/assets/main-v4-HASH.css"> referansları
+// eski hash'e bakmaya devam edip 404 verirdi, admin paneli TAMAMEN STİLSİZ görünürdü
+// (gerçekte yaşandı 3 kez, en son 10 Eylül 2026 -- bkz. commit eedbadc, 7e759ec).
+// Bu adım o senkronu OTOMATİK yapar, elle hatırlamaya bağımlı kalınmaz.
+{
+  const protokolPath = resolve(DOCS_ROOT, 'protokol.html');
+  const jsDir = resolve(DOCS_ROOT, 'js');
+  const assetsDir = resolve(DOCS_ROOT, 'assets');
+  const guncelMainJs = existsSync(jsDir) ? readdirSync(jsDir).find((f) => /^main-v4-.*\.js$/.test(f)) : null;
+  const guncelMainCss = existsSync(assetsDir) ? readdirSync(assetsDir).find((f) => /^main-v4-.*\.css$/.test(f)) : null;
+  if (existsSync(protokolPath) && guncelMainJs && guncelMainCss) {
+    let html = readFileSync(protokolPath, 'utf8');
+    const yeniHtml = html
+      .replace(/\/js\/main-v4-[^"']*\.js/, '/js/' + guncelMainJs)
+      .replace(/\/assets\/main-v4-[^"']*\.css/, '/assets/' + guncelMainCss);
+    if (yeniHtml !== html) {
+      writeFileSync(protokolPath, yeniHtml);
+      console.log('protokol.html main-v4 bundle referansları güncellendi:', guncelMainJs, guncelMainCss);
+    }
+  }
+}
 
 console.log('publish-root: docs/admin/ içeriği docs/ köküne taşındı, docs/admin/ klasörü kaldırıldı.');
