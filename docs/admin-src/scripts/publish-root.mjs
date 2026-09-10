@@ -40,6 +40,22 @@ for (const entry of readdirSync(DOCS_ROOT)) {
   console.log('silindi:', entry);
 }
 
+// GÜVENLİK KATMANI (kullanıcının veri kaybı bulgusu üzerine eklendi): cpSync STAGING'i
+// DOCS_ROOT'un üzerine kopyalarken varsayılan olarak OVERWRITE eder -- yukarıdaki KEEP
+// listesi sadece SİLME aşamasını korur, cpSync'in üzerine YAZMASINI engellemez. admin-src
+// içindeki bir Vite sayfası (örn. production/protokol.html) KEEP'teki bir isimle çakışırsa
+// (protokol.html/app.js/style.css), STAGING'deki derlenmiş hali ROOT'taki ELLE YAZILMIŞ
+// dosyanın üzerine sessizce yazılırdı -- gerçekte yaşandı (bkz. git geçmişi, 10 Eylül 2026).
+// STAGING'den bu isimleri kopyalamadan ÖNCE kaldırarak KEEP dosyalarını cpSync'ten de korur.
+for (const entry of KEEP) {
+  if (entry === 'admin') continue; // STAGING'in kendisi, aşağıda zaten siliniyor
+  const staged = resolve(STAGING, entry);
+  if (existsSync(staged)) {
+    rmSync(staged, { recursive: true, force: true });
+    console.log('STAGING\'den korundu (ROOT\'un üzerine yazılmayacak):', entry);
+  }
+}
+
 cpSync(STAGING, DOCS_ROOT, { recursive: true });
 rmSync(STAGING, { recursive: true, force: true });
 

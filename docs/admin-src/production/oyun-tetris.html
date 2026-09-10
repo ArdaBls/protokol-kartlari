@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Tetris | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Tetris">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">Tetris</h1>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:12.5px;color:var(--text-muted);margin:-8px 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span>Bu oyun kendi sunucumuzda barındırılıyor (dış siteye bağımlı değil). Kaynak: <a href="https://github.com/chvin/react-tetris" target="_blank" rel="noopener">chvin/react-tetris</a> (Apache-2.0 lisansı), Türkçeleştirildi.</span>
+  </p>
+
+  <div class="game-iframe-wrap">
+    <iframe src="/oyun-tetris/index.html" title="Tetris" loading="lazy"></iframe>
+  </div>
+
+</div>
+</main>
+
+</body>
+</html>
