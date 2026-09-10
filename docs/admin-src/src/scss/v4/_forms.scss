@@ -33,6 +33,15 @@
   transition: border-color 150ms, box-shadow 150ms;
   font-family: var(--font);
 }
+// iOS Safari'nin native input[type=date]/[type=time] kontrolü bazen width:100%'u
+// yok sayıp kendi intrinsik genişliğini dayatıyor -- dar sütunlu satırlarda (sayaç
+// düzenle, etkinlik tarih/saat, + görev ekle modalları) bu, kutunun modal dışına
+// hafifçe taşmasına yol açıyordu (kullanıcı bulgusu, gerçek iPhone). Ana sitedeki
+// (protokol.html/style.css) AYNI bug için gerçek cihazda doğrulanmış çözüm buraya
+// da taşındı: width:1px ÖNCE tarayıcının native kontrol için dayatmaya çalıştığı
+// "intrinsik" genişliği geçersiz kılar, min-width:100% container genişliğine ZORLA
+// geri getirir -- max-width tek başına bazı WebKit sürümlerinde yetersiz kalıyordu.
+.form-control[type="date"], .form-control[type="time"] { width: 1px; min-width: 100%; max-width: 100%; }
 .form-control::placeholder { color: var(--text-disabled); }
 .form-control:hover:not(:focus) { border-color: var(--text-muted); }
 .form-control:focus {
