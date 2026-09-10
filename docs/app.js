@@ -1937,34 +1937,42 @@
 				showToast(movedCount + " kayıt çöpe taşındı.", "warn");
 			}
 
-			// Haber çıktısı seçim hafızası: sayfa yenilense/sekme değiştirilse de son seçilen
-			// kişiler kaybolmasın diye localStorage'da tutulur. Sadece "Haber Çıktısı Al" AÇILIRKEN
-			// geri yüklenir (o anki listede hâlâ var olan id'lerle sınırlı) -- kapatma/iptal bir
-			// sonraki açılışın hafızasını SİLMEZ, kullanıcı yanlışlıkla iptale basarsa seçim kaybolmaz.
+			// Haber çıktısı seçim hafızası: "Haber Çıktısı Al" modu AÇIKKEN yaptığınız seçim,
+			// aynı oturumda taslak oluşturup modalı kapatsanız bile korunur (aynı kişilere art
+			// arda haber üretebilesiniz diye). Ama moddan TAMAMEN ÇIKILDIĞINDA (İptal veya
+			// tekrar "Haber Çıktısı Al" moduna kapatma) hafıza da silinir -- bir etkinlik için
+			// seçtiğiniz isimler bir sonraki, alakasız etkinlikte seçili kalmasın diye.
 			const NEWS_SELECTION_KEY = "omuProtokolNewsSelection";
 			function saveNewsSelection(){ try { localStorage.setItem(NEWS_SELECTION_KEY, JSON.stringify(newsSelection)); } catch(e) {} }
 			function loadNewsSelection(){ try { const arr = JSON.parse(localStorage.getItem(NEWS_SELECTION_KEY) || "[]"); return Array.isArray(arr) ? arr.filter(id => people[id]) : []; } catch(e) { return []; } }
+			function clearNewsSelection(){
+				newsSelection = []; saveNewsSelection();
+				document.querySelectorAll(".news-cb").forEach(cb => { cb.checked = false; cb.closest(".card").classList.remove("news-selected"); });
+				const btnExec = document.getElementById("executeNewsBtn"); if (btnExec) btnExec.textContent = "Taslağı Oluştur (0)";
+				showToast("Seçim temizlendi.", "success");
+			}
 			function toggleNewsMode() {
 				if (isReorderMode) toggleReorderMode(); if (isBulkMode) toggleBulkDeleteMode();
 				if (mode !== "aktif") document.querySelector('[data-mode="aktif"]').click();
 
 				isNewsMode = !isNewsMode; newsSelection = isNewsMode ? loadNewsSelection() : []; newsPeopleOverride = null; newsEventContext = null;
-				const btnNews = document.getElementById("newsModeBtn"); const btnExec = document.getElementById("executeNewsBtn"); const btnCancel = document.getElementById("cancelNewsBtn");
+				if (!isNewsMode) saveNewsSelection();
+				const btnNews = document.getElementById("newsModeBtn"); const btnExec = document.getElementById("executeNewsBtn"); const btnCancel = document.getElementById("cancelNewsBtn"); const btnClear = document.getElementById("clearNewsSelectionBtn");
 				const addBtn = document.getElementById("addBtn"); const reorderBtn = document.getElementById("reorderBtn"); const expBtn = document.getElementById("exportBtn"); const impBtn = document.getElementById("importBtn");
 				const btnToplu = document.getElementById("bulkDeleteModeBtn"); const tabs = document.querySelectorAll("#statusToggle button");
 				const search = document.getElementById("search");
 
 				if (isNewsMode) {
-					btnNews.style.display = "none"; btnExec.style.display = "inline-flex"; btnCancel.style.display = "inline-flex";
+					btnNews.style.display = "none"; btnExec.style.display = "inline-flex"; btnCancel.style.display = "inline-flex"; if (btnClear) btnClear.style.display = "inline-flex";
 					btnExec.textContent = "Taslağı Oluştur (" + newsSelection.length + ")";
 					[addBtn, reorderBtn, expBtn, impBtn, btnToplu].forEach(b => { if(b) b.style.display = "none"; });
 					tabs.forEach(t => t.disabled = true);
 					showToast(newsSelection.length ? ("Önceki seçiminiz hatırlandı (" + newsSelection.length + " kişi). Değiştirebilirsiniz.") : "Metinde geçecek isimleri seçin (Arama yapabilirsiniz).", "success");
 				} else {
-					btnNews.style.display = "inline-flex"; btnExec.style.display = "none"; btnCancel.style.display = "none";
+					btnNews.style.display = "inline-flex"; btnExec.style.display = "none"; btnCancel.style.display = "none"; if (btnClear) btnClear.style.display = "none";
 					[addBtn, reorderBtn, expBtn, impBtn, btnToplu].forEach(b => { if(b) b.style.display = "inline-flex"; });
 					tabs.forEach(t => t.disabled = false);
-					search.value = ""; 
+					search.value = "";
 				}
 				render();
 			}
