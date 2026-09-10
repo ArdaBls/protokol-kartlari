@@ -587,6 +587,13 @@ body.concert-ticket-overlay-open { overflow: hidden; }
 // üçünü de HER ZAMAN aynı satırda tutar, dar ekranda sütunlar birlikte küçülür.
 .cal-ev-datetime-row { display: grid; grid-template-columns: minmax(0,0.85fr) minmax(0,1fr) minmax(0,1fr); gap: var(--space-2); }
 .cal-ev-datetime-row .cal-ev-date, .cal-ev-datetime-row .cal-ev-time-field { min-width: 0; }
+// Kullanıcı bulgusu: 3 dar sütunda saat kutusu + "şimdi" (⏱) butonu ikilisi sığmayıp
+// buton alt satıra düşüp küçücük görünüyordu (bkz. .cal-ev-time-wrap flex-wrap:wrap
+// altındaki not). Telefon genişliğinde üç alanı TEK sütuna yığmak her birine tam satır
+// genişliği veriyor -- saat+buton ikilisi rahatça yan yana sığıyor, wrap hiç tetiklenmiyor.
+@media (max-width: 480px) {
+  .cal-ev-datetime-row { grid-template-columns: 1fr; }
+}
 
 // Kullanıcı bulgusu: iPhone'da saat/bitiş saati kutuları modal dışına hafif taşıyor,
 // Android'de taşma yok ama takvim ok simgesi kutunun içinde boşlukta kalıp aşırı sağda
