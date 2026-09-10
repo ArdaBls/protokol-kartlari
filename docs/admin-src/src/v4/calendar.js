@@ -1907,6 +1907,15 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   const calAttendees = (ev && Array.isArray(ev.katilimcilar)) ? ev.katilimcilar.map((a) => ({ prefix: a.prefix || '', name: a.name || '', title: a.title || '', rank: a.rank !== undefined ? a.rank : '', kaynak: a.kaynak || 'universite' })) : [];
   const calPressStaff = ev ? parseGorevliString(ev.gorevli) : [];
   const calNewsWriters = ev ? parseGorevliString(ev.haberYazanlari) : [];
+  // Kullanıcı isteği: var olan (bitmiş) bir etkinliğe editörün sonradan işaretlediği basın
+  // görevlisi/haber yazanı onay bekliyordu (bkz. aşağıdaki checkbox handler) ama bu kontrol
+  // YENİ bir etkinlik oluştururken hiç YOKTU -- editör geçmiş bir TARİHLE yeni etkinlik açıp
+  // birini işaretlerse doğrudan (onaysız) ekleniyordu. Yeni etkinlikte henüz eventId olmadığı
+  // için createAttendanceRequest() (eventId zorunlu) hemen çağrılamıyor -- bu isimler burada
+  // BEKLETİLİR, "Oluştur" tıklanıp etkinlik gerçekten kaydedilince (persistEvent'ten dönen
+  // yeni id ile) her biri için talep açılır (bkz. Kaydet/Oluştur action'ı).
+  const calPendingPressRequests = [];
+  const calPendingNewsRequests = [];
 
   let saveCommitted = false;
   if (canWrite) {
@@ -1972,6 +1981,16 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
           ? (ev?.durum === 'tamamlandi' ? (ev.tamamlayanUid || currentUserUid || null) : (currentUserUid || null))
           : null
       };
+      // Kullanıcı checkbox'ı işaretlerken tarih GEÇMİŞTİ (isim bu yüzden pending listesine
+      // gitti, calPressStaff/calNewsWriters'a hiç girmedi), ama kaydetmeden ÖNCE tarihi
+      // GELECEĞE aldıysa -- artık onay gerektiren bir durum yok, isim normal ekleme gibi
+      // ele alınır (calPressStaff/calNewsWriters'a taşınır, patch'e normal şekilde yazılır).
+      if (!calHasEventEnded(patch)) {
+        calPendingPressRequests.splice(0).forEach((n) => { if (calPressStaff.indexOf(n) === -1) { calPressStaff.push(n); } });
+        calPendingNewsRequests.splice(0).forEach((n) => { if (calNewsWriters.indexOf(n) === -1) { calNewsWriters.push(n); } });
+        patch.gorevli = calPressStaff.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', ');
+        patch.haberYazanlari = calNewsWriters.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', ');
+      }
       const ref = EVENTS[id];
       const logLabel = id
         ? evLogName(ad) + ' etkinliği düzenlendi' + (ref ? (() => { const c = describeChanges(ref, Object.assign({}, ref, patch)); return c.length ? ' · ' + c.join(' · ') : ''; })() : '')
@@ -1980,6 +1999,25 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       if (!res) { return false; }
       saveCommitted = true;
       showToast(id ? 'Etkinlik kaydedildi.' : 'Etkinlik oluşturuldu.', { variant: 'success' });
+      // Yeni etkinlik geçmiş bir tarihle oluşturulduysa ve editör basın görevlisi/haber
+      // yazanı işaretlemişti (bkz. checkbox handler'daki calPendingPressRequests/
+      // calPendingNewsRequests) -- artık gerçek bir eventId var, şimdi her biri için
+      // talep açılabilir. persistEvent zaten bu kişiler OLMADAN kaydetti (patch.gorevli/
+      // haberYazanlari sadece calPressStaff/calNewsWriters'ı yazar, pending listeler ayrı).
+      const pendingNames = calPendingPressRequests.map((n) => ({ name: n, role: 'gorevli' }))
+        .concat(calPendingNewsRequests.map((n) => ({ name: n, role: 'haberYazanlari' })));
+      if (pendingNames.length) {
+        Promise.all(pendingNames.map((p) => createAttendanceRequest(database, {
+          eventId: res.id, eventName: patch.ad || '', eventDate: patch.tarih || '',
+          attendeeName: p.name, role: p.role,
+          requestedByUid: currentUserUid, requestedByName: currentUserName || currentUserEmail
+        }))).then(() => {
+          showToast(pendingNames.length + ' kişi için katılım talebi admin/owner onayına gönderildi.', { variant: 'success' });
+        }).catch((err) => {
+          console.error('Katılım talepleri oluşturulamadı:', err);
+          showToast('Katılım talepleri oluşturulurken bir hata oluştu.', { variant: 'error' });
+        });
+      }
       renderCalendar();
       return true;
     } });
@@ -2144,9 +2182,29 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
       // (owner işaretleyip owner'a bildirim gidip owner'ın kendi kendini
       // onaylaması anlamsız), admin/owner geçmiş etkinliklere de DOĞRUDAN
       // (talep açmadan) ekleyebilir.
-      if (t.checked && id && ev && calHasEventEnded(ev) && currentUserRole === 'editor') {
+      // Kullanıcı isteği (ikinci tur): bu kontrol SADECE var olan etkinliği düzenlerken
+      // vardı -- editör YENİ bir etkinliği GEÇMİŞ bir tarihle oluştururken (id henüz yok)
+      // hiç kontrol edilmiyordu, doğrudan (onaysız) ekleniyordu. `id` varsa gerçek `ev`,
+      // yoksa formdaki (henüz kaydedilmemiş) tarih/saat alanlarından kurulan bir TASLAK
+      // kullanılır -- calHasEventEnded ikisini de aynı şekilde değerlendirir.
+      const cokGunluEl = bodyEl.querySelector('#cef-cokgunlu');
+      const draftEv = id ? ev : {
+        tarih: bodyEl.querySelector('#cef-tarih').value,
+        saat: cokGunluEl.checked ? '' : bodyEl.querySelector('#cef-saat').value,
+        bitisSaat: cokGunluEl.checked ? '' : bodyEl.querySelector('#cef-bitis').value,
+        bitisTarihi: cokGunluEl.checked ? bodyEl.querySelector('#cef-bitisTarihi').value : null
+      };
+      if (t.checked && draftEv && calHasEventEnded(draftEv) && currentUserRole === 'editor') {
         t.checked = false;
         if (!name) { return; }
+        if (!id) {
+          // Etkinlik henüz kaydedilmedi -- eventId yok, talep açılamaz. "Oluştur"
+          // tıklanıp etkinlik gerçekten yaratılınca açılmak üzere beklet.
+          const pending = isBasin ? calPendingPressRequests : calPendingNewsRequests;
+          if (pending.indexOf(name) === -1) { pending.push(name); }
+          showToast(name + ' için katılım talebi, etkinlik oluşturulunca admin/owner onayına gönderilecek.', { variant: 'success' });
+          return;
+        }
         createAttendanceRequest(database, {
           eventId: id, eventName: ev.ad || '', eventDate: ev.tarih || '',
           attendeeName: name, role: isBasin ? 'gorevli' : 'haberYazanlari',
