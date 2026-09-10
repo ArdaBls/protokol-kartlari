@@ -11,7 +11,7 @@
 import Sortable from 'sortablejs';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
-import { facultyOptionsHtml, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
+import { facultyOptionsHtml, ilUnitOptionsHtml, isIlProtocolUnit, isFacultyUnit, loadPressOfficerPool as loadPressOfficerPoolShared, renderPersonRolesPickerHtml } from './roster.js';
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 import { createAttendanceRequest } from './attendance.js';
 
@@ -339,6 +339,17 @@ function evStatus(k) { return EVENT_STATUS.find((s) => s.key === k) || EVENT_STA
 function parseGorevliString(s) { return String(s || '').split(',').map((x) => x.trim()).filter(Boolean); }
 
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+// "Düzenleyen Birim" iki kipli bir alan: select ya üniversite ya il protokolü listesini
+// gösterir, "Diğer…" seçilince yanındaki serbest metin kutusu geçerli olur. Kaydeden ve
+// haber metni üreten iki ayrı çağrı yeri aynı okumayı yapmalı diye tek yerde toplandı.
+function readBirimValue(root) {
+  const sel = root.querySelector('#cef-birim');
+  if (!sel) { return ''; }
+  if (sel.value !== '__diger__') { return sel.value; }
+  const other = root.querySelector('#cef-birimDiger');
+  return other ? other.value.trim() : '';
+}
 function dKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
 function parseKey(s) {
   const a = String(s || '').split('-');
@@ -1788,6 +1799,15 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
   // Kaydet/Sil/Protokol Sırası Al eylemlerindeki isLocked kontrolü).
   const isLocked = !!(ev && ev.locked);
 
+  // Kullanıcı isteği: "Düzenleyen Birim" listesi ÜNİVERSİTE birimleri olarak kalsın, yanına
+  // bir tik konsun; tik işaretlenince İL PROTOKOLÜ kurumları (Valilik, Büyükşehir, Samsun
+  // Üniversitesi...) protokol sırasıyla gelsin, bir de "Diğer…" ile serbest yazılabilsin.
+  // Modal açılırken kayıtlı değer hangi listeye aitse o kip seçili gelir; hiçbirine ait
+  // değilse (eski/serbest metin) "Diğer…" kipinde metin kutusunda gösterilir.
+  const birimKayitli = (ev && ev.birim) ? String(ev.birim) : '';
+  const birimIlMode = !!birimKayitli && isIlProtocolUnit(birimKayitli);
+  const birimOtherMode = !!birimKayitli && !birimIlMode && !isFacultyUnit(birimKayitli);
+
   const bodyHtml =
     (isLocked ? '<div class="cal-ev-locked-banner">🔒 Bu etkinlik kilitli — düzenlemek için önce kilidi açın.' + (canWrite ? ' <button type="button" class="btn btn-outline" id="cefUnlockBtn">Kilidi Aç</button>' : '') + '</div>' : '') +
     '<form class="cal-ev-form" id="calEvForm">' +
@@ -1806,7 +1826,14 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         '<div class="cal-ev-form-row cal-ev-date" id="cef-bitisTarihiWrap" style="display:' + (isMultiDay ? '' : 'none') + ';"><label for="cef-bitisTarihi">Bitiş Tarihi</label><input type="date" id="cef-bitisTarihi" class="form-control" value="' + escapeHtml(bitisTarihi) + '"></div>' +
       '</div>' +
       '<div class="cal-ev-form-row"><label for="cef-yer">Yer / Mekân</label><input type="text" id="cef-yer" class="form-control" value="' + escapeHtml(ev ? ev.yer : '') + '" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>' +
-      '<div class="cal-ev-form-row"><label for="cef-birim">Düzenleyen Birim</label><select id="cef-birim" class="form-control"><option value="">—</option>' + facultyOptionsHtml(ev ? ev.birim : '') + '</select></div>' +
+      '<div class="cal-ev-form-row"><label for="cef-birim">Düzenleyen Birim</label>' +
+        '<label class="cal-ev-il-toggle"><input type="checkbox" id="cef-birimIl"' + (birimIlMode ? ' checked' : '') + '> İl protokolü kurumlarından seç</label>' +
+        '<select id="cef-birim" class="form-control"><option value="">—</option>' +
+          (birimIlMode ? ilUnitOptionsHtml(birimKayitli) : facultyOptionsHtml(birimOtherMode ? '' : birimKayitli)) +
+          '<option value="__diger__"' + (birimOtherMode ? ' selected' : '') + '>Diğer…</option>' +
+        '</select>' +
+        '<input type="text" id="cef-birimDiger" class="form-control cal-ev-birim-other" placeholder="Birim/kurum adını yazın" value="' + escapeHtml(birimOtherMode ? birimKayitli : '') + '" style="display:' + (birimOtherMode ? '' : 'none') + ';margin-top:6px;">' +
+      '</div>' +
       '<div class="cal-ev-form-row"><label for="cef-planlayan">Planlayan / Sorumlu</label><input type="text" id="cef-planlayan" class="form-control" value="' + escapeHtml(ev ? ev.planlayan : '') + '" placeholder="Etkinliği planlayan kişi/birim"></div>' +
       '<div class="cal-ev-form-row"><label for="cef-personSearch">Basın Görevlisi / Haberi Yazan <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından — her kişi için ayrı ayrı işaretlenebilir)</span></label>' +
         '<input type="text" class="cal-ev-att-search" id="cef-personSearch" placeholder="İsim ara…"><div class="cal-ev-att-box cal-ev-role-box" id="cef-personBox"></div></div>' +
@@ -1867,7 +1894,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         tur: body.querySelector('#cef-tur').value,
         yer: body.querySelector('#cef-yer').value.trim(),
         ad: body.querySelector('#cef-ad').value.trim(),
-        birim: body.querySelector('#cef-birim').value,
+        birim: readBirimValue(body),
         not: body.querySelector('#cef-not').value.trim(),
         tarih: body.querySelector('#cef-tarih').value
       });
@@ -1916,7 +1943,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         // persistEvent: nesnenin bir leaf'i null ise Firebase o alanı hiç yazmaz/kaldırır).
         bitisTarihi: (cokGunlu && bitisTarihiVal && bitisTarihiVal !== tarihVal) ? bitisTarihiVal : null,
         yer: form.querySelector('#cef-yer').value.trim(),
-        birim: form.querySelector('#cef-birim').value,
+        birim: readBirimValue(form),
         planlayan: form.querySelector('#cef-planlayan').value.trim(),
         gorevli: calPressStaff.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
         haberYazanlari: calNewsWriters.slice().sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
@@ -2076,6 +2103,26 @@ function openEventModal(id, presetDate, presetTime, presetEndTime, onModalClose)
         const bt = bodyEl.querySelector('#cef-bitisTarihi');
         const tv = bodyEl.querySelector('#cef-tarih').value;
         if (bt && (!bt.value || bt.value < tv)) { bt.value = tv; }
+      }
+      return;
+    }
+    if (t.id === 'cef-birimIl' || t.id === 'cef-birim') {
+      const sel = bodyEl.querySelector('#cef-birim');
+      const other = bodyEl.querySelector('#cef-birimDiger');
+      if (!sel) { return; }
+      if (t.id === 'cef-birimIl') {
+        // Liste kipi değişti: seçili değer diğer listede yoksa boşa düşer -- optgroup'ları
+        // baştan kurup "Diğer…"i sonda tutuyoruz. Serbest metin kutusu gizlenir ama
+        // İÇERİĞİ SİLİNMEZ (kullanıcı tiki deneyip geri dönebilir).
+        const keep = sel.value === '__diger__' ? '__diger__' : sel.value;
+        sel.innerHTML = '<option value="">—</option>' +
+          (t.checked ? ilUnitOptionsHtml(keep) : facultyOptionsHtml(keep)) +
+          '<option value="__diger__"' + (keep === '__diger__' ? ' selected' : '') + '>Diğer…</option>';
+      }
+      const isOther = sel.value === '__diger__';
+      if (other) {
+        other.style.display = isOther ? '' : 'none';
+        if (isOther) { other.focus(); }
       }
       return;
     }

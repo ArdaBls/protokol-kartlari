@@ -35,7 +35,7 @@
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
   <script type="module" crossorigin src="/js/toast-C9dk_WzR.js"></script>
   <script type="module" crossorigin src="/js/db-mode-F_jprkvV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-CLY5H-3E.js"></script>
+  <script type="module" crossorigin src="/js/main-v4-D2hWreZY.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/main-v4-D2ogLpdl.css">
 </head>
 <body data-shell="admin" data-page="dashboard-2" data-breadcrumb="Anasayfa|index.html > Protokol Kartları">
@@ -512,7 +512,12 @@
 						<div class="field ev-date" id="ev_bitisTarihiWrap" style="display:none;"><label for="ev_bitisTarihi">Bitiş Tarihi</label><input type="date" id="ev_bitisTarihi"></div>
 					</div>
 					<div class="field"><label for="ev_yer">Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
-					<div class="field"><label for="ev_birim">Düzenleyen Birim</label><input type="text" id="ev_birim" list="ev_birimList" placeholder="Örn: Tıp Fakültesi"><datalist id="ev_birimList"></datalist></div>
+					<div class="field">
+						<label for="ev_birim">Düzenleyen Birim</label>
+						<label class="ev-multiday-toggle"><input type="checkbox" id="ev_birimIl" onchange="toggleBirimIlMode(this.checked)"> İl protokolü kurumlarından seç</label>
+						<select id="ev_birim" onchange="onBirimSelectChange()"></select>
+						<input type="text" id="ev_birimDiger" placeholder="Birim/kurum adını yazın" style="display:none; margin-top:6px;">
+					</div>
 					<div class="field"><label for="ev_planlayan">Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
 					<div class="field">
 						<label for="ev_gorevliSearch">Basın Görevlisi <span style="font-weight:400; color:var(--muted); font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>

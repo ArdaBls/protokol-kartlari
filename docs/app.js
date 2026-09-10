@@ -1037,6 +1037,61 @@
 				] }
 			];
 
+			// Etkinlik Takvimi "Düzenleyen Birim" alanı için: üniversite birimlerinin yanına konan
+			// tikle açılan İL PROTOKOLÜ kurum listesi (admin-src/src/v4/roster.js'deki AYNI listenin
+			// kopyası -- bkz. o dosyadaki not, küçük veri kümeleri dosyalar arası bilerek kopyalanır).
+			// Kaynak: Samsun Valiliği "Tebrikata Giriş Sırası" protokol listesi. Gruplar VE grup içi
+			// sıra protokol sırasını izler, sadece üst düzey kurumlar var (dernek/şube/vakıf yok).
+			const IL_PROTOCOL_UNIT_GROUPS = [
+				{ title: "Mülki İdare ve Yerel Yönetim", items: [
+					"Samsun Valiliği", "Samsun Büyükşehir Belediyesi"
+				] },
+				{ title: "Garnizon ve Güvenlik", items: [
+					"Samsun Garnizon Komutanlığı", "Samsun İl Emniyet Müdürlüğü", "Samsun İl Jandarma Komutanlığı",
+					"Sahil Güvenlik Karadeniz Bölge Komutanlığı"
+				] },
+				{ title: "Adliye", items: [
+					"Samsun Cumhuriyet Başsavcılığı", "Samsun Adli Yargı Adalet Komisyonu Başkanlığı",
+					"Samsun Bölge Adliye Mahkemesi", "Samsun Bölge İdare Mahkemesi", "Samsun Barosu"
+				] },
+				{ title: "Üniversiteler", items: [
+					"Ondokuz Mayıs Üniversitesi", "Samsun Üniversitesi"
+				] },
+				{ title: "Kaymakamlıklar", items: [
+					"Alaçam Kaymakamlığı", "Asarcık Kaymakamlığı", "Atakum Kaymakamlığı", "Ayvacık Kaymakamlığı",
+					"Bafra Kaymakamlığı", "Canik Kaymakamlığı", "Çarşamba Kaymakamlığı", "Havza Kaymakamlığı",
+					"İlkadım Kaymakamlığı", "Kavak Kaymakamlığı", "Ladik Kaymakamlığı", "19 Mayıs Kaymakamlığı",
+					"Salıpazarı Kaymakamlığı", "Tekkeköy Kaymakamlığı", "Terme Kaymakamlığı",
+					"Vezirköprü Kaymakamlığı", "Yakakent Kaymakamlığı"
+				] },
+				{ title: "İlçe Belediyeleri", items: [
+					"Alaçam Belediyesi", "Asarcık Belediyesi", "Atakum Belediyesi", "Ayvacık Belediyesi",
+					"Bafra Belediyesi", "Canik Belediyesi", "Çarşamba Belediyesi", "Havza Belediyesi",
+					"İlkadım Belediyesi", "Kavak Belediyesi", "Ladik Belediyesi", "19 Mayıs Belediyesi",
+					"Salıpazarı Belediyesi", "Tekkeköy Belediyesi", "Terme Belediyesi",
+					"Vezirköprü Belediyesi", "Yakakent Belediyesi"
+				] },
+				{ title: "İl Müdürlükleri ve Bölge Teşkilatı", items: [
+					"Samsun İl Milli Eğitim Müdürlüğü", "Samsun İl Sağlık Müdürlüğü",
+					"Samsun İl Kültür ve Turizm Müdürlüğü", "Samsun İl Tarım ve Orman Müdürlüğü",
+					"Samsun İl Afet ve Acil Durum Müdürlüğü (AFAD)",
+					"Samsun Çevre, Şehircilik ve İklim Değişikliği İl Müdürlüğü",
+					"Samsun Gençlik ve Spor İl Müdürlüğü", "Samsun Aile ve Sosyal Hizmetler İl Müdürlüğü",
+					"Samsun Ticaret İl Müdürlüğü", "Samsun Sanayi ve Teknoloji İl Müdürlüğü",
+					"Samsun Çalışma ve İş Kurumu İl Müdürlüğü (İŞKUR)", "Samsun SGK İl Müdürlüğü",
+					"Samsun Defterdarlığı", "Samsun İl Göç İdaresi Müdürlüğü",
+					"Samsun İl Nüfus ve Vatandaşlık Müdürlüğü",
+					"Cumhurbaşkanlığı İletişim Başkanlığı Samsun Bölge Müdürlüğü",
+					"Orta Karadeniz Kalkınma Ajansı (OKA)"
+				] },
+				{ title: "Meslek Kuruluşları", items: [
+					"Samsun Ticaret ve Sanayi Odası", "Samsun Ticaret Borsası",
+					"Samsun Esnaf ve Sanatkârları Odaları Birliği", "Samsun Ziraat Odası",
+					"Samsun Tabip Odası", "19 Mayıs Gazeteciler Cemiyeti"
+				] }
+			];
+			const IL_PROTOCOL_UNIT_SET = new Set(IL_PROTOCOL_UNIT_GROUPS.reduce(function(a,g){ return a.concat(g.items); },[]));
+
 			// Sol filtre panelinde seçilen fakülte/birim adları (çoklu seçim)
 			let selectedFaculties = new Set();
 			// Sol paneldeki "Rektörlük / Merkez" kutusunda tek tek işaretlenen kişilerin push-ID'leri
@@ -5231,9 +5286,7 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 	// tür ve durum listeleri
 	document.getElementById("ev_tur").innerHTML=EVENT_TYPES.map(function(t){ return '<option value="'+t.key+'">'+escapeHtml(t.ad)+'</option>'; }).join("");
 	document.getElementById("ev_durum").innerHTML=EVENT_STATUS.map(function(s){ return '<option value="'+s.key+'">'+escapeHtml(s.ad)+'</option>'; }).join("");
-	// birim önerileri
-	const birimler=FACULTY_GROUPS.reduce(function(a,g){ return a.concat(g.items); },[]);
-	document.getElementById("ev_birimList").innerHTML=birimler.map(function(b){ return '<option value="'+escapeHtml(b)+'">'; }).join("");
+	// birim önerileri (asıl doldurma "ev_birim" alanının değerini belirlerken aşağıda yapılır)
 
 	const e = id ? calEvents[id] : null;
 	document.getElementById("eventModalTitle").textContent = e ? "Etkinliği Düzenle" : "Yeni Etkinlik";
@@ -5257,7 +5310,12 @@ function openEventModal(id, presetDate, presetTime, presetEndTime){
 	document.getElementById("ev_bitisTarihi").value = (e && e.bitisTarihi) ? e.bitisTarihi : (e ? e.tarih||"" : (presetDate || dKey(calAnchor)));
 	toggleMultiDayFields(isMultiDay);
 	document.getElementById("ev_yer").value = e ? (e.yer||"") : "";
-	document.getElementById("ev_birim").value = e ? (e.birim||"") : "";
+	// Kullanıcı isteği: üniversite birimlerinin sırası bozulmadan yanına bir tik konur, tik
+	// işaretlenince İL PROTOKOLÜ kurumları (protokol sırasıyla) gösterilir, "Diğer…" ile
+	// serbest metin de yazılabilir (bkz. renderBirimSelect/toggleBirimIlMode).
+	const birimKayitli = e ? (e.birim||"") : "";
+	document.getElementById("ev_birimIl").checked = isIlProtocolUnit(birimKayitli);
+	renderBirimSelect(birimKayitli);
 	document.getElementById("ev_planlayan").value = e ? (e.planlayan||"") : "";
 	calPressStaff = e ? parseGorevliString(e.gorevli) : [];
 	document.getElementById("ev_gorevliSearch").value="";
@@ -5296,6 +5354,60 @@ function setEventTimeNow(fieldId){
 	if(fieldId==="ev_bitisSaat" && !document.getElementById("ev_saat").value){
 		showToast("Başlangıç saati de girilmeli.", "error");
 	}
+}
+
+function isIlProtocolUnit(name){ return IL_PROTOCOL_UNIT_SET.has(name); }
+
+// "Düzenleyen Birim" alanının option listesini kurar: tik kapalıysa üniversite birimleri
+// (FACULTY_GROUPS, sırası bozulmadan), açıksa il protokolü kurumları (IL_PROTOCOL_UNIT_GROUPS,
+// protokol sırasıyla), en sonda her zaman "Diğer…" (serbest metin) seçeneği durur. `selected`
+// hiçbir listede yoksa (eski kayıt / farklı kip) "Diğer…" seçili gelir ve metin kutusu açılır.
+function birimGroupOptionsHtml(groups, selected){
+	return groups.map(function(g){
+		return '<optgroup label="'+escapeHtml(g.title)+'">' + g.items.map(function(name){
+			return '<option value="'+escapeHtml(name)+'"'+(name===selected?" selected":"")+'>'+escapeHtml(name)+'</option>';
+		}).join("") + '</optgroup>';
+	}).join("");
+}
+
+function renderBirimSelect(selected){
+	const sel = document.getElementById("ev_birim");
+	const other = document.getElementById("ev_birimDiger");
+	const useIl = document.getElementById("ev_birimIl").checked;
+	const groups = useIl ? IL_PROTOCOL_UNIT_GROUPS : FACULTY_GROUPS;
+	const inList = !!selected && groups.some(function(g){ return g.items.indexOf(selected) !== -1; });
+	const isOther = !!selected && !inList;
+	sel.innerHTML = '<option value="">—</option>' + birimGroupOptionsHtml(groups, inList ? selected : "") +
+		'<option value="__diger__"'+(isOther?" selected":"")+'>Diğer…</option>';
+	other.style.display = isOther ? "" : "none";
+	other.value = isOther ? selected : "";
+}
+
+function toggleBirimIlMode(checked){
+	// Liste kipi değişince mevcut seçim korunmaya çalışılır (yeni listede varsa), yoksa
+	// "Diğer…" kipine düşülür -- serbest metin kutusunun içeriği SİLİNMEZ (kullanıcı tiki
+	// deneyip geri dönebilir).
+	const sel = document.getElementById("ev_birim");
+	const other = document.getElementById("ev_birimDiger");
+	const current = sel.value === "__diger__" ? (other.value.trim() || "__diger__") : sel.value;
+	renderBirimSelect(current);
+}
+
+function onBirimSelectChange(){
+	const sel = document.getElementById("ev_birim");
+	const other = document.getElementById("ev_birimDiger");
+	const isOther = sel.value === "__diger__";
+	other.style.display = isOther ? "" : "none";
+	if (isOther) other.focus();
+}
+
+// "Düzenleyen Birim" iki kipli: select ya üniversite ya il protokolü listesini gösterir,
+// "Diğer…" seçilince serbest metin kutusu geçerli olur. Kaydetme burada okur.
+function readBirimValue(){
+	const sel = document.getElementById("ev_birim");
+	if (sel.value !== "__diger__") return sel.value;
+	const other = document.getElementById("ev_birimDiger");
+	return other ? other.value.trim() : "";
 }
 
 // Faz 11: çok-günlü etkinlik anahtarı -- işaretlenince saat alanları (v1 kapsam kararı: çok
@@ -5595,7 +5707,7 @@ async function saveEventImpl(){
 	const obj={
 		ad: ad, tur: document.getElementById("ev_tur").value, durum: document.getElementById("ev_durum").value,
 		tarih: tarih, saat: saat||"", bitisSaat: bitis||"",
-		yer: document.getElementById("ev_yer").value.trim(), birim: document.getElementById("ev_birim").value.trim(),
+		yer: document.getElementById("ev_yer").value.trim(), birim: readBirimValue(),
 		planlayan: document.getElementById("ev_planlayan").value.trim(), gorevli: calPressStaff.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
 		haberYazanlari: calNewsWriters.slice().sort(function(a,b){ return a.localeCompare(b,"tr"); }).join(", "),
 		haberMetni: (document.getElementById("ev_haberMetni")?.value||"").trim(),
