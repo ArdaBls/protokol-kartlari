@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>WorldGuessr | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > WorldGuessr">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">WorldGuessr</h1>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:12.5px;color:var(--text-muted);margin:-8px 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span>Bu oyun dış kaynaktan (worldguessr.com) gösteriliyor; arayüzü İngilizcedir. Tek oyunculu ve çok oyunculu modlar oyunun kendi içinde. worldguessr.com kendini panel içinde göstermeyi zaman zaman reddedebiliyor (üçüncü taraf sitenin kendi güvenlik ayarı, bizim tarafımızdan düzeltilemez) -- oyun açılmazsa yeni sekmede deneyin:</span>
+    <a class="btn btn-outline" href="https://www.worldguessr.com/" target="_blank" rel="noopener" style="flex-shrink:0">Yeni sekmede aç ↗</a>
+  </p>
+
+  <div class="game-iframe-wrap">
+    <iframe src="https://www.worldguessr.com/" title="WorldGuessr" loading="lazy" allow="fullscreen; gamepad; autoplay; pointer-lock"></iframe>
+  </div>
+
+</div>
+</main>
+
+</body>
+</html>
