@@ -341,12 +341,6 @@
 					<div class="empty-sub">Arama veya filtre ölçütünüzü değiştirmeyi deneyin.</div>
 				</div>
 			</div>
-			<!-- Kullanıcı isteği: sağdaki "Etkinlik Takvimi" rayı ve "sıradaki
-			     etkinlik" göstergesi kaldırıldı -- admin panelinde zaten gerçek
-			     bir Takvim sekmesi var, buradaki protokol verisinde takvime
-			     gerek yok. #calRailNext null-check'siz kullanıldığı için
-			     (bkz. app.js) gizli bir iskelet olarak kalıyor. -->
-			<div id="calRailNext" style="display:none"></div>
 		</div>
 
 		<!-- ================= TELİF VE YASAL BİLDİRİM ================= -->
@@ -397,160 +391,6 @@
 			</div>
 		</div>
 
-		<!-- ================= ETKİNLİK TAKVİMİ (tam ekran) ================= -->
-		<div class="cal-launch-backdrop" id="calLaunchBackdrop"></div>
-		<div class="cal-overlay" id="calendarOverlay">
-			<div class="cal-shell">
-				<aside class="cal-rail-left">
-					<div>
-						<div class="cal-mini-head">
-							<button type="button" class="cal-iconbtn" onclick="calMiniShiftYear(-1)" title="Önceki yıl">«</button>
-							<button type="button" class="cal-iconbtn" onclick="calMiniShift(-1)" title="Önceki ay">‹</button>
-							<span class="cal-mini-title" id="calMiniTitle">—</span>
-							<button type="button" class="cal-iconbtn" onclick="calMiniShift(1)" title="Sonraki ay">›</button>
-							<button type="button" class="cal-iconbtn" onclick="calMiniShiftYear(1)" title="Sonraki yıl">»</button>
-						</div>
-						<div class="cal-mini-grid" id="calMiniGrid"></div>
-					</div>
-					<div class="cal-legend">
-						<h4>Etkinlik Türleri</h4>
-						<div id="calTypeLegend"></div>
-					</div>
-					<div class="cal-legend">
-						<h4>Durum</h4>
-						<div id="calStatusLegend"></div>
-					</div>
-				</aside>
-				<div class="cal-main">
-					<div class="cal-topbar">
-						<span class="cal-month-label" id="calMonthLabel">—</span>
-						<button type="button" class="cal-iconbtn" onclick="calShift(-1)" title="Önceki">‹</button>
-						<button type="button" class="cal-iconbtn" onclick="calShift(1)" title="Sonraki">›</button>
-						<button type="button" class="cal-textbtn" onclick="calToday()">Bugün</button>
-						<input type="date" class="cal-jump" id="calJumpDate" onchange="calJumpTo(this.value)" title="İstediğin tarihe git" aria-label="Tarihe git">
-						<span class="cal-spacer"></span>
-						<button type="button" class="cal-textbtn admin-only" onclick="exportEventsJSON()" title="Etkinlik takvimi JSON yedeği indir">JSON İndir</button>
-						<button type="button" class="cal-textbtn admin-only" onclick="document.getElementById('eventsRestoreFile').click()" title="JSON yedekten geri yükle">JSON Yükle</button>
-						<input type="file" id="eventsRestoreFile" accept="application/json" style="display:none;" onchange="importEventsJSON(event)">
-						<div class="cal-viewtabs" id="calViewTabs">
-							<button type="button" class="cal-viewbtn" data-view="day" onclick="calSetView('day')">Gün</button>
-							<button type="button" class="cal-viewbtn active" data-view="week" onclick="calSetView('week')">Hafta</button>
-							<button type="button" class="cal-viewbtn" data-view="month" onclick="calSetView('month')">Ay</button>
-							<button type="button" class="cal-viewbtn" data-view="year" onclick="calSetView('year')">Yıl</button>
-							<button type="button" class="cal-viewbtn" data-view="list" onclick="calSetView('list')">Liste</button>
-						</div>
-						<button type="button" class="cal-textbtn edit-only" onclick="startQuickDraftEvent()" title="Şu andan başlayan 1 saatlik taslak etkinlik oluşturur, doldurman için hatırlatma gönderir">📍 Bir Etkinliğe Gidiyorum</button>
-						<button type="button" class="cal-addbtn" onclick="openEventModal(null)"><span class="ab-full">+ Etkinlik</span><span class="ab-short">+</span></button>
-						<button type="button" class="cal-iconbtn cal-close" onclick="closeCalendar()" title="Kapat" aria-label="Kapat">✕</button>
-					</div>
-					<div class="cal-main-body" id="calMainBody"></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Etkinlik detay paneli (sağdan açılır) -->
-		<div class="cal-peek-backdrop" id="calPeekBackdrop" onclick="closeEventPeek()"></div>
-		<div class="cal-peek" id="calPeek">
-			<div class="cal-peek-head">
-				<h3 id="calPeekTitle">Etkinlik</h3>
-				<button type="button" class="cal-iconbtn" onclick="closeEventPeek()" aria-label="Kapat">✕</button>
-			</div>
-			<div class="cal-peek-body" id="calPeekBody"></div>
-			<div class="cal-peek-foot">
-				<button class="btn btn-primary cal-quick-btn" id="calPeekQuickBtn" onclick="eventQuickStamp()">Şimdi Bitir</button>
-				<div class="peek-row">
-					<button class="btn btn-news" id="calPeekNewsBtn" onclick="generateNewsFromEvent()">Haber Taslağı Oluştur</button>
-					<button class="btn btn-ghost" onclick="editPeekedEvent()">Düzenle</button>
-				</div>
-				<div class="peek-row">
-					<button class="btn btn-danger-outline edit-only" onclick="deleteEvent()">Sil</button>
-				</div>
-			</div>
-		</div>
-
-		<!-- Etkinlik Silme Onay Modali (peek panel + duzenleme formu ortak kullanir) -->
-		<div class="modal-bg" id="eventDeleteConfirmModalBg" style="z-index:97;">
-			<div class="modal" style="max-width:340px; text-align:center; padding:30px 20px;">
-				<h2 style="font-size:18px; margin-bottom:10px; color:var(--danger-text);">Etkinliği Sil</h2>
-				<p class="hint" id="eventDeleteConfirmText" style="margin-bottom:20px;">Bu etkinlik takvimden silinecek. Emin misiniz?</p>
-				<div class="modal-actions" style="margin-top:0;">
-					<button class="btn btn-ghost" onclick="closeEventDeleteConfirm()">Vazgeç</button>
-					<button class="btn btn-danger" onclick="executeEventDelete()">Evet, Sil</button>
-				</div>
-			</div>
-		</div>
-
-
-		<!-- Etkinlik ekle / düzenle -->
-		<div class="modal-bg" id="eventModalBg" style="z-index:95;">
-			<div class="modal" style="max-width:520px;">
-				<button class="close-x" onclick="closeEventModal()" aria-label="Kapat">✕</button>
-				<h2 id="eventModalTitle">Yeni Etkinlik</h2>
-				<p class="hint">Takvime eklenen etkinlikler ekipteki herkesin ekranında anında görünür.</p>
-				<form id="eventForm" onsubmit="return false;">
-					<div class="field">
-						<label for="ev_ad">Etkinlik Adı</label>
-						<input type="text" id="ev_ad" placeholder="Örn: Tıp Fakültesi Beyaz Önlük Töreni">
-					</div>
-					<div class="field-row">
-						<div class="field"><label for="ev_tur">Tür</label><select id="ev_tur"></select></div>
-						<div class="field"><label for="ev_durum">Durum</label><select id="ev_durum"></select></div>
-					</div>
-					<div class="field">
-						<label>Rozetler <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, birden fazla seçilebilir)</span></label>
-						<div id="ev_badgeBox" style="display:flex; flex-wrap:wrap; gap:6px 14px;"></div>
-					</div>
-					<label class="ev-multiday-toggle"><input type="checkbox" id="ev_cokGunlu" onchange="toggleMultiDayFields(this.checked)"> Çok günlü etkinlik (birden fazla gün sürer)</label>
-					<div class="field-row ev-datetime-row">
-						<div class="field ev-date"><label for="ev_tarih">Tarih</label><input type="date" id="ev_tarih"></div>
-						<div class="field ev-time"><label for="ev_saat">Başlangıç</label>
-							<div class="ev-time-wrap"><input type="time" id="ev_saat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_saat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
-						</div>
-						<div class="field ev-time"><label for="ev_bitisSaat">Bitiş</label>
-							<div class="ev-time-wrap"><input type="time" id="ev_bitisSaat"><button type="button" class="ev-now-btn" onclick="setEventTimeNow('ev_bitisSaat')" title="Şu anki saati yaz" aria-label="Şu anki saati yaz">⏱</button></div>
-						</div>
-						<div class="field ev-date" id="ev_bitisTarihiWrap" style="display:none;"><label for="ev_bitisTarihi">Bitiş Tarihi</label><input type="date" id="ev_bitisTarihi"></div>
-					</div>
-					<div class="field"><label for="ev_yer">Yer / Mekân</label><input type="text" id="ev_yer" placeholder="Örn: Atatürk Kongre ve Kültür Merkezi"></div>
-					<div class="field">
-						<label for="ev_birim">Düzenleyen Birim</label>
-						<label class="ev-multiday-toggle"><input type="checkbox" id="ev_birimIl" onchange="toggleBirimIlMode(this.checked)"> İl protokolü kurumlarından seç</label>
-						<select id="ev_birim" onchange="onBirimSelectChange()"></select>
-						<input type="text" id="ev_birimDiger" placeholder="Birim/kurum adını yazın" style="display:none; margin-top:6px;">
-					</div>
-					<div class="field"><label for="ev_planlayan">Planlayan / Sorumlu</label><input type="text" id="ev_planlayan" placeholder="Etkinliği planlayan kişi/birim"></div>
-					<div class="field">
-						<label for="ev_gorevliSearch">Basın Görevlisi <span style="font-weight:400; color:var(--muted); font-size:12px;">(admin tarafından işaretlenmiş kişiler arasından, istediğin kadar seçilebilir)</span></label>
-						<input type="text" class="ev-att-search" id="ev_gorevliSearch" placeholder="İsim ara…" oninput="renderPressStaffPicker()">
-						<div class="ev-attendee-box" id="ev_gorevliBox"></div>
-					</div>
-					<div class="field">
-						<label for="ev_haberYazanlariSearch">Haberi Yazan(lar) <span style="font-weight:400; color:var(--muted); font-size:12px;">(etkinlik gerçekleştikten sonra, haberi kim/kimler yazdıysa işaretlenir)</span></label>
-						<input type="text" class="ev-att-search" id="ev_haberYazanlariSearch" placeholder="İsim ara…" oninput="renderNewsWriterPicker()">
-						<div class="ev-attendee-box" id="ev_haberYazanlariBox"></div>
-					</div>
-					<div class="field">
-						<label for="ev_haberMetni">Haber Metni <span style="font-weight:400; color:var(--muted); font-size:12px;">(yayınlanan/yazılan son haber metni, arşiv amaçlı buraya girilir)</span></label>
-						<textarea id="ev_haberMetni" rows="6" style="resize:vertical;" placeholder="Haber Metni Üretici ile oluşturduğunuz veya elle yazdığınız son metni buraya yapıştırın…"></textarea>
-					</div>
-					<div class="field">
-						<label for="ev_attSearch">Katılımcılar <span style="font-weight:400; color:var(--muted); font-size:12px;">(protokol kartlarından seçilir, haber metni bunlardan üretilir)</span></label>
-						<label class="au-basin-toggle" style="margin:2px 0 6px;"><input type="checkbox" id="ev_attIncludeIl" onchange="onAttIncludeIlToggle()"> İl Protokolünü de dahil et</label>
-						<input type="text" class="ev-att-search" id="ev_attSearch" placeholder="İsim veya unvan ara…" oninput="renderEventAttendeePicker()">
-						<div class="ev-attendee-box" id="ev_attendeeBox"></div>
-					</div>
-					<div class="field"><label for="ev_arsiv">Arşiv / Fotoğraf Klasörü Bağlantısı</label><input type="text" id="ev_arsiv" placeholder="https://drive.google.com/..."></div>
-					<div class="field"><label for="ev_haberKaynagi">Haber Kaynağı <span style="font-weight:400; color:var(--muted); font-size:12px;">(opsiyonel, haberi kim geçtiyse)</span></label><select id="ev_haberKaynagi"><option value="">(Belirtilmedi)</option><option value="İHA">İHA</option><option value="AA">AA</option><option value="DHA">DHA</option><option value="ANKA">ANKA</option></select></div>
-					<div class="field"><label for="ev_not">Not</label><textarea id="ev_not" rows="2" style="resize:vertical;"></textarea></div>
-					<div class="modal-actions">
-						<button class="btn btn-danger-outline" type="button" id="ev_deleteBtn" style="display:none;" onclick="deleteEvent()">Sil</button>
-						<button class="btn btn-ghost" type="button" onclick="closeEventModal()">Vazgeç</button>
-						<button class="btn btn-primary" type="button" onclick="saveEvent()">Kaydet</button>
-					</div>
-				</form>
-			</div>
-		</div>
-
 		<!-- Ekle/Düzenle Modalı -->
 		<div class="modal-bg" id="modalBg">
 		<div class="modal-center-wrap" id="modalCenterWrap">
@@ -568,11 +408,9 @@
 			</div>
 			<button class="btn btn-ghost" type="button" style="width:100%; margin-bottom:14px;" onclick="addHistoryEntry()">Ekle</button>
 			<div id="historyEntryList"></div>
-			<h3>Katıldığı Etkinlikler</h3>
-			<div id="historyEventList"></div>
 		</div>
 		</div>
-		<button class="history-toggle" id="historyToggleBtn" type="button" style="display:none;" onclick="openHistoryPanel()" title="Görev ve Etkinlik Geçmişi">‹</button>
+		<button class="history-toggle" id="historyToggleBtn" type="button" style="display:none;" onclick="openHistoryPanel()" title="Görev Geçmişi">‹</button>
 		<div class="modal">
 				<button class="close-x" onclick="closeModal()" aria-label="Kapat">✕</button>
 				<h2 id="modalTitle">Yeni Kişi Ekle</h2>
@@ -990,18 +828,6 @@
 						</button>
 						<div class="admin-nav-treeview">
 							<button class="admin-nav-item" id="adminTabDashboardBtn" onclick="switchAdminTab('dashboard')"><svg class="ikon"><use href="#i-panel"/></svg>Kontrol Paneli</button>
-							<button class="admin-nav-item" id="adminTabCalendarBtn" onclick="switchAdminTab('calendar')"><svg class="ikon"><use href="#i-takvim"/></svg>Takvim</button>
-							<button class="admin-nav-item" id="adminTabStatsBtn" onclick="switchAdminTab('stats')"><svg class="ikon"><use href="#i-grafik"/></svg>Faaliyet &amp; İstatistik</button>
-						</div>
-					</div>
-					<div class="admin-nav-group" id="admGroupSaha">
-						<button type="button" class="admin-nav-header" onclick="toggleAdminNavGroup('Saha')" aria-expanded="false">
-							<span>Saha &amp; Haber</span>
-							<svg class="ikon nav-arrow"><use href="#i-ok"/></svg>
-						</button>
-						<div class="admin-nav-treeview">
-							<button class="admin-nav-item" id="adminTabFieldOpsBtn" onclick="switchAdminTab('field-ops')"><svg class="ikon"><use href="#i-radyo"/></svg>Saha Masası</button>
-							<button class="admin-nav-item" id="adminTabEditorialBtn" onclick="switchAdminTab('editorial')"><svg class="ikon"><use href="#i-gazete"/></svg>Haber &amp; Ajans</button>
 						</div>
 					</div>
 					<div class="admin-nav-group" id="admGroupProtokol">
@@ -1040,7 +866,6 @@
 						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-users"/></svg></div><span class="ak-num" id="akPendingUsers">—</span><span class="ak-label">Onay Bekleyen Kullanıcı</span></div>
 						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-panel"/></svg></div><span class="ak-num" id="akTotalPeople">—</span><span class="ak-label">Toplam Protokol Kaydı</span></div>
 						<div class="admin-kpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-uyari"/></svg></div><span class="ak-num" id="akNeverVerified">—</span><span class="ak-label">Hiç Doğrulanmamış</span></div>
-						<div class="admin-kpi"><div class="admin-kpi-icon accent"><svg class="ikon"><use href="#i-takvim"/></svg></div><span class="ak-num" id="akMonthEvents">—</span><span class="ak-label">Bu Ay Etkinlik</span></div>
 						<div class="admin-kpi" id="akTestModeKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-test"/></svg></div><span class="ak-num" id="akTestMode">—</span><span class="ak-label">Test Modu</span></div>
 						<div class="admin-kpi" id="akSaltOkunurKpi"><div class="admin-kpi-icon"><svg class="ikon"><use href="#i-kilit"/></svg></div><span class="ak-num" id="akSaltOkunur">—</span><span class="ak-label">Salt-Okunur Kilit</span></div>
 					</div>
@@ -1056,34 +881,8 @@
 						     dolduruyor. backup (yedek indirme + salt-okunur kilit) statik markup,
 						     ayrı bir load fonksiyonu gerektirmiyor. -->
 						<div id="adminDashboardView">
-							<p class="hint">Sistemin genel nabzı: bekleyen taslaklar, boş kadrolar, arşivsiz etkinlikler.</p>
+						<p class="hint">Sistemin genel nabzı: boş kadrolar.</p>
 							<div id="adminDashboardBody"><p class="admin-user-empty">Yükleniyor…</p></div>
-						</div>
-						<div id="adminCalendarView" style="display:none;">
-							<p class="hint">Bu ayın etkinlikleri tek bakışta -- bir güne veya "Tam Takvimi Aç"a tıklayınca asıl takvime (ekle/düzenle/sil) geçersin.</p>
-							<div class="admcal-card">
-								<div class="admcal-head">
-									<div class="admcal-title" id="admCalLabel">—</div>
-									<div class="admcal-nav">
-										<button type="button" onclick="admCalShift(-1)" aria-label="Önceki ay"><svg class="ikon"><use href="#i-ok"/></svg></button>
-										<button type="button" class="admcal-today" onclick="admCalToday()">Bugün</button>
-										<button type="button" onclick="admCalShift(1)" aria-label="Sonraki ay" style="transform:scaleX(-1)"><svg class="ikon"><use href="#i-ok"/></svg></button>
-									</div>
-								</div>
-								<div class="admcal-dow" id="admCalDow"></div>
-								<div class="admcal-grid" id="admCalGrid"></div>
-								<button type="button" class="btn btn-primary admcal-open-btn" onclick="openCalendarAt(dKey(admCalAnchor))">
-									<svg class="ikon"><use href="#i-takvim"/></svg>Tam Takvimi Aç
-								</button>
-							</div>
-						</div>
-						<div id="adminFieldOpsView" style="display:none;">
-							<p class="hint">Bekleyen saha taslakları ve basın görevlisi iş yükü.</p>
-							<div id="adminFieldOpsBody"><p class="admin-user-empty">Yükleniyor…</p></div>
-						</div>
-						<div id="adminEditorialView" style="display:none;">
-							<p class="hint">Haber yazılmayı bekleyen etkinlikler ve ajans dağılımı.</p>
-							<div id="adminEditorialBody"><p class="admin-user-empty">Yükleniyor…</p></div>
 						</div>
 						<div id="adminHierarchyView" style="display:none;">
 							<p class="hint">Üniversite protokol sırasında boş kadro/vekâlet/rank taraması (salt-okunur).</p>
@@ -1145,18 +944,6 @@
 								<button type="button" class="btn btn-ghost" style="flex:1;" onclick="loadAdminTestPanel()">Son Sonucu Yenile</button>
 							</div>
 							<div id="adminTestResult" class="hint">Yükleniyor…</div>
-						</div>
-						<div id="adminStatsView" style="display:none;">
-							<p class="hint">Etkinlik takviminden türetilen faaliyet özeti. BAPKOB/Kalite raporlarına hızlı veri sağlar.</p>
-							<div style="display:flex; gap:8px; margin-bottom:14px; align-items:center;">
-								<label for="statsRangeSelect" class="hint" style="margin:0;">Aralık:</label>
-								<select id="statsRangeSelect" onchange="loadAdminStats()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-input); color:var(--ink);">
-									<option value="month">Bu Ay</option>
-									<option value="year">Bu Yıl</option>
-									<option value="all">Tüm Zamanlar</option>
-								</select>
-							</div>
-							<div id="adminStatsResult" class="hint">Yükleniyor…</div>
 						</div>
 					</div>
 				</div>

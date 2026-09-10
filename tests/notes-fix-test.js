@@ -65,34 +65,8 @@ function serve() {
 	await page.goto(`http://localhost:${PORT}/protokol.html`, { waitUntil: 'load' });
 	await page.waitForTimeout(300);
 
-	// --- NOT 1: layoutDay küme bazlı genişlik ---
-	const layoutTest = await page.evaluate(() => {
-		// Sabah 09:00-10:00 ve 09:30-10:30 çakışıyor (2 sütun); akşam 18:00-19:00 tek başına (1 sütun, tam genişlik olmalı).
-		const evs = [
-			{ _id: 'a', saat: '09:00', bitisSaat: '10:00' },
-			{ _id: 'b', saat: '09:30', bitisSaat: '10:30' },
-			{ _id: 'c', saat: '18:00', bitisSaat: '19:00' }
-		];
-		const laid = layoutDay(evs);
-		const byId = {}; laid.forEach(it => byId[it.ev._id] = { col: it.col, total: it.total });
-		return byId;
-	});
-
-	// Ek senaryo: 3 etkinlikli zincir (A-B çakışır, B-C çakışır, A-C çakışmaz) + ayrık D
-	const chainTest = await page.evaluate(() => {
-		const evs = [
-			{ _id: 'A', saat: '08:00', bitisSaat: '09:00' },
-			{ _id: 'B', saat: '08:30', bitisSaat: '09:30' },
-			{ _id: 'C', saat: '09:15', bitisSaat: '10:00' },
-			{ _id: 'D', saat: '14:00', bitisSaat: '15:00' }
-		];
-		const laid = layoutDay(evs);
-		const byId = {}; laid.forEach(it => byId[it.ev._id] = { col: it.col, total: it.total });
-		return byId;
-	});
-
-	// Boş liste çökmemeli
-	const emptyTest = await page.evaluate(() => { try { return { ok: true, result: layoutDay([]) }; } catch(e) { return { ok: false, err: e.message }; } });
+	// (NOT 1 "layoutDay kume bazli genislik" testleri Etkinlik Takvimi modulune
+	// bagimliydi -- kullanici istegiyle o modul kaldirildiginda bu testler de silindi.)
 
 	// --- NOT 2: ölü CSS'in gerçekten kaldırıldığını ve kalan class'ların (bulk-cb/news-cb/cal-hrline) etkilenmediğini doğrula ---
 	const cssTest = await page.evaluate(() => {
@@ -136,17 +110,10 @@ function serve() {
 		return { aktifNames, pasifNames, silindiNames };
 	});
 
-	// --- YENİ İSTEK: takvim mini seçili gün belirteci ---
-	const calMiniTest = await page.evaluate(() => {
-		openCalendar();
-		renderCalMini();
-		const inViewEl = document.querySelector('.cal-mini-day.in-view');
-		if (!inViewEl) return { found: false };
-		const cs = getComputedStyle(inViewEl);
-		return { found: true, background: cs.backgroundColor, boxShadow: cs.boxShadow, fontWeight: cs.fontWeight };
-	});
+	// ("YENİ İSTEK: takvim mini seçili gün belirteci" testi de Etkinlik Takvimi
+	// modulune bagimliydi -- ayni sekilde silindi.)
 
-	const combined = { layoutTest, chainTest, emptyTest, cssTest, statusTest, calMiniTest };
+	const combined = { cssTest, statusTest };
 	console.log(JSON.stringify(combined, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach(e => console.log(' -', e));

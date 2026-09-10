@@ -153,26 +153,9 @@ async function newPage(browser, width, height, mobile) {
 		return { savedCount: Array.isArray(saved) ? saved.length : 0, savedUnvan: Array.isArray(saved) && saved[0] ? saved[0].unvan : null };
 	});
 
-	// --- H-7: personAttendedEvents -- SADECE isim eslesir (unvan farkli olsa bile), en yeni once ---
-	const h7 = await page.evaluate(() => {
-		calEvents = {
-			e1: { ad: 'Eski Etkinlik', tur: 'panel', durum: 'planlandi', tarih: '2024-01-10', katilimcilar: [{ prefix: '', name: 'Test Kisi', title: 'Eski Unvan' }] },
-			e2: { ad: 'Yeni Etkinlik', tur: 'toplanti', durum: 'planlandi', tarih: '2025-05-20', katilimcilar: [{ prefix: '', name: 'Test Kisi', title: 'Rektor' }] },
-			e3: { ad: 'Alakasiz Etkinlik', tur: 'panel', durum: 'planlandi', tarih: '2025-01-01', katilimcilar: [{ prefix: '', name: 'Baska Kisi', title: 'X' }] }
-		};
-		const evs = personAttendedEvents(people[0]);
-		return { count: evs.length, mostRecentFirst: evs.length >= 2 && evs[0].ad === 'Yeni Etkinlik' && evs[1].ad === 'Eski Etkinlik', excludesUnrelated: !evs.some((e) => e.ad === 'Alakasiz Etkinlik') };
-	});
-
-	// --- H-8: EVENT_TYPES icinde "toplanti" var, etkinlik formunda secenek olarak gorunuyor ---
-	const h8 = await page.evaluate(() => {
-		closeModal();
-		const hasType = EVENT_TYPES.some((t) => t.key === 'toplanti');
-		openEventModal(null);
-		const selectHasOption = document.getElementById('ev_tur').innerHTML.indexOf('Toplantı') !== -1;
-		closeEventModal();
-		return { hasType, selectHasOption };
-	});
+	// (H-7 "personAttendedEvents" ve H-8 "EVENT_TYPES/openEventModal" testleri Etkinlik
+	// Takvimi modulune bagimliydi -- kullanici istegiyle o modul kaldirildiginda bu
+	// testler de silindi.)
 
 	// --- H-13: Gorev Gecmisi'ne baslangic tarihli bir kayit eklenince ana f_start da senkron olur ---
 	const h13 = await page.evaluate(() => {
@@ -236,7 +219,7 @@ async function newPage(browser, width, height, mobile) {
 
 	await mp.close();
 
-	const results = { h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h13 };
+	const results = { h1, h2, h3, h4, h5, h6, h9, h10, h11, h13 };
 	console.log(JSON.stringify(results, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));
@@ -248,8 +231,6 @@ async function newPage(browser, width, height, mobile) {
 		h4_addWorked: h4.afterAdd.count === 1, h4_domUpdated: h4.afterAdd.domHasText, h4_removeWorked: h4.afterRemove.count === 0,
 		h5_rejectedEmpty: h5.rejectedEmpty,
 		h6_savedCount: h6.savedCount === 1, h6_savedUnvan: h6.savedUnvan === 'Dekanlık Görevi',
-		h7_count: h7.count === 2, h7_mostRecentFirst: h7.mostRecentFirst, h7_excludesUnrelated: h7.excludesUnrelated,
-		h8_hasType: h8.hasType, h8_selectHasOption: h8.selectHasOption,
 		h9_modalHidden: h9.modalHidden, h9_panelIsFixed: h9.panelIsFixed, h9_hasHideClass: h9.hasHideClass,
 		h10_modalVisibleAgain: h10.modalVisibleAgain, h10_hideClassRemoved: h10.hideClassRemoved,
 		h11_successorClosedWhenHistoryOpened: h11.successorClosedWhenHistoryOpened, h11_historyOpenedOk: h11.historyOpenedOk, h11_historyClosedWhenSuccessorOpened: h11.historyClosedWhenSuccessorOpened,

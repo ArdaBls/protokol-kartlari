@@ -67,7 +67,6 @@ function serve() {
 		applyPermissions();
 		currentListKey = 'universite';
 		people = [{ name: 'Test Kişi', title: 'Rektör', unit: 'OMÜ', prefix: 'Prof. Dr.', status: 'aktif' }];
-		calEvents = { ev1: { ad: 'Test Etkinlik', tur: 'diger', durum: 'planlandi', tarih: '2026-09-10', katilimcilar: [] } };
 	});
 
 	// =====================================================================
@@ -146,19 +145,16 @@ function serve() {
 		// anahtarlarindan yapilir (bkz. audit-fixes-test.js/status-transition-test.js'teki ayni desen).
 		window.__mockPushes = []; window.__mockSets = []; window.__mockUpdates = [];
 		await saveData('Test kişi kaydı', 'Test Kişi');
-		logEventAction('Test etkinlik işlemi', 'Test Etkinlik');
 		logDebugAction('Test debug işlemi', 'Test Hedef');
 		const lastUpd = window.__mockUpdates[window.__mockUpdates.length - 1];
 		const updKeys = lastUpd ? Object.keys(lastUpd.data) : [];
 		const personSet = updKeys.indexOf('test/universiteProtokolVerileri') !== -1;
 		const realPersonSet = updKeys.indexOf('universiteProtokolVerileri') !== -1;
-		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi');
 		const debugLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test debug işlemi');
 		return {
 			bannerVisible: document.getElementById('testModeBanner').style.display === 'flex',
 			personWentToTest: !!personSet,
 			personDidNotTouchReal: !realPersonSet,
-			eventLogWentToTest: !!eventLog && eventLog.path === 'test/logs/etkinlik',
 			debugLogWentToTest: !!debugLog && debugLog.path === 'test/logs/debug'
 		};
 	});
@@ -170,15 +166,12 @@ function serve() {
 		testModeEnabled = false; updateStatusBanner();
 		window.__mockPushes = []; window.__mockSets = []; window.__mockUpdates = [];
 		await saveData('Test kişi kaydı 2', 'Test Kişi');
-		logEventAction('Test etkinlik işlemi 2', 'Test Etkinlik');
 		const lastUpd = window.__mockUpdates[window.__mockUpdates.length - 1];
 		const updKeys = lastUpd ? Object.keys(lastUpd.data) : [];
 		const personSet = updKeys.indexOf('universiteProtokolVerileri') !== -1;
-		const eventLog = window.__mockPushes.find((p) => p.data && p.data.action === 'Test etkinlik işlemi 2');
 		return {
 			bannerHidden: document.getElementById('testModeBanner').style.display === 'none',
-			personWentToReal: !!personSet,
-			eventLogWentToReal: !!eventLog && eventLog.path === 'logs/etkinlik'
+			personWentToReal: !!personSet
 		};
 	});
 

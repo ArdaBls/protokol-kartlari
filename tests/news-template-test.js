@@ -96,8 +96,8 @@ function serve() {
 		out.newsModalOpenAfterGenerate = document.getElementById('newsModalBg').classList.contains('open');
 		out.newsOutputText = document.getElementById('newsOutputText') ? document.getElementById('newsOutputText').value : null;
 
-		// generateNewsFromEvent (takvim etkinliğinden haber) fonksiyonu var mı ve çağrılabiliyor mu
-		out.generateNewsFromEventIsFn = typeof generateNewsFromEvent === 'function';
+		// generateNewsFromEvent (takvim etkinliğinden haber) kullanıcı isteğiyle Etkinlik
+		// Takvimi modülüyle birlikte kaldırıldı -- bu kontrol de kaldırıldı.
 
 		return out;
 	});

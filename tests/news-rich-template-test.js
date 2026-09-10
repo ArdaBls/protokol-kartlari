@@ -109,84 +109,9 @@ function serve() {
 		};
 	});
 
-	// --- 3) EVENT_TYPES: gorevdegisimi eklendi mi, evType() otomatik yakaliyor mu ---
-	const eventTypesTest = await page.evaluate(() => {
-		const found = EVENT_TYPES.find(t => t.key === "gorevdegisimi");
-		const resolved = evType("gorevdegisimi");
-		return {
-			existsInArray: !!found,
-			evTypeResolvesCorrectly: !!resolved && resolved.key === "gorevdegisimi",
-			hasDistinctColor: !!found && EVENT_TYPES.filter(t => t.key !== "gorevdegisimi").every(t => t.renk !== found.renk)
-		};
-	});
-
-	// --- 4) generateNewsFromEvent() uctan uca: gorevdegisimi (eskiGorevli YOK) ---
-	const gorevDegisimiTest = await page.evaluate(() => {
-		calEvents = calEvents || {};
-		calEvents["test-gd-1"] = {
-			ad: "Görev Değişimi Töreni", tur: "gorevdegisimi", durum: "planlandi",
-			tarih: "2026-09-10", saat: "10:00", bitisSaat: "11:00",
-			yer: "Rektörlük Toplantı Salonu", birim: "İdari ve Mali İşler Daire Başkanlığı",
-			katilimcilar: [{ prefix: "", name: "Test Kişi", title: "Daire Başkanı" }],
-			not: ""
-		};
-		calPeekedId = "test-gd-1";
-		generateNewsFromEvent();
-		const selectedIdx = Number(document.getElementById("newsTemplateSelect").value);
-		const selectedTpl = newsTemplates[selectedIdx];
-		// generateNewsFromEvent kendi ici setTimeout ile modali aciyor; alan degerlerini elle set edip yeniden uretelim.
-		document.getElementById("newsGorevInput") && (document.getElementById("newsGorevInput").value = "İdari ve Mali İşler Daire Başkanlığı");
-		document.getElementById("newsYeniGorevliInput") && (document.getElementById("newsYeniGorevliInput").value = "Kadir Keleşoğlu");
-		generateNewsText();
-		const text1 = document.getElementById("newsOutputText").value;
-		// Simdi eskiGorevli de doldurulursa 3. paragraf (kosullu) gorunmeli
-		document.getElementById("newsEskiGorevliInput") && (document.getElementById("newsEskiGorevliInput").value = "Alper Çiftçi");
-		generateNewsText();
-		const text2 = document.getElementById("newsOutputText").value;
-		return {
-			autoSelectedTur: selectedTpl ? selectedTpl.tur : null,
-			hasGorevInput: !!document.getElementById("newsGorevInput"),
-			hasYeniGorevliInput: !!document.getElementById("newsYeniGorevliInput"),
-			hasEskiGorevliInput: !!document.getElementById("newsEskiGorevliInput"),
-			text1, text2,
-			text1MentionsYeniGorevli: text1.indexOf("Kadir Keleşoğlu") > -1,
-			text1NoUndefined: text1.indexOf("undefined") === -1,
-			text1NoLeftoverBraces: !/\{[a-zA-Z]+\}/.test(text1),
-			text2MentionsEskiGorevli: text2.indexOf("Alper Çiftçi") > -1 || text2.indexOf("Alper Çiftçi'") > -1,
-			text2LongerThanText1: text2.length > text1.length
-		};
-	});
-
-	// --- 5) generateNewsFromEvent() uctan uca: ziyaret (aciklama VAR / YOK karsilastirmasi) ---
-	const ziyaretTest = await page.evaluate(() => {
-		calEvents["test-zy-1"] = {
-			ad: "Adalet Komisyonu Ziyareti", tur: "ziyaret", durum: "planlandi",
-			tarih: "2026-09-11", saat: "14:00", bitisSaat: "15:00",
-			yer: "Rektörlük Makam Odası", birim: "",
-			katilimcilar: [
-				{ prefix: "", name: "Nahit Köseoğlu", title: "Samsun Adalet Komisyonu Başkanı" },
-				{ prefix: "Prof. Dr.", name: "Fatma Aydın", title: "Rektör" }
-			],
-			not: ""
-		};
-		calPeekedId = "test-zy-1";
-		generateNewsFromEvent();
-		const selectedIdx = Number(document.getElementById("newsTemplateSelect").value);
-		const selectedTpl = newsTemplates[selectedIdx];
-		generateNewsText();
-		const withoutAciklama = document.getElementById("newsOutputText").value;
-		document.getElementById("newsAciklamaInput") && (document.getElementById("newsAciklamaInput").value = "bölgedeki adli süreçler");
-		generateNewsText();
-		const withAciklama = document.getElementById("newsOutputText").value;
-		return {
-			autoSelectedTur: selectedTpl ? selectedTpl.tur : null,
-			hasAciklamaInput: !!document.getElementById("newsAciklamaInput"),
-			withoutAciklama, withAciklama,
-			aciklamaMentionedOnlyWhenFilled: withoutAciklama.indexOf("bölgedeki adli süreçler") === -1 && withAciklama.indexOf("bölgedeki adli süreçler") > -1,
-			withAciklamaLonger: withAciklama.length > withoutAciklama.length,
-			noLeftoverBraces: !/\{[a-zA-Z]+\}/.test(withoutAciklama) && !/\{[a-zA-Z]+\}/.test(withAciklama)
-		};
-	});
+	// (3 "EVENT_TYPES/evType", 4 "generateNewsFromEvent gorevdegisimi" ve 5
+	// "generateNewsFromEvent ziyaret" testleri Etkinlik Takvimi modulune bagimliydi --
+	// kullanici istegiyle o modul kaldirildiginda bu testler de silindi.)
 
 	// --- 6) Mod gecisi + buildNewsPrompt() + XSS regresyon kontrolu ---
 	await page.evaluate(() => { closeNewsModal(); });
@@ -234,7 +159,7 @@ function serve() {
 		};
 	});
 
-	const result = { pickVariantTest, suffixTest, eventTypesTest, gorevDegisimiTest, ziyaretTest, promptTest, closeResetTest };
+	const result = { pickVariantTest, suffixTest, promptTest, closeResetTest };
 	console.log(JSON.stringify(result, null, 2));
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach(e => console.log(' -', e));

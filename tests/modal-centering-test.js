@@ -86,14 +86,13 @@ function serve() {
 	const personModal = await checkModalCentering('openAddModal()', 'modalBg');
 	await page.evaluate(() => closeModal());
 
-	const eventModal = await checkModalCentering('openEventModal(null)', 'eventModalBg');
-	await page.evaluate(() => closeEventModal());
-
 	// Kısa bir içerik (onay penceresi) viewport'a rahat sığar -- GERÇEK ortalamayı (üst/alt boşluk
 	// pozitif ve birbirine yakın) burada doğrulamak gerekiyor, oversized modallerde "safe" devreye
-	// girip başa yaslıyor, o yüzden onlarda bu eşitlik aranmıyordu.
-	const shortModal = await checkModalCentering("openEventDeleteConfirm('yok')", 'eventDeleteConfirmModalBg');
-	await page.evaluate(() => closeEventDeleteConfirm());
+	// girip başa yaslıyor, o yüzden onlarda bu eşitlik aranmıyordu. Etkinlik Takvimi modülü
+	// (openEventModal/openEventDeleteConfirm) kullanıcı isteğiyle kaldırıldığından, kısa modal
+	// örneği olarak aynı .modal-bg desenini kullanan "toplu işlem onayı" modalına geçildi.
+	const shortModal = await checkModalCentering("document.getElementById('bulkConfirmModalBg').classList.add('open')", 'bulkConfirmModalBg');
+	await page.evaluate(() => closeBulkConfirmModal());
 
 	// env(safe-area-inset-top) headless Chromium'da (gerçek çentik/Dynamic Island olmadığı için)
 	// hep 0 çözümlenir -- piksel bazlı ölçüm bu yüzden bunu KANITLAYAMAZ. Bunun yerine kaynak
@@ -180,11 +179,6 @@ function serve() {
 			roughlyCentered: Math.abs(personModal.topGap - personModal.bottomGap) < 40 || personModal.modalHeight > personModal.viewportHeight - 48,
 			notPinnedToTop: personModal.topGap > 10
 		},
-		eventModal: {
-			alignItemsIsCenter: eventModal.alignItems === 'center' || eventModal.alignItems === 'safe center',
-			roughlyCentered: Math.abs(eventModal.topGap - eventModal.bottomGap) < 40 || eventModal.modalHeight > eventModal.viewportHeight - 48,
-			notPinnedToTop: eventModal.topGap > 10
-		},
 		shortModal: {
 			alignItemsIsCenter: shortModal.alignItems === 'center' || shortModal.alignItems === 'safe center',
 			trulyCentered: Math.abs(shortModal.topGap - shortModal.bottomGap) < 20,
@@ -194,7 +188,7 @@ function serve() {
 		extraCssChecks,
 		pageErrorsCount: pageErrors.length
 	};
-	console.log(JSON.stringify({ personModal, eventModal, shortModal, results }, null, 2));
+	console.log(JSON.stringify({ personModal, shortModal, results }, null, 2));
 	if (pageErrors.length) { console.log('PAGE ERRORS:'); pageErrors.forEach((e) => console.log(' - ' + e)); }
 
 	const __boolFails = collectBooleanFailures(results, []);

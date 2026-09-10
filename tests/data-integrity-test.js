@@ -89,43 +89,17 @@ function serve() {
 		return { recordCount: Object.keys(people).length };
 	}, slowWrites.toString());
 
-	// --- 1b) Etkinlik formu cift tiklama ---
-	const eventDouble = await page.evaluate(async () => {
-		calEvents = {};
-		openEventModal(null, '2026-01-20');
-		document.getElementById('ev_ad').value = 'Cift Etkinlik';
-		await Promise.all([saveEvent(), saveEvent()]);
-		await new Promise((r) => setTimeout(r, 350));
-		return { eventCount: Object.keys(calEvents).length };
-	});
 	await page.evaluate(restoreWrites);
 
-	// --- 2) Gece yarisini asan etkinlik gun sonuna kadar cizilmeli ---
-	const midnight = await page.evaluate(() => {
-		// Baslangic BILEREK 22:00: 23:00 secilseydi eski kodun "s+60" sonucu da tam 1440
-		// (gece yarisi) olacagi icin test eski/yeni davranisi AYIRT EDEMEZDI.
-		// 22:00 -> eski kod 23:00'te bitirir (1380), dogru davranis gun sonudur (1440).
-		const crossing = { _id: 'x1', ad: 'Gece Etkinligi', saat: '22:00', bitisSaat: '02:00', tur: 'diger', durum: 'planlandi', tarih: '2026-01-20' };
-		const noEnd = { _id: 'x2', ad: 'Bitissiz', saat: '09:00', bitisSaat: '', tur: 'diger', durum: 'planlandi', tarih: '2026-01-20' };
-		const laid = layoutDay([crossing, noEnd]);
-		const c = laid.find((i) => i.ev._id === 'x1');
-		const n = laid.find((i) => i.ev._id === 'x2');
-		return {
-			crossingStart: c ? c.s : null,
-			crossingEnd: c ? c.e : null,      // 1440 (gun sonu) olmali, 1380+60=1440 degil -- 23:00=1380 oldugu icin ayrimi asagida netlestiriyoruz
-			crossingDurationMin: c ? c.e - c.s : null,
-			noEndDurationMin: n ? n.e - n.s : null // bitis girilmemis -> 60 dk kalmali (regresyon kontrolu)
-		};
-	});
+	// (1b "Etkinlik formu cift tiklama" ve 2 "Gece yarisini asan etkinlik" testleri
+	// Etkinlik Takvimi modulune bagimliydi -- kullanici istegiyle o modul kaldirildiginda
+	// bu testler de silindi.)
 
-	const out = { personDouble, eventDouble, midnight };
+	const out = { personDouble };
 	console.log(JSON.stringify(out, null, 2));
 
 	const fails = [];
 	if (personDouble.recordCount !== 1) fails.push('Kisi formu cift tiklamada ' + personDouble.recordCount + ' kayit olusturdu (1 olmali)');
-	if (eventDouble.eventCount !== 1) fails.push('Etkinlik formu cift tiklamada ' + eventDouble.eventCount + ' kayit olusturdu (1 olmali)');
-	if (midnight.crossingEnd !== 1440) fails.push('Gece yarisini asan etkinlik gun sonuna (1440) kadar uzatilmadi: ' + midnight.crossingEnd);
-	if (midnight.noEndDurationMin !== 60) fails.push('Bitis saati girilmemis etkinligin varsayilan 60 dk suresi bozuldu: ' + midnight.noEndDurationMin);
 
 	console.log('PAGE ERRORS:', pageErrors.length);
 	pageErrors.forEach((e) => console.log(' -', e));
