@@ -94,17 +94,26 @@ export function initTetrisLeaderboard() {
     saveScoreIfHighest(Number(e.data.score) || 0);
   });
 
-  // iframe klavye odağı: kullanıcı bulgusu ("ok tuşları/SPACE çalışmıyor, sadece fareyle
-  // oynayabiliyorum") -- sayfa yüklendiğinde odak varsayılan olarak üst dokümanda kalıyor,
-  // ok tuşları/SPACE bu durumda üst sayfayı kaydırmaya çalışıyor (tarayıcının varsayılan
-  // davranışı) ve iframe içindeki oyuna hiç ulaşmıyor. S/P/R gibi harf tuşlarının üst
-  // sayfada varsayılan bir davranışı olmadığından o denemeler fark edilmeden zaten iframe’e
-  // gidiyordu -- yani sorun kod değil, saf DOM odağıydı. Çözüm: sayfa açılır açılmaz VE
-  // iframe alanına her tıklandığında iframe'e programatik focus veriliyor.
+  // iframe klavye odağı: kullanıcı bulgusu -- sayfa ilk açıldığında ok tuşları/SPACE/S/P/R
+  // hepsi çalışıyor, ama iframe DIŞINA (üst sayfada başka bir yere) bir kez tıklanınca odak
+  // KALICI OLARAK kayboluyor, sayfa YENİLENMEDEN geri gelmiyordu. Kök sebep: iframe kendi
+  // konteynerinin (.game-iframe-wrap) TÜM alanını kapladığı için (position:absolute;inset:0)
+  // buraya yapılan tıklamalar üst dokümana HİÇ ULAŞMIYOR (iframe İÇERİĞİNE tıklamak cross-
+  // frame click event'i YAYMAZ) -- üst sayfadaki ".game-iframe-wrap click -> focus" mantığı
+  // bu yüzden pratikte HİÇBİR ZAMAN tetiklenemiyordu (tek çalışan tetikleyici "load" idi, o da
+  // sadece ilk açılışta). İKİ katmanlı çözüm:
+  //  1) BURADA (üst sayfa): fare iframe'in üzerine HER GELDİĞİNDE (mouseenter -- bu native
+  //     olarak PARENT document'te güvenilir tetiklenir, tıklamadan farklı olarak iframe
+  //     İÇERİĞİNE bakılmaksızın işler) programatik focus veriliyor.
+  //  2) Tetris'in KENDİ kaynak kodunda (server/index.tmpl.html, bkz. o dosyadaki yorum):
+  //     iframe kendi içine her tıklanışında (mousedown/touchstart) window.focus() ile KENDİ
+  //     KENDİNE odak istiyor -- üst sayfadan bağımsız, cross-origin kısıtlaması olmayan basit
+  //     bir API, en güvenilir katman.
   const iframe = document.querySelector('.game-iframe-wrap iframe');
   if (iframe) {
     const focusFrame = () => { try { iframe.contentWindow.focus(); } catch (e) { /* çapraz-origin değil, sorun olmaz ama yine de sessiz geç */ } };
     iframe.addEventListener('load', focusFrame);
+    iframe.addEventListener('mouseenter', focusFrame);
     document.querySelector('.game-iframe-wrap').addEventListener('click', focusFrame);
     // Sayfa sekmesine geri dönüldüğünde de (örn. alt-tab) odak iframe'e düşsün.
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { focusFrame(); } });

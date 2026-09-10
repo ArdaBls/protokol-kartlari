@@ -9,6 +9,25 @@
     <meta charset="UTF-8">
     <title>Tetris</title>
     <link href="./loader.css" rel="stylesheet" />
+    <script>
+    // Site üzerinde bu sayfa bir iframe içinde gösteriliyor (bkz. oyun-tetris.html). Kullanıcı
+    // bulgusu: sayfa ilk açıldığında klavye çalışıyordu ama iframe DIŞINA (üst sayfada başka
+    // bir yere) bir kez tıklanınca odak kalıcı olarak kayboluyor, sayfayı YENİLEMEDEN geri
+    // gelmiyordu -- üst sayfadan (.game-iframe-wrap click listener) iframe'e focus vermeye
+    // çalışmak İŞE YARAMIYORDU çünkü iframe kendi konteynerinin TÜM alanını kapladığı için
+    // (position:absolute;inset:0) buraya yapılan tıklamalar üst dokümana HİÇ ULAŞMIYOR (click
+    // event cross-frame yayılmaz) -- üst sayfanın "tıklanınca focus ver" mantığı bu yüzden
+    // pratikte hiç tetiklenemiyordu. Çözüm: bu SAYFANIN KENDİSİ, kendi içine her tıklanışında
+    // (mousedown/touchstart, click'ten daha güvenilir -- focus transferi mousedown aşamasında
+    // olur) window.focus() ile KENDİ KENDİNE odak istiyor. Bu, üst sayfadan bağımsız, cross-
+    // origin kısıtlaması olmayan basit bir API -- her ortamda güvenilir çalışır.
+    (function () {
+      function grabFocus() { try { window.focus(); } catch (e) { /* zararsız */ } }
+      document.addEventListener('mousedown', grabFocus, true);
+      document.addEventListener('touchstart', grabFocus, true);
+      grabFocus();
+    })();
+    </script>
 <link href="css-1.0.1.css" rel="stylesheet"></head>
 <body>
 <div id="root">
