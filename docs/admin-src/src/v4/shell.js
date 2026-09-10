@@ -465,6 +465,43 @@ let blockedListenerRef = null;
 let pendingAccountsCount = 0;
 let pendingAttendanceCount = 0;
 let pendingNotifsCount = 0;
+
+// Kullanıcı isteği: "bildirim geldiğinde hoş bir zil sesi çalsın ki fark
+// edelim". Dosya eklemeye gerek kalmadan Web Audio API ile kısa, iki notalı
+// bir "ding" sentezleniyor (E6 -> C6, zil/kapı zili hissi). Tarayıcılar
+// otomatik ses çalmayı kullanıcı etkileşimi olmadan engellediği için
+// AudioContext ilk tıklama/tuş/dokunuşta ısıtılıp "resume" ediliyor.
+let bildirimAudioCtx = null;
+function bildirimAudioBaglaminiAl() {
+  if (!bildirimAudioCtx) {
+    try { bildirimAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+  }
+  return bildirimAudioCtx;
+}
+['click', 'keydown', 'touchstart'].forEach((evt) => {
+  document.addEventListener(evt, () => {
+    const ctx = bildirimAudioBaglaminiAl();
+    if (ctx && ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
+  }, { once: true, passive: true });
+});
+function bildirimSesiCal() {
+  const ctx = bildirimAudioBaglaminiAl();
+  if (!ctx) { return; }
+  if (ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
+  try {
+    const now = ctx.currentTime;
+    [{ freq: 1318.51, start: 0, dur: 0.16 }, { freq: 1046.50, start: 0.14, dur: 0.28 }].forEach((n) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = n.freq;
+      gain.gain.setValueAtTime(0, now + n.start);
+      gain.gain.linearRampToValueAtTime(0.22, now + n.start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + n.start + n.dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + n.start); osc.stop(now + n.start + n.dur + 0.02);
+    });
+  } catch (e) { /* Web Audio başarısız olursa sessizce geç */ }
+}
+
 function renderBildirimRozeti() {
   const rozet = document.getElementById('tb-onay-rozeti');
   if (!rozet) { return; }
@@ -485,13 +522,16 @@ function onayBekleyenRozetiniBagla(role) {
   if (onayRozetiListenerRef) { onayRozetiListenerRef.off('value'); onayRozetiListenerRef = null; }
   pendingAccountsCount = 0;
   if (role !== 'admin' && role !== 'owner') { renderBildirimRozeti(); return; }
+  let ilkYukleme = true;
   onayRozetiListenerRef = firebase.database().ref('users');
   onayRozetiListenerRef.on('value', (snap) => {
     const hepsi = snap.val() || {};
-    pendingAccountsCount = Object.keys(hepsi).filter((uid) => {
+    const yeniSayi = Object.keys(hepsi).filter((uid) => {
       const r = hepsi[uid] && hepsi[uid].role;
       return ONAYLI_ROLLER.indexOf(r) === -1;
     }).length;
+    if (!ilkYukleme && yeniSayi > pendingAccountsCount) { bildirimSesiCal(); }
+    pendingAccountsCount = yeniSayi; ilkYukleme = false;
     renderBildirimRozeti();
   }, (err) => console.error('Onay bekleyen sayısı okunamadı:', err));
 }
@@ -509,10 +549,13 @@ function attendanceRozetiniBagla(role) {
   const database = firebase.database();
   initDbMode(database).then(() => {
     if (attendanceRozetiRole !== role) { return; }
+    let ilkYukleme = true;
     attendanceRozetiListenerRef = database.ref(dbPath('attendanceRequests')).orderByChild('status').equalTo('pending');
     attendanceRozetiListenerRef.on('value', (snap) => {
       const hepsi = snap.val() || {};
-      pendingAttendanceCount = Object.keys(hepsi).length;
+      const yeniSayi = Object.keys(hepsi).length;
+      if (!ilkYukleme && yeniSayi > pendingAttendanceCount) { bildirimSesiCal(); }
+      pendingAttendanceCount = yeniSayi; ilkYukleme = false;
       renderBildirimRozeti();
     }, (err) => console.error('Bekleyen katılım talebi sayısı okunamadı:', err));
   });
@@ -567,10 +610,13 @@ function bildirimRozetiniBagla(uid) {
   const database = firebase.database();
   initDbMode(database).then(() => {
     if (bildirimRozetiUid !== uid) { return; }
+    let ilkYukleme = true;
     bildirimRozetiListenerRef = database.ref(dbPath('notifications/' + uid));
     bildirimRozetiListenerRef.on('value', (snap) => {
       const hepsi = snap.val() || {};
-      pendingNotifsCount = Object.values(hepsi).filter((n) => n && n.read !== true).length;
+      const yeniSayi = Object.values(hepsi).filter((n) => n && n.read !== true).length;
+      if (!ilkYukleme && yeniSayi > pendingNotifsCount) { bildirimSesiCal(); }
+      pendingNotifsCount = yeniSayi; ilkYukleme = false;
       renderBildirimRozeti();
       satrancDavetModaliniKontrolEt(hepsi);
     }, (err) => console.error('Bildirim sayısı okunamadı:', err));

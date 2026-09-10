@@ -199,17 +199,24 @@ async function rozet(page) {
 		};
 	}
 
-	// 7) Statik kaynak kontrolü: bildirimler.html'deki iki bulgu düzeltildi --
-	// (a) editörde "Tümü" sekmesine tıklayınca genel (ENTRIES tabanlı) render()'a
-	//     düşüp kişisel bildirimleri boş listeyle EZMEMELİ,
+	// 7) Statik kaynak kontrolü: bildirimler.html'deki bulgular düzeltildi --
+	// (a) editörde "Tümü" sekmesine tıklayınca kişisel bildirimleri boş listeyle
+	//     EZMEMELİ -- 10 Eylül 2026'daki birleştirme refactor'ünden sonra bu artık
+	//     rol bazlı dal içermeyen TEK bir tab-click handler ile sağlanıyor: editörün
+	//     ENTRIES'i zaten SADECE kendi kişisel bildirimlerinden oluşuyor
+	//     (loadEditorEntries, _list:'kisisel' etiketiyle), handler role bakmaksızın
+	//     her tıklamada aynı ENTRIES'i filtresiz render ediyor -- yani eski hata artık
+	//     mimari olarak imkansız,
 	// (b) görüntülenen kişisel bildirimler read:true olarak işaretlenmeli, yoksa
 	//     zil rozeti hiç azalmaz (kullanıcı bulgusu: "sağdaki zil işaretinden
 	//     silinmiyor", "adminde de bunlar olmuyor" -- admin için de bir kişisel
 	//     bildirim görünümü/okundu-işaretleme yolu eklendi).
 	{
 		const notifSource = fs.readFileSync(path.join(__dirname, '..', 'docs', 'admin-src', 'production', 'bildirimler.html'), 'utf8');
+		const tabsHandlerMatch = notifSource.match(/document\.getElementById\('notif-tabs'\)\.addEventListener\('click', \(e\) => \{([\s\S]*?)\}\);/);
+		const tabsHandlerBody = tabsHandlerMatch ? tabsHandlerMatch[1] : '';
 		sonuc.bildirimlerHtmlDuzeltmeleri = {
-			editorTumuSekmesiKisiselBildirimlereGidiyor: /currentRole === 'editor'.{0,40}loadPersonalNotifications\(\)/s.test(notifSource),
+			editorTumuSekmesiKisiselBildirimlereGidiyor: /function loadEditorEntries/.test(notifSource) && /_list:\s*'kisisel'/.test(notifSource) && !/currentRole/.test(tabsHandlerBody),
 			okunduIsaretlemeVar: /function markNotificationsRead/.test(notifSource) && /markNotificationsRead\(val\)/.test(notifSource),
 			adminIcinKisiselSekmeVar: /notif-tab-kisisel/.test(notifSource) && /getElementById\('notif-tab-kisisel'\)\.hidden = false/.test(notifSource)
 		};
