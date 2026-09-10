@@ -31,12 +31,22 @@
     <span>Bu oyun kendi sunucumuzda barındırılıyor (dış siteye bağımlı değil). Kaynak: <a href="https://github.com/chvin/react-tetris" target="_blank" rel="noopener">chvin/react-tetris</a> (Apache-2.0 lisansı), Türkçeleştirildi.</span>
   </p>
 
-  <div class="game-iframe-wrap">
-    <iframe src="/oyun-tetris/index.html" title="Tetris" loading="lazy"></iframe>
+  <div class="game-with-leaderboard">
+    <div class="game-iframe-wrap">
+      <iframe src="/oyun-tetris/index.html" title="Tetris" loading="lazy"></iframe>
+    </div>
+    <div class="tetris-lb-panel">
+      <div class="tetris-lb-title">🏆 En Yüksek Skorlar</div>
+      <div id="tetrisLeaderboard"><div class="tetris-lb-empty">Yükleniyor…</div></div>
+    </div>
   </div>
 
 </div>
 </main>
+
+<script type="module">
+import('/src/v4/tetris-leaderboard.js').then((m) => m.initTetrisLeaderboard());
+</script>
 
 </body>
 </html>
