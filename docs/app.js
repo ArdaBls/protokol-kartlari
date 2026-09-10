@@ -71,7 +71,6 @@
 					window.__adminBooted = true;
 					openAdminPanel();
 				}
-				if (currentUser) { startReminderTicker(); }
 			}
 
 			function showLoading(msg) { document.getElementById("loadingLabel").textContent = msg || "Yükleniyor…"; document.getElementById("loadingOverlay").classList.add("open"); }
