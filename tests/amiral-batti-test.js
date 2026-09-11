@@ -145,7 +145,11 @@ async function newPage(browser, uid) {
 			{ id: 'denizalti', hucreler: Array.from({ length: 3 }, (_, i) => ({ r: 5, c: i })) },
 			{ id: 'muhrip', hucreler: [{ r: 0, c: 0 }, { r: 0, c: 1 }] }
 		];
-		const atislar1 = { '0_0': 'batti', '0_1': 'bekliyor' };
+		// '0_0' bilerek 'batti' DEĞİL 'isabet' olarak başlıyor (önceki turda
+		// vurulmuş ama gemi henüz batmamıştı) -- bu, '0_1' çözülünce geminin TÜM
+		// hücrelerinin (sadece yeni çözülenin değil) 'batti'ye yükseltilip
+		// YAZILDIĞINI doğrulayan regresyon testi (bkz. lastCellSunkUpgradesAllShipCells).
+		const atislar1 = { '0_0': 'isabet', '0_1': 'bekliyor' };
 		digerGemiler.slice(0, 4).forEach((g) => g.hucreler.forEach((h) => { atislar1[h.r + '_' + h.c] = 'batti'; }));
 		await page.addInitScript((args) => {
 			window.__mockData = {
@@ -164,8 +168,10 @@ async function newPage(browser, uid) {
 		await page.waitForTimeout(300);
 		const updates = await page.evaluate(() => window.__mockUpdates || []);
 		const battiYazildi = updates.some((u) => u.data && u.data['amiralBatti/oyunC/atislar1/0_1'] === 'batti');
+		const eskiHucreDeYukseldi = updates.some((u) => u.data && u.data['amiralBatti/oyunC/atislar1/0_0'] === 'batti');
 		const oyunBitti = updates.some((u) => u.data && u.data['amiralBatti/oyunC/durum'] === 'bitti' && u.data['amiralBatti/oyunC/sonuc'] === 'oyuncu1');
 		results.lastCellSunkMarksBatti = battiYazildi;
+		results.lastCellSunkUpgradesAllShipCells = eskiHucreDeYukseldi;
 		results.allShipsSunkEndsGameForAttacker = oyunBitti;
 		results.winPageErrors = page.__pageErrors.length;
 		await page.close();

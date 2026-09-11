@@ -16,6 +16,7 @@
 // geri yazar.
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 import { showToast } from './toast.js';
+import { showModal } from './modal.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -358,7 +359,14 @@ function bekleyenAtislariCoz(game) {
       });
       if (hepsiVuruldu) { g.hucreler.forEach((h) => { guncelAtislar[hucreAnahtari(h.r, h.c)] = 'batti'; }); }
     });
-    bekleyenler.forEach((k) => { patch[dbPath('amiralBatti/' + currentGameId + '/' + banaGelenAnahtar + '/' + k)] = guncelAtislar[k]; });
+    // NOT: sadece bekleyenler değil, 'batti' yükseltmesiyle değeri DEĞİŞEN her
+    // hücre yazılmalı -- bir geminin son hücresi vurulduğunda o geminin daha
+    // ÖNCEKİ turlarda 'isabet' yazılmış hücreleri de 'batti'ye yükseliyor
+    // (yoksa geriye sadece son vurulan hücre kırmızı/batmış görünüyor, diğerleri
+    // kalıcı olarak 'isabet' (küçük kırmızı nokta) durumunda kalıyordu).
+    Object.keys(guncelAtislar).forEach((k) => {
+      if (guncelAtislar[k] !== banaGelenAtislar[k]) { patch[dbPath('amiralBatti/' + currentGameId + '/' + banaGelenAnahtar + '/' + k)] = guncelAtislar[k]; }
+    });
 
     const toplamVurulan = Object.values(guncelAtislar).filter((v) => v === 'isabet' || v === 'batti').length;
     if (toplamVurulan >= TOPLAM_HUCRE) {
@@ -401,6 +409,20 @@ function istatistikGuncelle(game) {
   }).catch((err) => console.error('İstatistik güncellenemedi:', err));
 }
 let istatistikYazildi = new Set();
+let sonucModaliGosterildi = new Set();
+
+function sonucModaliniGoster(game) {
+  const kazandimMi = game.sonuc === currentUserUid;
+  const kazananAd = game.sonuc === game.oyuncu1Uid ? game.oyuncu1Ad : game.oyuncu2Ad;
+  showModal({
+    title: kazandimMi ? 'Kazandınız! 🎉' : 'Kaybettiniz',
+    body: '<p>' + escapeHtml(kazandimMi ? 'Tüm rakip filoyu batırdınız.' : (kazananAd || 'Rakibiniz') + ' tüm filonuzu batırdı.') + (game.sonNot ? '<p style="color:var(--text-muted)">' + escapeHtml(game.sonNot) + '</p>' : '') + '</p>',
+    actions: [
+      { label: 'Yeni Oyun', variant: 'primary', action: () => { window.location.href = 'oyun-amiral-batti.html'; } },
+      { label: 'Kapat', variant: 'outline' }
+    ]
+  });
+}
 
 // ── Render ──
 
@@ -489,6 +511,7 @@ function renderStatus(game) {
     statusText = (kazananUid === currentUserUid ? 'Kazandınız! 🎉' : (kazananAd || 'Rakip') + ' kazandı.') + (game.sonNot ? ' · ' + game.sonNot : '');
     actionsEl.innerHTML = '<a class="btn btn-primary" href="oyun-amiral-batti.html">Yeni Oyun</a>';
     if (benimNo && !istatistikYazildi.has(currentGameId)) { istatistikYazildi.add(currentGameId); istatistikGuncelle(game); }
+    if (benimNo && !sonucModaliGosterildi.has(currentGameId)) { sonucModaliGosterildi.add(currentGameId); sonucModaliniGoster(game); }
   } else if (game.durum === 'iptal') {
     statusText = 'Oyun iptal edildi' + (game.sonNot ? ' · ' + game.sonNot : '') + '.';
   }
