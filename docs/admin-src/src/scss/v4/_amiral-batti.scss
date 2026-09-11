@@ -196,8 +196,13 @@
 .ab-invite-row:hover { background: var(--bg-surface-secondary); }
 
 @media (max-width: 640px) {
-  .ab-layout { flex-direction: column; }
+  // NOT: .ab-layout'un masaüstündeki align-items:flex-start'ı, flex-direction
+  // column'a döndüğünde ÇAPRAZ eksen (yatay) hizalamasına dönüşüyor ve
+  // .ab-main/.ab-side'ı tam genişlik yerine İÇERİĞİNE göre küçültüyordu (bkz.
+  // kullanıcı bildirimi: "mobilde oyun ekranı çok küçük"). stretch bunu düzeltir.
+  .ab-layout { flex-direction: column; align-items: stretch; }
   .ab-side { width: 100%; }
+  .ab-main { width: 100%; }
   .ab-boards { flex-direction: column; align-items: stretch; }
-  .ab-board-panel { max-width: none; }
+  .ab-board-panel { max-width: none; width: 100%; }
 }

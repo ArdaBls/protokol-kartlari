@@ -4,10 +4,17 @@
 // AYNI desen: Firebase Realtime Database senkronu, davet-linki tabanlı lobi,
 // "Oyunlarım" listesi, staffProfiles'tan rakip seçimi.
 //
-// Gemi yerleşimi GİZLİ olmalı (rakip görmemeli) -- oyunun kendi devamı sırasında
-// paylaşılan `amiralBatti/{id}` düğümü her iki oyuncu tarafından da okunabildiği
-// için (chess'teki gibi), gemi hücreleri ORAYA konursa rakip DevTools/Network'ten
-// okuyabilir. Bu yüzden gemi yerleşimi ayrı bir üst düzey düğümde tutuluyor:
+// Oyun durumu (davet/yerleştirme/atışlar) `oyunBasarimlari/amiralBatti/oyunlar/{id}`
+// altında -- kullanıcı isteği: "oyunBasarimlari altına koyalım, amiralbattı>
+// amiralbattıgizli konumlarını böyle klasörleyelim". Liderlik tablosu zaten
+// `oyunBasarimlari/amiralBatti/{uid}` altındaydı, bu ikisi artık aynı üst
+// düğümün ("oyunlar" ve $scoreUid) kardeş çocukları.
+//
+// Gemi yerleşimi GİZLİ olmalı (rakip görmemeli) -- `oyunBasarimlari/$oyunAdi`
+// düğümünün .read kuralı TÜM editör/admin/owner'lara açık (liderlik tablosu
+// herkes tarafından görülebilsin diye) ve Firebase'de bir üst düğümdeki geniş
+// okuma izni alt düğümlere de otomatik sızıyor -- bu yüzden gemi yerleşimi
+// BİLEREK oyunBasarimlari'nin DIŞINDA, kendi ayrı üst düzey düğümünde kaldı:
 // `amiralBattiGizli/{id}/{uid}` -- yalnızca kendi uid'i okuyabilir/yazabilir
 // (bkz. firebase-database-rules.json). İsabet/ıska sonucu ise SADECE hedef
 // oyuncunun istemcisi hesaplayabilir (gemi hücrelerini yalnızca o biliyor) --
@@ -121,7 +128,7 @@ function renderInviteList(listEl, pool, query) {
 }
 
 function createGame(opponentUid, opponentName) {
-  const id = database.ref(dbPath('amiralBatti')).push().key;
+  const id = database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar')).push().key;
   const game = {
     oyuncu1Uid: currentUserUid, oyuncu1Ad: currentUserName || currentUserEmail,
     oyuncu2Uid: opponentUid, oyuncu2Ad: opponentName,
@@ -129,7 +136,7 @@ function createGame(opponentUid, opponentName) {
     olusturmaTs: firebase.database.ServerValue.TIMESTAMP, guncellemeTs: firebase.database.ServerValue.TIMESTAMP
   };
   const updates = {};
-  updates[dbPath('amiralBatti/' + id)] = game;
+  updates[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + id)] = game;
   Object.assign(updates, abNotificationPatch(opponentUid, {
     type: 'amiral_batti_invite', title: 'Amiral Battı daveti',
     message: (currentUserName || currentUserEmail) + ' sizi bir Amiral Battı oyununa davet etti.',
@@ -163,7 +170,11 @@ function renderLeaderboard() {
   if (!listEl) { return; }
   database.ref(dbPath('oyunBasarimlari/amiralBatti')).once('value').then((snap) => {
     const obj = snap.val() || {};
-    const rows = Object.values(obj).sort((a, b) => (b.kazanilan || 0) - (a.kazanilan || 0) || (b.oynanan || 0) - (a.oynanan || 0));
+    // NOT: 'oyunlar' anahtarı, oyun durumlarının (davet/yerleştirme/atışlar)
+    // tutulduğu KARDEŞ düğüm -- burada bir kullanıcı skoru DEĞİL, listeye dahil
+    // edilmemeli.
+    const rows = Object.keys(obj).filter((k) => k !== 'oyunlar').map((k) => obj[k])
+      .sort((a, b) => (b.kazanilan || 0) - (a.kazanilan || 0) || (b.oynanan || 0) - (a.oynanan || 0));
     if (!rows.length) { listEl.innerHTML = '<p class="hint" style="margin:16px;color:var(--text-muted)">Henüz kimse oyun bitirmedi.</p>'; return; }
     listEl.innerHTML = rows.slice(0, 20).map((r) =>
       '<div class="ab-leaderboard-row"><span>' + escapeHtml(r.isim || '?') + '</span><span>' + (r.kazanilan || 0) + ' galibiyet · ' + (r.oynanan || 0) + ' oyun</span></div>'
@@ -172,7 +183,7 @@ function renderLeaderboard() {
 }
 
 function initLobby() {
-  myGamesListenerRef = database.ref(dbPath('amiralBatti'));
+  myGamesListenerRef = database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar'));
   myGamesListenerRef.on('value', (snap) => {
     const val = snap.val() || {};
     lastLobbyItems = Object.keys(val).map((id) => Object.assign({ _id: id }, val[id]));
@@ -300,8 +311,8 @@ function placementEventleriBagla() {
     const no = benimOyuncuNumaram(currentGame);
     const patch = {};
     patch[dbPath('amiralBattiGizli/' + currentGameId + '/' + currentUserUid)] = { gemiler };
-    patch[dbPath('amiralBatti/' + currentGameId + '/hazir' + no)] = true;
-    patch[dbPath('amiralBatti/' + currentGameId + '/guncellemeTs')] = firebase.database.ServerValue.TIMESTAMP;
+    patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/hazir' + no)] = true;
+    patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/guncellemeTs')] = firebase.database.ServerValue.TIMESTAMP;
     database.ref('/').update(patch).catch((err) => { console.error('Filo kaydedilemedi:', err); showToast('Filo kaydedilemedi.', { variant: 'error' }); hazirBildirildi = false; });
   });
 }
@@ -311,7 +322,7 @@ function placementEventleriBagla() {
 // için zararsız (idempotent).
 function belkiSavasiBaslat(game) {
   if (game.durum !== 'yerlestirme' || !game.hazir1 || !game.hazir2) { return; }
-  database.ref(dbPath('amiralBatti/' + currentGameId)).update({
+  database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId)).update({
     durum: 'oynaniyor', sira: game.oyuncu1Uid, guncellemeTs: firebase.database.ServerValue.TIMESTAMP
   }).catch(() => {});
 }
@@ -365,17 +376,17 @@ function bekleyenAtislariCoz(game) {
     // (yoksa geriye sadece son vurulan hücre kırmızı/batmış görünüyor, diğerleri
     // kalıcı olarak 'isabet' (küçük kırmızı nokta) durumunda kalıyordu).
     Object.keys(guncelAtislar).forEach((k) => {
-      if (guncelAtislar[k] !== banaGelenAtislar[k]) { patch[dbPath('amiralBatti/' + currentGameId + '/' + banaGelenAnahtar + '/' + k)] = guncelAtislar[k]; }
+      if (guncelAtislar[k] !== banaGelenAtislar[k]) { patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/' + banaGelenAnahtar + '/' + k)] = guncelAtislar[k]; }
     });
 
     const toplamVurulan = Object.values(guncelAtislar).filter((v) => v === 'isabet' || v === 'batti').length;
     if (toplamVurulan >= TOPLAM_HUCRE) {
       const saldiranNo = benimNo === 1 ? 2 : 1;
-      patch[dbPath('amiralBatti/' + currentGameId + '/durum')] = 'bitti';
-      patch[dbPath('amiralBatti/' + currentGameId + '/sonuc')] = oyuncuUid(game, saldiranNo);
-      patch[dbPath('amiralBatti/' + currentGameId + '/sonNot')] = (oyuncuAdi(game, saldiranNo) || 'Rakip') + ' tüm filonu batırdı.';
+      patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/durum')] = 'bitti';
+      patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/sonuc')] = oyuncuUid(game, saldiranNo);
+      patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/sonNot')] = (oyuncuAdi(game, saldiranNo) || 'Rakip') + ' tüm filonu batırdı.';
     }
-    patch[dbPath('amiralBatti/' + currentGameId + '/guncellemeTs')] = firebase.database.ServerValue.TIMESTAMP;
+    patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/guncellemeTs')] = firebase.database.ServerValue.TIMESTAMP;
     database.ref('/').update(patch).catch((err) => console.error('Atış sonucu yazılamadı:', err))
       .finally(() => { bekleyenler.forEach((k) => cozulmekteOlanHucreler.delete(k)); });
   });
@@ -389,9 +400,9 @@ function atisYap(r, c) {
   if (mevcut) { return; }
   const rakipNo = benimNo === 1 ? 2 : 1;
   const patch = {};
-  patch[dbPath('amiralBatti/' + currentGameId + '/' + benimAtisAnahtarim + '/' + hucreAnahtari(r, c))] = 'bekliyor';
-  patch[dbPath('amiralBatti/' + currentGameId + '/sira')] = oyuncuUid(currentGame, rakipNo);
-  patch[dbPath('amiralBatti/' + currentGameId + '/guncellemeTs')] = firebase.database.ServerValue.TIMESTAMP;
+  patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/' + benimAtisAnahtarim + '/' + hucreAnahtari(r, c))] = 'bekliyor';
+  patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/sira')] = oyuncuUid(currentGame, rakipNo);
+  patch[dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + currentGameId + '/guncellemeTs')] = firebase.database.ServerValue.TIMESTAMP;
   database.ref('/').update(patch).catch((err) => { console.error('Atış yapılamadı:', err); showToast('Atış yapılamadı.', { variant: 'error' }); });
 }
 
@@ -545,7 +556,7 @@ function renderOyunEkrani(game) {
 
 function attachGameListener(id) {
   if (gameListenerRef) { gameListenerRef.off('value'); }
-  gameListenerRef = database.ref(dbPath('amiralBatti/' + id));
+  gameListenerRef = database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + id));
   gameListenerRef.on('value', (snap) => {
     const game = snap.val();
     if (!game) { showToast('Oyun bulunamadı.', { variant: 'error' }); return; }
@@ -596,14 +607,14 @@ function initGameView(id) {
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
     const atesCell = e.target.closest('[data-ab-fire-cell]');
     if (atesCell) { atisYap(Number(atesCell.dataset.r), Number(atesCell.dataset.c)); return; }
-    if (e.target.closest('[data-ab-accept]')) { database.ref(dbPath('amiralBatti/' + id)).update({ durum: 'yerlestirme', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
-    if (e.target.closest('[data-ab-reject]')) { database.ref(dbPath('amiralBatti/' + id)).update({ durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
-    if (e.target.closest('[data-ab-cancel]')) { database.ref(dbPath('amiralBatti/' + id)).update({ durum: 'iptal', sonNot: 'Davet iptal edildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
+    if (e.target.closest('[data-ab-accept]')) { database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + id)).update({ durum: 'yerlestirme', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
+    if (e.target.closest('[data-ab-reject]')) { database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + id)).update({ durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
+    if (e.target.closest('[data-ab-cancel]')) { database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + id)).update({ durum: 'iptal', sonNot: 'Davet iptal edildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP }); return; }
     if (e.target.closest('[data-ab-resign]')) {
       const benimNo = benimOyuncuNumaram(currentGame);
       if (!benimNo || !window.confirm('Oyundan çekilmek istediğinize emin misiniz?')) { return; }
       const rakipNo = benimNo === 1 ? 2 : 1;
-      database.ref(dbPath('amiralBatti/' + id)).update({ durum: 'bitti', sonuc: oyuncuUid(currentGame, rakipNo), sonNot: 'Oyundan çekildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP });
+      database.ref(dbPath('oyunBasarimlari/amiralBatti/oyunlar/' + id)).update({ durum: 'bitti', sonuc: oyuncuUid(currentGame, rakipNo), sonNot: 'Oyundan çekildi', guncellemeTs: firebase.database.ServerValue.TIMESTAMP });
     }
   });
 

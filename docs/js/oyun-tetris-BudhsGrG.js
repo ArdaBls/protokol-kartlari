@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/tetris-leaderboard-ygdZkBWr.js","js/db-mode-F_jprkvV.js"])))=>i.map(i=>d[i]);
+import{n as r}from"./main-v4-DUtFc973.js";r(()=>import("./tetris-leaderboard-ygdZkBWr.js").then(r=>r.initTetrisLeaderboard()),__vite__mapDeps([0,1]));

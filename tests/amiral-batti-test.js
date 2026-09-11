@@ -71,13 +71,13 @@ async function newPage(browser, uid) {
 		const page = await newPage(browser, 'oyuncu1');
 		await page.addInitScript((PORT_) => {
 			window.__mockData = {
-				amiralBatti: {
+				oyunBasarimlari: { amiralBatti: { oyunlar: {
 					oyunA: {
 						oyuncu1Uid: 'oyuncu1', oyuncu1Ad: 'Oyuncu Bir',
 						oyuncu2Uid: 'oyuncu2', oyuncu2Ad: 'Oyuncu Iki',
 						durum: 'yerlestirme', hazir1: false, hazir2: false, sira: null
 					}
-				}
+				} } }
 			};
 		}, PORT);
 		await page.goto('http://localhost:' + PORT + '/oyun-amiral-batti.html?oyun=oyunA', { waitUntil: 'networkidle' });
@@ -89,7 +89,7 @@ async function newPage(browser, uid) {
 		await page.waitForTimeout(200);
 		const updates = await page.evaluate(() => window.__mockUpdates || []);
 		const gizliYazildi = updates.some((u) => u.data && u.data['amiralBattiGizli/oyunA/oyuncu1'] && u.data['amiralBattiGizli/oyunA/oyuncu1'].gemiler && u.data['amiralBattiGizli/oyunA/oyuncu1'].gemiler.length === 5);
-		const hazirYazildi = updates.some((u) => u.data && u.data['amiralBatti/oyunA/hazir1'] === true);
+		const hazirYazildi = updates.some((u) => u.data && u.data['oyunBasarimlari/amiralBatti/oyunlar/oyunA/hazir1'] === true);
 		results.placementWritesFleetPrivately = gizliYazildi;
 		results.placementMarksReady = hazirYazildi;
 		results.placementPageErrors = page.__pageErrors.length;
@@ -109,7 +109,7 @@ async function newPage(browser, uid) {
 						oyuncu2: { gemiler: [{ id: 'muhrip', hucreler: [{ r: 0, c: 0 }, { r: 0, c: 1 }] }] }
 					}
 				},
-				amiralBatti: {
+				oyunBasarimlari: { amiralBatti: { oyunlar: {
 					oyunB: {
 						oyuncu1Uid: 'oyuncu1', oyuncu1Ad: 'Oyuncu Bir',
 						oyuncu2Uid: 'oyuncu2', oyuncu2Ad: 'Oyuncu Iki',
@@ -117,13 +117,13 @@ async function newPage(browser, uid) {
 						atislar1: { '0_0': 'bekliyor' },
 						atislar2: {}
 					}
-				}
+				} } }
 			};
 		}, PORT);
 		await page.goto('http://localhost:' + PORT + '/oyun-amiral-batti.html?oyun=oyunB', { waitUntil: 'networkidle' });
 		await page.waitForTimeout(300);
 		const updates = await page.evaluate(() => window.__mockUpdates || []);
-		const isabetYazildi = updates.some((u) => u.data && u.data['amiralBatti/oyunB/atislar1/0_0'] === 'isabet');
+		const isabetYazildi = updates.some((u) => u.data && u.data['oyunBasarimlari/amiralBatti/oyunlar/oyunB/atislar1/0_0'] === 'isabet');
 		results.singleHitResolvesToIsabet = isabetYazildi;
 		results.combatPageErrors = page.__pageErrors.length;
 		await page.close();
@@ -154,26 +154,60 @@ async function newPage(browser, uid) {
 		await page.addInitScript((args) => {
 			window.__mockData = {
 				amiralBattiGizli: { oyunC: { oyuncu2: { gemiler: args.gemiler } } },
-				amiralBatti: {
+				oyunBasarimlari: { amiralBatti: { oyunlar: {
 					oyunC: {
 						oyuncu1Uid: 'oyuncu1', oyuncu1Ad: 'Oyuncu Bir',
 						oyuncu2Uid: 'oyuncu2', oyuncu2Ad: 'Oyuncu Iki',
 						durum: 'oynaniyor', hazir1: true, hazir2: true, sira: 'oyuncu2',
 						atislar1: args.atislar1, atislar2: {}
 					}
-				}
+				} } }
 			};
 		}, { gemiler: digerGemiler, atislar1 });
 		await page.goto('http://localhost:' + PORT + '/oyun-amiral-batti.html?oyun=oyunC', { waitUntil: 'networkidle' });
 		await page.waitForTimeout(300);
 		const updates = await page.evaluate(() => window.__mockUpdates || []);
-		const battiYazildi = updates.some((u) => u.data && u.data['amiralBatti/oyunC/atislar1/0_1'] === 'batti');
-		const eskiHucreDeYukseldi = updates.some((u) => u.data && u.data['amiralBatti/oyunC/atislar1/0_0'] === 'batti');
-		const oyunBitti = updates.some((u) => u.data && u.data['amiralBatti/oyunC/durum'] === 'bitti' && u.data['amiralBatti/oyunC/sonuc'] === 'oyuncu1');
+		const battiYazildi = updates.some((u) => u.data && u.data['oyunBasarimlari/amiralBatti/oyunlar/oyunC/atislar1/0_1'] === 'batti');
+		const eskiHucreDeYukseldi = updates.some((u) => u.data && u.data['oyunBasarimlari/amiralBatti/oyunlar/oyunC/atislar1/0_0'] === 'batti');
+		const oyunBitti = updates.some((u) => u.data && u.data['oyunBasarimlari/amiralBatti/oyunlar/oyunC/durum'] === 'bitti' && u.data['oyunBasarimlari/amiralBatti/oyunlar/oyunC/sonuc'] === 'oyuncu1');
 		results.lastCellSunkMarksBatti = battiYazildi;
 		results.lastCellSunkUpgradesAllShipCells = eskiHucreDeYukseldi;
 		results.allShipsSunkEndsGameForAttacker = oyunBitti;
 		results.winPageErrors = page.__pageErrors.length;
+		await page.close();
+	}
+
+	// 5) Mobil: savaş tahtaları ekran genişliğine yakın büyüklükte olmalı --
+	// bkz. kullanıcı bildirimi: ".ab-layout'un align-items:flex-start'ı
+	// flex-direction:column olunca çapraz eksende .ab-main'i İÇERİĞİNE göre
+	// küçültüyordu (tahtalar 91px'e düşüyordu), stretch ile düzeltildi.
+	{
+		const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+		const pageErrors = [];
+		page.on('pageerror', (e) => pageErrors.push(e.message));
+		await page.route('**/firebasejs/**/firebase-app-compat.js', (route) => route.fulfill({ path: path.join(TESTS_DIR, 'mock-firebase.js'), contentType: 'application/javascript' }));
+		await page.route('**/firebasejs/**/firebase-database-compat.js', (route) => route.fulfill({ body: '' }));
+		await page.route('**/firebasejs/**/firebase-auth-compat.js', (route) => route.fulfill({ body: '' }));
+		await page.route('**://fonts.googleapis.com/**', (route) => route.fulfill({ body: '' }));
+		await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
+		await page.addInitScript(() => {
+			window.__mockAuthUser = { uid: 'oyuncu1', email: 'oyuncu1@test.com' };
+			window.__mockOnceSnapshot = { role: 'editor', firstName: 'Test', lastName: 'oyuncu1' };
+			window.__mockData = {
+				amiralBattiGizli: { oyunM: { oyuncu1: { gemiler: [{ id: 'muhrip', hucreler: [{ r: 0, c: 0 }, { r: 0, c: 1 }] }] } } },
+				oyunBasarimlari: { amiralBatti: { oyunlar: { oyunM: {
+					oyuncu1Uid: 'oyuncu1', oyuncu1Ad: 'Oyuncu Bir', oyuncu2Uid: 'oyuncu2', oyuncu2Ad: 'Oyuncu Iki',
+					durum: 'oynaniyor', hazir1: true, hazir2: true, sira: 'oyuncu1', atislar1: {}, atislar2: {}
+				} } } }
+			};
+		});
+		await page.goto('http://localhost:' + PORT + '/oyun-amiral-batti.html?oyun=oyunM', { waitUntil: 'networkidle' });
+		await page.waitForTimeout(300);
+		// data-ab-placement (gizli/gizli olmayan) hidden'dır (durum: oynaniyor) --
+		// sadece görünür savaş tahtaları (.ab-board-panel içindeki) ölçülüyor.
+		const boardWidths = await page.evaluate(() => Array.from(document.querySelectorAll('.ab-board-panel .ab-board')).map((b) => b.getBoundingClientRect().width));
+		results.mobileBoardsFillWidth = boardWidths.length === 2 && boardWidths.every((w) => w >= 300);
+		results.mobilePageErrors = pageErrors.length;
 		await page.close();
 	}
 
