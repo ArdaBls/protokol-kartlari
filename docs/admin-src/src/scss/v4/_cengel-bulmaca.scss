@@ -7,8 +7,27 @@
 .cengel-col--ipuclari { flex: 1 1 320px; max-width: 420px; }
 .cengel-col--lider { flex: 1 1 260px; max-width: 320px; }
 
+.cengel-zorluk-bar { display: flex; gap: 6px; }
+.cengel-zorluk-bar .btn { padding: 6px 14px; font-size: 12.5px; }
+
+// Mobil klavyeyi açmak için gerekli ama görsel olarak GÖRÜNMEZ (display:none
+// OLMAMALI -- o zaman odaklanamaz, klavye hiç açılmaz). 1x1px, saydam,
+// sayfa akışını etkilemeyecek şekilde konumlanmış.
+.cengel-gizli-giris {
+  position: fixed; top: 0; left: 0; width: 1px; height: 1px;
+  opacity: 0; border: none; padding: 0; pointer-events: none;
+}
+
+// Kullanıcı bulgusu: harf yazınca kutular büyüyüp bulmacanın şekli bozuluyordu.
+// Kök sebep: grid-template-columns JS'te repeat(N,1fr) ile ayarlanıyor ama
+// SATIRLAR "auto" kalıyordu -- bir hücreye uzun/yüksek bir harf render edilince
+// o SATIR büyüyor, SÜTUNLAR aynı kalıyor, kare bozuluyordu. grid-auto-rows:1fr
+// satırları da sütunlarla AYNI oranda paylaştırır; her hücreye ayrıca
+// aspect-ratio:1/1 + overflow:hidden eklenerek içerik ne olursa olsun kare
+// kalması GARANTİ altına alınıyor.
 .cengel-grid {
   display: grid;
+  grid-auto-rows: 1fr;
   border: 2px solid #000;
   background: #000;
   gap: 1px;
@@ -17,11 +36,14 @@
 }
 .cengel-hucre {
   position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
   background: #fff;
   color: #111;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700;
-  font-size: clamp(9px, 2.2vw, 20px);
+  font-weight: 800;
+  font-size: clamp(8px, 1.8vw, 16px);
+  line-height: 1;
   cursor: pointer;
   user-select: none;
 }

@@ -34,7 +34,15 @@
 
   <div class="cengel-layout">
     <div class="cengel-col cengel-col--izgara">
+      <div id="cengel-zorluk-bar" class="cengel-zorluk-bar">
+        <button type="button" class="btn btn-outline" data-zorluk="kolay">Kolay</button>
+        <button type="button" class="btn btn-outline" data-zorluk="orta">Orta</button>
+        <button type="button" class="btn btn-outline" data-zorluk="zor">Zor</button>
+      </div>
       <div id="cengel-izgara"></div>
+      <!-- Mobilde native ekran klavyesini AÇMAK için görünmez ama odaklanabilir
+           giriş kutusu -- bkz. cengel-bulmaca.js gizliGirisiHazirla(). -->
+      <input type="text" id="cengel-gizli-giris" class="cengel-gizli-giris" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" maxlength="2" aria-hidden="true">
       <button type="button" class="btn btn-primary" id="cengel-kontrol-btn">Kontrol Et</button>
     </div>
     <div class="cengel-col cengel-col--ipuclari">

@@ -28,11 +28,11 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/oyun-mini-cengel-bulmaca-Dmd_dMPl.js"></script>
+  <script type="module" crossorigin src="/js/oyun-mini-cengel-bulmaca-8dERmJeX.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-F_jprkvV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-j73Nmy2R.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-DZevtdH-.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-DC9j1Oq3.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-B3UZ94Dd.css">
 </head>
 <body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Mini Çengel Bulmaca">
 
@@ -220,7 +220,15 @@
 
   <div class="cengel-layout">
     <div class="cengel-col cengel-col--izgara">
+      <div id="cengel-zorluk-bar" class="cengel-zorluk-bar">
+        <button type="button" class="btn btn-outline" data-zorluk="kolay">Kolay</button>
+        <button type="button" class="btn btn-outline" data-zorluk="orta">Orta</button>
+        <button type="button" class="btn btn-outline" data-zorluk="zor">Zor</button>
+      </div>
       <div id="cengel-izgara"></div>
+      <!-- Mobilde native ekran klavyesini AÇMAK için görünmez ama odaklanabilir
+           giriş kutusu -- bkz. cengel-bulmaca.js gizliGirisiHazirla(). -->
+      <input type="text" id="cengel-gizli-giris" class="cengel-gizli-giris" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" maxlength="2" aria-hidden="true">
       <button type="button" class="btn btn-primary" id="cengel-kontrol-btn">Kontrol Et</button>
     </div>
     <div class="cengel-col cengel-col--ipuclari">

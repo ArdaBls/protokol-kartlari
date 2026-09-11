@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/cengel-bulmaca-BN16CFZp.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js"])))=>i.map(i=>d[i]);
-import{n as a}from"./main-v4-j73Nmy2R.js";a(()=>import("./cengel-bulmaca-BN16CFZp.js").then(a=>a.initCengelBulmaca(7,"miniCengelBulmaca")),__vite__mapDeps([0,1,2]));

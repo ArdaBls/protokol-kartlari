@@ -43,26 +43,16 @@ function bosIzgara(boyut) {
 }
 
 // Bir kelimeyi (row,col) konumundan başlayıp yön (0=yatay,1=dikey) boyunca
-// yerleştirmenin GEÇERLİ olup olmadığını kontrol eder: sınır dışına taşmamalı,
-// kesişen hücrelerde harf uyuşmalı, kesişmeyen hücreler boş olmalı VE o hücrenin
-// DİK yönündeki komşuları da boş olmalı (yoksa istenmeyen bitişik kelime oluşur),
-// kelimenin başı ve sonu da (aynı yönde) sınır veya boş hücre olmalı.
-function yerlestirmeGecerliMi(grid, boyut, kelime, row, col, yon) {
+// yerleştirmenin GEÇERLİ olup olmadığının İLK (ucuz) elemesi: sınır dışına
+// taşmamalı, kesişen hücrelerde harf uyuşmalı. Bu tek başına YETERSİZ --
+// bkz. izgaraGecerliMi (asıl, TAM doğrulama SONRADAN yapılır).
+function temelUygunlukKontrolu(grid, boyut, kelime, row, col, yon) {
   const harfler = harfleriAyir(kelime);
   const dr = yon === 1 ? 1 : 0;
   const dc = yon === 0 ? 1 : 0;
   const bitisRow = row + dr * (harfler.length - 1);
   const bitisCol = col + dc * (harfler.length - 1);
   if (row < 0 || col < 0 || bitisRow >= boyut || bitisCol >= boyut) { return false; }
-
-  // Kelimenin hemen öncesi ve sonrası (aynı satır/sütunda) BOŞ olmalı --
-  // aksi halde bu kelime bitişik başka bir kelimeyle birleşip anlamsız/uzun
-  // bir dizi oluşturur.
-  const oncekiRow = row - dr, oncekiCol = col - dc;
-  if (oncekiRow >= 0 && oncekiCol >= 0 && grid[oncekiRow][oncekiCol]) { return false; }
-  const sonrakiRow = bitisRow + dr, sonrakiCol = bitisCol + dc;
-  if (sonrakiRow < boyut && sonrakiCol < boyut && grid[sonrakiRow][sonrakiCol]) { return false; }
-
   let kesisimVarMi = false;
   for (let i = 0; i < harfler.length; i++) {
     const r = row + dr * i, c = col + dc * i;
@@ -70,16 +60,69 @@ function yerlestirmeGecerliMi(grid, boyut, kelime, row, col, yon) {
     if (mevcut) {
       if (mevcut.harf !== harfler[i]) { return false; }
       kesisimVarMi = true;
-    } else {
-      // Kesişmeyen (yeni) hücre: DİK yöndeki komşular boş olmalı, yoksa
-      // istenmeyen bir yan kelime/harf çakışması oluşur.
-      const dikR = yon === 0 ? 1 : 0, dikC = yon === 1 ? 1 : 0;
-      const ust = grid[r - dikR] && grid[r - dikR][c - dikC];
-      const alt = grid[r + dikR] && grid[r + dikR][c + dikC];
-      if (ust || alt) { return false; }
     }
   }
   return kesisimVarMi;
+}
+
+// KRİTİK doğrulama -- kullanıcı bulgusu: "kelime sonuna gelince harf değiştiriyor
+// sürekli" bunun kökeniydi. Eski kontrol SADECE o an yerleştirilen kelimenin
+// kendi önü/sonu/dik komşularını kontrol ediyordu -- ama SONRADAN yerleşen
+// BAŞKA bir kelime, önceden yerleşmiş bir kelimenin bittiği hücrenin TAM
+// yanına kendi (ilgisiz) harfini koyabiliyordu; o kontrol SADECE yeni kelimenin
+// kendi doğrultusuna bakıyordu, önceki kelimenin ucunu "kazara uzatıp
+// uzatmadığını" hiç sormuyordu. Doğru çözüm: aday yerleştirmeyi GEÇİCİ olarak
+// uygulayıp, TÜM ızgarayı tarayarak her yatay/dikey ardışık harf dizisinin
+// GERÇEKTEN placedWords'te kayıtlı bir kelimeyle birebir eşleştiğini
+// doğrulamak -- eşleşmeyen (kazara oluşmuş) bir dizi varsa yerleştirme
+// GERİ ALINIR. Küçük ızgaralarda (15x15 dahi) bu tarama çok ucuz.
+function izgaraGecerliMi(grid, boyut, placedWords) {
+  for (let r = 0; r < boyut; r++) {
+    let c = 0;
+    while (c < boyut) {
+      if (!grid[r][c]) { c++; continue; }
+      const baslangic = c;
+      while (c < boyut && grid[r][c]) { c++; }
+      const uzunluk = c - baslangic;
+      if (uzunluk >= 2) {
+        const eslesenVar = placedWords.some((w) => w.yon === 0 && w.row === r && w.col === baslangic && w.kelime.length === uzunluk);
+        if (!eslesenVar) { return false; }
+      }
+    }
+  }
+  for (let c = 0; c < boyut; c++) {
+    let r = 0;
+    while (r < boyut) {
+      if (!grid[r][c]) { r++; continue; }
+      const baslangic = r;
+      while (r < boyut && grid[r][c]) { r++; }
+      const uzunluk = r - baslangic;
+      if (uzunluk >= 2) {
+        const eslesenVar = placedWords.some((w) => w.yon === 1 && w.col === c && w.row === baslangic && w.kelime.length === uzunluk);
+        if (!eslesenVar) { return false; }
+      }
+    }
+  }
+  return true;
+}
+
+// Aday kelimeyi geçici olarak yerleştirip TAM ızgara doğrulaması yapar;
+// geçersizse yerleştirilen (SADECE bu kelimenin YENİ eklediği, kesişim
+// OLMAYAN) hücreleri geri alır ve false döner.
+function denemeYerlestir(grid, boyut, placedWords, aday, row, col, yon) {
+  if (!temelUygunlukKontrolu(grid, boyut, aday.k, row, col, yon)) { return false; }
+  const harfler = harfleriAyir(aday.k);
+  const dr = yon === 1 ? 1 : 0, dc = yon === 0 ? 1 : 0;
+  const yeniEklenenler = [];
+  for (let i = 0; i < harfler.length; i++) {
+    const r = row + dr * i, c = col + dc * i;
+    if (!grid[r][c]) { grid[r][c] = { harf: harfler[i] }; yeniEklenenler.push([r, c]); }
+  }
+  placedWords.push({ kelime: aday.k, ipucu: aday.i, row, col, yon });
+  if (izgaraGecerliMi(grid, boyut, placedWords)) { return true; }
+  placedWords.pop();
+  yeniEklenenler.forEach(([r, c]) => { grid[r][c] = null; });
+  return false;
 }
 
 function kelimeyiYerlestir(grid, kelime, row, col, yon) {
@@ -137,9 +180,7 @@ export function cengelBulmacaUret(havuz, boyut, seedStr, hedefKelimeSayisi) {
           for (const yon of [0, 1]) {
             const row = yon === 1 ? r - i : r;
             const col = yon === 0 ? c - i : c;
-            if (yerlestirmeGecerliMi(grid, boyut, aday.k, row, col, yon)) {
-              kelimeyiYerlestir(grid, aday.k, row, col, yon);
-              placedWords.push({ kelime: aday.k, ipucu: aday.i, row, col, yon });
+            if (denemeYerlestir(grid, boyut, placedWords, aday, row, col, yon)) {
               kullanilanKelimeler.add(aday.k);
               yerlesti = true;
               break;

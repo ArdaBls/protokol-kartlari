@@ -112,6 +112,7 @@ function ipucuListesiRender() {
 function hucreyeTikla(row, col) {
   const kelimeler = hucreninKelimeleriniBul(row, col);
   if (!kelimeler.length) { return; }
+  gizliGirisineOdaklan();
   if (aktif && aktif.row === row && aktif.col === col && kelimeler.length > 1) {
     // Aynı hücreye tekrar tıklama: yatay/dikey kelime arasında geçiş yap (kesişim noktası).
     const digerYon = aktif.yon === 0 ? 1 : 0;
@@ -239,6 +240,88 @@ function liderTablosunuYukle() {
   }).catch((err) => console.error('Çengel bulmaca lider tablosu okunamadı:', err));
 }
 
+// Kullanıcı isteği: "zor orta kolay diye bir zorluk sırası olsun". Kolay =
+// daha az kelime (daha seyrek ızgara, kesişim daha az -- takılma ihtimali
+// düşük) + kısa/yaygın kelimelere ağırlık; Zor = daha çok kelime (daha yoğun
+// ızgara) + uzun/az bilinen kelimelere ağırlık. Havuz, üretime girmeden önce
+// zorluğa göre yeniden ağırlıklandırılıyor (kısa uzunlukları çoğaltıp/azaltıp
+// uzun uzunlukları azaltıp/çoğaltarak) -- üretici algoritmasının kendisi
+// değişmiyor, sadece hangi kelimelerin daha sık aday olacağı değişiyor.
+const ZORLUK_AYARLARI = {
+  kolay: { hedefCarpani: 0.7, kisaAgirlik: 3, uzunAgirlik: 1 },
+  orta: { hedefCarpani: 1, kisaAgirlik: 1, uzunAgirlik: 1 },
+  zor: { hedefCarpani: 1.25, kisaAgirlik: 1, uzunAgirlik: 3 }
+};
+function zorlugaGoreHavuz(havuz, boyut, zorluk) {
+  const ayar = ZORLUK_AYARLARI[zorluk] || ZORLUK_AYARLARI.orta;
+  const ortaUzunluk = boyut >= 15 ? 7 : 5;
+  const yeni = {};
+  Object.keys(havuz).forEach((uzunlukStr) => {
+    const uzunluk = Number(uzunlukStr);
+    const carpan = uzunluk <= ortaUzunluk ? ayar.kisaAgirlik : ayar.uzunAgirlik;
+    let liste = havuz[uzunlukStr];
+    if (carpan > 1) { liste = Array(Math.round(carpan)).fill(liste).flat(); }
+    else if (carpan < 1 && carpan > 0) { liste = liste.slice(0, Math.max(1, Math.round(liste.length * carpan))); }
+    yeni[uzunlukStr] = liste;
+  });
+  return yeni;
+}
+
+let HAM_HAVUZ = null;
+let mevcutZorluk = 'orta';
+
+function bulmacayiUret(boyut, oyunAdi, zorluk) {
+  mevcutZorluk = zorluk;
+  const hedefTemel = boyut >= 15 ? 35 : 10;
+  const ayar = ZORLUK_AYARLARI[zorluk] || ZORLUK_AYARLARI.orta;
+  const hedefKelimeSayisi = Math.round(hedefTemel * ayar.hedefCarpani);
+  const havuz = zorlugaGoreHavuz(HAM_HAVUZ, boyut, zorluk);
+  const uretim = cengelBulmacaUret(havuz, boyut, bugunTarih + ':' + SEED_VERSION + ':' + oyunAdi + ':' + zorluk, hedefKelimeSayisi);
+  grid = uretim.grid;
+  placedWords = uretim.placedWords;
+  userGrid = Array.from({ length: BOYUT }, () => new Array(BOYUT).fill(''));
+  durumuYukle();
+  const ilkKelime = placedWords[0];
+  aktif = ilkKelime ? { row: ilkKelime.row, col: ilkKelime.col, yon: 0 } : null;
+  oyunBitti = false;
+  durumuYukle();
+  tamRenderVeOdak();
+}
+
+// Kullanıcı bulgusu: mobilde harf yazılamıyordu -- fiziksel klavye dinleyicisi
+// (document keydown) sadece GERÇEK bir klavyesi olan cihazlarda işe yarar,
+// dokunmatik telefonda ekran klavyesini AÇACAK hiçbir odaklanabilir <input>
+// yoktu. Görünmez ama odaklanabilir bir metin kutusu (satır/gizli, ama
+// display:none DEĞİL -- o zaman odaklanamaz) hücreye tıklanınca focus alıyor,
+// mobil klavye açılıyor, input event'i harfi yakalıyor.
+function gizliGirisiHazirla() {
+  const giris = document.getElementById('cengel-gizli-giris');
+  if (!giris) { return; }
+  giris.addEventListener('input', () => {
+    const deger = giris.value;
+    giris.value = '';
+    if (!deger) { return; }
+    const h = deger.slice(-1).toLocaleLowerCase('tr-TR');
+    if (/[abcçdefgğhıijklmnoöprsştuüvyz]/.test(h)) { harfGir(h); }
+  });
+  giris.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace') { e.preventDefault(); geriSil(); }
+  });
+}
+function gizliGirisineOdaklan() {
+  const giris = document.getElementById('cengel-gizli-giris');
+  if (giris && document.activeElement !== giris) { giris.focus({ preventScroll: true }); }
+}
+
+function zorlukBarRender() {
+  const bar = document.getElementById('cengel-zorluk-bar');
+  if (!bar) { return; }
+  bar.querySelectorAll('[data-zorluk]').forEach((btn) => {
+    btn.classList.toggle('btn-primary', btn.dataset.zorluk === mevcutZorluk);
+    btn.classList.toggle('btn-outline', btn.dataset.zorluk !== mevcutZorluk);
+  });
+}
+
 export function initCengelBulmaca(boyut, oyunAdi) {
   BOYUT = boyut;
   OYUN_ADI = oyunAdi;
@@ -247,19 +330,20 @@ export function initCengelBulmaca(boyut, oyunAdi) {
   if (!kapsayici) { return; }
   bugunTarih = bugununTarihiIstanbul();
   fetch('/data/cengel-kelime-havuzu.json').then((r) => r.json()).then((havuz) => {
-    const hedefKelimeSayisi = boyut >= 15 ? 35 : 10;
-    const uretim = cengelBulmacaUret(havuz, boyut, bugunTarih + ':' + SEED_VERSION + ':' + oyunAdi, hedefKelimeSayisi);
-    grid = uretim.grid;
-    placedWords = uretim.placedWords;
-    userGrid = Array.from({ length: BOYUT }, () => new Array(BOYUT).fill(''));
-    durumuYukle();
-    const ilkKelime = placedWords[0];
-    aktif = ilkKelime ? { row: ilkKelime.row, col: ilkKelime.col, yon: 0 } : null;
-    tamRenderVeOdak();
+    HAM_HAVUZ = havuz;
+    bulmacayiUret(boyut, oyunAdi, 'orta');
+    zorlukBarRender();
     document.getElementById('cengel-kontrol-btn') && document.getElementById('cengel-kontrol-btn').addEventListener('click', () => {
       const tamam = kontrolEt();
       if (!tamam) { showToast('Henüz tam değil veya bazı harfler yanlış.', { variant: 'error' }); }
     });
+    document.getElementById('cengel-zorluk-bar') && document.getElementById('cengel-zorluk-bar').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-zorluk]');
+      if (!btn || btn.dataset.zorluk === mevcutZorluk) { return; }
+      bulmacayiUret(boyut, oyunAdi, btn.dataset.zorluk);
+      zorlukBarRender();
+    });
+    gizliGirisiHazirla();
     fizikselKlavyeDinle();
   }).catch((err) => {
     console.error('Çengel bulmaca kelime havuzu yüklenemedi:', err);
