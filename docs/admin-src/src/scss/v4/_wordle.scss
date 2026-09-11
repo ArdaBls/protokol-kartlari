@@ -12,10 +12,15 @@
 .wordle-game-center { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); zoom: 1.75; }
 @media (max-width: 900px) {
   .wordle-layout { flex-direction: column; align-items: center; }
-  .wordle-col--sol, .wordle-col--sag, .wordle-col--orta { width: 100%; max-width: 480px; }
+  .wordle-col--orta { width: 100%; max-width: 480px; }
   // Telefon genişliğinde 1.75x büyütme ızgarayı/klavyeyi ekran dışına taşırır --
   // dar ekranda normal boyuta dönülüyor.
   .wordle-game-center { zoom: 1; }
+  // Kullanıcı isteği: "telefonda yalnızca wordle oyunu ve alttaki klavye olsun,
+  // oyun gözüksün sadece" -- kişisel dağılım ve lider tablosu sütunları oyun
+  // sırasında gizli; kazanınca bu bilgi zaten #wordle-sonuc içinde (mobilde de
+  // görünür merkez sütunda) tekrar gösteriliyor (bkz. wordle.js sonucPaneliGoster).
+  .wordle-col--sol, .wordle-col--sag { display: none; }
 }
 
 .wordle-grid { display: flex; flex-direction: column; gap: 6px; }
@@ -72,13 +77,35 @@
 }
 .wordle-key:hover { filter: brightness(1.1); }
 .wordle-key--wide { flex: 1.6; max-width: 68px; font-size: 12px; }
+// Kullanıcı bulgusu: "alttaki klavye görünümü sıkıştı biraz bilgisayarda" -- oyun
+// zaten zoom:1.75 ile büyüyor ama klavyenin kendi max-width/gap değerleri sabit
+// kalıyordu, oransal olarak dar görünüyordu. Masaüstünde tuşlara ve boşluklara
+// biraz daha nefes alanı veriliyor (zoom zaten genel büyütmeyi sağlıyor, bu SADECE
+// tuş içi oranları rahatlatıyor).
+@media (min-width: 640px) {
+  .wordle-keyboard { max-width: 560px; gap: 8px; }
+  .wordle-kb-row { gap: 7px; }
+  .wordle-key { max-width: 46px; height: 50px; font-size: 15px; }
+  .wordle-key--wide { max-width: 78px; font-size: 13px; }
+}
 .wordle-key--dogru { background: var(--green, #2e7d32); color: #fff; }
 .wordle-key--var { background: var(--yellow, #b8860b); color: #fff; }
 .wordle-key--yok { opacity: .4; }
 
-.wordle-sonuc { margin-top: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wordle-sonuc { margin-top: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
 .wordle-sonuc-baslik { font-size: 18px; font-weight: 700; }
 .wordle-sonuc-kelime { font-size: 13px; color: var(--text-muted); }
+
+// "1 2 3 4 5 6 hangi sırada yaptıysa o gelsin" -- kazanınca kaçıncı denemede
+// olduğunu vurgulayan pil şeridi.
+.wordle-deneme-seridi { display: flex; gap: 8px; justify-content: center; }
+.wordle-deneme-pil {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  background: var(--bg-surface-2, var(--border-color)); color: var(--text-muted);
+}
+.wordle-deneme-pil--kazanan { background: var(--green, #2e7d32); color: #fff; transform: scale(1.15); }
 
 .wordle-lider-tablosu { display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 420px; }
 .wordle-lider-satir {

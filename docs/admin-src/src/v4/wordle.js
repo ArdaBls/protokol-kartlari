@@ -4,7 +4,7 @@
 // altından build'e giriyor. Günün kelimesi SUNUCUSUZ: tarih + yıllık "seed sürümü"
 // birleşip deterministik bir PRNG ile havuzdan seçiliyor -- her istemci bağımsız aynı
 // sonuca ulaşıyor, Firebase'e günlük kelime için hiç gerek yok. Sadece kişisel
-// istatistik (seri, kazanma oranı) Firebase'de (kelimeOyunlariIstatistik/wordle/{uid}).
+// istatistik (seri, kazanma oranı) Firebase'de (oyunBasarimlari/wordle/{uid}).
 import { dbPath, initDbMode } from './db-mode.js';
 import { showToast } from './toast.js';
 
@@ -24,7 +24,7 @@ const FIREBASE_CONFIG = {
 const KEYBOARD_ROWS = [
   ['e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'],
   ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i'],
-  ['ENTER', 'z', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', 'BACK']
+  ['BACK', 'z', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', 'ENTER']
 ];
 
 function bugununTarihiIstanbul() {
@@ -210,14 +210,35 @@ function tahminGonder() {
   if (oyunBitti) { istatistikGuncelle(); sonucPaneliGoster(); }
 }
 
+// Kullanıcı isteği: "oyun bitti eğer kazandıysa ekrana önce 1 2 3 4 5 6 hangi
+// sırada yaptıysa o gelsin sonra da altta istatistik tablosu çıksın" -- kazanınca
+// kaçıncı denemede olduğunu 1-6 şeklinde vurgulayan bir şerit, ALTINDA da kişisel
+// dağıtım tablosu (sol sütun mobilde gizlendiği için, sonuç bu bilgiyi ORADA da
+// göstermek zorunda -- bkz. dagitimHtmlOlustur, hem burada hem kisiselIstatistikYukle'de).
+function denemeSeridiHtmlOlustur(kazanilanDeneme) {
+  const pilller = Array.from({ length: MAX_TRIES }, (_, i) => i + 1).map((n) => {
+    return `<span class="wordle-deneme-pil${n === kazanilanDeneme ? ' wordle-deneme-pil--kazanan' : ''}">${n}</span>`;
+  }).join('');
+  return `<div class="wordle-deneme-seridi">${pilller}</div>`;
+}
+
 function sonucPaneliGoster() {
   const panel = document.getElementById('wordle-sonuc');
   if (!panel) { return; }
   panel.hidden = false;
-  panel.innerHTML = `
-    <div class="wordle-sonuc-baslik">${kazandi ? 'Kazandın!' : 'Bu sefer olmadı'}</div>
-    <div class="wordle-sonuc-kelime">${!kazandi ? 'Kelime: <strong>' + escapeHtml(hedefKelime.toLocaleUpperCase('tr-TR')) + '</strong>' : ''}</div>
-  `;
+  if (kazandi) {
+    panel.innerHTML = `
+      <div class="wordle-sonuc-baslik">Kazandın!</div>
+      ${denemeSeridiHtmlOlustur(tahminler.length)}
+      <div id="wordle-sonuc-dagitim"></div>
+    `;
+    kisiselIstatistikYukle('wordle-sonuc-dagitim');
+  } else {
+    panel.innerHTML = `
+      <div class="wordle-sonuc-baslik">Bu sefer olmadı</div>
+      <div class="wordle-sonuc-kelime">Kelime: <strong>${escapeHtml(hedefKelime.toLocaleUpperCase('tr-TR'))}</strong></div>
+    `;
+  }
 }
 
 let database = null;
@@ -225,7 +246,7 @@ let currentUid = '';
 let currentUserName = '';
 function istatistikGuncelle() {
   if (!database || !currentUid) { return; }
-  const ref = database.ref(dbPath('kelimeOyunlariIstatistik/wordle/' + currentUid));
+  const ref = database.ref(dbPath('oyunBasarimlari/wordle/' + currentUid));
   ref.once('value').then((snap) => {
     const eski = snap.val() || { oynanan: 0, kazanilan: 0, seri: 0, enUzunSeri: 0, sonTarih: '', dagitim: {} };
     // Aynı günün istatistiği tekrar yazılmasın (sayfa yenilenip oyunBitti=true durumundan
@@ -253,11 +274,11 @@ function istatistikGuncelle() {
 // buldu, 2. mi, 3. 4. 5. 6. diye" -- herkese açık lider tablosundan AYRI, sadece kendi
 // geçmiş sonuçlarının (kaç denemede bulduğu) dağılımını çubuk olarak gösteren panel.
 // Veri zaten dagitim alanında tutuluyordu (istatistikGuncelle), sadece görünüm eksikti.
-function kisiselIstatistikYukle() {
+function kisiselIstatistikYukle(kutuId) {
   if (!database || !currentUid) { return; }
-  const box = document.getElementById('wordle-kisisel-istatistik');
+  const box = document.getElementById(kutuId || 'wordle-kisisel-istatistik');
   if (!box) { return; }
-  database.ref(dbPath('kelimeOyunlariIstatistik/wordle/' + currentUid)).once('value').then((snap) => {
+  database.ref(dbPath('oyunBasarimlari/wordle/' + currentUid)).once('value').then((snap) => {
     const s = snap.val();
     if (!s) { box.innerHTML = '<div class="wordle-lider-bos">Henüz oynamadın -- ilk bulmacanı çöz!</div>'; return; }
     const dagitim = s.dagitim || {};
@@ -283,7 +304,7 @@ function liderTablosunuYukle() {
   if (!database) { return; }
   const box = document.getElementById('wordle-lider-tablosu');
   if (!box) { return; }
-  database.ref(dbPath('kelimeOyunlariIstatistik/wordle')).once('value').then((snap) => {
+  database.ref(dbPath('oyunBasarimlari/wordle')).once('value').then((snap) => {
     const hepsi = snap.val() || {};
     const satirlar = Object.keys(hepsi).map((uid) => Object.assign({ uid }, hepsi[uid]))
       .sort((a, b) => (b.seri || 0) - (a.seri || 0) || (b.kazanilan || 0) - (a.kazanilan || 0));
