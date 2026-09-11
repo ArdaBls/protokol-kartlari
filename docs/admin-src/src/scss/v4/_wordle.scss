@@ -1,0 +1,74 @@
+// Wordle (Türkçe) -- kelime oyunu silsilesinin ilk oyunu (bkz. wordle.js).
+.wordle-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+
+.wordle-grid { display: flex; flex-direction: column; gap: 6px; }
+.wordle-row { display: flex; gap: 6px; }
+.wordle-row--titrek { animation: wordle-titrek 0.4s; }
+@keyframes wordle-titrek {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+.wordle-cell {
+  width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 24px; font-weight: 700; text-transform: uppercase;
+  color: var(--text);
+  background: var(--bg-surface);
+}
+.wordle-cell--dolu { border-color: var(--text-muted); }
+// Kullanıcı isteği: harf sonucu açıklanırken kart 3D olarak dönsün (Wordle'ın klasik
+// "flip reveal" efekti) -- kullanıcının sağladığı animasyon, sütun başına 0.12s
+// kademeli gecikmeyle (bkz. wordle.js gridRender) art arda tetikleniyor.
+// Verilen "flip-horizontal-bottom" animasyonu 0deg -> -180deg gidip DÜZ BİTMİYORDU
+// (kart baş aşağı/aynalanmış kalıyordu) -- DOM zaten render anında NİHAİ rengi/harfi
+// basıyor (mid-flip içerik değişimi yok), o yüzden orta noktada (90deg, kenardan
+// göründüğü için görünmez an) dönüp düz OKUNAKLI hâle GERİ dönecek şekilde
+// uyarlandı: aynı süre/easing korunarak.
+.wordle-cell--flip { animation: wordle-cell-flip 0.4s cubic-bezier(0.455, 0.030, 0.515, 0.955) both; }
+@keyframes wordle-cell-flip {
+  0% { transform: rotateX(0); }
+  50% { transform: rotateX(-90deg); }
+  100% { transform: rotateX(0); }
+}
+.wordle-cell--dogru { background: var(--green, #2e7d32); border-color: var(--green, #2e7d32); color: #fff; }
+.wordle-cell--var { background: var(--yellow, #b8860b); border-color: var(--yellow, #b8860b); color: #fff; }
+.wordle-cell--yok { background: var(--text-muted); border-color: var(--text-muted); color: #fff; opacity: .55; }
+
+@media (max-width: 420px) {
+  .wordle-cell { width: 42px; height: 42px; font-size: 20px; }
+}
+
+.wordle-keyboard { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 500px; }
+.wordle-kb-row { display: flex; gap: 5px; justify-content: center; }
+.wordle-key {
+  flex: 1; max-width: 40px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 6px; cursor: pointer;
+  background: var(--bg-surface-2, var(--bg-surface)); color: var(--text);
+  font-size: 14px; font-weight: 600; text-transform: uppercase;
+  transition: background-color 120ms;
+}
+.wordle-key:hover { filter: brightness(1.1); }
+.wordle-key--wide { flex: 1.6; max-width: 68px; font-size: 12px; }
+.wordle-key--dogru { background: var(--green, #2e7d32); color: #fff; }
+.wordle-key--var { background: var(--yellow, #b8860b); color: #fff; }
+.wordle-key--yok { opacity: .4; }
+
+.wordle-sonuc { margin-top: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wordle-sonuc-baslik { font-size: 18px; font-weight: 700; }
+.wordle-sonuc-kelime { font-size: 13px; color: var(--text-muted); }
+
+.wordle-lider-tablosu { display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 420px; }
+.wordle-lider-satir {
+  display: grid; grid-template-columns: 24px 1fr auto auto; gap: 10px; align-items: center;
+  padding: 8px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-surface);
+}
+.wordle-lider-satir--ben { background: var(--primary-lt); font-weight: 600; }
+.wordle-lider-sira { color: var(--text-muted); font-size: 12px; }
+.wordle-lider-seri, .wordle-lider-kazanilan { white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+.wordle-lider-bos { text-align: center; color: var(--text-muted); font-size: 13px; padding: 16px; }

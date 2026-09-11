@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Kelime | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. wordle.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Kelime">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">Kelime</h1>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:12.5px;color:var(--text-muted);margin:-8px 0 16px">
+    Her gün herkese aynı 5 harfli Türkçe kelime geliyor -- 6 hakkın var. Kelime havuzu TDK Güncel Türkçe Sözlük'ten.
+  </p>
+
+  <div class="wordle-wrap">
+    <div id="wordle-grid" class="wordle-grid"></div>
+    <div id="wordle-keyboard" class="wordle-keyboard"></div>
+    <div id="wordle-sonuc" class="wordle-sonuc" hidden></div>
+    <div class="card" style="width:100%;max-width:420px;margin-top:8px">
+      <div class="card-header">
+        <div class="card-title" style="font-size:14px">Lider Tablosu</div>
+      </div>
+      <div class="card-body" style="padding:12px">
+        <div id="wordle-lider-tablosu" class="wordle-lider-tablosu">Yükleniyor…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+import('/src/v4/wordle.js').then((m) => m.initWordle());
+</script>
+
+</body>
+</html>
