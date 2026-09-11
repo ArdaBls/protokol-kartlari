@@ -135,8 +135,9 @@ function renderKatilimRow(r) {
   `;
 }
 function renderPersonalRow(n) {
+  const oyunSayfasi = n.type === 'amiral_batti_invite' ? 'oyun-amiral-batti.html' : 'oyun-satranc.html';
   const tag = n.relatedGameId ? 'a' : 'div';
-  const hrefAttr = n.relatedGameId ? ` href="oyun-satranc.html?oyun=${encodeURIComponent(n.relatedGameId)}"` : '';
+  const hrefAttr = n.relatedGameId ? ` href="${oyunSayfasi}?oyun=${encodeURIComponent(n.relatedGameId)}"` : '';
   return `
     <${tag} class="notification-row${n.read === true ? '' : ' notification-row--unread'}"${hrefAttr}>
       <span class="notif-icon notif-info" aria-hidden="true">${ICON.info}</span>

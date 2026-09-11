@@ -1,0 +1,203 @@
+// Amiral Battı (oyun-amiral-batti.html) — bkz. amiral-batti.js. Chess'teki
+// (_chess.scss) yerleşim/renk deseninin aynısı, tahta chessground yerine
+// düz CSS grid.
+
+.ab-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 1050px;
+  margin: 0 auto;
+}
+.ab-side {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  order: 2;
+}
+.ab-main {
+  flex: 1 1 480px;
+  min-width: 0;
+  order: 1;
+}
+.ab-player {
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-surface-secondary);
+}
+.ab-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-height: 18px;
+}
+.ab-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+// ── Tahtalar (yerleştirme + savaş) ──
+.ab-boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+.ab-board-panel { flex: 1 1 260px; max-width: 380px; min-width: 0; }
+.ab-board-title { margin: 0 0 8px; font-size: 14px; font-weight: var(--font-weight-medium); text-align: center; color: var(--text-secondary); }
+
+.ab-board {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+  aspect-ratio: 1;
+  width: 100%;
+  background: var(--bg-surface-secondary);
+  padding: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  user-select: none;
+}
+.ab-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--bg-surface);
+  border: none;
+  padding: 0;
+  cursor: default;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.ab-cell.ship { background: var(--primary-lt); }
+.ab-cell.pending { background: var(--bg-surface-secondary); opacity: 0.6; }
+.ab-cell.miss { background: var(--bg-surface-secondary); }
+.ab-cell.miss::after { content: ""; position: absolute; inset: 32%; border-radius: 50%; background: var(--text-muted); opacity: 0.8; }
+.ab-cell.hit { background: var(--red-lt, #fde2e2); }
+.ab-cell.hit::after { content: ""; position: absolute; inset: 26%; border-radius: 50%; background: var(--red, #d64545); }
+.ab-cell.sunk { background: var(--red, #d64545); }
+.ab-cell.sunk::after { content: ""; position: absolute; inset: 20%; border-radius: 2px; background: rgba(0, 0, 0, 0.35); }
+
+.ab-board.combat-target button.ab-cell:not(:disabled) { cursor: pointer; }
+.ab-board.combat-target button.ab-cell:not(:disabled):hover { background: var(--primary-lt); }
+
+// ── Gemi yerleştirme çubuğu ──
+.ab-placement-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: var(--bg-surface-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+.ab-ship-tray { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.ab-ship-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.ab-ship-chip:hover:not(.placed) { background: var(--bg-surface-secondary); }
+.ab-ship-chip.selected { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.ab-ship-chip.placed { opacity: 0.45; }
+.ab-ship-chip-name { font-weight: var(--font-weight-medium); font-size: 12px; }
+.ab-ship-chip-cells { display: flex; gap: 2px; }
+.ab-ship-chip-cell { width: 9px; height: 9px; border-radius: 2px; background: var(--primary-lt); }
+.ab-placement-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.ab-placement-grid button.ab-cell { cursor: pointer; }
+.ab-placement-grid button.ab-cell:hover { background: var(--bg-surface-secondary); }
+
+// ── Oyunlarım / liderlik tablosu (lobi) ──
+.ab-game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-color-light);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 100ms;
+}
+.ab-game-row:last-child { border-bottom: none; }
+.ab-game-row:hover { background: var(--bg-surface-secondary); }
+.ab-game-row-status { color: var(--text-muted); font-size: 12px; }
+
+.ab-leaderboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-color-light);
+  color: var(--text);
+  font-size: 13px;
+}
+.ab-leaderboard-row:last-child { border-bottom: none; }
+
+// ── Rakip seçme modalı (chess-invite-modal ile aynı desen) ──
+.ab-invite-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.ab-invite-modal[hidden] { display: none; }
+.ab-invite-modal-inner {
+  width: 100%;
+  max-width: 360px;
+  max-height: calc(100dvh - 48px);
+  margin: 24px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ab-invite-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+.ab-invite-list { overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+.ab-invite-row {
+  text-align: start;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.ab-invite-row:hover { background: var(--bg-surface-secondary); }
+
+@media (max-width: 640px) {
+  .ab-layout { flex-direction: column; }
+  .ab-side { width: 100%; }
+  .ab-boards { flex-direction: column; align-items: stretch; }
+  .ab-board-panel { max-width: none; }
+}
