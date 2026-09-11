@@ -61,19 +61,32 @@
 .wordle-cell--var { background: var(--yellow, #b8860b); border-color: var(--yellow, #b8860b); color: #fff; }
 .wordle-cell--yok { background: var(--text-muted); border-color: var(--text-muted); color: #fff; opacity: .55; }
 
+// Kullanıcı isteği: "telefon ekranına uyarlanabilir, kenarlarda boşluk kalmasın,
+// klavye tam genişlikte olsun" -- sabit piksel yerine viewport'a göre hesaplanan
+// hücre boyutu, her telefon genişliğinde (dar/geniş fark etmeksizin) kenardan
+// kenara doğal olarak dolduruyor.
 @media (max-width: 420px) {
-  .wordle-cell { width: 42px; height: 42px; font-size: 20px; }
+  .wordle-cell { width: min(58px, calc((100vw - 56px) / 5)); height: min(58px, calc((100vw - 56px) / 5)); font-size: 22px; }
+}
+.wordle-page .page-wrapper { padding: 10px 6px 24px; }
+@media (max-width: 420px) {
+  .wordle-page .page-wrapper { padding: 8px 4px 20px; }
 }
 
-.wordle-keyboard { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 500px; }
-.wordle-kb-row { display: flex; gap: 5px; justify-content: center; }
+.wordle-keyboard { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 500px; }
+.wordle-kb-row { display: flex; gap: 6px; justify-content: center; }
 .wordle-key {
-  flex: 1; max-width: 40px; height: 46px;
+  flex: 1; max-width: 40px; height: 52px;
   display: flex; align-items: center; justify-content: center;
-  border: none; border-radius: 6px; cursor: pointer;
+  border: none; border-radius: 4px; cursor: pointer;
   background: var(--bg-surface-2, var(--bg-surface)); color: var(--text);
   font-size: 14px; font-weight: 600; text-transform: uppercase;
   transition: background-color 120ms;
+}
+@media (max-width: 420px) {
+  .wordle-keyboard { max-width: 100%; padding: 0 2px; }
+  .wordle-key { max-width: none; height: 50px; font-size: 13px; }
+  .wordle-key--wide { max-width: none; font-size: 10.5px; }
 }
 .wordle-key:hover { filter: brightness(1.1); }
 .wordle-key--wide { flex: 1.6; max-width: 68px; font-size: 12px; }
@@ -114,7 +127,7 @@
 }
 .wordle-lider-satir--ben { background: var(--primary-lt); font-weight: 600; }
 .wordle-lider-sira { color: var(--text-muted); font-size: 12px; }
-.wordle-lider-seri, .wordle-lider-kazanilan { white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+.wordle-lider-seri, .wordle-lider-oynanan { white-space: nowrap; font-size: 12px; color: var(--text-muted); }
 .wordle-lider-bos { text-align: center; color: var(--text-muted); font-size: 13px; padding: 16px; }
 
 // Kişisel deneme dağılımı: "1. denemede mi buldun, 2. mi, ... 6. mı" çubuk grafiği.

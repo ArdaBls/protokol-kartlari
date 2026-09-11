@@ -24,7 +24,7 @@ const FIREBASE_CONFIG = {
 const KEYBOARD_ROWS = [
   ['e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'],
   ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i'],
-  ['BACK', 'z', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', 'ENTER']
+  ['ENTER', 'z', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', 'BACK']
 ];
 
 function bugununTarihiIstanbul() {
@@ -306,16 +306,20 @@ function liderTablosunuYukle() {
   if (!box) { return; }
   database.ref(dbPath('oyunBasarimlari/wordle')).once('value').then((snap) => {
     const hepsi = snap.val() || {};
+    // Kullanıcı isteği: "günlük seri değil, ne kadar oynadığının istatistiğini tutalım
+    // -- örneğin wordle 40 kere" -- toplam oynama sayısı (oynanan) HER oyun bitişinde
+    // artıyor, günlük seriye bağlı değil (birisi her gün girmese de biriken toplam
+    // oyun sayısını gösterir). Sıralamada birincil kriter oldu, seri ikincil kaldı.
     const satirlar = Object.keys(hepsi).map((uid) => Object.assign({ uid }, hepsi[uid]))
-      .sort((a, b) => (b.seri || 0) - (a.seri || 0) || (b.kazanilan || 0) - (a.kazanilan || 0));
+      .sort((a, b) => (b.oynanan || 0) - (a.oynanan || 0) || (b.seri || 0) - (a.seri || 0));
     if (!satirlar.length) { box.innerHTML = '<div class="wordle-lider-bos">Henüz kimse oynamadı -- ilk bulmacayı sen çöz!</div>'; return; }
     box.innerHTML = satirlar.map((s, i) => {
       const ben = s.uid === currentUid ? ' wordle-lider-satir--ben' : '';
       return `<div class="wordle-lider-satir${ben}">` +
         `<span class="wordle-lider-sira">${i + 1}</span>` +
         `<span class="wordle-lider-isim">${escapeHtml(s.isim || 'İsimsiz')}</span>` +
+        `<span class="wordle-lider-oynanan">${s.oynanan || 0} kez oynadı</span>` +
         `<span class="wordle-lider-seri">${s.seri || 0} 🔥</span>` +
-        `<span class="wordle-lider-kazanilan">${s.kazanilan || 0} kazanma</span>` +
         '</div>';
     }).join('');
   }).catch((err) => console.error('Wordle lider tablosu okunamadı:', err));
