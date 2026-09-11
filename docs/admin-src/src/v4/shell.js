@@ -12,6 +12,7 @@ import { showModal } from './modal.js';
 import { initStreak } from './streak.js';
 import { dbPath, initDbMode, onDbModeChange } from './db-mode.js';
 import { syncStaffProfile, isSafeAvatarUrl } from './staff-profiles.js';
+import { presenceBaslat } from './presence.js';
 
 function injectShellIfMissing() {
   const body = document.body;
@@ -766,6 +767,7 @@ export function syncShellUser() {
         onayBekleyenRozetiniBagla(role);
         attendanceRozetiniBagla(role);
         bildirimRozetiniBagla(user.uid);
+        presenceBaslat(firebase.database(), user.uid, name);
         // staffProfiles/{uid} yalnızca kişi profil.html/ayarlar.html'de adını/
         // fotoğrafını KAYDETTİĞİNDE oluşuyordu -- hiç oraya girmemiş kullanıcılar
         // Kişiler sayfasında ve Kanban/Yapılacaklar avatarlarında hiç görünmüyordu.

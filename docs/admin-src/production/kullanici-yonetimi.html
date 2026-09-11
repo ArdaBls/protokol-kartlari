@@ -80,6 +80,8 @@
 <script type="module">
 import { showToast } from '/src/v4/toast.js';
 import { dbPath, isReadOnly, isTestMode, initDbMode, renderDbModeBanner, onDbModeChange } from '/src/v4/db-mode.js';
+import { subscribeStaffProfiles, renderStaffAvatar } from '/src/v4/staff-profiles.js';
+import { presenceAbone } from '/src/v4/presence.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -107,6 +109,12 @@ let pressOfficerIds = new Set();
 let pressOfficerRef = null;
 let modeReady = false;
 let filterText = '', filterRole = '';
+// Kullanıcı isteği: "bir kişi sitede çevrimiçiyken onu nasıl görebiliriz" +
+// "avatarları kişilere bağla, fotoğraflarını görelim" -- staffProfiles'tan
+// gerçek profil fotoğrafı (yoksa baş harf), presence/'tan canlı çevrimiçi
+// noktası. İkisi de subscribe/abone deseni, herhangi biri güncellenince
+// render() yeniden çağrılıyor.
+let presenceMap = {};
 
 function setState(html) {
   rowsEl.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">${html}</td></tr>`;
@@ -144,7 +152,8 @@ function render() {
     const role = u.role || 'pending';
     const isSelf = uid === currentUid;
     const isPressOfficer = pressOfficerIds.has(uid);
-    const initial = fullNameOf(u).charAt(0).toUpperCase() || '?';
+    const cevrimici = !!(presenceMap[uid] && presenceMap[uid].cevrimici);
+    const avatarHtml = renderStaffAvatar(fullNameOf(u), uid, fullNameOf(u), 36);
 
     const roleCell = (isSelf || role === 'owner')
       ? `<span class="role-chip role-${ROLE_CLS[role]}" title="${role === 'owner' ? 'Kurucu rolü bu ekrandan değiştirilemez.' : 'Kendi rolünüzü buradan değiştiremezsiniz.'}">${ROLE_LABEL[role]}${isSelf ? ' (Siz)' : ''}</span>`
@@ -156,7 +165,10 @@ function render() {
       <tr data-uid="${uid}">
         <td>
           <div class="cell-customer">
-            <div class="cell-avatar" style="background:var(--primary)">${escapeHtml(initial)}</div>
+            <div class="cell-avatar-wrap" title="${cevrimici ? 'Çevrimiçi' : 'Çevrimdışı'}">
+              ${avatarHtml}
+              <span class="cell-online-dot${cevrimici ? ' cell-online-dot--acik' : ''}"></span>
+            </div>
             <div>
               <div class="cell-strong">${escapeHtml(fullNameOf(u))}${isSelf ? ' <span style="color:var(--primary);font-weight:500">(Siz)</span>' : ''}</div>
               <div style="font-size:11.5px;color:var(--text-muted)">${escapeHtml(u.email || '')}</div>
@@ -344,6 +356,8 @@ auth.onAuthStateChanged((user) => {
       loadUsers();
       attachPressOfficers();
     });
+    subscribeStaffProfiles(database, () => render());
+    presenceAbone(database, (harita) => { presenceMap = harita; render(); });
   }).catch((err) => {
     console.error('Yetki kontrol edilemedi:', err);
     setState('Yetki kontrol edilemedi.');

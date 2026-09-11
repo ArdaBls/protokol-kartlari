@@ -168,6 +168,19 @@ table.table tbody tr:hover { background: var(--bg-surface-secondary); }
   flex-shrink: 0;
 }
 
+// Kullanıcı isteği: "bir kişi sitede çevrimiçiyken onu nasıl görebiliriz" --
+// avatarın sağ-alt köşesine küçük bir nokta (bkz. presence.js). Yeşil =
+// şu an gerçekten Firebase'e bağlı, gri = değil (son görülme zamanı ayrıca
+// tutuluyor ama bu UI'da şimdilik göstermiyoruz, sadece açık/kapalı).
+.cell-avatar-wrap { position: relative; flex-shrink: 0; }
+.cell-online-dot {
+  position: absolute; bottom: -1px; right: -1px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text-muted);
+  border: 2px solid var(--bg-surface);
+}
+.cell-online-dot--acik { background: var(--green, #2e7d32); }
+
 // Status badges
 .status {
   display: inline-flex;

@@ -17,6 +17,11 @@
 	// "users/<uid>" gibi tekil kullanici yollari icin __mockUserProfile ayrica
 	// desteklenir. HICBIRI set edilmezse null doner -- yani eski davranis birebir korunur.
 	function mockValueFor(path) {
+		// .info/connected -- presence.js gibi modüller Firebase'in bu özel yolunu
+		// dinleyip "gerçekten bağlı mıyım" sorusuna cevap alır. Mock ortamda
+		// testlerin varsayılan olarak "bağlı" sayması bekleniyor -- __mockOffline
+		// bilerek ayarlanırsa false döner (kopukluk senaryosu test edilebilsin diye).
+		if (path === '.info/connected') { return window.__mockOffline ? false : true; }
 		// users/{uid}/<alan> -- ornegin onay-bekliyor.html'in canli dinledigi
 		// users/{uid}/role. Profil nesnesinden ilgili alan dondurulur.
 		var alan = path.match(/(^|\/)users\/[^/]+\/([^/]+)$/);
