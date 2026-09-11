@@ -176,7 +176,16 @@ function gecersizGirisiTitret() {
   const grid = document.getElementById('wordle-grid');
   const satir = grid && grid.children[tahminler.length];
   if (!satir) { return; }
-  satir.classList.remove('wordle-row--titrek'); void satir.offsetWidth; satir.classList.add('wordle-row--titrek');
+  // Kullanıcı bulgusu: aynı geçersiz kelimeyle art arda Enter'a basınca ikinci basışta
+  // titreme hiç oynamıyordu -- classList.remove + offsetWidth reflow ZORLAMASI, tarayıcının
+  // animasyonu GERÇEKTEN sıfırlaması için yeterli gelmiyordu (tek senkron görev içinde
+  // kalıyor, hiç boyama/frame arası geçmiyor). Çift requestAnimationFrame, kaldırmanın
+  // GERÇEKTEN bir kare boyanıp işlendiğini garanti eder, ondan SONRA sınıf geri eklenir --
+  // ne kadar art arda basılırsa basılsın her seferinde animasyon baştan başlar.
+  satir.classList.remove('wordle-row--titrek');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { satir.classList.add('wordle-row--titrek'); });
+  });
 }
 function tahminGonder() {
   if (oyunBitti) { return; }
@@ -201,12 +210,6 @@ function tahminGonder() {
   if (oyunBitti) { istatistikGuncelle(); sonucPaneliGoster(); }
 }
 
-function paylasimMetniOlustur() {
-  const simge = { dogru: '🟩', var: '🟨', yok: '⬛' };
-  const satirlar = tahminler.map((t) => t.sonuc.map((d) => simge[d]).join(''));
-  return `Protokol Kelime ${bugunTarih} ${kazandi ? tahminler.length : 'X'}/${MAX_TRIES}\n\n` + satirlar.join('\n');
-}
-
 function sonucPaneliGoster() {
   const panel = document.getElementById('wordle-sonuc');
   if (!panel) { return; }
@@ -214,17 +217,7 @@ function sonucPaneliGoster() {
   panel.innerHTML = `
     <div class="wordle-sonuc-baslik">${kazandi ? 'Kazandın!' : 'Bu sefer olmadı'}</div>
     <div class="wordle-sonuc-kelime">${!kazandi ? 'Kelime: <strong>' + escapeHtml(hedefKelime.toLocaleUpperCase('tr-TR')) + '</strong>' : ''}</div>
-    <button type="button" class="btn btn-outline" id="wordle-paylas-btn">Sonucu Kopyala</button>
   `;
-  const btn = document.getElementById('wordle-paylas-btn');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      const metin = paylasimMetniOlustur();
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(metin).then(() => showToast('Kopyalandı.', { variant: 'success' })).catch(() => showToast('Kopyalanamadı.', { variant: 'error' }));
-      }
-    });
-  }
 }
 
 let database = null;
@@ -252,8 +245,36 @@ function istatistikGuncelle() {
       sonKazandi: kazandi,
       dagitim
     };
-    ref.set(yeni).then(() => liderTablosunuYukle()).catch((err) => console.error('Wordle istatistiği kaydedilemedi:', err));
+    ref.set(yeni).then(() => { liderTablosunuYukle(); kisiselIstatistikYukle(); }).catch((err) => console.error('Wordle istatistiği kaydedilemedi:', err));
   }).catch((err) => console.error('Wordle istatistiği okunamadı:', err));
+}
+
+// Kullanıcı isteği: "herkesin kendi kişisel liderlik tablosu da olsun, ilk denemede mi
+// buldu, 2. mi, 3. 4. 5. 6. diye" -- herkese açık lider tablosundan AYRI, sadece kendi
+// geçmiş sonuçlarının (kaç denemede bulduğu) dağılımını çubuk olarak gösteren panel.
+// Veri zaten dagitim alanında tutuluyordu (istatistikGuncelle), sadece görünüm eksikti.
+function kisiselIstatistikYukle() {
+  if (!database || !currentUid) { return; }
+  const box = document.getElementById('wordle-kisisel-istatistik');
+  if (!box) { return; }
+  database.ref(dbPath('kelimeOyunlariIstatistik/wordle/' + currentUid)).once('value').then((snap) => {
+    const s = snap.val();
+    if (!s) { box.innerHTML = '<div class="wordle-lider-bos">Henüz oynamadın -- ilk bulmacanı çöz!</div>'; return; }
+    const dagitim = s.dagitim || {};
+    const enYuksek = Math.max(1, ...Array.from({ length: MAX_TRIES }, (_, i) => dagitim[String(i + 1)] || 0));
+    const cubuklar = Array.from({ length: MAX_TRIES }, (_, i) => {
+      const deneme = i + 1;
+      const sayi = dagitim[String(deneme)] || 0;
+      const yuzde = Math.max(6, Math.round((sayi / enYuksek) * 100));
+      const buguntuMu = s.sonTarih === bugunTarih && s.sonKazandi && tahminler.length === deneme;
+      return `<div class="wordle-dagitim-satir">` +
+        `<span class="wordle-dagitim-no">${deneme}</span>` +
+        `<div class="wordle-dagitim-bar-yuva"><div class="wordle-dagitim-bar${buguntuMu ? ' wordle-dagitim-bar--bugun' : ''}" style="width:${yuzde}%">${sayi}</div></div>` +
+      `</div>`;
+    }).join('');
+    box.innerHTML = `<div class="wordle-dagitim-ozet">Oynanan: ${s.oynanan} · Kazanılan: ${s.kazanilan} · Güncel seri: ${s.seri} 🔥 · En uzun seri: ${s.enUzunSeri}</div>` +
+      `<div class="wordle-dagitim">${cubuklar}</div>`;
+  }).catch((err) => console.error('Wordle kişisel istatistik okunamadı:', err));
 }
 
 // Kullanıcı isteği: "herkes birbirinin skorunu görebilsin" -- kişiye özel/gizli istatistik
@@ -333,7 +354,7 @@ export function initWordle() {
           const u = snap.val() || {};
           currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || (user.email || 'İsimsiz');
         });
-        initDbMode(database).then(() => { liderTablosunuYukle(); });
+        initDbMode(database).then(() => { liderTablosunuYukle(); kisiselIstatistikYukle(); });
       });
     } catch (e) { console.error('Wordle Firebase başlatılamadı:', e); }
   }

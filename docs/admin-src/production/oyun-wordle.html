@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Kelime | Protokol</title>
+<title>Wordle | Protokol</title>
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script type="module" src="/src/main-v4.js"></script>
 </head>
-<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Kelime">
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Wordle">
 
 <main class="main">
 <div class="page-wrapper">
@@ -23,7 +23,7 @@
     <div class="page-header-row">
       <div>
         <div class="page-pretitle">Oyunlar</div>
-        <h1 class="page-title">Kelime</h1>
+        <h1 class="page-title">Wordle</h1>
       </div>
     </div>
   </div>
@@ -32,16 +32,32 @@
     Her gün herkese aynı 5 harfli Türkçe kelime geliyor -- 6 hakkın var. Kelime havuzu TDK Güncel Türkçe Sözlük'ten.
   </p>
 
-  <div class="wordle-wrap">
-    <div id="wordle-grid" class="wordle-grid"></div>
-    <div id="wordle-keyboard" class="wordle-keyboard"></div>
-    <div id="wordle-sonuc" class="wordle-sonuc" hidden></div>
-    <div class="card" style="width:100%;max-width:420px;margin-top:8px">
-      <div class="card-header">
-        <div class="card-title" style="font-size:14px">Lider Tablosu</div>
+  <div class="wordle-layout">
+    <div class="wordle-col wordle-col--sol">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="font-size:14px">Deneme Dağılımın</div>
+        </div>
+        <div class="card-body" style="padding:12px">
+          <div id="wordle-kisisel-istatistik">Yükleniyor…</div>
+        </div>
       </div>
-      <div class="card-body" style="padding:12px">
-        <div id="wordle-lider-tablosu" class="wordle-lider-tablosu">Yükleniyor…</div>
+    </div>
+    <div class="wordle-col wordle-col--orta">
+      <div class="wordle-game-center">
+        <div id="wordle-grid" class="wordle-grid"></div>
+        <div id="wordle-keyboard" class="wordle-keyboard"></div>
+        <div id="wordle-sonuc" class="wordle-sonuc" hidden></div>
+      </div>
+    </div>
+    <div class="wordle-col wordle-col--sag">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="font-size:14px">Lider Tablosu</div>
+        </div>
+        <div class="card-body" style="padding:12px">
+          <div id="wordle-lider-tablosu" class="wordle-lider-tablosu">Yükleniyor…</div>
+        </div>
       </div>
     </div>
   </div>

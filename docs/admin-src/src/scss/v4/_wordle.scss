@@ -1,5 +1,22 @@
 // Wordle (Türkçe) -- kelime oyunu silsilesinin ilk oyunu (bkz. wordle.js).
-.wordle-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+// 3 sütun: sol (kişisel deneme dağılımı, 1-6) - orta (oyunun kendisi, sayfanın
+// ortasında + büyütülmüş) - sağ (herkese açık lider tablosu). Dar ekranda tek
+// sütuna yığılır -- kullanıcı isteğiyle sol=dağılım, orta=oyun, sağ=lider tablosu
+// DOM sırası (ve dolayısıyla mobildeki yığılma sırası) korunuyor.
+.wordle-layout { display: flex; gap: var(--space-4); align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+.wordle-col--sol, .wordle-col--sag { flex: 1 1 260px; max-width: 320px; }
+.wordle-col--orta { flex: 0 1 auto; display: flex; justify-content: center; }
+// Kullanıcı isteği: "wordle sayfanın tam ortasına gelsin, azıcık büyüsün (0.75x kadar)"
+// -- zoom (transform:scale'in aksine) düzeni GERÇEKTEN yeniden akıtır, üst üste binme/
+// boşluk sorunu çıkarmaz. 1.75 = mevcut boyutun +%75'i.
+.wordle-game-center { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); zoom: 1.75; }
+@media (max-width: 900px) {
+  .wordle-layout { flex-direction: column; align-items: center; }
+  .wordle-col--sol, .wordle-col--sag, .wordle-col--orta { width: 100%; max-width: 480px; }
+  // Telefon genişliğinde 1.75x büyütme ızgarayı/klavyeyi ekran dışına taşırır --
+  // dar ekranda normal boyuta dönülüyor.
+  .wordle-game-center { zoom: 1; }
+}
 
 .wordle-grid { display: flex; flex-direction: column; gap: 6px; }
 .wordle-row { display: flex; gap: 6px; }
@@ -72,3 +89,16 @@
 .wordle-lider-sira { color: var(--text-muted); font-size: 12px; }
 .wordle-lider-seri, .wordle-lider-kazanilan { white-space: nowrap; font-size: 12px; color: var(--text-muted); }
 .wordle-lider-bos { text-align: center; color: var(--text-muted); font-size: 13px; padding: 16px; }
+
+// Kişisel deneme dağılımı: "1. denemede mi buldun, 2. mi, ... 6. mı" çubuk grafiği.
+.wordle-dagitim-ozet { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+.wordle-dagitim { display: flex; flex-direction: column; gap: 6px; }
+.wordle-dagitim-satir { display: flex; align-items: center; gap: 8px; }
+.wordle-dagitim-no { flex: 0 0 14px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.wordle-dagitim-bar-yuva { flex: 1; background: var(--bg-surface-2, var(--border-color)); border-radius: 4px; overflow: hidden; }
+.wordle-dagitim-bar {
+  min-width: 22px; text-align: right; padding: 2px 8px;
+  background: var(--text-muted); color: #fff; font-size: 12px; font-weight: 600;
+  border-radius: 4px; transition: width 300ms ease;
+}
+.wordle-dagitim-bar--bugun { background: var(--green, #2e7d32); }

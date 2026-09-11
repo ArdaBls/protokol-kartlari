@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Kelime | Protokol</title>
+<title>Wordle | Protokol</title>
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,22 +19,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
-<meta name="description" content="Kelime — Oyunlar > Kelime. OMÜ Protokol Kartları admin paneli.">
+<meta name="description" content="Wordle — Oyunlar > Wordle. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Kelime">
-<meta property="og:description" content="Kelime — Oyunlar > Kelime. OMÜ Protokol Kartları admin paneli.">
+<meta property="og:title" content="Wordle">
+<meta property="og:description" content="Wordle — Oyunlar > Wordle. OMÜ Protokol Kartları admin paneli.">
 <meta property="og:image" content="/icons/icon-512.png">
 <meta property="og:site_name" content="Protokol">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/oyun-wordle-CaPkp6w1.js"></script>
+  <script type="module" crossorigin src="/js/oyun-wordle-nsZ3ynjs.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-F_jprkvV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-E560Lc5u.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-DbrIOpqb.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-CPIKiSTk.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-CpGQslKI.css">
 </head>
-<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Kelime">
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Wordle">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -180,7 +180,7 @@
         <button class="sidebar-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><a href="oyunlar.html">Oyunlar</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Kelime</span></nav>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Anasayfa</a><span class="sep" aria-hidden="true">›</span><a href="oyunlar.html">Oyunlar</a><span class="sep" aria-hidden="true">›</span><span class="current" aria-current="page">Wordle</span></nav>
       </div>
       <div class="search-box">
         <svg class="s-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
@@ -209,7 +209,7 @@
     <div class="page-header-row">
       <div>
         <div class="page-pretitle">Oyunlar</div>
-        <h1 class="page-title">Kelime</h1>
+        <h1 class="page-title">Wordle</h1>
       </div>
     </div>
   </div>
@@ -218,16 +218,32 @@
     Her gün herkese aynı 5 harfli Türkçe kelime geliyor -- 6 hakkın var. Kelime havuzu TDK Güncel Türkçe Sözlük'ten.
   </p>
 
-  <div class="wordle-wrap">
-    <div id="wordle-grid" class="wordle-grid"></div>
-    <div id="wordle-keyboard" class="wordle-keyboard"></div>
-    <div id="wordle-sonuc" class="wordle-sonuc" hidden></div>
-    <div class="card" style="width:100%;max-width:420px;margin-top:8px">
-      <div class="card-header">
-        <div class="card-title" style="font-size:14px">Lider Tablosu</div>
+  <div class="wordle-layout">
+    <div class="wordle-col wordle-col--sol">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="font-size:14px">Deneme Dağılımın</div>
+        </div>
+        <div class="card-body" style="padding:12px">
+          <div id="wordle-kisisel-istatistik">Yükleniyor…</div>
+        </div>
       </div>
-      <div class="card-body" style="padding:12px">
-        <div id="wordle-lider-tablosu" class="wordle-lider-tablosu">Yükleniyor…</div>
+    </div>
+    <div class="wordle-col wordle-col--orta">
+      <div class="wordle-game-center">
+        <div id="wordle-grid" class="wordle-grid"></div>
+        <div id="wordle-keyboard" class="wordle-keyboard"></div>
+        <div id="wordle-sonuc" class="wordle-sonuc" hidden></div>
+      </div>
+    </div>
+    <div class="wordle-col wordle-col--sag">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="font-size:14px">Lider Tablosu</div>
+        </div>
+        <div class="card-body" style="padding:12px">
+          <div id="wordle-lider-tablosu" class="wordle-lider-tablosu">Yükleniyor…</div>
+        </div>
       </div>
     </div>
   </div>
