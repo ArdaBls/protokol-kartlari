@@ -250,25 +250,37 @@ function temaUcluOnizlemeHtml(tema) {
     : yuzKartiGorselYolu(tema, rutbe));
   return '<span class="bj-skin-uclu">' + yollar.map((src) => '<img class="bj-skin-onizleme" src="' + src + '" alt="">').join('') + '</span>';
 }
+function temaEtiketi(t) { return t === VARSAYILAN_TEMA ? 'Varsayılan üçlü' : t; }
 function openSkinModal() {
   loadSkinFor(currentUserUid).then(() => {
+    // Deste Stili artık yan yana 3 sütun (kullanıcı isteği: "ilk başta deste
+    // stili yan yana kalsın").
     const stilHtml = DESTE_STILLERI.map((s) =>
-      '<label class="bj-skin-secenek"><input type="radio" name="bj-destestili" value="' + s + '"' + (mySkin.desteStili === s ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(s) + '" alt=""> ' + escapeHtml(s === 'temel' ? 'Sade' : s === 'altin' ? 'Altın' : 'Çelik') + '</label>'
+      '<label class="bj-skin-secenek bj-skin-secenek-dikey"><input type="radio" name="bj-destestili" value="' + s + '"' + (mySkin.desteStili === s ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(s) + '" alt=""><span>' + escapeHtml(s === 'temel' ? 'Sade' : s === 'altin' ? 'Altın' : 'Çelik') + '</span></label>'
     ).join('');
     const temaSecenekleri = ['varsayilan'].concat(collabKodlari().flatMap((kod) => [kod + '-1', kod + '-2']));
     const temaHtml = temaSecenekleri.map((t) =>
-      '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '>' + temaUcluOnizlemeHtml(t) + '<span>' + escapeHtml(t === 'varsayilan' ? 'Varsayılan üçlü' : t) + '</span></label>'
+      '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '>' + temaUcluOnizlemeHtml(t) + '<span>' + escapeHtml(temaEtiketi(t)) + '</span></label>'
     ).join('');
     // Kart arkası (kapalı kart/deste) seçimi -- kullanıcı isteği: "arkası
     // dönük destenin kart skinini de seçmeliyim".
     const arkaHtml = desteArkasiKodlari().map((kod) =>
       '<label class="bj-skin-secenek"><input type="radio" name="bj-destearkasi" value="' + kod + '"' + (mySkin.desteArkasi === kod ? ' checked' : '') + '><img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + kod + '.png" alt=""></label>'
     ).join('');
+    // Vale/Kız/Papaz üçlüsü ve Kart Arkası akordeon (kapalı) olarak açılır --
+    // kullanıcı isteği: "seçenek akordeon olsun açınca kartları görelim".
+    // Kapalıyken hangi seçimin aktif olduğu <summary>'de küçük bir önizlemeyle
+    // gösterilir, radio'lar DOM'da kalmaya devam ettiği için kaydet her
+    // durumda doğru çalışır.
+    const temaAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Vale + Kız + Papaz üçlüsü</span><span class="bj-skin-akordeon-secili">' + temaUcluOnizlemeHtml(mySkin.yuzKartiTemasi) + '<span>' + escapeHtml(temaEtiketi(mySkin.yuzKartiTemasi)) + '</span></span></summary>' +
+      '<p class="hint">Tek seçim, aynı koleksiyondaki üç kartı birlikte değiştirir.</p><div class="bj-skin-tema-liste">' + temaHtml + '</div></details>';
+    const arkaAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Kart Arkası</span><span class="bj-skin-akordeon-secili"><img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + mySkin.desteArkasi + '.png" alt=""></span></summary>' +
+      '<div class="bj-skin-tema-liste bj-skin-arka-liste">' + arkaHtml + '</div></details>';
     showModal({
       title: 'Kart Skinleri',
-      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4>' + stilHtml + '</div>' +
-        '<div class="bj-skin-grup"><h4>Vale + Kız + Papaz üçlüsü</h4><p class="hint">Tek seçim, aynı koleksiyondaki üç kartı birlikte değiştirir.</p><div class="bj-skin-tema-liste">' + temaHtml + '</div></div>' +
-        '<div class="bj-skin-grup"><h4>Kart Arkası</h4><div class="bj-skin-tema-liste bj-skin-arka-liste">' + arkaHtml + '</div></div>',
+      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4><div class="bj-skin-yatay">' + stilHtml + '</div></div>' +
+        '<div class="bj-skin-grup">' + temaAkordeon + '</div>' +
+        '<div class="bj-skin-grup">' + arkaAkordeon + '</div>',
       actions: [
         {
           label: 'Kaydet', variant: 'primary', action: ({ dialog }) => {

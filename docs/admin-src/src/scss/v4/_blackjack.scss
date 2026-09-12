@@ -364,6 +364,41 @@ $bj-kirmizi-cember: #c62828;
 .bj-skin-uclu { display: inline-flex; align-items: center; }
 .bj-skin-uclu .bj-skin-onizleme { margin-left: -14px; }
 .bj-skin-uclu .bj-skin-onizleme:first-child { margin-left: 0; }
+// Deste Stili yan yana 3 sütun -- kullanıcı isteği: "ilk başta deste stili
+// yan yana kalsın".
+.bj-skin-yatay { display: flex; gap: 16px; }
+.bj-skin-secenek-dikey {
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  justify-content: flex-start;
+}
+.bj-skin-secenek-dikey .bj-skin-onizleme { width: 100%; max-width: 80px; }
+// Vale/Kız/Papaz üçlüsü ve Kart Arkası akordeon -- kullanıcı isteği:
+// "seçenek akordeon olsun açınca kartları görelim".
+.bj-skin-akordeon { border: 1px solid var(--border-color-light); border-radius: 8px; padding: 0; }
+.bj-skin-akordeon > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-secondary);
+}
+.bj-skin-akordeon > summary::-webkit-details-marker { display: none; }
+.bj-skin-akordeon > summary::after { content: '▾'; margin-left: auto; transition: transform 150ms; }
+.bj-skin-akordeon[open] > summary::after { transform: rotate(180deg); }
+.bj-skin-akordeon-secili { display: flex; align-items: center; gap: 8px; font-weight: var(--font-weight-medium); font-size: 12px; color: var(--text-muted); }
+.bj-skin-akordeon-secili .bj-skin-onizleme { width: 32px; }
+.bj-skin-akordeon-secili .bj-skin-uclu .bj-skin-onizleme { margin-left: -8px; }
+.bj-skin-akordeon-secili .bj-skin-uclu .bj-skin-onizleme:first-child { margin-left: 0; }
+.bj-skin-akordeon .hint, .bj-skin-akordeon .bj-skin-tema-liste { padding: 0 12px 12px; }
+.bj-skin-akordeon .hint { margin: 8px 0 0; }
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 // Kart arkası seçenekleri (18 tasarım) isim gerektirmez -- sarmalayan bir
 // önizleme ızgarası olarak gösterilir.
@@ -386,6 +421,13 @@ $bj-kirmizi-cember: #c62828;
   .bj-cip-yigin .bj-cip-gorsel { width: 22px; height: 22px; margin-left: -10px; }
   .bj-bahis-secim { gap: 4px; }
   .bj-cip-deger { font-size: 8px; }
+  // NOT: (fixed/ekrana-sabitleme denendi ama kullanıcı geri bildirdi: "buton
+  // oyunun ekranına gelsin, sayfanın altında durmasın" -- masanın DIŞINA
+  // taşıp footer'ın üzerine biniyordu.) Gerçek kök neden .bj-masa'daki
+  // touch-action:none idi: masa min-height'i aşacak kadar uzun bir el
+  // olduğunda kullanıcı sayfayı/masayı aşağı kaydırıp çubuğa ulaşamıyordu
+  // (bkz. aşağıdaki hover:none/pointer:coarse bloğu -- artık pan-y'ye
+  // gevşetildi). Çubuk yine masanın İÇİNDE (position:absolute, alt kısımda).
   .bj-aksiyonlar-satiri {
     bottom: 8px;
     width: calc(100% - 16px);
@@ -414,7 +456,13 @@ $bj-kirmizi-cember: #c62828;
 @media (hover: none) and (pointer: coarse) {
   .bj-masa-viewport { overscroll-behavior: contain; }
   .bj-masa {
-    touch-action: none;
+    // touch-action:none idi -- bu, masa içeriği (uzun bir el/çok koltuk)
+    // hesaplanan min-height'i aştığında kullanıcının sayfayı DİKEY kaydırıp
+    // en alttaki Kart Çek/Kal/Katla çubuğuna ulaşmasını da tamamen
+    // engelliyordu (kullanıcı bildirimi, Safari/iPhone: "sıramdayken ...
+    // gözükmüyor telefonda aşağıda"). pan-y ile yatay hareket/pinch-zoom hâlâ
+    // bastırılıyor, DİKEY kaydırma serbest.
+    touch-action: pan-y;
     overscroll-behavior: contain;
     -webkit-user-select: none;
     user-select: none;
