@@ -47,6 +47,11 @@ function cipGorselYolu(miktar) {
 const AKSIYON_SURESI_MS = 10000; // Sırası gelen oyuncu için 10 sn -- süresiz bekleme olmasın.
 const DESTE_STILLERI = ['temel', 'altin', 'celik'];
 const VARSAYILAN_TEMA = 'varsayilan';
+// Bunlar ek bir oyun kartı/değer değil: mevcut "joker" (vale) rütbesinin
+// arada gelen özel görsel varyantlarıdır. Hepsi normal vale gibi 10 sayılır.
+// Dosya listesi sabit tutulur; kullanıcıdan gelen bir yol asla <img>'e yazılmaz.
+const BONUS_JOKER_DOSYALARI = ['Jokers1.png', 'Jokers11.png', 'Jokers24.png', 'Jokers37.png', 'Jokers48.png', 'Jokers60.png', 'Jokers73.png', 'Jokers83.png', 'Jokers100.png', 'Jokers112.png', 'Jokers124.png', 'Jokers140.png'];
+const CIP_ISLEM_KAYIT_LIMITI = 80;
 
 let database = null;
 let currentUserUid = '';
@@ -58,8 +63,26 @@ let currentTable = null;
 let myChipBalance = 0;
 let mySkin = { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA };
 let skinCache = {}; // uid -> {desteStili, yuzKartiTemasi}
+const skinListeners = new Map(); // uid -> { ref, listener }
+let walletRef = null;
+let walletListener = null;
+let myWalletOperationIds = new Set();
+const pendingChipOperations = new Set();
 let countdownTimer = null;
 let aksiyonCountdownTimer = null;
+let countdownSignature = '';
+let aksiyonCountdownSignature = '';
+let tableRef = null;
+let tableListener = null;
+let attachedTablePath = '';
+let phaseWatchdog = null;
+let activeDistribution = null;
+let lastSeatOrderSignature = '';
+const renderedSeatSignatures = new Map();
+let lastDealerSignature = '';
+let lastDeckSignature = '';
+let lastActionSignature = '';
+let lastBetPanelSignature = '';
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -72,42 +95,89 @@ function benimKoltukIndex(table) {
 }
 
 // ── Kart görsel yolu -- kullanıcının seçtiği stil/temaya göre. ──
+function normalleSkin(raw) {
+  const skin = raw && typeof raw === 'object' ? raw : {};
+  const desteStili = DESTE_STILLERI.includes(skin.desteStili) ? skin.desteStili : 'temel';
+  const tema = typeof skin.yuzKartiTemasi === 'string' ? skin.yuzKartiTemasi : VARSAYILAN_TEMA;
+  const temaGecerliMi = tema === VARSAYILAN_TEMA || collabKodlari().some((kod) => tema === kod + '-1' || tema === kod + '-2');
+  return { desteStili, yuzKartiTemasi: temaGecerliMi ? tema : VARSAYILAN_TEMA };
+}
+function varsayilanKartGorselYolu(kart, stil = 'temel') {
+  const rutbeKodlari = { as: '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06', '7': '07', '8': '08', '9': '09', '10': '10', joker: '11', kiz: '12', papaz: '13' };
+  const rutbe = kart && rutbeKodlari[kart.r] ? kart.r : 'as';
+  const rutbeNo = rutbeKodlari[rutbe];
+  const takim = kart && ['kupa', 'sinek', 'karo', 'maca'].includes(kart.s) ? kart.s : 'kupa';
+  const guvenliStil = DESTE_STILLERI.includes(stil) ? stil : 'temel';
+  return '/assets/blackjack/kartlar/varsayilan/' + guvenliStil + '/' + rutbeNo + '-' + rutbe + '-' + takim + '.png';
+}
+function bonusJokerGorselYolu(dosya) {
+  return '/assets/blackjack/Joker%20Kartlar%C4%B1/' + encodeURIComponent(dosya);
+}
 function kartGorselYolu(kart, uid) {
-  const skin = skinCache[uid] || mySkin;
+  const skin = skinCache[uid] || { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA };
+  if (kart && kart.r === 'joker' && BONUS_JOKER_DOSYALARI.includes(kart.bonusJokerGorseli)) {
+    return bonusJokerGorselYolu(kart.bonusJokerGorseli);
+  }
   const yuzKartiMi = kart.r === 'joker' || kart.r === 'kiz' || kart.r === 'papaz';
   if (yuzKartiMi && skin.yuzKartiTemasi && skin.yuzKartiTemasi !== VARSAYILAN_TEMA) {
-    // "koleksiyon-{kod}-{varyant}" teması -- her üç rütbe de aynı temadan.
+    // Tek tema seçimi Vale + Kız + Papaz'ın aynı koleksiyondaki üçlüsünü
+    // birlikte değiştirir; tek tek kart seçimi yoktur.
     return '/assets/blackjack/yuz-kartlari-koleksiyon/' + skin.yuzKartiTemasi + '-' + kart.r + '.png';
   }
-  const stil = (skin.desteStili && DESTE_STILLERI.includes(skin.desteStili)) ? skin.desteStili : 'temel';
-  const rutbeNo = { as: '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06', '7': '07', '8': '08', '9': '09', '10': '10', joker: '11', kiz: '12', papaz: '13' }[kart.r];
-  return '/assets/blackjack/kartlar/varsayilan/' + stil + '/' + rutbeNo + '-' + kart.r + '-' + kart.s + '.png';
+  return varsayilanKartGorselYolu(kart, skin.desteStili);
 }
 function desteArkasiYolu() { return '/assets/blackjack/deste-arkalari/deste-arkasi-01.png'; }
 
 // ── Skin ayarları ──
+function skinYolu(uid) { return dbPath('blackjackAyarlari/' + uid); }
+function skinDinlemeyiBaslat(uid) {
+  if (!database || !uid || skinListeners.has(uid)) { return; }
+  const ref = database.ref(skinYolu(uid));
+  const listener = (snap) => {
+    const sonraki = normalleSkin(snap.val());
+    const onceki = skinCache[uid];
+    skinCache[uid] = sonraki;
+    if (uid === currentUserUid) { mySkin = sonraki; }
+    if (JSON.stringify(onceki) !== JSON.stringify(sonraki) && currentTable) { renderMasa(currentTable); }
+  };
+  ref.on('value', listener);
+  skinListeners.set(uid, { ref, listener });
+}
+function skinDinlemeleriniEsitle(table) {
+  const gerekenler = new Set();
+  if (currentUserUid) { gerekenler.add(currentUserUid); }
+  for (let i = 0; i < MAX_KOLTUK; i++) {
+    const uid = table && table.koltuklar && table.koltuklar[i] && table.koltuklar[i].uid;
+    if (uid) { gerekenler.add(uid); }
+  }
+  skinListeners.forEach(({ ref, listener }, uid) => {
+    if (!gerekenler.has(uid)) { ref.off('value', listener); skinListeners.delete(uid); delete skinCache[uid]; }
+  });
+  gerekenler.forEach((uid) => skinDinlemeyiBaslat(uid));
+}
+function skinDinlemeleriniTemizle() {
+  skinListeners.forEach(({ ref, listener }) => ref.off('value', listener));
+  skinListeners.clear();
+  skinCache = {};
+}
 function loadSkinFor(uid) {
+  skinDinlemeyiBaslat(uid);
   if (skinCache[uid]) { return Promise.resolve(skinCache[uid]); }
-  return database.ref('blackjackAyarlari/' + uid).once('value').then((snap) => {
-    const v = snap.val() || { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA };
+  return database.ref(skinYolu(uid)).once('value').then((snap) => {
+    const v = normalleSkin(snap.val());
     skinCache[uid] = v;
     if (uid === currentUserUid) { mySkin = v; }
     return v;
   });
 }
-function ensureSkinsLoaded(table) {
-  const uids = [];
-  for (let i = 0; i < MAX_KOLTUK; i++) { if (table.koltuklar && table.koltuklar[i] && table.koltuklar[i].uid) { uids.push(table.koltuklar[i].uid); } }
-  return Promise.all(uids.map((u) => loadSkinFor(u)));
-}
-
 // Skin seçimi önizlemeleri -- kullanıcı isteği: "hangisini seçtiğimizi
 // bilelim" (sade metin/radio yerine gerçek kart görseli).
 function stilOnizlemeYolu(stil) { return '/assets/blackjack/kartlar/varsayilan/' + stil + '/07-7-kupa.png'; }
-function temaOnizlemeYolu(tema) {
-  return tema === VARSAYILAN_TEMA
-    ? '/assets/blackjack/kartlar/varsayilan/temel/13-papaz-kupa.png'
-    : '/assets/blackjack/yuz-kartlari-koleksiyon/' + tema + '-papaz.png';
+function temaUcluOnizlemeHtml(tema) {
+  const yollar = ['joker', 'kiz', 'papaz'].map((rutbe) => tema === VARSAYILAN_TEMA
+    ? varsayilanKartGorselYolu({ r: rutbe, s: 'kupa' })
+    : '/assets/blackjack/yuz-kartlari-koleksiyon/' + tema + '-' + rutbe + '.png');
+  return '<span class="bj-skin-uclu">' + yollar.map((src) => '<img class="bj-skin-onizleme" src="' + src + '" alt="">').join('') + '</span>';
 }
 function openSkinModal() {
   loadSkinFor(currentUserUid).then(() => {
@@ -116,18 +186,18 @@ function openSkinModal() {
     ).join('');
     const temaSecenekleri = ['varsayilan'].concat(collabKodlari().flatMap((kod) => [kod + '-1', kod + '-2']));
     const temaHtml = temaSecenekleri.map((t) =>
-      '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + temaOnizlemeYolu(t) + '" alt=""> ' + escapeHtml(t === 'varsayilan' ? 'Varsayılan' : t) + '</label>'
+      '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '>' + temaUcluOnizlemeHtml(t) + '<span>' + escapeHtml(t === 'varsayilan' ? 'Varsayılan üçlü' : t) + '</span></label>'
     ).join('');
     showModal({
       title: 'Kart Skinleri',
-      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4>' + stilHtml + '</div><div class="bj-skin-grup"><h4>Vale / Kız / Papaz Teması</h4><div class="bj-skin-tema-liste">' + temaHtml + '</div></div>',
+      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4>' + stilHtml + '</div><div class="bj-skin-grup"><h4>Vale + Kız + Papaz üçlüsü</h4><p class="hint">Tek seçim, aynı koleksiyondaki üç kartı birlikte değiştirir.</p><div class="bj-skin-tema-liste">' + temaHtml + '</div></div>',
       actions: [
         {
           label: 'Kaydet', variant: 'primary', action: ({ dialog }) => {
             const stil = dialog.querySelector('input[name="bj-destestili"]:checked').value;
             const tema = dialog.querySelector('input[name="bj-tema"]:checked').value;
-            database.ref('blackjackAyarlari/' + currentUserUid).set({ desteStili: stil, yuzKartiTemasi: tema }).then(() => {
-              skinCache[currentUserUid] = { desteStili: stil, yuzKartiTemasi: tema };
+            database.ref(skinYolu(currentUserUid)).set({ desteStili: stil, yuzKartiTemasi: tema }).then(() => {
+              skinCache[currentUserUid] = normalleSkin({ desteStili: stil, yuzKartiTemasi: tema });
               mySkin = skinCache[currentUserUid];
               if (currentTable) { renderMasa(currentTable); }
               showToast('Skin kaydedildi.', { variant: 'success' });
@@ -146,47 +216,142 @@ function collabKodlari() {
 }
 
 // ── Çip bakiyesi ──
-function subscribeMyBalance() {
-  database.ref('cipBakiyeleri/' + currentUserUid).on('value', (snap) => {
-    myChipBalance = snap.exists() ? snap.val() : null;
-    if (myChipBalance === null) {
-      database.ref('cipBakiyeleri/' + currentUserUid).set(BASLANGIC_BAKIYESI).then(() => { myChipBalance = BASLANGIC_BAKIYESI; renderBakiye(); });
-    } else { renderBakiye(); }
+function cuzdanYolu(uid) { return dbPath('cipBakiyeleri/' + uid); }
+function temizIslemListesi(islemler) {
+  const kaynak = islemler && typeof islemler === 'object' ? islemler : {};
+  const anahtarlar = Object.keys(kaynak);
+  if (anahtarlar.length <= CIP_ISLEM_KAYIT_LIMITI) { return Object.assign({}, kaynak); }
+  return anahtarlar
+    .sort((a, b) => ((kaynak[a] && kaynak[a].ts) || 0) - ((kaynak[b] && kaynak[b].ts) || 0))
+    .slice(-(CIP_ISLEM_KAYIT_LIMITI - 1))
+    .reduce((sonuc, anahtar) => Object.assign(sonuc, { [anahtar]: kaynak[anahtar] }), {});
+}
+function normalleCuzdan(raw, uid) {
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0) {
+    const migrasyonId = 'blackjack:migrasyon:' + uid;
+    return { bakiye: raw, sonIslemId: migrasyonId, islemler: { [migrasyonId]: { delta: raw, kaynak: 'migrasyon', ts: Date.now() } }, legacyMi: true };
+  }
+  const deger = raw && typeof raw === 'object' ? raw : {};
+  return {
+    bakiye: Number.isFinite(deger.bakiye) && deger.bakiye >= 0 ? deger.bakiye : 0,
+    sonIslemId: typeof deger.sonIslemId === 'string' ? deger.sonIslemId : '',
+    islemler: temizIslemListesi(deger.islemler),
+    legacyMi: false
+  };
+}
+function bootstrapCuzdan(uid) {
+  const bootstrapId = 'blackjack:bootstrap:' + uid;
+  const ref = database.ref(cuzdanYolu(uid));
+  return ref.transaction((mevcut) => {
+    if (mevcut === null || mevcut === undefined) {
+      return { bakiye: BASLANGIC_BAKIYESI, sonIslemId: bootstrapId, islemler: { [bootstrapId]: { delta: BASLANGIC_BAKIYESI, kaynak: 'baslangic', ts: Date.now() } } };
+    }
+    const cuzdan = normalleCuzdan(mevcut, uid);
+    if (cuzdan.legacyMi) {
+      const { legacyMi: _legacyMi, ...migrasyon } = cuzdan;
+      return migrasyon;
+    }
   });
+}
+function subscribeMyBalance() {
+  if (!currentUserUid) { return; }
+  if (walletRef && walletListener) { walletRef.off('value', walletListener); }
+  walletRef = database.ref(cuzdanYolu(currentUserUid));
+  walletListener = (snap) => {
+    if (!snap.exists()) {
+      myChipBalance = null;
+      renderBakiye();
+      bootstrapCuzdan(currentUserUid).catch((err) => console.error('Başlangıç çipi oluşturulamadı:', err));
+      return;
+    }
+    const cuzdan = normalleCuzdan(snap.val(), currentUserUid);
+    myChipBalance = cuzdan.bakiye;
+    myWalletOperationIds = new Set(Object.keys(cuzdan.islemler));
+    renderBakiye();
+    if (cuzdan.legacyMi) { bootstrapCuzdan(currentUserUid).catch((err) => console.error('Çip bakiyesi dönüştürülemedi:', err)); }
+  };
+  walletRef.on('value', walletListener);
 }
 function renderBakiye() {
   const el = document.querySelector('[data-bj-bakiye]');
   if (el) { el.textContent = (myChipBalance === null ? '…' : myChipBalance.toLocaleString('tr-TR')) + ' çip'; }
 }
-function bakiyeGuncelle(uid, delta) {
-  // NOT: Firebase kuralı "newData.val() >= 0" şartı koyuyor. mevcut null/stale
-  // okunduğu bir anda (örn. ilk set(1000) sunucuya henüz ulaşmadan bir el
-  // başlarsa) DÜŞÜŞ negatife düşüp kural tarafından SESSİZCE reddediliyordu --
-  // KAZANÇ (pozitif delta) her zaman geçtiği için sadece kayıplarda görünen
-  // bir "çip düşmüyor" hatasına yol açıyordu. Math.max(0, ...) ile asla
-  // kural-reddi bir değer önerilmiyor; .catch ile de artık sessiz kalmıyor.
-  return database.ref('cipBakiyeleri/' + uid).transaction((mevcut) => Math.max(0, (mevcut || 0) + delta))
-    .catch((err) => {
-      console.error('Çip bakiyesi güncellenemedi:', err);
-      showToast('Bakiye güncellenemedi, sayfayı yenileyin.', { variant: 'error' });
-    });
+function bakiyeGuncelle(uid, delta, islemId, kaynak) {
+  if (!uid || uid !== currentUserUid || !Number.isFinite(delta) || !islemId || !kaynak) {
+    return Promise.resolve({ committed: false, gecersiz: true });
+  }
+  if (pendingChipOperations.has(islemId)) {
+    return Promise.resolve({ committed: false, beklemede: true });
+  }
+  if (myWalletOperationIds.has(islemId)) {
+    return Promise.resolve({ committed: true, tekrar: true });
+  }
+  pendingChipOperations.add(islemId);
+  let yetersizBakiye = false;
+  return database.ref(cuzdanYolu(uid)).transaction((mevcut) => {
+    const cuzdan = normalleCuzdan(mevcut, uid);
+    if (cuzdan.islemler[islemId]) { return; }
+    const yeniBakiye = cuzdan.bakiye + delta;
+    if (yeniBakiye < 0) { yetersizBakiye = true; return; }
+    const yeniIslemler = temizIslemListesi(cuzdan.islemler);
+    // Yeni işlem eklenmeden önce kayıt sınırında bir yer boşaltılır. Böylece
+    // sınır her yazıda korunur, tam sınırdaki eski kayıt durup dururken silinmez.
+    const islemAnahtarlari = Object.keys(yeniIslemler);
+    if (islemAnahtarlari.length >= CIP_ISLEM_KAYIT_LIMITI) {
+      const enEski = islemAnahtarlari.sort((a, b) => ((yeniIslemler[a] && yeniIslemler[a].ts) || 0) - ((yeniIslemler[b] && yeniIslemler[b].ts) || 0))[0];
+      delete yeniIslemler[enEski];
+    }
+    yeniIslemler[islemId] = { delta, kaynak, ts: Date.now() };
+    return { bakiye: yeniBakiye, sonIslemId: islemId, islemler: yeniIslemler };
+  }).then((res) => {
+    const yeni = normalleCuzdan(res.snapshot && res.snapshot.val(), uid);
+    const tekrar = Boolean(yeni.islemler[islemId]) && !res.committed;
+    if (res.committed || tekrar) { myWalletOperationIds.add(islemId); }
+    return { committed: res.committed || tekrar, tekrar, yetersizBakiye };
+  }).catch((err) => {
+    console.error('Çip bakiyesi güncellenemedi:', err);
+    return { committed: false, hata: err };
+  }).finally(() => pendingChipOperations.delete(islemId));
 }
 
 // ── Oturma / kalkma ──
 function otur(koltukIndex) {
   if (!canPlay) { showToast('Oynamak için giriş yapmalısınız.', { variant: 'error' }); return; }
-  if (benimKoltukIndex(currentTable) !== null) { showToast('Zaten bir koltukta oturuyorsunuz.', { variant: 'error' }); return; }
-  const ref = database.ref(dbPath(MASA_YOLU + '/koltuklar/' + koltukIndex));
+  if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_KOLTUK) { return; }
+  const ref = database.ref(dbPath(MASA_YOLU));
   ref.transaction((mevcut) => {
-    if (mevcut && mevcut.uid) { return; } // dolu -- vazgeç
-    return { uid: currentUserUid, isim: currentUserName || currentUserEmail, bahis: null, katilimDurumu: 'hazir' };
+    if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
+    const koltuklar = Object.assign({}, mevcut.koltuklar || {});
+    // Sadece ekrandaki eski state'e değil, transaction'ın güncel masa haline
+    // bakılır; böylece aynı hesap iki sekmede iki koltuğa oturamaz.
+    if (Object.keys(koltuklar).some((i) => koltuklar[i] && koltuklar[i].uid === currentUserUid)) { return; }
+    if (koltuklar[koltukIndex] && koltuklar[koltukIndex].uid) { return; }
+    koltuklar[koltukIndex] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, bahis: null, katilimDurumu: 'hazir' };
+    return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
   }).then((res) => {
-    if (!res.committed) { showToast('Bu koltuk dolu.', { variant: 'error' }); }
+    if (!res.committed) { showToast('Bu koltuk dolu veya el başlamış.', { variant: 'error' }); }
   });
 }
 function kalk(koltukIndex) {
-  if (currentTable && currentTable.durum !== 'bahis_bekleniyor') { showToast('El bitmeden kalkamazsınız.', { variant: 'error' }); return; }
-  database.ref(dbPath(MASA_YOLU + '/koltuklar/' + koltukIndex)).set(null);
+  if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_KOLTUK) { return; }
+  let iadeMiktari = 0;
+  let iadeElNo = 0;
+  database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+    if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
+    const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
+    if (!koltuk || koltuk.uid !== currentUserUid) { return; }
+    iadeMiktari = Number(koltuk.bahis) || 0;
+    iadeElNo = (mevcut.elNo || 0) + 1;
+    const koltuklar = Object.assign({}, mevcut.koltuklar);
+    koltuklar[koltukIndex] = null;
+    return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
+  }).then((res) => {
+    if (!res.committed) { showToast('El bitmeden veya başka bir kullanıcının koltuğundan kalkamazsınız.', { variant: 'error' }); return; }
+    if (iadeMiktari > 0) {
+      bakiyeGuncelle(currentUserUid, iadeMiktari, 'blackjack:' + iadeElNo + ':koltuk:' + koltukIndex + ':kalk-iade', 'iade')
+        .then((sonuc) => { if (!sonuc.committed) { showToast('Bahis iadesi bekliyor; sayfayı açık tutun.', { variant: 'error' }); } });
+    }
+  });
 }
 
 // ── Bahis ──
@@ -194,14 +359,35 @@ function bahisYap(koltukIndex, miktar) {
   // Tıklanan çip miktarı MEVCUT bahise EKLENİR (üzerine yazılmaz) -- kullanıcı
   // isteği: "2 kere 100'e basınca 200 olması lazım". Bakiye kontrolü toplam
   // (mevcut bahis + eklenen) üzerinden yapılır.
-  const ref = database.ref(dbPath(MASA_YOLU + '/koltuklar/' + koltukIndex));
-  ref.transaction((mevcut) => {
-    if (!mevcut || mevcut.uid !== currentUserUid) { return; }
-    const yeniBahis = (mevcut.bahis || 0) + miktar;
-    if (yeniBahis > myChipBalance) { return; }
-    return Object.assign({}, mevcut, { bahis: yeniBahis, katilimDurumu: 'hazir' });
-  }).then((res) => {
-    if (!res.committed) { showToast('Yetersiz bakiye.', { variant: 'error' }); }
+  if (!currentTable || currentTable.durum !== 'bahis_bekleniyor' || !CIP_DEGERLERI.includes(miktar)) { return; }
+  const yerelKoltuk = currentTable.koltuklar && currentTable.koltuklar[koltukIndex];
+  if (!yerelKoltuk || yerelKoltuk.uid !== currentUserUid) { return; }
+  const oncekiBahis = Number(yerelKoltuk.bahis) || 0;
+  if (!Number.isFinite(myChipBalance) || miktar > myChipBalance) { showToast('Yetersiz bakiye.', { variant: 'error' }); return; }
+  const gelecekElNo = (currentTable.elNo || 0) + 1;
+  const islemId = 'blackjack:' + gelecekElNo + ':koltuk:' + koltukIndex + ':bahis:' + oncekiBahis + ':' + miktar;
+
+  // Çip önce rezervasyon olarak düşer, ardından bahis güncel masaya yazılır.
+  // İkinci adım yarışta kaybederse aynı işlem kimliğiyle iade edilir; bu, eski
+  // "dağıtımdan sonra düş" akışındaki ücretsiz bahis penceresini kapatır.
+  bakiyeGuncelle(currentUserUid, -miktar, islemId, 'bahis').then((bakiyeSonucu) => {
+    if (bakiyeSonucu.beklemede) { return; }
+    if (!bakiyeSonucu.committed) {
+      showToast(bakiyeSonucu.yetersizBakiye ? 'Yetersiz bakiye.' : 'Bahis için çip ayrılamadı.', { variant: 'error' });
+      return;
+    }
+    database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+      if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
+      const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
+      if (!koltuk || koltuk.uid !== currentUserUid || (Number(koltuk.bahis) || 0) !== oncekiBahis) { return; }
+      const koltuklar = Object.assign({}, mevcut.koltuklar);
+      koltuklar[koltukIndex] = Object.assign({}, koltuk, { bahis: oncekiBahis + miktar, katilimDurumu: 'hazir' });
+      return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
+    }).then((res) => {
+      if (res.committed) { return; }
+      const iadeId = islemId + ':iade';
+      bakiyeGuncelle(currentUserUid, miktar, iadeId, 'iade').then(() => showToast('Bahis penceresi değişti; ayrılan çip iade edildi.', { variant: 'info' }));
+    });
   });
 }
 
@@ -213,6 +399,32 @@ function sonrakiAktifElVarMi(table) {
     for (let e = 0; e < k.eller.length; e++) { if (k.eller[e].durum === 'oynuyor') { return { koltuk: i, el: e }; } }
   }
   return null;
+}
+function sonrakiSirayiAyarla(mevcut) {
+  const sonraki = sonrakiAktifElVarMi(mevcut);
+  if (sonraki) {
+    mevcut.aktifKoltuk = sonraki.koltuk;
+    mevcut.aksiyonSuresiBitis = Date.now() + AKSIYON_SURESI_MS;
+  } else {
+    mevcut.durum = 'kurpiyer_sirasi';
+    mevcut.aktifKoltuk = null;
+    mevcut.aksiyonSuresiBitis = null;
+  }
+  mevcut.guncellemeTs = Date.now();
+  return mevcut;
+}
+function odemeGecmisiniEkle(mevcut, koltuklar) {
+  const gecmis = Object.assign({}, mevcut.odemeGecmisi || {});
+  const buEl = {};
+  Object.keys(koltuklar || {}).forEach((i) => {
+    const koltuk = koltuklar[i];
+    if (!koltuk || !koltuk.uid || !koltuk.eller) { return; }
+    buEl[i] = { uid: koltuk.uid, odeme: koltuk.eller.reduce((toplam, el) => toplam + (Number(el.odeme) || 0), 0) };
+  });
+  gecmis[String(mevcut.elNo)] = { koltuklar: buEl };
+  const eskiAnahtarlar = Object.keys(gecmis).sort((a, b) => Number(a) - Number(b));
+  while (eskiAnahtarlar.length > 20) { delete gecmis[eskiAnahtarlar.shift()]; }
+  mevcut.odemeGecmisi = gecmis;
 }
 
 // ── Faz geçişleri (transaction ile "kim yönetiyor" çözülür) ──
@@ -226,8 +438,9 @@ function bahisPenceresiniBaslat() {
     // yükseliyor"). Deste SADECE bahisSuresiDolunca'daki desteYeterliMi
     // kontrolü yetersiz derse yeniden karılmalı, her elin başında değil.
     const temiz = {
-      durum: 'bahis_bekleniyor', bahisSuresiBitis: Date.now() + BAHIS_SURESI_MS, aktifKoltuk: null, kurpiyerEli: null, guncellemeTs: Date.now(),
-      deste: (mevcut && mevcut.deste) || null, desteIndex: (mevcut && mevcut.desteIndex) || 0, elNo: (mevcut && mevcut.elNo) || 0
+      durum: 'bahis_bekleniyor', bahisSuresiBitis: Date.now() + BAHIS_SURESI_MS, aktifKoltuk: null, aksiyonSuresiBitis: null, kurpiyerEli: null, guncellemeTs: Date.now(),
+      deste: (mevcut && mevcut.deste) || null, desteIndex: (mevcut && mevcut.desteIndex) || 0, elNo: (mevcut && mevcut.elNo) || 0,
+      odemeGecmisi: (mevcut && mevcut.odemeGecmisi) || {}
     };
     const koltuklar = (mevcut && mevcut.koltuklar) || {};
     Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { bahis: null, eller: null, katilimDurumu: 'hazir' }); } });
@@ -253,14 +466,14 @@ function bahisSuresiDolunca() {
       desteIndex = 0;
     }
     const koltuklar = Object.assign({}, mevcut.koltuklar);
-    // Sırayla: her bahisli koltuğa 1 kart, sonra krupiyere 1 (açık), sonra tekrar
-    // her koltuğa 1 kart, sonra krupiyere 1 (kapalı) -- gerçek kumarhane sırası.
+    // Sırayla: her bahisli koltuğa 1 kart, krupiyere 1 (açık), sonra tekrar
+    // her koltuğa 1 kart ve krupiyere 1 (kapalı). Render animasyonu da aynı
+    // sırayı kullandığı için ekranda görülen kart ile desteden çıkan kart eşleşir.
     const elBaslangic = {};
     bahisliKoltuklar.forEach((i) => { elBaslangic[i] = []; });
-    for (let tur = 0; tur < 2; tur++) {
-      bahisliKoltuklar.forEach((i) => { elBaslangic[i].push(deste[desteIndex]); desteIndex++; });
-    }
+    bahisliKoltuklar.forEach((i) => { elBaslangic[i].push(deste[desteIndex]); desteIndex++; });
     const krupiyerKartlari = [deste[desteIndex]]; desteIndex++;
+    bahisliKoltuklar.forEach((i) => { elBaslangic[i].push(deste[desteIndex]); desteIndex++; });
     krupiyerKartlari.push(deste[desteIndex]); desteIndex++;
 
     bahisliKoltuklar.forEach((i) => {
@@ -277,30 +490,13 @@ function bahisSuresiDolunca() {
     mevcut.aktifKoltuk = ilkAktif === undefined ? null : ilkAktif;
     mevcut.durum = ilkAktif === undefined ? 'kurpiyer_sirasi' : 'oyunculuk';
     mevcut.aksiyonSuresiBitis = ilkAktif === undefined ? null : Date.now() + AKSIYON_SURESI_MS;
-    // Her el için artan bir numara -- bakiye düşme/ödeme işlemlerini KİM
-    // DAĞITTIYSA onun değil, HER oturan istemcinin kendi listener'ında bir kez
-    // işlemesi için (bkz. islemBakiyeYansit). "Kim dağıtıyor" yarışını sadece
-    // BİR istemci kazanır ama masadaki HERKESİN kendi bahsini düşmesi/ödemesini
-    // alması gerekiyor -- bu numaraya göre "bu eli zaten işledim mi" kontrolü var.
+    // Her el için artan numara, kalıcı cüzdan işlem anahtarlarında kullanılır.
+    // Bahisler artık dağıtımdan ÖNCE rezerve edildiği için burada ikinci kez
+    // tahsilat yapılmaz; sonuç ödemeleri de bu numarayla idempotent kalır.
     mevcut.elNo = (mevcut.elNo || 0) + 1;
     mevcut.guncellemeTs = Date.now();
     return mevcut;
   });
-}
-
-function siraSonrakineGecsin(table) {
-  const sonraki = sonrakiAktifElVarMi(table);
-  const patch = {};
-  if (sonraki) {
-    patch[dbPath(MASA_YOLU + '/aktifKoltuk')] = sonraki.koltuk;
-    patch[dbPath(MASA_YOLU + '/aksiyonSuresiBitis')] = Date.now() + AKSIYON_SURESI_MS;
-  } else {
-    patch[dbPath(MASA_YOLU + '/durum')] = 'kurpiyer_sirasi';
-    patch[dbPath(MASA_YOLU + '/aktifKoltuk')] = null;
-    patch[dbPath(MASA_YOLU + '/aksiyonSuresiBitis')] = null;
-  }
-  patch[dbPath(MASA_YOLU + '/guncellemeTs')] = Date.now();
-  database.ref('/').update(patch);
 }
 
 function krupiyerSirasiGeldi() {
@@ -314,10 +510,12 @@ function krupiyerSirasiGeldi() {
     });
     let kartlar = mevcut.kurpiyerEli.kartlar;
     let desteIndex = mevcut.desteIndex;
+    let desteTukendiMi = false;
     if (!herkesBattiMi) {
       const sonuc = krupiyerElOyna(kartlar, mevcut.deste, desteIndex);
       kartlar = sonuc.kartlar;
       desteIndex = sonuc.yeniDesteIndex;
+      desteTukendiMi = sonuc.desteTukendiMi;
     }
     const krupiyerDegerlendirme = elDegerlendir(kartlar);
     const koltuklar = Object.assign({}, mevcut.koltuklar);
@@ -325,9 +523,12 @@ function krupiyerSirasiGeldi() {
       const k = koltuklar[i];
       if (!k || !k.eller) { return; }
       const yeniEller = k.eller.map((el) => {
+        // Deste olağanüstü biçimde tükenirse eldeki bahisler eksiksiz iade
+        // edilir; eksik/undefined kart üzerinden sonuç üretmekten güvenlidir.
+        if (desteTukendiMi) { return Object.assign({}, el, { sonuc: 'berabere', odeme: el.bahisMiktari }); }
         if (el.durum === 'batti') { return Object.assign({}, el, { sonuc: 'kaybetti', odeme: 0 }); }
         const degerlendirme = elDegerlendir(el.kartlar);
-        const sonuc = elSonucuHesapla(degerlendirme, krupiyerDegerlendirme, el.bahisMiktari);
+        const sonuc = elSonucuHesapla(degerlendirme, krupiyerDegerlendirme, el.bahisMiktari, { splittenGeldiMi: el.splittenGeldiMi === true });
         return Object.assign({}, el, { sonuc: sonuc.sonuc, odeme: sonuc.odeme });
       });
       koltuklar[i] = Object.assign({}, k, { eller: yeniEller });
@@ -337,6 +538,7 @@ function krupiyerSirasiGeldi() {
     mevcut.koltuklar = koltuklar;
     mevcut.durum = 'el_sonucu';
     mevcut.guncellemeTs = Date.now();
+    odemeGecmisiniEkle(mevcut, koltuklar);
     return mevcut;
   });
 }
@@ -347,7 +549,7 @@ function krupiyerSirasiGeldi() {
 // istemcinin kazandığını çözüyor, burada sadece "kim önce fark ederse o dener".
 const EL_SONUCU_BEKLEME_MS = 4000;
 function belkiSonrakiFazaGec(table) {
-  if (!table) { return; }
+  if (!table || isReadOnly()) { return; }
   if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
@@ -359,8 +561,6 @@ function belkiSonrakiFazaGec(table) {
 // AYNI "herkes kendi istemcisinde fark eder" deseni.
 function aksiyonSuresiDolunca() {
   const ref = database.ref(dbPath(MASA_YOLU));
-  let islenenKoltuk = null;
-  let islenenEl = null;
   ref.transaction((mevcut) => {
     if (!mevcut || mevcut.durum !== 'oyunculuk' || mevcut.aktifKoltuk === null || mevcut.aktifKoltuk === undefined) { return; }
     if (!mevcut.aksiyonSuresiBitis || Date.now() < mevcut.aksiyonSuresiBitis) { return; }
@@ -368,135 +568,130 @@ function aksiyonSuresiDolunca() {
     const koltuk = mevcut.koltuklar[koltukIndex];
     const elIndex = activeElIndex(koltuk);
     if (elIndex === -1) { return; }
-    islenenKoltuk = koltukIndex;
-    islenenEl = elIndex;
     const yeniEller = koltuk.eller.slice();
     yeniEller[elIndex] = Object.assign({}, yeniEller[elIndex], { durum: 'kaldi' });
     mevcut.koltuklar[koltukIndex] = Object.assign({}, koltuk, { eller: yeniEller });
-    mevcut.guncellemeTs = Date.now();
-    return mevcut;
-  }).then((res) => {
-    if (res.committed && islenenKoltuk !== null) { siraSonrakiEliyaGec(res.snapshot.val(), islenenKoltuk, islenenEl); }
+    return sonrakiSirayiAyarla(mevcut);
   });
 }
 
-// "Kim dağıtıyor / kim krupiyeri oynatıyor" yarışını SADECE BİR istemci
-// kazanır (bkz. yukarıdaki transaction'lar) -- ama masadaki HERKESİN kendi
-// bahsini düşmesi ve kendi ödemesini alması gerekiyor. Bu yüzden bakiye
-// hareketleri o yarışı kazanan istemciye değil, HER oturan istemcinin kendi
-// `value` dinleyicisine bağlı -- elNo'ya göre "bu eli zaten işledim mi" diye
-// bakıp bir kez uyguluyor (bkz. sonIslenenBahisElNo/sonOdenenElNo).
-let sonIslenenBahisElNo = -1;
-let sonOdenenElNo = -1;
+// Sonuç ödemeleri masadaki son 20 elde tutulur. Böylece oyuncu sonuç anında
+// çevrimdışı olsa bile geri döndüğünde kendi cüzdan işlem anahtarıyla tek kez
+// tahsil eder; tarayıcı belleğindeki sayaçlara veya açık sekmeye bağlı değildir.
 function islemBakiyeYansit(table) {
-  const benimKoltuk = benimKoltukIndex(table);
-  if (benimKoltuk === null || !table.elNo) { return; }
-  const koltuk = table.koltuklar[benimKoltuk];
-  if (!koltuk || !koltuk.eller || !koltuk.eller[0]) { return; }
-  if (table.elNo !== sonIslenenBahisElNo) {
-    sonIslenenBahisElNo = table.elNo;
-    const dusulecek = koltuk.eller[0].bahisMiktari;
-    if (dusulecek > 0) { bakiyeGuncelle(currentUserUid, -dusulecek); }
-  }
-  if (table.durum === 'el_sonucu' && table.elNo !== sonOdenenElNo && koltuk.eller[0].odeme !== undefined) {
-    sonOdenenElNo = table.elNo;
-    const toplamOdeme = koltuk.eller.reduce((t, el) => t + (el.odeme || 0), 0);
-    if (toplamOdeme > 0) { bakiyeGuncelle(currentUserUid, toplamOdeme); }
-  }
+  if (!currentUserUid || !table || !table.odemeGecmisi) { return; }
+  Object.keys(table.odemeGecmisi).forEach((elNo) => {
+    const gecmisEl = table.odemeGecmisi[elNo];
+    Object.keys((gecmisEl && gecmisEl.koltuklar) || {}).forEach((koltukIndex) => {
+      const odeme = gecmisEl.koltuklar[koltukIndex];
+      if (!odeme || odeme.uid !== currentUserUid || !(Number(odeme.odeme) > 0)) { return; }
+      const islemId = 'blackjack:' + elNo + ':koltuk:' + koltukIndex + ':odeme';
+      bakiyeGuncelle(currentUserUid, Number(odeme.odeme), islemId, 'odeme');
+    });
+  });
 }
 
 // ── Oyuncu aksiyonları ──
+function guncelElAl(mevcut, koltukIndex, elIndex) {
+  if (!mevcut || mevcut.durum !== 'oyunculuk' || mevcut.aktifKoltuk !== koltukIndex) { return null; }
+  const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
+  if (!koltuk || koltuk.uid !== currentUserUid || !Array.isArray(koltuk.eller) || activeElIndex(koltuk) !== elIndex) { return null; }
+  const el = koltuk.eller[elIndex];
+  return el && el.durum === 'oynuyor' ? { koltuk, el } : null;
+}
 function kartCek(koltukIndex, elIndex) {
   const ref = database.ref(dbPath(MASA_YOLU));
   ref.transaction((mevcut) => {
-    if (!mevcut || mevcut.aktifKoltuk !== koltukIndex) { return; }
-    const koltuk = mevcut.koltuklar[koltukIndex];
-    const el = koltuk.eller[elIndex];
-    if (el.durum !== 'oynuyor') { return; }
+    const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
+    if (!aktif) { return; }
+    const { koltuk, el } = aktif;
     const yeniKart = mevcut.deste[mevcut.desteIndex];
+    if (!yeniKart) { return; }
     const yeniKartlar = el.kartlar.concat([yeniKart]);
     const degerlendirme = elDegerlendir(yeniKartlar);
     const yeniEl = Object.assign({}, el, { kartlar: yeniKartlar, durum: degerlendirme.battiMi ? 'batti' : (degerlendirme.toplam === 21 ? 'kaldi' : 'oynuyor') });
     const yeniEller = koltuk.eller.slice(); yeniEller[elIndex] = yeniEl;
     mevcut.koltuklar[koltukIndex] = Object.assign({}, koltuk, { eller: yeniEller });
     mevcut.desteIndex = mevcut.desteIndex + 1;
-    mevcut.guncellemeTs = Date.now();
-    return mevcut;
-  }).then((res) => { if (res.committed) { siraSonrakiEliyaGec(res.snapshot.val(), koltukIndex, elIndex); } });
-}
-function siraSonrakiEliyaGec(table, koltukIndex, elIndex) {
-  const koltuk = table.koltuklar[koltukIndex];
-  if (koltuk.eller[elIndex].durum === 'oynuyor') { return; } // hâlâ aynı elde (21 olmadıysa devam eder, UI tekrar kartÇek çağırır)
-  if (koltuk.eller[elIndex + 1]) {
-    // Aynı koltuk, sıradaki (bölünmüş) el -- süre de sıfırlanır.
-    database.ref('/').update({
-      [dbPath(MASA_YOLU + '/aktifKoltuk')]: koltukIndex,
-      [dbPath(MASA_YOLU + '/aksiyonSuresiBitis')]: Date.now() + AKSIYON_SURESI_MS
-    });
-    return;
-  }
-  siraSonrakineGecsin(table);
+    return yeniEl.durum === 'oynuyor' ? Object.assign(mevcut, { guncellemeTs: Date.now() }) : sonrakiSirayiAyarla(mevcut);
+  });
 }
 function kal(koltukIndex, elIndex) {
   const ref = database.ref(dbPath(MASA_YOLU));
   ref.transaction((mevcut) => {
-    if (!mevcut || mevcut.aktifKoltuk !== koltukIndex) { return; }
-    const koltuk = mevcut.koltuklar[koltukIndex];
-    const el = koltuk.eller[elIndex];
-    if (el.durum !== 'oynuyor') { return; }
+    const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
+    if (!aktif) { return; }
+    const { koltuk, el } = aktif;
     const yeniEller = koltuk.eller.slice(); yeniEller[elIndex] = Object.assign({}, el, { durum: 'kaldi' });
     mevcut.koltuklar[koltukIndex] = Object.assign({}, koltuk, { eller: yeniEller });
-    mevcut.guncellemeTs = Date.now();
-    return mevcut;
-  }).then((res) => { if (res.committed) { siraSonrakiEliyaGec(res.snapshot.val(), koltukIndex, elIndex); } });
+    return sonrakiSirayiAyarla(mevcut);
+  });
 }
 function katla(koltukIndex, elIndex) {
-  const koltuk = currentTable.koltuklar[koltukIndex];
-  const el = koltuk.eller[elIndex];
-  if (el.kartlar.length !== 2) { showToast('Sadece ilk karardan sonra katlayabilirsiniz.', { variant: 'error' }); return; }
+  const koltuk = currentTable && currentTable.koltuklar && currentTable.koltuklar[koltukIndex];
+  const el = koltuk && koltuk.eller && koltuk.eller[elIndex];
+  if (!koltuk || koltuk.uid !== currentUserUid || !el || el.durum !== 'oynuyor' || el.kartlar.length !== 2) { showToast('Sadece ilk karardan sonra katlayabilirsiniz.', { variant: 'error' }); return; }
   if (el.bahisMiktari > myChipBalance) { showToast('Katlamak için yetersiz bakiye.', { variant: 'error' }); return; }
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
-    if (!mevcut || mevcut.aktifKoltuk !== koltukIndex) { return; }
-    const k = mevcut.koltuklar[koltukIndex];
-    const e = k.eller[elIndex];
-    if (e.kartlar.length !== 2) { return; }
-    const yeniKart = mevcut.deste[mevcut.desteIndex];
-    const yeniKartlar = e.kartlar.concat([yeniKart]);
-    const degerlendirme = elDegerlendir(yeniKartlar);
-    const yeniEl = Object.assign({}, e, { kartlar: yeniKartlar, bahisMiktari: e.bahisMiktari * 2, katlandi: true, durum: degerlendirme.battiMi ? 'batti' : 'kaldi' });
-    const yeniEller = k.eller.slice(); yeniEller[elIndex] = yeniEl;
-    mevcut.koltuklar[koltukIndex] = Object.assign({}, k, { eller: yeniEller });
-    mevcut.desteIndex = mevcut.desteIndex + 1;
-    mevcut.guncellemeTs = Date.now();
-    return mevcut;
-  }).then((res) => { if (res.committed) { bakiyeGuncelle(currentUserUid, -el.bahisMiktari); siraSonrakiEliyaGec(res.snapshot.val(), koltukIndex, elIndex); } });
+  const islemId = 'blackjack:' + currentTable.elNo + ':koltuk:' + koltukIndex + ':el:' + elIndex + ':katla';
+  bakiyeGuncelle(currentUserUid, -el.bahisMiktari, islemId, 'katla').then((bakiyeSonucu) => {
+    if (bakiyeSonucu.beklemede) { return; }
+    if (!bakiyeSonucu.committed) { showToast('Katlama için yeterli çip yok.', { variant: 'error' }); return; }
+    database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+      const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
+      if (!aktif || aktif.el.kartlar.length !== 2 || aktif.el.katlandi) { return; }
+      const yeniKart = mevcut.deste[mevcut.desteIndex];
+      if (!yeniKart) { return; }
+      const yeniKartlar = aktif.el.kartlar.concat([yeniKart]);
+      const degerlendirme = elDegerlendir(yeniKartlar);
+      const yeniEl = Object.assign({}, aktif.el, { kartlar: yeniKartlar, bahisMiktari: aktif.el.bahisMiktari * 2, katlandi: true, durum: degerlendirme.battiMi ? 'batti' : 'kaldi' });
+      const yeniEller = aktif.koltuk.eller.slice(); yeniEller[elIndex] = yeniEl;
+      mevcut.koltuklar[koltukIndex] = Object.assign({}, aktif.koltuk, { eller: yeniEller });
+      mevcut.desteIndex = mevcut.desteIndex + 1;
+      return sonrakiSirayiAyarla(mevcut);
+    }).then((res) => {
+      const sonucKoltuk = res.snapshot && res.snapshot.val() && res.snapshot.val().koltuklar && res.snapshot.val().koltuklar[koltukIndex];
+      const zatenKatlandi = sonucKoltuk && sonucKoltuk.eller && sonucKoltuk.eller[elIndex] && sonucKoltuk.eller[elIndex].katlandi === true;
+      if (!res.committed && !zatenKatlandi) { bakiyeGuncelle(currentUserUid, el.bahisMiktari, islemId + ':iade', 'iade'); }
+    });
+  });
 }
 function bol(koltukIndex, elIndex) {
-  const koltuk = currentTable.koltuklar[koltukIndex];
-  const el = koltuk.eller[elIndex];
-  if (!bolunebilirMi(el.kartlar)) { return; }
-  if (koltuk.eller.length > 1) { showToast('Sadece bir kez bölebilirsiniz.', { variant: 'error' }); return; }
+  const koltuk = currentTable && currentTable.koltuklar && currentTable.koltuklar[koltukIndex];
+  const el = koltuk && koltuk.eller && koltuk.eller[elIndex];
+  if (!koltuk || koltuk.uid !== currentUserUid || !el || !bolunebilirMi(el.kartlar)) { return; }
+  if (koltuk.eller.length !== 1 || elIndex !== 0) { showToast('Sadece bir kez bölebilirsiniz.', { variant: 'error' }); return; }
   if (el.bahisMiktari > myChipBalance) { showToast('Bölmek için yetersiz bakiye.', { variant: 'error' }); return; }
-  const asBolunmesiMi = el.kartlar[0].r === 'as';
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
-    if (!mevcut || mevcut.aktifKoltuk !== koltukIndex) { return; }
-    const k = mevcut.koltuklar[koltukIndex];
-    const e = k.eller[elIndex];
-    if (!e || e.kartlar.length !== 2) { return; }
-    const kart1 = e.kartlar[0], kart2 = e.kartlar[1];
-    const yeniKart1 = mevcut.deste[mevcut.desteIndex]; mevcut.desteIndex++;
-    const yeniKart2 = mevcut.deste[mevcut.desteIndex]; mevcut.desteIndex++;
-    const el1Kartlar = [kart1, yeniKart1];
-    const el2Kartlar = [kart2, yeniKart2];
-    // As bölünmesinde her el sadece 1 kart alır ve otomatik durur (gerçek kural).
-    const el1 = { kartlar: el1Kartlar, bahisMiktari: e.bahisMiktari, durum: asBolunmesiMi ? 'kaldi' : (elDegerlendir(el1Kartlar).battiMi ? 'batti' : 'oynuyor') };
-    const el2 = { kartlar: el2Kartlar, bahisMiktari: e.bahisMiktari, durum: asBolunmesiMi ? 'kaldi' : (elDegerlendir(el2Kartlar).battiMi ? 'batti' : 'oynuyor') };
-    mevcut.koltuklar[koltukIndex] = Object.assign({}, k, { eller: [el1, el2] });
-    mevcut.guncellemeTs = Date.now();
-    return mevcut;
-  }).then((res) => { if (res.committed) { bakiyeGuncelle(currentUserUid, -el.bahisMiktari); if (asBolunmesiMi) { siraSonrakineGecsin(res.snapshot.val()); } } });
+  const islemId = 'blackjack:' + currentTable.elNo + ':koltuk:' + koltukIndex + ':el:' + elIndex + ':bol';
+  bakiyeGuncelle(currentUserUid, -el.bahisMiktari, islemId, 'bol').then((bakiyeSonucu) => {
+    if (bakiyeSonucu.beklemede) { return; }
+    if (!bakiyeSonucu.committed) { showToast('Bölmek için yeterli çip yok.', { variant: 'error' }); return; }
+    database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+      const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
+      if (!aktif || aktif.koltuk.eller.length !== 1 || !bolunebilirMi(aktif.el.kartlar)) { return; }
+      const yeniKart1 = mevcut.deste[mevcut.desteIndex];
+      const yeniKart2 = mevcut.deste[mevcut.desteIndex + 1];
+      if (!yeniKart1 || !yeniKart2) { return; }
+      const kart1 = aktif.el.kartlar[0], kart2 = aktif.el.kartlar[1];
+      const el1Kartlar = [kart1, yeniKart1];
+      const el2Kartlar = [kart2, yeniKart2];
+      const asBolunmesiMi = kart1.r === 'as';
+      const elDurumu = (kartlar) => {
+        const degerlendirme = elDegerlendir(kartlar);
+        return asBolunmesiMi || degerlendirme.toplam === 21 ? 'kaldi' : (degerlendirme.battiMi ? 'batti' : 'oynuyor');
+      };
+      // Splitten gelen iki kartlı 21 doğal Blackjack değildir; bu işaret hem
+      // ödeme oranını hem de otomatik "kal" davranışını doğru tutar.
+      const el1 = { kartlar: el1Kartlar, bahisMiktari: aktif.el.bahisMiktari, splittenGeldiMi: true, durum: elDurumu(el1Kartlar) };
+      const el2 = { kartlar: el2Kartlar, bahisMiktari: aktif.el.bahisMiktari, splittenGeldiMi: true, durum: elDurumu(el2Kartlar) };
+      mevcut.koltuklar[koltukIndex] = Object.assign({}, aktif.koltuk, { eller: [el1, el2] });
+      mevcut.desteIndex = mevcut.desteIndex + 2;
+      return sonrakiSirayiAyarla(mevcut);
+    }).then((res) => {
+      const sonucKoltuk = res.snapshot && res.snapshot.val() && res.snapshot.val().koltuklar && res.snapshot.val().koltuklar[koltukIndex];
+      const zatenBolundu = sonucKoltuk && sonucKoltuk.eller && sonucKoltuk.eller.length === 2 && sonucKoltuk.eller.every((h) => h.splittenGeldiMi === true);
+      if (!res.committed && !zatenBolundu) { bakiyeGuncelle(currentUserUid, el.bahisMiktari, islemId + ':iade', 'iade'); }
+    });
+  });
 }
 
 // ── Render ──
@@ -508,7 +703,8 @@ function hucreSinifi(sonuc) {
 }
 function kartHtml(kart, uid, kapaliMi) {
   const src = kapaliMi ? desteArkasiYolu() : kartGorselYolu(kart, uid);
-  return '<img class="bj-kart" src="' + src + '" alt="">';
+  const fallback = kapaliMi ? desteArkasiYolu() : varsayilanKartGorselYolu(kart, (skinCache[uid] || mySkin).desteStili);
+  return '<img class="bj-kart" src="' + src + '" data-bj-kart-fallback="' + fallback + '" alt="" decoding="async">';
 }
 function elHtml(el, uid) {
   const degerlendirme = elDegerlendir(el.kartlar);
@@ -555,10 +751,9 @@ function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
   let icerik;
   if (table.durum === 'bahis_bekleniyor') {
     if (benimMi) {
-      icerik = '<div class="bj-bahis-secim">' + CIP_DEGERLERI.filter((v) => v <= myChipBalance).map((v) =>
-        '<button type="button" class="bj-cip-btn" data-bj-bahis="' + koltukIndex + '" data-miktar="' + v + '"><img class="bj-cip-gorsel" src="' + cipGorselYolu(v) + '" alt=""><span class="bj-cip-deger">' + v + '</span></button>'
-      ).join('') + '</div>' +
-        (koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>');
+      // Çip seçimi ayrı "Oyun Başlarken" panelinde gösterilir. Merkezdeki
+      // oyuncu koltuğu yalnızca yerleştirilmiş bahsi/kartları taşır.
+      icerik = koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis seçin</div>';
     } else {
       // Diğer oyuncular için sade görünüm -- kullanıcı isteği: "sadece avatar
       // ve kartları gözükecek" (metin etiketleri değil).
@@ -572,7 +767,6 @@ function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
   return '<div class="bj-koltuk' + (aktifMi ? ' bj-koltuk-aktif' : '') + (benimMi ? ' bj-koltuk-ben' : '') + '">' +
     '<div class="bj-koltuk-oyuncu">' + avatarHtml + '<span>' + escapeHtml(koltuk.isim || '') + '</span></div>' +
     icerik +
-    (benimMi && table.durum === 'bahis_bekleniyor' ? '<button type="button" class="btn btn-ghost bj-kalk-btn" data-bj-kalk="' + koltukIndex + '">Kalk</button>' : '') +
     '</div>';
 }
 function activeElIndex(koltuk) {
@@ -583,7 +777,9 @@ function activeElIndex(koltuk) {
 
 function renderKrupiyer(table) {
   const el = document.querySelector('[data-bj-krupiyer]');
-  if (el) {
+  const signature = JSON.stringify({ el: table.kurpiyerEli || null, desteStili: mySkin.desteStili, tema: mySkin.yuzKartiTemasi });
+  if (el && signature !== lastDealerSignature) {
+    lastDealerSignature = signature;
     if (!table.kurpiyerEli) {
       el.innerHTML = '<div class="bj-krupiyer-bos">Bahisler bekleniyor…</div>';
     } else {
@@ -591,9 +787,6 @@ function renderKrupiyer(table) {
       const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi)).join('');
       // Gerçek kumarhanede kapalı kart açılana kadar sadece AÇIK kartın değeri
       // görünür -- kullanıcı bildirimi: "kurpiyerin toplamı yok".
-      // NOT: kademeli dağıtım animasyonu sırasında krupiyerin İLK kartı henüz
-      // gelmemiş olabilir (kirpilmisTabloOlustur ile kartlar kırpılıyor) --
-      // kartlar[0] o an undefined olabilir, kartDegeri'ne öyle geçmemeli.
       const toplamHtml = acikMi
         ? (() => { const d = elDegerlendir(table.kurpiyerEli.kartlar); return '<div class="bj-el-toplam">' + d.toplam + (d.battiMi ? ' (Battı)' : '') + '</div>'; })()
         : (table.kurpiyerEli.kartlar[0] ? '<div class="bj-el-toplam bj-el-toplam-kismi">Görünen: ' + kartDegeri(table.kurpiyerEli.kartlar[0]) + '</div>' : '');
@@ -610,6 +803,9 @@ function renderDesteYigini(table) {
   const el = document.querySelector('[data-bj-deste-yigini]');
   if (!el) { return; }
   const kalan = table.deste ? (table.deste.length - (table.desteIndex || 0)) : TOPLAM_KART_SAYISI;
+  const signature = String(kalan);
+  if (signature === lastDeckSignature) { return; }
+  lastDeckSignature = signature;
   if (kalan <= 0) { el.innerHTML = ''; return; }
   const KART_SAYISI_GORUNEN = 4;
   let html = '';
@@ -621,7 +817,10 @@ function renderDesteYigini(table) {
 function renderBahisSayaci(table) {
   const el = document.querySelector('[data-bj-sayac]');
   if (!el) { return; }
-  if (table.durum !== 'bahis_bekleniyor' || !table.bahisSuresiBitis) { el.textContent = ''; if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } return; }
+  const signature = table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis ? String(table.bahisSuresiBitis) : '';
+  if (!signature) { el.textContent = ''; countdownSignature = ''; if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } return; }
+  if (signature === countdownSignature && countdownTimer) { return; }
+  countdownSignature = signature;
   if (countdownTimer) { clearInterval(countdownTimer); }
   const tick = () => {
     const kalanMs = table.bahisSuresiBitis - Date.now();
@@ -635,7 +834,10 @@ function renderBahisSayaci(table) {
 function renderAksiyonSayaci(table) {
   const el = document.querySelector('[data-bj-aksiyon-sayac]');
   if (!el) { return; }
-  if (table.durum !== 'oyunculuk' || !table.aksiyonSuresiBitis) { el.textContent = ''; if (aksiyonCountdownTimer) { clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; } return; }
+  const signature = table.durum === 'oyunculuk' && table.aksiyonSuresiBitis ? String(table.aktifKoltuk) + ':' + table.aksiyonSuresiBitis : '';
+  if (!signature) { el.textContent = ''; aksiyonCountdownSignature = ''; if (aksiyonCountdownTimer) { clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; } return; }
+  if (signature === aksiyonCountdownSignature && aksiyonCountdownTimer) { return; }
+  aksiyonCountdownSignature = signature;
   if (aksiyonCountdownTimer) { clearInterval(aksiyonCountdownTimer); }
   const koltuk = table.koltuklar[table.aktifKoltuk];
   const isim = koltuk ? koltuk.isim : '';
@@ -651,26 +853,41 @@ function renderAksiyonSayaci(table) {
 function renderAksiyonlar(table, benimKoltuk) {
   const el = document.querySelector('[data-bj-aksiyonlar]');
   if (!el) { return; }
-  if (benimKoltuk === null || table.aktifKoltuk !== benimKoltuk) { el.innerHTML = ''; return; }
+  if (benimKoltuk === null || table.aktifKoltuk !== benimKoltuk) {
+    if (lastActionSignature !== '') { el.innerHTML = ''; lastActionSignature = ''; }
+    return;
+  }
   const koltuk = table.koltuklar[benimKoltuk];
   const elIndex = activeElIndex(koltuk);
-  if (elIndex === -1) { el.innerHTML = ''; return; }
+  if (elIndex === -1) { if (lastActionSignature !== '') { el.innerHTML = ''; lastActionSignature = ''; } return; }
   const aktifEl = koltuk.eller[elIndex];
   const ilkKararMi = aktifEl.kartlar.length === 2;
-  el.innerHTML =
+  const html =
     '<button type="button" class="btn btn-primary" data-bj-kartcek>Kart Çek</button>' +
     '<button type="button" class="btn btn-outline" data-bj-kal>Kal</button>' +
     (ilkKararMi ? '<button type="button" class="btn btn-outline" data-bj-katla>Katla</button>' : '') +
     (ilkKararMi && bolunebilirMi(aktifEl.kartlar) && koltuk.eller.length === 1 ? '<button type="button" class="btn btn-outline" data-bj-bol>Böl</button>' : '');
+  if (html !== lastActionSignature) { lastActionSignature = html; el.innerHTML = html; }
 }
-
-// Koltuklar HTML'i, bir önceki render ile AYNIYSA yeniden yazılmaz -- kullanıcı
-// bildirimi: boş koltuklardaki "+" düğmeleri "yanıp sönüyor". Kök neden: masa
-// belgesi aktif oyunda ÇOK sık değişiyor (her vur/kal/krupiyer adımı) ve
-// `.on('value')` HER değişiklikte tetikleniyor; koltuklar HTML'i her seferinde
-// sıfırdan yazılınca (hiçbir şey görsel olarak değişmese bile) tarayıcı aynı
-// düğmeleri yok edip yeniden yaratıyor -- kısa bir flaş/kaybolma hissi veriyor.
-let sonKoltuklarImzasi = null;
+function renderBahisPaneli(table, benimKoltuk) {
+  const panel = document.querySelector('[data-bj-bahis-panel]');
+  if (!panel) { return; }
+  const koltuk = benimKoltuk === null ? null : table.koltuklar && table.koltuklar[benimKoltuk];
+  if (!koltuk || table.durum !== 'bahis_bekleniyor') {
+    if (lastBetPanelSignature !== '') { panel.innerHTML = ''; lastBetPanelSignature = ''; }
+    return;
+  }
+  const bahisSecim = CIP_DEGERLERI.filter((v) => Number.isFinite(myChipBalance) && v <= myChipBalance).map((v) =>
+    '<button type="button" class="bj-cip-btn" data-bj-bahis="' + benimKoltuk + '" data-miktar="' + v + '"><img class="bj-cip-gorsel" src="' + cipGorselYolu(v) + '" alt=""><span class="bj-cip-deger">' + v + '</span></button>'
+  ).join('');
+  const avatar = '<div class="bj-avatar-cember">' + renderStaffAvatar(koltuk.isim, koltuk.uid, koltuk.isim, 40) + '</div>';
+  const html = '<h2 class="bj-bahis-panel-baslik">Oyun Başlarken</h2>' +
+    '<div class="bj-bahis-panel-oyuncu">' + avatar + '<span>' + escapeHtml(koltuk.isim || '') + '</span></div>' +
+    '<div class="bj-bahis-secim">' + bahisSecim + '</div>' +
+    '<div class="bj-bahis-panel-alt">' + (koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>') +
+    '<button type="button" class="btn btn-ghost bj-kalk-btn" data-bj-kalk="' + benimKoltuk + '">Kalk</button></div>';
+  if (html !== lastBetPanelSignature) { lastBetPanelSignature = html; panel.innerHTML = html; }
+}
 
 // ── Kademeli dağıtım animasyonu (madde 1: "kartlar bana spawn oluyor") ──
 // bahisSuresiDolunca TÜM eli TEK transaction'da yazıyor -- elimizde zaten
@@ -681,12 +898,22 @@ let sonAnimeEdilenElNo = -1;
 const DAGITIM_ADIM_MS = 300;
 
 function renderMasa(table) {
+  currentTable = table;
+  skinDinlemeleriniEsitle(table);
   const yeniDagitimMi = table.elNo && table.elNo !== sonAnimeEdilenElNo &&
     (table.durum === 'oyunculuk' || table.durum === 'kurpiyer_sirasi') &&
     table.koltuklar && Object.keys(table.koltuklar).some((i) => table.koltuklar[i] && table.koltuklar[i].eller);
+  const tabloImzasi = [table.elNo || 0, table.durum || '', table.desteIndex || 0, table.guncellemeTs || 0].join(':');
+  if (activeDistribution) {
+    if (activeDistribution.elNo === table.elNo && activeDistribution.tabloImzasi === tabloImzasi) { return; }
+    // Yeni bir Firebase güncellemesi geldiyse eski setTimeout zincirinin
+    // gecikmiş karesi masa üstüne yazılamaz; en güncel tabloya geçilir.
+    activeDistribution.iptalEdildi = true;
+    activeDistribution = null;
+  }
   if (yeniDagitimMi) {
     sonAnimeEdilenElNo = table.elNo;
-    dagitimAnimasyonuOynat(table);
+    dagitimAnimasyonuOynat(table, tabloImzasi);
     return;
   }
   renderMasaGercek(table);
@@ -712,7 +939,9 @@ function kirpilmisTabloOlustur(table, bahisliKoltuklar, koltukSayaclari, krupiye
   return kopya;
 }
 
-function dagitimAnimasyonuOynat(table) {
+function dagitimAnimasyonuOynat(table, tabloImzasi) {
+  const denetleyici = { elNo: table.elNo, tabloImzasi, iptalEdildi: false };
+  activeDistribution = denetleyici;
   const bahisliKoltuklar = [];
   for (let i = 0; i < MAX_KOLTUK; i++) { if (table.koltuklar && table.koltuklar[i] && table.koltuklar[i].eller) { bahisliKoltuklar.push(i); } }
   const adimlar = [];
@@ -725,13 +954,12 @@ function dagitimAnimasyonuOynat(table) {
   let krupiyerSayaci = 0;
   let adimNo = 0;
   function birAdimOynat() {
-    // NOT: bu setTimeout zinciri, dağıtım anındaki SABİT bir tablo görüntüsünü
-    // kademeli açığa çıkarıyor -- zincir bitene kadar (~2 sn) başka bir
-    // istemcinin yaptığı değişiklik burada YANSIMAZ, ama zincir bitince
-    // renderMasaGercek(table) NİHAİ (o anki en güncel olmayan, dağıtım anındaki)
-    // veriyle render eder; hemen ardından gelecek bir sonraki `value` tetiklemesi
-    // (Firebase zaten sürekli dinlediği için) tabloyu anında güncel hale getirir.
-    if (adimNo >= adimlar.length) { renderMasaGercek(table); return; }
+    if (denetleyici.iptalEdildi || activeDistribution !== denetleyici) { return; }
+    if (adimNo >= adimlar.length) {
+      activeDistribution = null;
+      renderMasaGercek(currentTable && currentTable.elNo === table.elNo ? currentTable : table);
+      return;
+    }
     const adim = adimlar[adimNo]; adimNo++;
     if (adim === 'krupiyer') { krupiyerSayaci++; } else { koltukSayaclari[adim]++; }
     renderMasaGercek(kirpilmisTabloOlustur(table, bahisliKoltuklar, koltukSayaclari, krupiyerSayaci), true);
@@ -743,32 +971,53 @@ function dagitimAnimasyonuOynat(table) {
 function renderMasaGercek(table, geciciMi) {
   if (!geciciMi) { currentTable = table; }
   const benimKoltuk = benimKoltukIndex(table);
-  ensureSkinsLoaded(table).then(() => {
-    const koltuklarEl = document.querySelector('[data-bj-koltuklar]');
-    if (koltuklarEl) {
-      // Kendi koltuğum HER ZAMAN tam ortada (goren=2, 5 koltuğun merkezi) --
-      // diğerleri bu merkeze göre sağa/sola yayla dizilir. Oturmuyorsam
-      // (izleyici) doğal sırada gösterilir.
-      const merkez = Math.floor(MAX_KOLTUK / 2);
-      let html = '';
-      for (let goren = 0; goren < MAX_KOLTUK; goren++) {
-        const gercekIndex = benimKoltuk === null ? goren : (((benimKoltuk + (goren - merkez)) % MAX_KOLTUK) + MAX_KOLTUK) % MAX_KOLTUK;
-        html += '<div class="bj-koltuk-slot bj-koltuk-slot-' + goren + '">' + koltukHtml(gercekIndex, table.koltuklar && table.koltuklar[gercekIndex], table, benimKoltuk) + '</div>';
-      }
-      if (html !== sonKoltuklarImzasi) { sonKoltuklarImzasi = html; koltuklarEl.innerHTML = html; }
+  const koltuklarEl = document.querySelector('[data-bj-koltuklar]');
+  if (koltuklarEl) {
+    // Kendi koltuğum HER ZAMAN üçüncü fiziksel slotta kalır. Sabit grid ile
+    // birlikte bu slot hem masaüstünde hem telefonda gerçek geometrik merkezdir.
+    const merkez = Math.floor(MAX_KOLTUK / 2);
+    const sira = Array.from({ length: MAX_KOLTUK }, (_, goren) => benimKoltuk === null
+      ? goren
+      : (((benimKoltuk + (goren - merkez)) % MAX_KOLTUK) + MAX_KOLTUK) % MAX_KOLTUK);
+    const siraImzasi = sira.join(':');
+    if (siraImzasi !== lastSeatOrderSignature || koltuklarEl.children.length !== MAX_KOLTUK) {
+      lastSeatOrderSignature = siraImzasi;
+      renderedSeatSignatures.clear();
+      koltuklarEl.innerHTML = sira.map((gercekIndex, goren) => '<div class="bj-koltuk-slot bj-koltuk-slot-' + goren + '" data-bj-koltuk-slot="' + goren + '" data-bj-gercek-koltuk="' + gercekIndex + '"></div>').join('');
     }
-    renderKrupiyer(table);
-    renderBahisSayaci(table);
-    renderAksiyonSayaci(table);
-    renderAksiyonlar(table, benimKoltuk);
-  });
+    sira.forEach((gercekIndex, goren) => {
+      const slot = koltuklarEl.querySelector('[data-bj-koltuk-slot="' + goren + '"]');
+      const html = koltukHtml(gercekIndex, table.koltuklar && table.koltuklar[gercekIndex], table, benimKoltuk);
+      if (slot && renderedSeatSignatures.get(goren) !== html) {
+        renderedSeatSignatures.set(goren, html);
+        slot.innerHTML = html;
+      }
+    });
+  }
+  renderKrupiyer(table);
+  renderBahisSayaci(table);
+  renderAksiyonSayaci(table);
+  renderBahisPaneli(table, benimKoltuk);
+  renderAksiyonlar(table, benimKoltuk);
 }
 
 function eventleriBagla() {
   // document'e bağlanıyor -- skin çarkı butonu .page-header'da, yani
   // .bj-masa'nın (data-bj-root) DIŞINDA; sadece root'u dinlemek onu kaçırırdı.
+  document.addEventListener('error', (event) => {
+    const kart = event.target;
+    if (!kart || !kart.matches || !kart.matches('img.bj-kart[data-bj-kart-fallback]')) { return; }
+    const fallback = kart.dataset.bjKartFallback;
+    if (!fallback || kart.dataset.bjKartFallbackKullanildi === 'true') { return; }
+    kart.dataset.bjKartFallbackKullanildi = 'true';
+    kart.src = fallback;
+  }, true);
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-bj-skin-carki]')) { openSkinModal(); return; }
+    if (e.target.closest('[data-bj-skin-carki]')) {
+      if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
+      openSkinModal();
+      return;
+    }
     if (!e.target.closest('[data-bj-root]')) { return; }
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
     const oturBtn = e.target.closest('[data-bj-otur]'); if (oturBtn) { otur(Number(oturBtn.dataset.bjOtur)); return; }
@@ -785,16 +1034,31 @@ function eventleriBagla() {
 }
 
 function attachTableListener() {
-  database.ref(dbPath(MASA_YOLU)).on('value', (snap) => {
+  const yeniYol = dbPath(MASA_YOLU);
+  if (tableRef && attachedTablePath === yeniYol && tableListener) { return; }
+  if (tableRef && tableListener) { tableRef.off('value', tableListener); }
+  if (phaseWatchdog) { clearInterval(phaseWatchdog); phaseWatchdog = null; }
+  activeDistribution = null;
+  currentTable = null;
+  lastSeatOrderSignature = '';
+  renderedSeatSignatures.clear();
+  lastDealerSignature = '';
+  lastDeckSignature = '';
+  lastActionSignature = '';
+  lastBetPanelSignature = '';
+  tableRef = database.ref(yeniYol);
+  attachedTablePath = yeniYol;
+  tableListener = (snap) => {
     const table = snap.val() || { durum: 'bahis_bekleniyor', koltuklar: {} };
     if (!snap.exists()) { bahisPenceresiniBaslat(); }
     renderMasa(table);
     belkiSonrakiFazaGec(table);
     islemBakiyeYansit(table);
-  });
+  };
+  tableRef.on('value', tableListener);
   // Veri DEĞİŞMESE bile (örn. kimse kart çekmiyor, sadece süre doluyor) zaman
   // aşımı geçişlerini kaçırmamak için periyodik bir yoklama.
-  setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);
+  phaseWatchdog = setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);
 }
 
 export function initBlackjack() {
@@ -806,7 +1070,19 @@ export function initBlackjack() {
   subscribeStaffProfiles(database, () => { if (currentTable) { renderMasa(currentTable); } });
 
   auth.onAuthStateChanged((user) => {
-    if (!user) { canPlay = false; return; }
+    if (!user) {
+      canPlay = false;
+      currentUserUid = '';
+      currentUserName = '';
+      currentUserEmail = '';
+      if (walletRef && walletListener) { walletRef.off('value', walletListener); }
+      walletRef = null;
+      walletListener = null;
+      myWalletOperationIds.clear();
+      skinDinlemeleriniTemizle();
+      if (currentTable) { renderMasa(currentTable); }
+      return;
+    }
     currentUserEmail = user.email || '';
     currentUserUid = user.uid;
     database.ref('users/' + user.uid).once('value').then((snap) => {
@@ -818,8 +1094,16 @@ export function initBlackjack() {
     }).catch(() => { canPlay = false; });
   });
 
-  initDbMode(database).then(() => { renderDbModeBanner(); });
-  onDbModeChange(() => { renderDbModeBanner(); });
-
-  attachTableListener();
+  // Test modu çözümlenmeden masa/cüzdan/skin dinleyicisi açılmaz. Mod sonradan
+  // değişirse eski canlı yol mutlaka kapatılıp yeni test/canlı yola bağlanır.
+  initDbMode(database).then(() => {
+    renderDbModeBanner();
+    attachTableListener();
+  });
+  onDbModeChange(() => {
+    renderDbModeBanner();
+    skinDinlemeleriniTemizle();
+    if (currentUserUid) { subscribeMyBalance(); }
+    attachTableListener();
+  });
 }

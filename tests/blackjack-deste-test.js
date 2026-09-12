@@ -22,6 +22,10 @@ const { pathToFileURL } = require('url');
 		const anahtarlar = Object.keys(sayaç);
 		results.her52KombinasyonVar = anahtarlar.length === 52;
 		results.herKombinasyonTamDortDefa = anahtarlar.every((k) => sayaç[k] === 4);
+		// Özel Joker görünümü ayrı bir kart/değer değildir: dört destedeki 16
+		// valeye iliştirilen güvenli bir görsel alanıdır, deste sayısı değişmez.
+		const bonusJokerler = deste.filter((k) => k.r === 'joker');
+		results.bonusJokerlerNormalValeSayisinda = bonusJokerler.length === 16 && bonusJokerler.every((k) => /^Jokers\d+\.png$/.test(k.bonusJokerGorseli || ''));
 	}
 
 	// 2) Karıştırma: aynı 208 kartın bir permütasyonu (kayıp/kopya yok), ve
@@ -64,7 +68,8 @@ const { pathToFileURL } = require('url');
 	}
 
 	// 5) Krupiyer oyunu: 17'de durmalı, yumuşak 17'de de durmalı (sert dur kuralı),
-	// 16'da çekmeye devam etmeli.
+	// 16'da çekmeye devam etmeli. Deste tükenirse undefined kart eklemeden
+	// çağırana açık bir durum bilgisi dönmeli.
 	{
 		const deste = [{ r: '5', s: 'kupa' }, { r: '3', s: 'kupa' }]; // krupiyer 16 çekerse 16+5=21 falan olur, sadece akış testi
 		const sonuc17 = krupiyerElOyna([{ r: '10', s: 'kupa' }, { r: '7', s: 'maca' }], deste, 0);
@@ -75,12 +80,18 @@ const { pathToFileURL } = require('url');
 
 		const sonuc16 = krupiyerElOyna([{ r: '10', s: 'kupa' }, { r: '6', s: 'maca' }], deste, 0);
 		results.krupiyerOnAltidaCeker = sonuc16.kartlar.length === 3 && sonuc16.yeniDesteIndex === 1;
+
+		const tukenenDeste = krupiyerElOyna([{ r: '10', s: 'kupa' }, { r: '6', s: 'maca' }], [], 0);
+		results.krupiyerDesteTukeninceGuvenleDurur = tukenenDeste.desteTukendiMi === true &&
+			tukenenDeste.kartlar.length === 2 && tukenenDeste.yeniDesteIndex === 0 && tukenenDeste.sonuc.toplam === 16;
 	}
 
 	// 6) Deste yeterlilik kontrolü.
 	{
 		results.azKalanYetersizGorulur = desteYeterliMi(10, 3) === false;
 		results.boldKalanYeterliGorulur = desteYeterliMi(200, 3) === true;
+		results.gecersizDesteSayisiYetersizGorulur = desteYeterliMi(-1, 3) === false;
+		results.gecersizKoltukSayisiYetersizGorulur = desteYeterliMi(200, 6) === false;
 	}
 
 	// 7) Ödeme hesabı.
@@ -89,6 +100,21 @@ const { pathToFileURL } = require('url');
 		const krupiyer20 = elDegerlendir([{ r: '10', s: 'kupa' }, { r: 'kiz', s: 'maca' }]);
 		const bjSonuc = elSonucuHesapla(oyuncuBJ, krupiyer20, 100);
 		results.blackjackUcIkiOder = bjSonuc.sonuc === 'blackjack' && bjSonuc.odeme === 250;
+
+		// 25/75 gibi mevcut çip değerleri 3:2'de yarım çip üretir. Bu değer
+		// kaybolmamalı; eski Math.floor davranışı oyuncuyu eksik ödüyordu.
+		const kucukBjSonuc = elSonucuHesapla(oyuncuBJ, krupiyer20, 25);
+		const yetmisBesBjSonuc = elSonucuHesapla(oyuncuBJ, krupiyer20, 75);
+		results.blackjackYarimCipHassasiyetiKorur = kucukBjSonuc.odeme === 62.5 && yetmisBesBjSonuc.odeme === 187.5;
+
+		// Split As + 10, iki kartla 21 olsa dahi doğal blackjack değildir:
+		// krupiyer 20'ye karşı normal 1:1 öder; doğal krupiyere karşı da kaybeder.
+		const splitYirmiBir = elDegerlendir([{ r: 'as', s: 'kupa' }, { r: 'papaz', s: 'maca' }]);
+		const splitKazanc = elSonucuHesapla(splitYirmiBir, krupiyer20, 100, { splittenGeldiMi: true });
+		const krupiyerBJ = elDegerlendir([{ r: 'as', s: 'sinek' }, { r: 'papaz', s: 'karo' }]);
+		const splitKrupiyerBJ = elSonucuHesapla(splitYirmiBir, krupiyerBJ, 100, { splittenGeldiMi: true });
+		results.splitYirmiBirNormalOdemeAlir = splitKazanc.sonuc === 'kazandi' && splitKazanc.odeme === 200;
+		results.splitYirmiBirKrupiyerBlackjackineKaybeder = splitKrupiyerBJ.sonuc === 'kaybetti' && splitKrupiyerBJ.odeme === 0;
 
 		const oyuncu20 = elDegerlendir([{ r: '10', s: 'kupa' }, { r: 'kiz', s: 'maca' }]);
 		const krupiyer19 = elDegerlendir([{ r: '10', s: 'kupa' }, { r: '9', s: 'maca' }]);

@@ -21,6 +21,17 @@ $bj-kirmizi-cember: #c62828;
 }
 .bj-skin-carki-btn { font-size: 18px; line-height: 1; padding: 6px 12px; }
 
+// Bu sarmalayıcı yalnızca Blackjack sahasını izole eder. Sayfanın geri kalanı
+// normal akışında kalır; iOS'ta masa üstünden başlayan jestin bütün belgeyi
+// sürüklememesi için gerekli dokunma kuralı burada kapsamlanır.
+.bj-masa-viewport {
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+}
+
 // NOT: .page-wrapper (.main'in flex-column çocuğu) varsayılan olarak
 // align-items:stretch ile tam genişliğe gerilir -- AMA bir flex öğesinde
 // margin:auto varsa bu gerilme İPTAL olur (CSS Flexbox spesifikasyonu: auto
@@ -29,14 +40,15 @@ $bj-kirmizi-cember: #c62828;
 // iptalini TETİKLEMEZ; ortalamayı da margin yerine align-self:center yapıyor.
 .bj-masa {
   position: relative;
-  width: min(960px, 100%);
+  isolation: isolate;
+  width: min(1560px, 100%);
   align-self: center;
-  min-height: 640px;
+  min-height: 660px;
   border-radius: 40px;
   background: $bj-yesil;
   border: 8px solid $bj-bordo;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
-  padding: 40px 24px 150px;
+  padding: 40px clamp(16px, 3vw, 48px) 174px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -45,10 +57,9 @@ $bj-kirmizi-cember: #c62828;
 }
 // Masaüstünde daha büyük masa + 1.75x kart -- kullanıcı isteği: "kartlar tam
 // okunaklı olsun", "masayı biraz daha uzat aşağıya ve yanlara doğru".
-@media (min-width: 900px) {
-  .bj-masa { width: min(1360px, 100%); min-height: 760px; padding: 48px 40px 170px; border-radius: 56px; }
-  .bj-kart { width: 91px; margin-left: -31px; } // 52*1.75
-  .bj-koltuk-slot { max-width: 260px; }
+@media (min-width: 1200px) {
+  .bj-masa { min-height: 760px; padding: 48px clamp(32px, 4vw, 64px) 190px; border-radius: 56px; }
+  .bj-kart { width: clamp(64px, 6.75vw, 91px); margin-left: clamp(-31px, -2.3vw, -22px); }
 }
 
 .bj-krupiyer-satiri {
@@ -85,14 +96,23 @@ $bj-kirmizi-cember: #c62828;
 }
 
 .bj-koltuklar {
+  // JS kendi koltuğu goren=2 olarak üretir. Flex'in satır kırması üçüncü
+  // öğeyi fiziksel merkezin dışına atıyordu; beş eşit grid sütunu onu her
+  // genişlikte gerçek orta konumda tutar.
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: flex-start;
+  column-gap: clamp(6px, 1.8vw, 28px);
+  row-gap: 16px;
+  width: 100%;
+  max-width: none;
+}
+.bj-koltuk-slot {
+  min-width: 0;
+  max-width: none;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  gap: 14px;
-  width: 100%;
-  max-width: 900px;
 }
-.bj-koltuk-slot { flex: 1 1 0; min-width: 0; max-width: 180px; }
 
 // NOT: Kullanıcı isteği: "kenarlarında kişilerin çerçeve çıkmasın hiçbir
 // zaman" -- her koltuk artık kutu/çerçeve OLMADAN doğrudan yeşil keçe
@@ -101,6 +121,8 @@ $bj-kirmizi-cember: #c62828;
   background: transparent;
   border: none;
   padding: 0;
+  width: 100%;
+  min-width: 0;
   min-height: 150px;
   display: flex;
   flex-direction: column;
@@ -127,7 +149,20 @@ $bj-kirmizi-cember: #c62828;
 // Aktif/kendi koltuk vurgusu artık bir KUTU çerçevesi değil (kullanıcı
 // isteği: "çerçeve çıkmasın") -- avatarın altın halkası yeterli.
 .bj-koltuk-aktif .bj-avatar-cember { box-shadow: 0 0 0 3px $bj-altin; }
-.bj-koltuk-oyuncu { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: var(--font-weight-medium); }
+.bj-koltuk-oyuncu {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+}
+.bj-koltuk-oyuncu span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 // Kazanma/kaybetme halkası -- kullanıcı isteği: "kazanınca yeşil çember
 // kaybedince kırmızı".
@@ -190,23 +225,103 @@ $bj-kirmizi-cember: #c62828;
 
 .bj-aksiyonlar-satiri {
   position: absolute;
-  left: 0; right: 0; bottom: 20px;
+  right: clamp(20px, 4vw, 64px);
+  bottom: clamp(20px, 3vw, 40px);
+  width: min(400px, calc(100% - 40px));
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  background: rgba(7, 40, 29, 0.84);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
 }
-.bj-aksiyonlar { display: flex; justify-content: center; gap: 10px; }
+.bj-aksiyonlar { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+// Aksiyon/tur sayacı yoksa boş bir panel göstermeyelim. :has desteklemeyen
+// eski tarayıcıda işlev kaybı olmaz; yalnızca boş alanın çerçevesi görünür.
+.bj-aksiyonlar-satiri:has(.bj-aksiyonlar:empty):has(.bj-aksiyon-sayac:empty) { display: none; }
+
+// Referanstaki "Oyun Başlarken" kartı ayrı veri hedefinden render edilir;
+// böylece merkezdeki fiziksel koltuk sabit kalırken avatar, ad ve çipler sağ
+// alttaki erişilebilir kontrol kartında birlikte görünür.
+.bj-bahis-panel {
+  position: absolute;
+  right: clamp(20px, 4vw, 64px);
+  bottom: clamp(20px, 3vw, 40px);
+  width: min(400px, calc(100% - 40px));
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 22px;
+  color: #fff;
+  background: rgba(7, 40, 29, 0.9);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+.bj-bahis-panel:empty { display: none; }
+.bj-bahis-panel-baslik { margin: 0 0 10px; text-align: center; font-size: 16px; }
+.bj-bahis-panel-oyuncu { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; font-weight: var(--font-weight-bold); }
+.bj-bahis-panel .bj-bahis-secim { gap: 8px; }
+.bj-bahis-panel-alt { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.bj-bahis-panel-alt .bj-bahis-mevcut { text-align: left; }
 
 .bj-skin-grup { margin-bottom: 16px; }
 .bj-skin-grup h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
 .bj-skin-secenek { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
 .bj-skin-onizleme { width: 28px; height: auto; border-radius: 2px; }
+.bj-skin-uclu { display: inline-flex; align-items: center; }
+.bj-skin-uclu .bj-skin-onizleme { margin-left: -10px; }
+.bj-skin-uclu .bj-skin-onizleme:first-child { margin-left: 0; }
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 
 @media (max-width: 720px) {
-  .bj-masa { padding: 20px 8px 160px; min-height: auto; }
-  .bj-koltuklar { flex-wrap: wrap; }
-  .bj-koltuk-slot { flex: 1 1 30%; max-width: none; }
+  .bj-masa { min-height: 590px; padding: 20px 8px 148px; border-width: 5px; border-radius: 26px; }
+  .bj-krupiyer-satiri { gap: 12px; margin-bottom: 18px; }
+  .bj-koltuklar { column-gap: 4px; row-gap: 10px; }
+  .bj-koltuk { min-height: 132px; gap: 5px; }
+  .bj-koltuk-oyuncu { flex-direction: column; gap: 3px; text-align: center; }
+  .bj-koltuk-oyuncu span { max-width: 100%; font-size: 10px; }
   .bj-kart { width: 38px; margin-left: -13px; }
+  .bj-cip-gorsel { width: 28px; height: 28px; }
+  .bj-cip-yigin .bj-cip-gorsel { width: 22px; height: 22px; margin-left: -10px; }
+  .bj-bahis-secim { gap: 4px; }
+  .bj-cip-deger { font-size: 8px; }
+  .bj-aksiyonlar-satiri {
+    right: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    min-height: 0;
+    padding: 8px;
+    border-radius: 14px;
+  }
+  .bj-aksiyonlar { gap: 6px; }
+  .bj-bahis-panel {
+    right: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    padding: 10px;
+    border-radius: 14px;
+  }
+  .bj-bahis-panel-baslik { font-size: 14px; margin-bottom: 6px; }
+  .bj-bahis-panel .bj-bahis-secim { gap: 5px; }
+  .bj-bahis-panel-alt { margin-top: 6px; }
+}
+
+@media (max-width: 360px) {
+  .bj-kart { width: 32px; margin-left: -11px; }
+  .bj-koltuk-oyuncu span { font-size: 9px; }
+}
+
+// iOS/Android dokunmatik cihazlarda oyun alanından başlayan hareket, yalnızca
+// bu sahada ele alınır; body/main için overflow kilidi eklenmez. Böylece masa
+// kart/çip etkileşiminde yukarı-aşağı esnemez, kullanıcı saha DIŞINDAN belgeyi
+// normal biçimde kaydırmaya devam eder.
+@media (hover: none) and (pointer: coarse) {
+  .bj-masa-viewport { overscroll-behavior: contain; }
+  .bj-masa {
+    touch-action: none;
+    overscroll-behavior: contain;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }

@@ -55,6 +55,14 @@ function serve() {
 	await page.click('[data-bj-otur="0"]');
 	await page.waitForTimeout(200);
 	results.oturuncaKendiKoltuguGorunur = await page.locator('.bj-koltuk-ben').count() === 1;
+	results.oyunBaslarkenPaneliGorunur = (await page.locator('[data-bj-bahis-panel]').textContent() || '').includes('Oyun Başlarken');
+	results.besliMasaGridiOrtayiKorur = await page.locator('[data-bj-koltuklar]').evaluate((masa) => {
+		const slotlar = Array.from(masa.children).map((el) => el.getBoundingClientRect());
+		if (slotlar.length !== 5) return false;
+		const masaRect = masa.getBoundingClientRect();
+		const orta = slotlar[2].left + (slotlar[2].width / 2);
+		return Math.abs(orta - (masaRect.left + (masaRect.width / 2))) < 1;
+	});
 
 	// 1b) Başka bir koltuğa "+" ile tekrar oturmaya ÇALIŞ -- kullanıcı bildirimi:
 	// "ben tek başıma tüm koltuklara oturabiliyorum". Zaten oturuyorken diğer
@@ -80,8 +88,10 @@ function serve() {
 		const t = await page.locator('[data-bj-bakiye]').textContent();
 		return Number((t || '').replace(/[^\d]/g, ''));
 	};
-	const bakiyeBahistenOnce = await bakiyeMetniOku();
-	results.baslangicBakiyesiBinken = bakiyeBahistenOnce === 1000;
+	const bakiyeBahisRezervSonrasi = await bakiyeMetniOku();
+	// Bahis dağıtımdan sonra değil, konduğu anda rezerve edilir. Böylece sayfa
+	// kapanması/çoklu sekme yüzünden ücretsiz bahis oluşmaz.
+	results.bahisAnindaRezerveEdildi = bakiyeBahisRezervSonrasi === 800;
 
 	// 3) 6 saniyelik bahis süresini bekle -- otomatik dağıtım tetiklenmeli.
 	// + kademeli dağıtım animasyonu (~7 adım * 300ms ≈ 2.1sn) bitene kadar bekle.
@@ -115,8 +125,8 @@ function serve() {
 	const durumMetni = await page.evaluate(() => document.body.innerHTML.includes('Battı') || document.querySelectorAll('.bj-el-sonuc').length > 0);
 	results.elSonucuGoruldu = durumMetni;
 
-	// 6) Bahis (200) artık bakiyeden düşülmüş OLMALI -- kullanıcı bildirimi:
-	// "kaybettiğimde çipim eksilmiyor". Sonuç metnine göre beklenen bakiyeyi
+	// 6) Bahis (200) zaten rezervde; sonuç toplam ödemeyi yalnızca bir kez
+	// eklemeli. Sonuç metnine göre beklenen bakiyeyi
 	// hesapla: Kaybetti -> 800, Berabere -> 1000, Kazandı -> 1200, Blackjack -> 1300.
 	const sonucMetni = await page.evaluate(() => (document.querySelector('.bj-el-sonuc') || {}).textContent || '');
 	const beklenenBakiye =
@@ -124,7 +134,7 @@ function serve() {
 			sonucMetni.indexOf('Kazandı') !== -1 ? 1200 :
 				sonucMetni.indexOf('Berabere') !== -1 ? 1000 : 800;
 	const bakiyeSonrasi = await bakiyeMetniOku();
-	results.bakiyeBahisMiktarinaGoreDegisti = bakiyeSonrasi !== bakiyeBahistenOnce;
+	results.bakiyeRezervasyonuKaybolmadi = sonucMetni.indexOf('Kaybetti') === -1 || bakiyeSonrasi === bakiyeBahisRezervSonrasi;
 	results.bakiyeSonucaGoreDogruHesaplandi = bakiyeSonrasi === beklenenBakiye;
 
 	// 7) Kazanma/kaybetme çemberi -- kullanıcı isteği: "kazanınca yeşil çember

@@ -12,13 +12,32 @@ export const TOPLAM_KART_SAYISI = DESTE_SAYISI * TEK_DESTE_KART_SAYISI; // 208
 export const MAX_KOLTUK = 5;
 export const BAHIS_SURESI_MS = 6000;
 export const BASLANGIC_BAKIYESI = 1000;
+// Masadaki bahisler tam sayı değerli çiplerden oluşuyor. Blackjack'in 3:2
+// ödemesi 25'lik bir bahiste 62,5 gibi yarım çipli bir toplam üretebilir;
+// bakiye/ödeme katmanı bu hassasiyeti korumalıdır, aşağı yuvarlamamalıdır.
+export const ODEME_HASSASIYETI = 0.5;
+// Bunlar ekstra puanlı/ayrı bir kart türü değildir: standarta ait "joker"
+// (vale) rütbesinin yalnızca görünüm varyasyonudur. Böylece özel Joker daha
+// sık görünürken 4 destelik 208 kart yapısı ve Blackjack olasılıkları değişmez.
+const BONUS_JOKER_GORSELLERI = ['Jokers1.png', 'Jokers11.png', 'Jokers24.png', 'Jokers37.png', 'Jokers48.png', 'Jokers60.png', 'Jokers73.png', 'Jokers83.png', 'Jokers100.png', 'Jokers112.png', 'Jokers124.png', 'Jokers140.png'];
 
 /** 208 kartlık (4 deste) sırayı oluşturur -- henüz karılmamış. */
 export function tazeDesteOlustur() {
   const deste = [];
+  let bonusJokerSayaci = 0;
   for (let d = 0; d < DESTE_SAYISI; d++) {
     TAKIMLAR.forEach((s) => {
-      RUTBELER.forEach((r) => { deste.push({ r, s }); });
+      RUTBELER.forEach((r) => {
+        const kart = { r, s };
+        // Dört destedeki 16 valenin her biri, destenin karıştırılmasıyla doğal
+        // aralıklarla gelen farklı bir Joker resmi taşır. Değer hesabı yine
+        // `kartDegeri` üzerinden normal 10'dur.
+        if (r === 'joker') {
+          kart.bonusJokerGorseli = BONUS_JOKER_GORSELLERI[bonusJokerSayaci % BONUS_JOKER_GORSELLERI.length];
+          bonusJokerSayaci++;
+        }
+        deste.push(kart);
+      });
     });
   }
   return deste;
@@ -59,7 +78,7 @@ export function elDegerlendir(kartlar) {
   };
 }
 
-/** İki kart aynı rütbe DEĞERİNDEYSE (10/joker/kiz/papaz hepsi 10 sayılır) bölünebilir mi? */
+/** İki kart aynı rütbedeyse bölünebilir mi? (10 ve papaz gibi farklı rütbeler bölünemez.) */
 export function bolunebilirMi(kartlar) {
   if (kartlar.length !== 2) { return false; }
   return kartDegeri(kartlar[0]) === kartDegeri(kartlar[1]) && kartlar[0].r === kartlar[1].r;
@@ -76,30 +95,60 @@ export function krupiyerElOyna(baslangicKartlari, deste, desteIndex) {
   const kartlar = baslangicKartlari.slice();
   let idx = desteIndex;
   let degerlendirme = elDegerlendir(kartlar);
+  let desteTukendiMi = false;
   while (degerlendirme.toplam < 17) {
+    // Dağıtım öncesindeki tahmin, split/hit zincirinde mutlak bir garanti
+    // değildir. Eksik kartı ele eklemek kartDegeri(undefined) hatasına yol
+    // açacağından, çağıranın eli güvenli biçimde iptal/yeniden başlatabilmesi
+    // için durumu açıkça bildiriyoruz.
+    if (!Array.isArray(deste) || !Number.isSafeInteger(idx) || idx < 0 || idx >= deste.length || !deste[idx]) {
+      desteTukendiMi = true;
+      break;
+    }
     kartlar.push(deste[idx]);
     idx++;
     degerlendirme = elDegerlendir(kartlar);
   }
-  return { kartlar, yeniDesteIndex: idx, sonuc: degerlendirme };
+  return { kartlar, yeniDesteIndex: idx, sonuc: degerlendirme, desteTukendiMi };
 }
 
 /**
  * Bir sonraki elden önce deste yetecek mi? Split ihtimaliyle her koltuk için
- * kötümser bir üst sınır (5 kart) + krupiyer (5 kart) varsayılıyor -- yetersizse
+ * kötümser bir üst sınır (11 kart) + krupiyer (11 kart) varsayılıyor -- yetersizse
  * çağıran taraf yeni bir 208'lik deste karıp baştan başlamalı.
  */
 export function desteYeterliMi(kalanKartSayisi, aktifKoltukSayisi) {
-  const KOTUMSER_KART_PAYI = 5;
+  const KOTUMSER_KART_PAYI = 11;
+  if (!Number.isSafeInteger(kalanKartSayisi) || kalanKartSayisi < 0) { return false; }
+  if (!Number.isSafeInteger(aktifKoltukSayisi) || aktifKoltukSayisi < 1 || aktifKoltukSayisi > MAX_KOLTUK) { return false; }
   return kalanKartSayisi >= (aktifKoltukSayisi + 1) * KOTUMSER_KART_PAYI;
 }
 
-/** Bahis sonucu: 'blackjack' 3:2, 'kazandi' 1:1, 'berabere' bahis iade, 'kaybetti' bahis gider. */
-export function elSonucuHesapla(oyuncuDegerlendirme, krupiyerDegerlendirme, bahis) {
+function odemeyiHassasiyeteYuvarla(miktar) {
+  return Math.round((miktar + Number.EPSILON) / ODEME_HASSASIYETI) * ODEME_HASSASIYETI;
+}
+
+/**
+ * Bahis sonucu: 'blackjack' 3:2, 'kazandi' 1:1, 'berabere' bahis iade,
+ * 'kaybetti' bahis gider. `odeme`, yatırılan bahis dahil masadan dönen toplamdır.
+ *
+ * Bir split eli iki kartla 21'e ulaşsa bile doğal blackjack değildir. Çağıran
+ * taraf, eldeki `splittenGeldiMi` bilgisini dördüncü argümanla aktarmalıdır:
+ * `elSonucuHesapla(oyuncu, krupiyer, bahis, { splittenGeldiMi: true })`.
+ * Geriye dönük uyumluluk için argüman verilmezse `blackjackMi` doğal blackjack
+ * olarak yorumlanır.
+ */
+export function elSonucuHesapla(oyuncuDegerlendirme, krupiyerDegerlendirme, bahis, secenekler = {}) {
+  const kurallar = secenekler && typeof secenekler === 'object' ? secenekler : {};
+  const oyuncuDogalBlackjackMi = Boolean(oyuncuDegerlendirme.blackjackMi) &&
+    !kurallar.splittenGeldiMi && kurallar.dogalBlackjackMi !== false;
+  const krupiyerDogalBlackjackMi = Boolean(krupiyerDegerlendirme.blackjackMi);
+
   if (oyuncuDegerlendirme.battiMi) { return { sonuc: 'kaybetti', odeme: 0 }; }
-  if (oyuncuDegerlendirme.blackjackMi && !krupiyerDegerlendirme.blackjackMi) { return { sonuc: 'blackjack', odeme: bahis + Math.floor(bahis * 1.5) }; }
+  if (oyuncuDogalBlackjackMi && krupiyerDogalBlackjackMi) { return { sonuc: 'berabere', odeme: bahis }; }
+  if (krupiyerDogalBlackjackMi) { return { sonuc: 'kaybetti', odeme: 0 }; }
+  if (oyuncuDogalBlackjackMi) { return { sonuc: 'blackjack', odeme: odemeyiHassasiyeteYuvarla(bahis * 2.5) }; }
   if (krupiyerDegerlendirme.battiMi) { return { sonuc: 'kazandi', odeme: bahis * 2 }; }
-  if (oyuncuDegerlendirme.blackjackMi && krupiyerDegerlendirme.blackjackMi) { return { sonuc: 'berabere', odeme: bahis }; }
   if (oyuncuDegerlendirme.toplam > krupiyerDegerlendirme.toplam) { return { sonuc: 'kazandi', odeme: bahis * 2 }; }
   if (oyuncuDegerlendirme.toplam < krupiyerDegerlendirme.toplam) { return { sonuc: 'kaybetti', odeme: 0 }; }
   return { sonuc: 'berabere', odeme: bahis };
