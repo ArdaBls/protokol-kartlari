@@ -84,6 +84,64 @@
 		});
 	};
 
+	// ── CANLI DURUM (blackjack/amiral battı gibi transaction-agirlikli oyunlar
+	// icin eklendi) ──────────────────────────────────────────────────────────
+	// Yukaridaki mockValueFor() SADECE window.__mockData'daki SABIT fixture'lari
+	// okur -- set()/update()/transaction() ile yapilan yazmalari YANSITMAZ. Bu,
+	// tek bir islemi denetleyen eski testler icin yeterliydi ama blackjack gibi
+	// ZINCIRLEME transaction'lari (bahis penceresi -> dagit -> krupiyer ->
+	// yeni el) simule eden testler icin YETERSIZ -- her adim bir onceki yazmayi
+	// GORMELI. window.__mockLiveState nested bir agac tutar; set/update/
+	// transaction buraya yazar, on()/once()/transaction() buradan okur (sabit
+	// fixture'lar sadece o yolda HENUZ canli veri yoksa devreye girer).
+	function yolParcalari(path) { return String(path).split("/").filter(Boolean); }
+	// "users/" TAMAMEN HARIC -- zaten kendi ozel fixture mekanizmasi var
+	// (__mockUserProfile/__mockOnceSnapshot, bkz. mockValueFor). Bir alt alana
+	// yapilan yazma (ornegin son giris zaman damgasi) burada canli bir ATA
+	// nesnesi olusturursa, o ata TAM OKUNDUGUNDA rol/isim gibi diger alanlari
+	// EKSIK gorunur ve fixture'in yerini YANLISLIKLA alir -- bu regresyona
+	// (yetkiCozuldu testi) yol acmisti, bu yuzden users/ hic canli izlenmiyor.
+	function kullaniciYoluMu(path) { return path === "users" || String(path).indexOf("users/") === 0; }
+	function canliOku(path) {
+		if (kullaniciYoluMu(path)) { return undefined; }
+		var parcalar = yolParcalari(path);
+		var deger = window.__mockLiveState;
+		for (var i = 0; i < parcalar.length; i++) {
+			if (deger === undefined || deger === null || typeof deger !== "object") { return undefined; }
+			deger = deger[parcalar[i]];
+		}
+		return deger;
+	}
+	function canliYaz(path, deger) {
+		if (kullaniciYoluMu(path)) { return; }
+		window.__mockLiveState = window.__mockLiveState || {};
+		var parcalar = yolParcalari(path);
+		if (!parcalar.length) { window.__mockLiveState = deger; bildirCanliDegisiklik(path); return; }
+		var kok = window.__mockLiveState;
+		for (var i = 0; i < parcalar.length - 1; i++) {
+			var p = parcalar[i];
+			if (typeof kok[p] !== "object" || kok[p] === null) { kok[p] = {}; }
+			kok = kok[p];
+		}
+		if (deger === null || deger === undefined) { delete kok[parcalar[parcalar.length - 1]]; }
+		else { kok[parcalar[parcalar.length - 1]] = deger; }
+		bildirCanliDegisiklik(path);
+	}
+	// mockValueFor() (sabit fixture) ile canliOku()'yu (gercek yazmalar) birlestirir --
+	// canli veri varsa o kazanir, yoksa eski davranisa (fixture) duser.
+	function mockCanliDeger(path) {
+		var canli = canliOku(path);
+		if (canli !== undefined) { return canli === null ? null : canli; }
+		return mockValueFor(path);
+	}
+	function ataDegilMiVeyaAyniMi(a, b) { return a === b || a.indexOf(b + "/") === 0 || b.indexOf(a + "/") === 0; }
+	function bildirCanliDegisiklik(yazilanYol) {
+		tumDinleyiciler.forEach(function (d) {
+			if (!ataDegilMiVeyaAyniMi(d.path, yazilanYol)) { return; }
+			try { d.cb(makeSnapshot(mockCanliDeger(d.path))); } catch (e) { console.error(e); }
+		});
+	}
+
 	function makeRef(path) {
 		var listeners = [];
 		var self = {
@@ -105,17 +163,17 @@
 				// Varsayilan HALA null -- mevcut testlerin hicbiri window.__mockData set
 				// etmedigi icin davranislari degismez. __mockData set edilmisse, yolu
 				// ICEREN ilk anahtarin degeri dondurulur (bkz. mockValueFor).
-				try { cb(makeSnapshot(mockValueFor(path))); } catch (e) { console.error("mock on() callback error", e); }
+				try { cb(makeSnapshot(mockCanliDeger(path))); } catch (e) { console.error("mock on() callback error", e); }
 				return cb;
 			},
 			once: function () {
 				if (yolReddedildiMi(path)) { return Promise.reject(reddetHatasi(path)); }
-				// Once YOLA GORE cozmeyi dene (__mockData / __mockUserProfile). Boylece
-				// ayni sayfada farkli yollar farkli veri dondurebiliyor -- ornegin
+				// Once YOLA GORE cozmeyi dene (canli yazma > __mockData / __mockUserProfile).
+				// Boylece ayni sayfada farkli yollar farkli veri dondurebiliyor -- ornegin
 				// bildirimler.html hem users/ hem logs/* okuyor, kullanici-yonetimi.html
 				// users/ listesini okuyor. Eskiden once() yolu HIC dikkate almayip her
 				// zaman ayni __mockOnceSnapshot'i donduruyordu.
-				var yolaGore = mockValueFor(path);
+				var yolaGore = mockCanliDeger(path);
 				if (yolaGore !== null && yolaGore !== undefined) {
 					return Promise.resolve(makeSnapshot(yolaGore));
 				}
@@ -124,6 +182,20 @@
 				return Promise.resolve(makeSnapshot(window.__mockOnceSnapshot !== undefined ? window.__mockOnceSnapshot : null));
 			},
 			off: function () { listeners = []; },
+			// Blackjack/amiral battı gibi "kim yönetiyor" yarışını Firebase transaction'ı
+			// ile çözen oyunlar için -- gerçek SDK gibi updateFn(mevcutDeger) çağırır,
+			// undefined dönerse abort (committed:false), aksi halde o değeri YAZAR
+			// (ardışık/sıralı test çağrıları için yeterli, gerçek eşzamanlı yarış
+			// SİMÜLE EDİLMİYOR).
+			transaction: function (updateFn) {
+				var mevcut = canliOku(path);
+				if (mevcut === undefined) { mevcut = mockValueFor(path); if (mevcut === null) { mevcut = undefined; } }
+				var yeniDeger;
+				try { yeniDeger = updateFn(mevcut); } catch (e) { return Promise.reject(e); }
+				if (yeniDeger === undefined) { return Promise.resolve({ committed: false, snapshot: makeSnapshot(mevcut === undefined ? null : mevcut) }); }
+				canliYaz(path, yeniDeger);
+				return Promise.resolve({ committed: true, snapshot: makeSnapshot(yeniDeger) });
+			},
 			push: function (data) {
 				var key = "mockKey" + Math.random().toString(36).slice(2, 10);
 				window.__mockPushes = window.__mockPushes || [];
@@ -138,11 +210,21 @@
 			set: function (data) {
 				window.__mockSets = window.__mockSets || [];
 				window.__mockSets.push({ path: path, data: data });
+				canliYaz(path, data === undefined ? null : data);
 				return Promise.resolve();
 			},
 			update: function (data) {
 				window.__mockUpdates = window.__mockUpdates || [];
 				window.__mockUpdates.push({ path: path, data: data });
+				// Gercek Firebase semantigi: '/' (kok) ref'inde anahtarlar TAM YOL,
+				// diger reflerde anahtarlar KENDI ALTINDAKI goreli alan adi -- her
+				// ikisi de bu kod tabanında kullanılıyor (bkz. database.ref('/').update(patch)
+				// vs. database.ref(altYol).update({alan: deger})).
+				var kokMu = !path || path === "/";
+				Object.keys(data || {}).forEach(function (anahtar) {
+					var tamYol = kokMu ? anahtar : (path + "/" + anahtar);
+					canliYaz(tamYol, data[anahtar]);
+				});
 				return Promise.resolve();
 			},
 			remove: function () {

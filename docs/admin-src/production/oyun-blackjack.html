@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Blackjack | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. blackjack-oyun.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Blackjack">
+
+<main class="main">
+<div class="page-wrapper bj-page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">Blackjack (21)</h1>
+      </div>
+      <div class="card-options">
+        <span class="bj-bakiye" data-bj-bakiye>… çip</span>
+        <button type="button" class="btn btn-outline bj-skin-carki-btn" data-bj-skin-carki title="Kart skinleri">⚙</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bj-masa" data-bj-root>
+    <div class="bj-krupiyer-alani">
+      <div class="bj-krupiyer" data-bj-krupiyer></div>
+      <div class="bj-sayac" data-bj-sayac></div>
+    </div>
+    <div class="bj-koltuklar" data-bj-koltuklar></div>
+    <div class="bj-aksiyonlar" data-bj-aksiyonlar></div>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+import('/src/v4/blackjack-oyun.js').then((m) => m.initBlackjack());
+</script>
+
+</body>
+</html>

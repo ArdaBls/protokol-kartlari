@@ -1,0 +1,139 @@
+// Blackjack (oyun-blackjack.html) — bkz. blackjack-oyun.js. Kumarhane yeşili
+// (patlak/neon değil, koyu-doygun kadife yeşili) + oval masa hissi veren
+// arka plan; kartlar/avatarlar düz 2D sprite, gerçek 3D transform YOK (pixel
+// art netliğini bozar) -- bkz. kullanıcıyla konuşulan "2.5D hissi" kararı.
+
+$bj-yesil-koyu: #0b3d2e;
+$bj-yesil: #0f5132;
+$bj-yesil-acik: #146c43;
+$bj-altin: #d4af37;
+$bj-bordo: #6b1f2a;
+
+.bj-page-wrapper { max-width: 1100px; }
+
+.bj-bakiye {
+  font-weight: var(--font-weight-bold);
+  color: $bj-altin;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  background: rgba(212, 175, 55, 0.12);
+  margin-right: 8px;
+}
+.bj-skin-carki-btn { font-size: 18px; line-height: 1; padding: 6px 12px; }
+
+.bj-masa {
+  position: relative;
+  min-height: 560px;
+  border-radius: 50% / 18%;
+  background:
+    radial-gradient(ellipse at 50% 20%, $bj-yesil-acik 0%, $bj-yesil 55%, $bj-yesil-koyu 100%);
+  border: 10px solid $bj-bordo;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45), 0 12px 30px rgba(0, 0, 0, 0.35);
+  padding: 32px 16px 200px;
+  overflow: hidden;
+}
+
+.bj-krupiyer-alani {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 24px;
+}
+.bj-krupiyer { min-height: 90px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bj-krupiyer-bos { color: rgba(255, 255, 255, 0.75); font-size: 13px; padding-top: 24px; }
+.bj-sayac { color: $bj-altin; font-weight: var(--font-weight-bold); font-size: 14px; min-height: 18px; }
+
+.bj-koltuklar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+// Yakın (alt) koltuklar biraz büyük, uzak (üst) koltuklar biraz küçük --
+// gerçek 3D olmadan sahte bir derinlik hissi.
+.bj-koltuk-slot-0, .bj-koltuk-slot-1, .bj-koltuk-slot-2 { transform: scale(1.06); z-index: 2; }
+.bj-koltuk-slot-3, .bj-koltuk-slot-4, .bj-koltuk-slot-5 { transform: scale(0.92); opacity: 0.92; }
+
+.bj-koltuk {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+}
+.bj-koltuk-bos { justify-content: center; background: rgba(0, 0, 0, 0.15); border-style: dashed; }
+.bj-koltuk-aktif { border-color: $bj-altin; box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5); }
+.bj-koltuk-ben { border-color: rgba(255, 255, 255, 0.4); }
+.bj-koltuk-oyuncu { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: var(--font-weight-medium); }
+
+.bj-el { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 4px; }
+.bj-el-kartlar { display: flex; gap: -6px; }
+.bj-kart {
+  width: 40px;
+  height: auto;
+  image-rendering: pixelated;
+  margin-left: -14px;
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  // Kartlar anlık spawn olmasın diye -- yerine gelirken hafif kayma + solma.
+  animation: bj-kart-gel 220ms ease-out;
+}
+.bj-kart:first-child { margin-left: 0; }
+@keyframes bj-kart-gel {
+  from { opacity: 0; transform: translateY(-16px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.bj-el-toplam { font-size: 12px; font-weight: var(--font-weight-bold); color: $bj-altin; }
+.bj-el-bahis { font-size: 11px; color: rgba(255, 255, 255, 0.8); }
+.bj-el-sonuc { font-size: 11px; font-weight: var(--font-weight-bold); padding: 1px 6px; border-radius: 8px; }
+.bj-sonuc-kazandi { background: rgba(46, 125, 50, 0.35); color: #a5d6a7; }
+.bj-sonuc-kaybetti { background: rgba(198, 40, 40, 0.35); color: #ef9a9a; }
+.bj-sonuc-berabere { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.bj-sira-isareti { font-size: 11px; color: $bj-altin; animation: bj-yanip-son 1s infinite; }
+@keyframes bj-yanip-son { 50% { opacity: 0.3; } }
+
+.bj-bahis-mevcut { font-size: 12px; color: rgba(255, 255, 255, 0.85); }
+.bj-bahis-yok { opacity: 0.6; font-style: italic; }
+.bj-bahis-secim { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.bj-cip-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 2px solid $bj-altin;
+  background: $bj-bordo;
+  color: #fff;
+  font-size: 9px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition: transform 100ms;
+}
+.bj-cip-btn:hover { transform: scale(1.12); }
+.bj-kalk-btn { font-size: 11px; padding: 2px 8px; height: auto; }
+
+.bj-aksiyonlar {
+  position: absolute;
+  left: 0; right: 0; bottom: 24px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.bj-skin-grup { margin-bottom: 16px; }
+.bj-skin-grup h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
+.bj-skin-secion { display: flex; align-items: center; gap: 6px; }
+.bj-skin-secenek { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 0; }
+.bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+
+@media (max-width: 720px) {
+  .bj-masa { border-radius: 24px; padding: 20px 8px 190px; min-height: auto; }
+  .bj-koltuklar { grid-template-columns: repeat(2, 1fr); }
+  .bj-koltuk-slot-0, .bj-koltuk-slot-1, .bj-koltuk-slot-2,
+  .bj-koltuk-slot-3, .bj-koltuk-slot-4, .bj-koltuk-slot-5 { transform: none; }
+  .bj-kart { width: 32px; }
+}

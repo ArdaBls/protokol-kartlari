@@ -16,6 +16,7 @@
 @use "chess";
 @use "wordle";
 @use "amiral-batti";
+@use "blackjack";
 // Last: RTL overrides only fix what logical properties can't express
 // (transforms, background-position, box-shadow), so they must win the cascade.
 @use "rtl";
