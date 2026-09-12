@@ -22,9 +22,9 @@ import { showToast } from './toast.js';
 import { showModal } from './modal.js';
 import { subscribeStaffProfiles, renderStaffAvatar } from './staff-profiles.js';
 import {
-  MAX_KOLTUK, BAHIS_SURESI_MS, BASLANGIC_BAKIYESI,
+  MAX_KOLTUK, BAHIS_SURESI_MS, BASLANGIC_BAKIYESI, TOPLAM_KART_SAYISI,
   tazeDesteOlustur, desteyiKaris, elDegerlendir, bolunebilirMi,
-  krupiyerElOyna, desteYeterliMi, elSonucuHesapla
+  krupiyerElOyna, desteYeterliMi, elSonucuHesapla, kartDegeri
 } from './blackjack-deste.js';
 
 const FIREBASE_CONFIG = {
@@ -36,6 +36,15 @@ const FIREBASE_CONFIG = {
 const MASA_ID = 'ana-masa'; // Tek paylaşılan masa -- kumarhanedeki fiziksel masa gibi.
 const MASA_YOLU = 'oyunBasarimlari/blackjack/masalar/' + MASA_ID;
 const CIP_DEGERLERI = [25, 50, 75, 100, 200, 500, 750, 1000, 5000, 10000];
+// CIP_DEGERLERI ile AYNI SIRADA -- her değere gerçek bir çip görseli (kullanıcı
+// isteği: "bizim çipleri kullanacağız"). En yüksek değer (10000) için özel
+// "joker" çipi kullanılıyor (organize ederken kalan tek görsel).
+const CIP_GORSELLERI = ['cip-01-beyaz', 'cip-02-kirmizi', 'cip-03-yesil', 'cip-04-mavi', 'cip-05-siyah', 'cip-06-mor', 'cip-07-turuncu-koyu', 'cip-08-bej', 'cip-09-turuncu', 'cip-10-joker'];
+function cipGorselYolu(miktar) {
+  const idx = CIP_DEGERLERI.indexOf(miktar);
+  return '/assets/blackjack/cipler/' + (CIP_GORSELLERI[idx] || CIP_GORSELLERI[0]) + '.png';
+}
+const AKSIYON_SURESI_MS = 10000; // Sırası gelen oyuncu için 10 sn -- süresiz bekleme olmasın.
 const DESTE_STILLERI = ['temel', 'altin', 'celik'];
 const VARSAYILAN_TEMA = 'varsayilan';
 
@@ -50,6 +59,7 @@ let myChipBalance = 0;
 let mySkin = { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA };
 let skinCache = {}; // uid -> {desteStili, yuzKartiTemasi}
 let countdownTimer = null;
+let aksiyonCountdownTimer = null;
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -91,14 +101,22 @@ function ensureSkinsLoaded(table) {
   return Promise.all(uids.map((u) => loadSkinFor(u)));
 }
 
+// Skin seçimi önizlemeleri -- kullanıcı isteği: "hangisini seçtiğimizi
+// bilelim" (sade metin/radio yerine gerçek kart görseli).
+function stilOnizlemeYolu(stil) { return '/assets/blackjack/kartlar/varsayilan/' + stil + '/07-7-kupa.png'; }
+function temaOnizlemeYolu(tema) {
+  return tema === VARSAYILAN_TEMA
+    ? '/assets/blackjack/kartlar/varsayilan/temel/13-papaz-kupa.png'
+    : '/assets/blackjack/yuz-kartlari-koleksiyon/' + tema + '-papaz.png';
+}
 function openSkinModal() {
   loadSkinFor(currentUserUid).then(() => {
     const stilHtml = DESTE_STILLERI.map((s) =>
-      '<label class="bj-skin-secenek"><input type="radio" name="bj-destestili" value="' + s + '"' + (mySkin.desteStili === s ? ' checked' : '') + '> ' + escapeHtml(s === 'temel' ? 'Sade' : s === 'altin' ? 'Altın' : 'Çelik') + '</label>'
+      '<label class="bj-skin-secenek"><input type="radio" name="bj-destestili" value="' + s + '"' + (mySkin.desteStili === s ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(s) + '" alt=""> ' + escapeHtml(s === 'temel' ? 'Sade' : s === 'altin' ? 'Altın' : 'Çelik') + '</label>'
     ).join('');
     const temaSecenekleri = ['varsayilan'].concat(collabKodlari().flatMap((kod) => [kod + '-1', kod + '-2']));
     const temaHtml = temaSecenekleri.map((t) =>
-      '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '> ' + escapeHtml(t === 'varsayilan' ? 'Varsayılan' : t) + '</label>'
+      '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + temaOnizlemeYolu(t) + '" alt=""> ' + escapeHtml(t === 'varsayilan' ? 'Varsayılan' : t) + '</label>'
     ).join('');
     showModal({
       title: 'Kart Skinleri',
@@ -141,7 +159,17 @@ function renderBakiye() {
   if (el) { el.textContent = (myChipBalance === null ? '…' : myChipBalance.toLocaleString('tr-TR')) + ' çip'; }
 }
 function bakiyeGuncelle(uid, delta) {
-  return database.ref('cipBakiyeleri/' + uid).transaction((mevcut) => (mevcut || 0) + delta);
+  // NOT: Firebase kuralı "newData.val() >= 0" şartı koyuyor. mevcut null/stale
+  // okunduğu bir anda (örn. ilk set(1000) sunucuya henüz ulaşmadan bir el
+  // başlarsa) DÜŞÜŞ negatife düşüp kural tarafından SESSİZCE reddediliyordu --
+  // KAZANÇ (pozitif delta) her zaman geçtiği için sadece kayıplarda görünen
+  // bir "çip düşmüyor" hatasına yol açıyordu. Math.max(0, ...) ile asla
+  // kural-reddi bir değer önerilmiyor; .catch ile de artık sessiz kalmıyor.
+  return database.ref('cipBakiyeleri/' + uid).transaction((mevcut) => Math.max(0, (mevcut || 0) + delta))
+    .catch((err) => {
+      console.error('Çip bakiyesi güncellenemedi:', err);
+      showToast('Bakiye güncellenemedi, sayfayı yenileyin.', { variant: 'error' });
+    });
 }
 
 // ── Oturma / kalkma ──
@@ -240,6 +268,7 @@ function bahisSuresiDolunca() {
     mevcut.kurpiyerEli = { kartlar: krupiyerKartlari, acikMi: false };
     mevcut.aktifKoltuk = ilkAktif === undefined ? null : ilkAktif;
     mevcut.durum = ilkAktif === undefined ? 'kurpiyer_sirasi' : 'oyunculuk';
+    mevcut.aksiyonSuresiBitis = ilkAktif === undefined ? null : Date.now() + AKSIYON_SURESI_MS;
     // Her el için artan bir numara -- bakiye düşme/ödeme işlemlerini KİM
     // DAĞITTIYSA onun değil, HER oturan istemcinin kendi listener'ında bir kez
     // işlemesi için (bkz. islemBakiyeYansit). "Kim dağıtıyor" yarışını sadece
@@ -256,9 +285,11 @@ function siraSonrakineGecsin(table) {
   const patch = {};
   if (sonraki) {
     patch[dbPath(MASA_YOLU + '/aktifKoltuk')] = sonraki.koltuk;
+    patch[dbPath(MASA_YOLU + '/aksiyonSuresiBitis')] = Date.now() + AKSIYON_SURESI_MS;
   } else {
     patch[dbPath(MASA_YOLU + '/durum')] = 'kurpiyer_sirasi';
     patch[dbPath(MASA_YOLU + '/aktifKoltuk')] = null;
+    patch[dbPath(MASA_YOLU + '/aksiyonSuresiBitis')] = null;
   }
   patch[dbPath(MASA_YOLU + '/guncellemeTs')] = Date.now();
   database.ref('/').update(patch);
@@ -311,7 +342,34 @@ function belkiSonrakiFazaGec(table) {
   if (!table) { return; }
   if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
-  if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); }
+  if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
+  if (table.durum === 'oyunculuk' && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) { aksiyonSuresiDolunca(); }
+}
+
+// Sırası gelen oyuncu 10 sn içinde karar vermezse otomatik "Kal" -- süresiz
+// bekleme olmasın (kullanıcı bildirimi). Amiral Battı/bahis penceresindeki
+// AYNI "herkes kendi istemcisinde fark eder" deseni.
+function aksiyonSuresiDolunca() {
+  const ref = database.ref(dbPath(MASA_YOLU));
+  let islenenKoltuk = null;
+  let islenenEl = null;
+  ref.transaction((mevcut) => {
+    if (!mevcut || mevcut.durum !== 'oyunculuk' || mevcut.aktifKoltuk === null || mevcut.aktifKoltuk === undefined) { return; }
+    if (!mevcut.aksiyonSuresiBitis || Date.now() < mevcut.aksiyonSuresiBitis) { return; }
+    const koltukIndex = mevcut.aktifKoltuk;
+    const koltuk = mevcut.koltuklar[koltukIndex];
+    const elIndex = activeElIndex(koltuk);
+    if (elIndex === -1) { return; }
+    islenenKoltuk = koltukIndex;
+    islenenEl = elIndex;
+    const yeniEller = koltuk.eller.slice();
+    yeniEller[elIndex] = Object.assign({}, yeniEller[elIndex], { durum: 'kaldi' });
+    mevcut.koltuklar[koltukIndex] = Object.assign({}, koltuk, { eller: yeniEller });
+    mevcut.guncellemeTs = Date.now();
+    return mevcut;
+  }).then((res) => {
+    if (res.committed && islenenKoltuk !== null) { siraSonrakiEliyaGec(res.snapshot.val(), islenenKoltuk, islenenEl); }
+  });
 }
 
 // "Kim dağıtıyor / kim krupiyeri oynatıyor" yarışını SADECE BİR istemci
@@ -362,7 +420,11 @@ function siraSonrakiEliyaGec(table, koltukIndex, elIndex) {
   const koltuk = table.koltuklar[koltukIndex];
   if (koltuk.eller[elIndex].durum === 'oynuyor') { return; } // hâlâ aynı elde (21 olmadıysa devam eder, UI tekrar kartÇek çağırır)
   if (koltuk.eller[elIndex + 1]) {
-    database.ref(dbPath(MASA_YOLU + '/aktifKoltuk')).set(koltukIndex); // aynı koltuk, sıradaki (bölünmüş) el
+    // Aynı koltuk, sıradaki (bölünmüş) el -- süre de sıfırlanır.
+    database.ref('/').update({
+      [dbPath(MASA_YOLU + '/aktifKoltuk')]: koltukIndex,
+      [dbPath(MASA_YOLU + '/aksiyonSuresiBitis')]: Date.now() + AKSIYON_SURESI_MS
+    });
     return;
   }
   siraSonrakineGecsin(table);
@@ -447,33 +509,62 @@ function elHtml(el, uid) {
   return '<div class="bj-el">' +
     '<div class="bj-el-kartlar">' + kartlarHtml + '</div>' +
     '<div class="bj-el-toplam">' + degerlendirme.toplam + (degerlendirme.battiMi ? ' (Battı)' : '') + '</div>' +
-    '<div class="bj-el-bahis">' + el.bahisMiktari + ' çip</div>' + sonucEtiket +
+    cipYiginiHtml(el.bahisMiktari) + sonucEtiket +
     '</div>';
 }
+// Bahis tutarını gerçek çip görsellerinden bir yığın olarak gösterir (aç gözlü
+// ayrıştırma: en büyük değerden başlayıp en fazla 5 çip -- kullanıcı isteği:
+// "bizim çipleri kullanacağız", tam sayı da altında okunur kalsın diye.
+function cipYiginiHtml(miktar) {
+  if (!miktar) { return ''; }
+  const kalanlar = [];
+  let kalan = miktar;
+  const azalanDegerler = CIP_DEGERLERI.slice().sort((a, b) => b - a);
+  azalanDegerler.forEach((v) => { while (kalan >= v && kalanlar.length < 5) { kalanlar.push(v); kalan -= v; } });
+  const imgHtml = kalanlar.map((v) => '<img class="bj-cip-gorsel" src="' + cipGorselYolu(v) + '" alt="">').join('');
+  return '<div class="bj-cip-yigin">' + imgHtml + '</div><div class="bj-bahis-mevcut">' + miktar + ' çip</div>';
+}
+
+// Avatarın etrafındaki kazanma (yeşil)/kaybetme (kırmızı) halkası -- kullanıcı
+// isteği: "kazanınca yeşil çember kaybedince kırmızı". Bölünmüş elde ilk elin
+// sonucu esas alınır (çoğunlukla tek el olduğu için yeterli).
+function avatarCemberSinifi(koltuk) {
+  if (!koltuk.eller || !koltuk.eller[0] || !koltuk.eller[0].sonuc) { return ''; }
+  const sonuc = koltuk.eller[0].sonuc;
+  if (sonuc === 'kazandi' || sonuc === 'blackjack') { return ' bj-cember-kazandi'; }
+  if (sonuc === 'kaybetti') { return ' bj-cember-kaybetti'; }
+  return '';
+}
+
 function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
   if (!koltuk || !koltuk.uid) {
     if (benimKoltuk !== null) { return '<div class="bj-koltuk bj-koltuk-bos"></div>'; }
     return '<div class="bj-koltuk bj-koltuk-bos"><button type="button" class="bj-otur-btn" data-bj-otur="' + koltukIndex + '" title="Otur" aria-label="Otur">+</button></div>';
   }
-  const avatarHtml = renderStaffAvatar(koltuk.isim, koltuk.uid, koltuk.isim, 40);
+  const benimMi = koltuk.uid === currentUserUid;
+  const avatarHtml = '<div class="bj-avatar-cember' + avatarCemberSinifi(koltuk) + '">' + renderStaffAvatar(koltuk.isim, koltuk.uid, koltuk.isim, 40) + '</div>';
   const aktifMi = table.aktifKoltuk === koltukIndex;
   let icerik;
   if (table.durum === 'bahis_bekleniyor') {
-    if (koltuk.uid === currentUserUid) {
-      icerik = '<div class="bj-bahis-secim">' + CIP_DEGERLERI.filter((v) => v <= myChipBalance).map((v) => '<button type="button" class="bj-cip-btn" data-bj-bahis="' + koltukIndex + '" data-miktar="' + v + '">' + v + '</button>').join('') + '</div>' +
-        (koltuk.bahis ? '<div class="bj-bahis-mevcut">Bahis: ' + koltuk.bahis + '</div>' : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>');
+    if (benimMi) {
+      icerik = '<div class="bj-bahis-secim">' + CIP_DEGERLERI.filter((v) => v <= myChipBalance).map((v) =>
+        '<button type="button" class="bj-cip-btn" data-bj-bahis="' + koltukIndex + '" data-miktar="' + v + '"><img class="bj-cip-gorsel" src="' + cipGorselYolu(v) + '" alt=""><span class="bj-cip-deger">' + v + '</span></button>'
+      ).join('') + '</div>' +
+        (koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>');
     } else {
-      icerik = koltuk.bahis ? '<div class="bj-bahis-mevcut">Bahis: ' + koltuk.bahis + '</div>' : '<div class="bj-bahis-mevcut bj-bahis-yok">Bekliyor…</div>';
+      // Diğer oyuncular için sade görünüm -- kullanıcı isteği: "sadece avatar
+      // ve kartları gözükecek" (metin etiketleri değil).
+      icerik = koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '';
     }
   } else if (koltuk.eller) {
     icerik = koltuk.eller.map((el, i) => elHtml(el, koltuk.uid) + ((aktifMi && i === activeElIndex(koltuk)) ? '<span class="bj-sira-isareti">◀ sırası</span>' : '')).join('');
   } else {
-    icerik = '<div class="bj-bahis-mevcut bj-bahis-yok">Bu el dışında</div>';
+    icerik = '';
   }
-  return '<div class="bj-koltuk' + (aktifMi ? ' bj-koltuk-aktif' : '') + (koltuk.uid === currentUserUid ? ' bj-koltuk-ben' : '') + '">' +
+  return '<div class="bj-koltuk' + (aktifMi ? ' bj-koltuk-aktif' : '') + (benimMi ? ' bj-koltuk-ben' : '') + '">' +
     '<div class="bj-koltuk-oyuncu">' + avatarHtml + '<span>' + escapeHtml(koltuk.isim || '') + '</span></div>' +
     icerik +
-    (koltuk.uid === currentUserUid && table.durum === 'bahis_bekleniyor' ? '<button type="button" class="btn btn-ghost bj-kalk-btn" data-bj-kalk="' + koltukIndex + '">Kalk</button>' : '') +
+    (benimMi && table.durum === 'bahis_bekleniyor' ? '<button type="button" class="btn btn-ghost bj-kalk-btn" data-bj-kalk="' + koltukIndex + '">Kalk</button>' : '') +
     '</div>';
 }
 function activeElIndex(koltuk) {
@@ -484,12 +575,39 @@ function activeElIndex(koltuk) {
 
 function renderKrupiyer(table) {
   const el = document.querySelector('[data-bj-krupiyer]');
+  if (el) {
+    if (!table.kurpiyerEli) {
+      el.innerHTML = '<div class="bj-krupiyer-bos">Bahisler bekleniyor…</div>';
+    } else {
+      const acikMi = table.kurpiyerEli.acikMi;
+      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi)).join('');
+      // Gerçek kumarhanede kapalı kart açılana kadar sadece AÇIK kartın değeri
+      // görünür -- kullanıcı bildirimi: "kurpiyerin toplamı yok".
+      // NOT: kademeli dağıtım animasyonu sırasında krupiyerin İLK kartı henüz
+      // gelmemiş olabilir (kirpilmisTabloOlustur ile kartlar kırpılıyor) --
+      // kartlar[0] o an undefined olabilir, kartDegeri'ne öyle geçmemeli.
+      const toplamHtml = acikMi
+        ? (() => { const d = elDegerlendir(table.kurpiyerEli.kartlar); return '<div class="bj-el-toplam">' + d.toplam + (d.battiMi ? ' (Battı)' : '') + '</div>'; })()
+        : (table.kurpiyerEli.kartlar[0] ? '<div class="bj-el-toplam bj-el-toplam-kismi">Görünen: ' + kartDegeri(table.kurpiyerEli.kartlar[0]) + '</div>' : '');
+      el.innerHTML = '<div class="bj-el-kartlar">' + kartlarHtml + '</div>' + toplamHtml;
+    }
+  }
+  renderDesteYigini(table);
+}
+
+// Kalan kart yığını (deste) -- sadece kozmetik, deste-arkası görselinden
+// üst üste bindirilmiş sabit bir yığın (kullanıcı bildirimi: "krupiyerin
+// kartları kenarda olmalı, deste arkaları gözükmeli").
+function renderDesteYigini(table) {
+  const el = document.querySelector('[data-bj-deste-yigini]');
   if (!el) { return; }
-  if (!table.kurpiyerEli) { el.innerHTML = '<div class="bj-krupiyer-bos">Bahisler bekleniyor…</div>'; return; }
-  const acikMi = table.kurpiyerEli.acikMi;
-  const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi)).join('');
-  const degerlendirme = acikMi ? elDegerlendir(table.kurpiyerEli.kartlar) : null;
-  el.innerHTML = '<div class="bj-el-kartlar">' + kartlarHtml + '</div>' + (degerlendirme ? '<div class="bj-el-toplam">' + degerlendirme.toplam + (degerlendirme.battiMi ? ' (Battı)' : '') + '</div>' : '');
+  const kalan = table.deste ? (table.deste.length - (table.desteIndex || 0)) : TOPLAM_KART_SAYISI;
+  if (kalan <= 0) { el.innerHTML = ''; return; }
+  const KART_SAYISI_GORUNEN = 4;
+  let html = '';
+  for (let i = 0; i < KART_SAYISI_GORUNEN; i++) { html += '<img class="bj-deste-kart" src="' + desteArkasiYolu() + '" alt="">'; }
+  html += '<div class="bj-deste-sayac">' + kalan + '</div>';
+  el.innerHTML = html;
 }
 
 function renderBahisSayaci(table) {
@@ -504,6 +622,22 @@ function renderBahisSayaci(table) {
   };
   tick();
   countdownTimer = setInterval(tick, 250);
+}
+
+function renderAksiyonSayaci(table) {
+  const el = document.querySelector('[data-bj-aksiyon-sayac]');
+  if (!el) { return; }
+  if (table.durum !== 'oyunculuk' || !table.aksiyonSuresiBitis) { el.textContent = ''; if (aksiyonCountdownTimer) { clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; } return; }
+  if (aksiyonCountdownTimer) { clearInterval(aksiyonCountdownTimer); }
+  const koltuk = table.koltuklar[table.aktifKoltuk];
+  const isim = koltuk ? koltuk.isim : '';
+  const tick = () => {
+    const kalanMs = table.aksiyonSuresiBitis - Date.now();
+    if (kalanMs <= 0) { el.textContent = 'Süre doldu…'; clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; aksiyonSuresiDolunca(); return; }
+    el.textContent = escapeHtml(isim || 'Sıradaki') + ' için: ' + Math.ceil(kalanMs / 1000) + ' sn';
+  };
+  tick();
+  aksiyonCountdownTimer = setInterval(tick, 250);
 }
 
 function renderAksiyonlar(table, benimKoltuk) {
@@ -522,8 +656,84 @@ function renderAksiyonlar(table, benimKoltuk) {
     (ilkKararMi && bolunebilirMi(aktifEl.kartlar) && koltuk.eller.length === 1 ? '<button type="button" class="btn btn-outline" data-bj-bol>Böl</button>' : '');
 }
 
+// Koltuklar HTML'i, bir önceki render ile AYNIYSA yeniden yazılmaz -- kullanıcı
+// bildirimi: boş koltuklardaki "+" düğmeleri "yanıp sönüyor". Kök neden: masa
+// belgesi aktif oyunda ÇOK sık değişiyor (her vur/kal/krupiyer adımı) ve
+// `.on('value')` HER değişiklikte tetikleniyor; koltuklar HTML'i her seferinde
+// sıfırdan yazılınca (hiçbir şey görsel olarak değişmese bile) tarayıcı aynı
+// düğmeleri yok edip yeniden yaratıyor -- kısa bir flaş/kaybolma hissi veriyor.
+let sonKoltuklarImzasi = null;
+
+// ── Kademeli dağıtım animasyonu (madde 1: "kartlar bana spawn oluyor") ──
+// bahisSuresiDolunca TÜM eli TEK transaction'da yazıyor -- elimizde zaten
+// NİHAİ veri var, sunucuya ekstra istek atmadan YEREL olarak kademeli açığa
+// çıkarılıyor: gerçek kumarhane sırası (koltuklar artan indeksle 1. tur,
+// krupiyer açık, 2. tur, krupiyer kapalı).
+let sonAnimeEdilenElNo = -1;
+const DAGITIM_ADIM_MS = 300;
+
 function renderMasa(table) {
-  currentTable = table;
+  const yeniDagitimMi = table.elNo && table.elNo !== sonAnimeEdilenElNo &&
+    (table.durum === 'oyunculuk' || table.durum === 'kurpiyer_sirasi') &&
+    table.koltuklar && Object.keys(table.koltuklar).some((i) => table.koltuklar[i] && table.koltuklar[i].eller);
+  if (yeniDagitimMi) {
+    sonAnimeEdilenElNo = table.elNo;
+    dagitimAnimasyonuOynat(table);
+    return;
+  }
+  renderMasaGercek(table);
+}
+
+function kirpilmisTabloOlustur(table, bahisliKoltuklar, koltukSayaclari, krupiyerSayaci) {
+  const kopya = Object.assign({}, table);
+  kopya.koltuklar = Object.assign({}, table.koltuklar);
+  bahisliKoltuklar.forEach((i) => {
+    const koltuk = table.koltuklar[i];
+    const sayi = koltukSayaclari[i] || 0;
+    kopya.koltuklar[i] = Object.assign({}, koltuk, {
+      eller: [Object.assign({}, koltuk.eller[0], { kartlar: koltuk.eller[0].kartlar.slice(0, sayi), durum: 'oynuyor', sonuc: undefined, odeme: undefined })]
+    });
+  });
+  if (table.kurpiyerEli) {
+    kopya.kurpiyerEli = Object.assign({}, table.kurpiyerEli, { kartlar: table.kurpiyerEli.kartlar.slice(0, krupiyerSayaci), acikMi: false });
+  }
+  // Animasyon adımları sırasında aksiyon çubuğu/sayaç/aktif koltuk vurgusu
+  // henüz devreye girmesin -- bahis_bekleniyor gibi "sakin" bir görünüm.
+  kopya.durum = 'bahis_bekleniyor';
+  kopya.aktifKoltuk = null;
+  return kopya;
+}
+
+function dagitimAnimasyonuOynat(table) {
+  const bahisliKoltuklar = [];
+  for (let i = 0; i < MAX_KOLTUK; i++) { if (table.koltuklar && table.koltuklar[i] && table.koltuklar[i].eller) { bahisliKoltuklar.push(i); } }
+  const adimlar = [];
+  for (let tur = 0; tur < 2; tur++) {
+    bahisliKoltuklar.forEach((i) => adimlar.push(i));
+    adimlar.push('krupiyer');
+  }
+  const koltukSayaclari = {};
+  bahisliKoltuklar.forEach((i) => { koltukSayaclari[i] = 0; });
+  let krupiyerSayaci = 0;
+  let adimNo = 0;
+  function birAdimOynat() {
+    // NOT: bu setTimeout zinciri, dağıtım anındaki SABİT bir tablo görüntüsünü
+    // kademeli açığa çıkarıyor -- zincir bitene kadar (~2 sn) başka bir
+    // istemcinin yaptığı değişiklik burada YANSIMAZ, ama zincir bitince
+    // renderMasaGercek(table) NİHAİ (o anki en güncel olmayan, dağıtım anındaki)
+    // veriyle render eder; hemen ardından gelecek bir sonraki `value` tetiklemesi
+    // (Firebase zaten sürekli dinlediği için) tabloyu anında güncel hale getirir.
+    if (adimNo >= adimlar.length) { renderMasaGercek(table); return; }
+    const adim = adimlar[adimNo]; adimNo++;
+    if (adim === 'krupiyer') { krupiyerSayaci++; } else { koltukSayaclari[adim]++; }
+    renderMasaGercek(kirpilmisTabloOlustur(table, bahisliKoltuklar, koltukSayaclari, krupiyerSayaci), true);
+    setTimeout(birAdimOynat, DAGITIM_ADIM_MS);
+  }
+  birAdimOynat();
+}
+
+function renderMasaGercek(table, geciciMi) {
+  if (!geciciMi) { currentTable = table; }
   const benimKoltuk = benimKoltukIndex(table);
   ensureSkinsLoaded(table).then(() => {
     const koltuklarEl = document.querySelector('[data-bj-koltuklar]');
@@ -537,10 +747,11 @@ function renderMasa(table) {
         const gercekIndex = benimKoltuk === null ? goren : (((benimKoltuk + (goren - merkez)) % MAX_KOLTUK) + MAX_KOLTUK) % MAX_KOLTUK;
         html += '<div class="bj-koltuk-slot bj-koltuk-slot-' + goren + '">' + koltukHtml(gercekIndex, table.koltuklar && table.koltuklar[gercekIndex], table, benimKoltuk) + '</div>';
       }
-      koltuklarEl.innerHTML = html;
+      if (html !== sonKoltuklarImzasi) { sonKoltuklarImzasi = html; koltuklarEl.innerHTML = html; }
     }
     renderKrupiyer(table);
     renderBahisSayaci(table);
+    renderAksiyonSayaci(table);
     renderAksiyonlar(table, benimKoltuk);
   });
 }

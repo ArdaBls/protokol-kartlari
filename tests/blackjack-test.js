@@ -72,6 +72,9 @@ function serve() {
 	await page.click('[data-bj-bahis][data-miktar="100"]');
 	await page.waitForTimeout(200);
 	results.bahisToplaniyor = (await page.locator('.bj-bahis-mevcut').first().textContent() || '').includes('200');
+	// Gerçek çip görselleri kullanılıyor mu (bahis seçim düğmeleri + yerleştirilmiş
+	// bahis yığını) -- kullanıcı isteği: "bizim çipleri kullanacağız".
+	results.cipGorselleriKullaniliyor = await page.locator('.bj-cip-gorsel').count() > 0;
 
 	const bakiyeMetniOku = async () => {
 		const t = await page.locator('[data-bj-bakiye]').textContent();
@@ -81,15 +84,27 @@ function serve() {
 	results.baslangicBakiyesiBinken = bakiyeBahistenOnce === 1000;
 
 	// 3) 6 saniyelik bahis süresini bekle -- otomatik dağıtım tetiklenmeli.
-	await page.waitForTimeout(6500);
+	// + kademeli dağıtım animasyonu (~7 adım * 300ms ≈ 2.1sn) bitene kadar bekle.
+	await page.waitForTimeout(6500 + 2500);
 	const kartSayisi = await page.locator('[data-bj-koltuklar] .bj-kart').count();
 	results.dagitimdanSonraKartGorunur = kartSayisi >= 2;
 	const krupiyerKartSayisi = await page.locator('[data-bj-krupiyer] .bj-kart').count();
 	results.krupiyerIkiKartAldi = krupiyerKartSayisi === 2;
+	// Krupiyerin kapalı kartı açılmadan sadece AÇIK kartın değeri görünmeli
+	// (kullanıcı bildirimi: "kurpiyerin toplamı yok").
+	results.krupiyerKismiToplamGorunur = await page.locator('.bj-el-toplam-kismi').count() === 1;
+	// Kalan kart yığını (deste-arkası görselleri) kenarda görünüyor mu.
+	results.desteYiginiGorunur = await page.locator('[data-bj-deste-yigini] img').count() > 0;
 
 	// 4) Aksiyon çubuğu görünüyor mu (sıra bende ise).
 	const aksiyonlarVar = await page.locator('[data-bj-aksiyonlar] button').count();
 	results.aksiyonButonlariVarsaGorunur = aksiyonlarVar > 0 || kartSayisi === 0; // blackjack gelmiş olabilir, o zaman aksiyon yok -- kabul edilir
+	// 10 saniyelik sıra sayacı görünüyor mu -- kullanıcı bildirimi: "sonsuz
+	// bekleme oluyor, 10 saniye geri saysın".
+	if (aksiyonlarVar > 0) {
+		const sayacMetni = await page.locator('[data-bj-aksiyon-sayac]').textContent();
+		results.aksiyonSayaciGorunur = /\d+\s*sn/.test(sayacMetni || '');
+	}
 
 	// 5) Eğer aksiyon varsa "Kal" ile eli bitir, krupiyer sırasına geçmeli.
 	if (aksiyonlarVar > 0) {
@@ -112,6 +127,14 @@ function serve() {
 	results.bakiyeBahisMiktarinaGoreDegisti = bakiyeSonrasi !== bakiyeBahistenOnce;
 	results.bakiyeSonucaGoreDogruHesaplandi = bakiyeSonrasi === beklenenBakiye;
 
+	// 7) Kazanma/kaybetme çemberi -- kullanıcı isteği: "kazanınca yeşil çember
+	// kaybedince kırmızı". Berabere durumunda hiçbiri beklenmez (o yüzden atla).
+	if (sonucMetni.indexOf('Berabere') === -1) {
+		const beklenenSinif = (sonucMetni.indexOf('Kazandı') !== -1 || sonucMetni.indexOf('Blackjack') !== -1) ? '.bj-cember-kazandi' : '.bj-cember-kaybetti';
+		results.avatarCemberDogruRenkte = await page.locator(beklenenSinif).count() > 0;
+	}
+
+	if (pageErrors.length) { console.log('PAGE ERRORS:', JSON.stringify(pageErrors)); }
 	results.oyunPageErrors = pageErrors.length;
 	console.log(JSON.stringify(results, null, 2));
 

@@ -8,6 +8,8 @@ $bj-yesil-koyu: #0b3d2e;
 $bj-yesil: #0f5132;
 $bj-altin: #d4af37;
 $bj-bordo: #6b1f2a;
+$bj-yesil-cember: #2e7d32;
+$bj-kirmizi-cember: #c62828;
 
 .bj-bakiye {
   font-weight: var(--font-weight-bold);
@@ -23,11 +25,8 @@ $bj-bordo: #6b1f2a;
 // align-items:stretch ile tam genişliğe gerilir -- AMA bir flex öğesinde
 // margin:auto varsa bu gerilme İPTAL olur (CSS Flexbox spesifikasyonu: auto
 // kenar boşlukları boş alanı yutar, stretch uygulanmaz) ve öğe İÇERİĞİNE göre
-// büzülür. Önceki halinde .bj-masa'da "width:100%; max-width:960px; margin:0
-// auto" birlikte kullanılıyordu -- bu yüzden masa 960px yerine ~440px'e
-// büzülüyordu (kullanıcı bildirimi: "oyun tam ortada değil"). width:min(...)
-// KESİN bir değer olduğu için auto-margin/stretch iptalini TETİKLEMEZ;
-// ortalamayı da margin yerine align-self:center yapıyor.
+// büzülür. width:min(...) KESİN bir değer olduğu için auto-margin/stretch
+// iptalini TETİKLEMEZ; ortalamayı da margin yerine align-self:center yapıyor.
 .bj-masa {
   position: relative;
   width: min(960px, 100%);
@@ -37,22 +36,51 @@ $bj-bordo: #6b1f2a;
   background: $bj-yesil;
   border: 8px solid $bj-bordo;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
-  padding: 28px 16px 120px;
+  padding: 28px 16px 130px;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+// Masaüstünde daha büyük masa + 1.75x kart -- kullanıcı isteği: "kartlar tam
+// okunaklı olsun".
+@media (min-width: 900px) {
+  .bj-masa { width: min(1360px, 100%); padding: 36px 28px 150px; }
+  .bj-kart { width: 91px; margin-left: -31px; } // 52*1.75
+  .bj-koltuk-slot { max-width: 260px; }
 }
 
-.bj-krupiyer-alani {
+.bj-krupiyer-satiri {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
   margin-bottom: 28px;
 }
+.bj-krupiyer-alani { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .bj-krupiyer { min-height: 90px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .bj-krupiyer-bos { color: rgba(255, 255, 255, 0.75); font-size: 13px; padding-top: 24px; }
-.bj-sayac { color: $bj-altin; font-weight: var(--font-weight-bold); font-size: 14px; min-height: 18px; }
+.bj-sayac, .bj-aksiyon-sayac { color: $bj-altin; font-weight: var(--font-weight-bold); font-size: 14px; min-height: 18px; }
+.bj-el-toplam-kismi { color: rgba(255, 255, 255, 0.7); font-weight: var(--font-weight-medium); }
+
+// Krupiyerin yanındaki kalan-kart yığını -- kullanıcı isteği: "kurpiyerin
+// kartları kenarda olmalı, deste arkaları gözükmeli" (sadece kozmetik).
+.bj-deste-yigini { position: relative; width: 60px; height: 84px; flex-shrink: 0; margin-top: 4px; }
+.bj-deste-kart {
+  position: absolute;
+  top: 0; left: 0;
+  width: 52px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.bj-deste-kart:nth-child(1) { transform: translate(0, 6px); z-index: 1; }
+.bj-deste-kart:nth-child(2) { transform: translate(2px, 4px); z-index: 2; }
+.bj-deste-kart:nth-child(3) { transform: translate(4px, 2px); z-index: 3; }
+.bj-deste-kart:nth-child(4) { transform: translate(6px, 0); z-index: 4; }
+.bj-deste-sayac {
+  position: absolute; bottom: -18px; left: 0; width: 60px;
+  text-align: center; font-size: 11px; color: rgba(255, 255, 255, 0.75);
+}
 
 .bj-koltuklar {
   display: flex;
@@ -79,6 +107,9 @@ $bj-bordo: #6b1f2a;
 .bj-koltuk-bos { justify-content: center; align-items: center; background: transparent; border: none; }
 .bj-otur-btn {
   width: 48px; height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   border: 2px dashed rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.08);
@@ -93,6 +124,12 @@ $bj-bordo: #6b1f2a;
 .bj-koltuk-ben { border-color: rgba(255, 255, 255, 0.4); }
 .bj-koltuk-oyuncu { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: var(--font-weight-medium); }
 
+// Kazanma/kaybetme halkası -- kullanıcı isteği: "kazanınca yeşil çember
+// kaybedince kırmızı".
+.bj-avatar-cember { border-radius: 50%; padding: 2px; transition: box-shadow 150ms; }
+.bj-cember-kazandi { box-shadow: 0 0 0 3px $bj-yesil-cember; }
+.bj-cember-kaybetti { box-shadow: 0 0 0 3px $bj-kirmizi-cember; }
+
 .bj-el { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 4px; }
 .bj-el-kartlar { display: flex; }
 .bj-kart {
@@ -103,8 +140,17 @@ $bj-bordo: #6b1f2a;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 .bj-kart:first-child { margin-left: 0; }
-.bj-el-toplam { font-size: 12px; font-weight: var(--font-weight-bold); color: $bj-altin; }
-.bj-el-bahis { font-size: 11px; color: rgba(255, 255, 255, 0.8); }
+// Kullanıcının gönderdiği referans görsele göre: küçük kırmızı rozet.
+.bj-el-toplam {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+  background: $bj-kirmizi-cember;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
 .bj-el-sonuc { font-size: 11px; font-weight: var(--font-weight-bold); padding: 1px 6px; border-radius: 8px; }
 .bj-sonuc-kazandi { background: rgba(46, 125, 50, 0.35); color: #a5d6a7; }
 .bj-sonuc-kaybetti { background: rgba(198, 40, 40, 0.35); color: #ef9a9a; }
@@ -114,37 +160,48 @@ $bj-bordo: #6b1f2a;
 
 .bj-bahis-mevcut { font-size: 12px; color: rgba(255, 255, 255, 0.85); }
 .bj-bahis-yok { opacity: 0.6; font-style: italic; }
-.bj-bahis-secim { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.bj-bahis-secim { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+// Gerçek çip görselleri -- kullanıcı isteği: "bizim çipleri kullanacağız".
+.bj-cip-gorsel { width: 34px; height: 34px; display: block; }
 .bj-cip-btn {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  border: 2px solid $bj-altin;
-  background: $bj-bordo;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: transparent;
   color: #fff;
-  font-size: 9px;
-  font-weight: var(--font-weight-bold);
   cursor: pointer;
   transition: transform 100ms;
+  padding: 0;
 }
 .bj-cip-btn:hover { transform: scale(1.12); }
+.bj-cip-deger { font-size: 9px; font-weight: var(--font-weight-bold); }
+.bj-cip-yigin { display: flex; justify-content: center; }
+.bj-cip-yigin .bj-cip-gorsel { width: 26px; height: 26px; margin-left: -12px; }
+.bj-cip-yigin .bj-cip-gorsel:first-child { margin-left: 0; }
 .bj-kalk-btn { font-size: 11px; padding: 2px 8px; height: auto; }
 
-.bj-aksiyonlar {
+.bj-aksiyonlar-satiri {
   position: absolute;
-  left: 0; right: 0; bottom: 24px;
+  left: 0; right: 0; bottom: 20px;
   display: flex;
-  justify-content: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
+.bj-aksiyonlar { display: flex; justify-content: center; gap: 10px; }
 
 .bj-skin-grup { margin-bottom: 16px; }
 .bj-skin-grup h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
-.bj-skin-secenek { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 0; }
+.bj-skin-secenek { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
+.bj-skin-onizleme { width: 28px; height: auto; border-radius: 2px; }
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 
 @media (max-width: 720px) {
-  .bj-masa { padding: 20px 8px 150px; min-height: auto; }
+  .bj-masa { padding: 20px 8px 160px; min-height: auto; }
   .bj-koltuklar { flex-wrap: wrap; }
   .bj-koltuk-slot { flex: 1 1 30%; max-width: none; }
-  .bj-kart { width: 38px; }
+  .bj-kart { width: 38px; margin-left: -13px; }
 }
