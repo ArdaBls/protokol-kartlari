@@ -29,10 +29,9 @@ export function tazeDesteOlustur() {
     TAKIMLAR.forEach((s) => {
       RUTBELER.forEach((r) => {
         const kart = { r, s };
-        // Dört destedeki 16 valenin her biri, destenin karıştırılmasıyla doğal
-        // aralıklarla gelen farklı bir Joker resmi taşır. Değer hesabı yine
-        // `kartDegeri` üzerinden normal 10'dur.
-        if (r === 'joker') {
+        // Özel Joker arada gelir (her destede bir kez): kart yine vale ve 10
+        // puandır. Kalan valeler seçilen Vale+Kız+Papaz üçlü temasını taşır.
+        if (r === 'joker' && s === 'kupa') {
           kart.bonusJokerGorseli = BONUS_JOKER_GORSELLERI[bonusJokerSayaci % BONUS_JOKER_GORSELLERI.length];
           bonusJokerSayaci++;
         }

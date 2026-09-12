@@ -44,9 +44,12 @@ function cipGorselYolu(miktar) {
   const idx = CIP_DEGERLERI.indexOf(miktar);
   return '/assets/blackjack/cipler/' + (CIP_GORSELLERI[idx] || CIP_GORSELLERI[0]) + '.png';
 }
-const AKSIYON_SURESI_MS = 10000; // Sırası gelen oyuncu için 10 sn -- süresiz bekleme olmasın.
+// Dağıtım animasyonu ve düşük performanslı telefonlar da bu sürenin içinde
+// kalıyordu; 10 sn bazı cihazlarda oyuncu ilk kartlarını görmeden bitiyordu.
+const AKSIYON_SURESI_MS = 30000;
 const DESTE_STILLERI = ['temel', 'altin', 'celik'];
 const VARSAYILAN_TEMA = 'varsayilan';
+const KOLEKSIYON_DOSYA_ON_EKI = 'koleksiyon-';
 // Bunlar ek bir oyun kartı/değer değil: mevcut "joker" (vale) rütbesinin
 // arada gelen özel görsel varyantlarıdır. Hepsi normal vale gibi 10 sayılır.
 // Dosya listesi sabit tutulur; kullanıcıdan gelen bir yol asla <img>'e yazılmaz.
@@ -113,6 +116,9 @@ function varsayilanKartGorselYolu(kart, stil = 'temel') {
 function bonusJokerGorselYolu(dosya) {
   return '/assets/blackjack/Joker%20Kartlar%C4%B1/' + encodeURIComponent(dosya);
 }
+function yuzKartiGorselYolu(tema, rutbe) {
+  return '/assets/blackjack/yuz-kartlari-koleksiyon/' + KOLEKSIYON_DOSYA_ON_EKI + tema + '-' + rutbe + '.png';
+}
 function kartGorselYolu(kart, uid) {
   const skin = skinCache[uid] || { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA };
   if (kart && kart.r === 'joker' && BONUS_JOKER_DOSYALARI.includes(kart.bonusJokerGorseli)) {
@@ -122,7 +128,7 @@ function kartGorselYolu(kart, uid) {
   if (yuzKartiMi && skin.yuzKartiTemasi && skin.yuzKartiTemasi !== VARSAYILAN_TEMA) {
     // Tek tema seçimi Vale + Kız + Papaz'ın aynı koleksiyondaki üçlüsünü
     // birlikte değiştirir; tek tek kart seçimi yoktur.
-    return '/assets/blackjack/yuz-kartlari-koleksiyon/' + skin.yuzKartiTemasi + '-' + kart.r + '.png';
+    return yuzKartiGorselYolu(skin.yuzKartiTemasi, kart.r);
   }
   return varsayilanKartGorselYolu(kart, skin.desteStili);
 }
@@ -176,7 +182,7 @@ function stilOnizlemeYolu(stil) { return '/assets/blackjack/kartlar/varsayilan/'
 function temaUcluOnizlemeHtml(tema) {
   const yollar = ['joker', 'kiz', 'papaz'].map((rutbe) => tema === VARSAYILAN_TEMA
     ? varsayilanKartGorselYolu({ r: rutbe, s: 'kupa' })
-    : '/assets/blackjack/yuz-kartlari-koleksiyon/' + tema + '-' + rutbe + '.png');
+    : yuzKartiGorselYolu(tema, rutbe));
   return '<span class="bj-skin-uclu">' + yollar.map((src) => '<img class="bj-skin-onizleme" src="' + src + '" alt="">').join('') + '</span>';
 }
 function openSkinModal() {

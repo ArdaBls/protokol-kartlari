@@ -22,10 +22,11 @@ const { pathToFileURL } = require('url');
 		const anahtarlar = Object.keys(sayaç);
 		results.her52KombinasyonVar = anahtarlar.length === 52;
 		results.herKombinasyonTamDortDefa = anahtarlar.every((k) => sayaç[k] === 4);
-		// Özel Joker görünümü ayrı bir kart/değer değildir: dört destedeki 16
-		// valeye iliştirilen güvenli bir görsel alanıdır, deste sayısı değişmez.
+		// Özel Joker görünümü ayrı bir kart/değer değildir: her destede bir vale
+		// özel görünür; kalan valeler seçilen yüz kartı üçlüsünü kullanabilir.
 		const bonusJokerler = deste.filter((k) => k.r === 'joker');
-		results.bonusJokerlerNormalValeSayisinda = bonusJokerler.length === 16 && bonusJokerler.every((k) => /^Jokers\d+\.png$/.test(k.bonusJokerGorseli || ''));
+		const ozelJokerler = bonusJokerler.filter((k) => /^Jokers\d+\.png$/.test(k.bonusJokerGorseli || ''));
+		results.bonusJokerlerNormalValeSayisinda = bonusJokerler.length === 16 && ozelJokerler.length === 4 && bonusJokerler.filter((k) => !k.bonusJokerGorseli).length === 12;
 	}
 
 	// 2) Karıştırma: aynı 208 kartın bir permütasyonu (kayıp/kopya yok), ve
