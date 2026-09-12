@@ -9,7 +9,7 @@ export const RUTBELER = ['as', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'jo
 export const DESTE_SAYISI = 4;
 export const TEK_DESTE_KART_SAYISI = RUTBELER.length * TAKIMLAR.length; // 52
 export const TOPLAM_KART_SAYISI = DESTE_SAYISI * TEK_DESTE_KART_SAYISI; // 208
-export const MAX_KOLTUK = 6;
+export const MAX_KOLTUK = 5;
 export const BAHIS_SURESI_MS = 6000;
 export const BASLANGIC_BAKIYESI = 1000;
 

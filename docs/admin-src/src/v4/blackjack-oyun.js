@@ -147,6 +147,7 @@ function bakiyeGuncelle(uid, delta) {
 // ── Oturma / kalkma ──
 function otur(koltukIndex) {
   if (!canPlay) { showToast('Oynamak için giriş yapmalısınız.', { variant: 'error' }); return; }
+  if (benimKoltukIndex(currentTable) !== null) { showToast('Zaten bir koltukta oturuyorsunuz.', { variant: 'error' }); return; }
   const ref = database.ref(dbPath(MASA_YOLU + '/koltuklar/' + koltukIndex));
   ref.transaction((mevcut) => {
     if (mevcut && mevcut.uid) { return; } // dolu -- vazgeç
@@ -162,8 +163,18 @@ function kalk(koltukIndex) {
 
 // ── Bahis ──
 function bahisYap(koltukIndex, miktar) {
-  if (miktar > myChipBalance) { showToast('Yetersiz bakiye.', { variant: 'error' }); return; }
-  database.ref(dbPath(MASA_YOLU + '/koltuklar/' + koltukIndex)).update({ bahis: miktar, katilimDurumu: 'hazir' });
+  // Tıklanan çip miktarı MEVCUT bahise EKLENİR (üzerine yazılmaz) -- kullanıcı
+  // isteği: "2 kere 100'e basınca 200 olması lazım". Bakiye kontrolü toplam
+  // (mevcut bahis + eklenen) üzerinden yapılır.
+  const ref = database.ref(dbPath(MASA_YOLU + '/koltuklar/' + koltukIndex));
+  ref.transaction((mevcut) => {
+    if (!mevcut || mevcut.uid !== currentUserUid) { return; }
+    const yeniBahis = (mevcut.bahis || 0) + miktar;
+    if (yeniBahis > myChipBalance) { return; }
+    return Object.assign({}, mevcut, { bahis: yeniBahis, katilimDurumu: 'hazir' });
+  }).then((res) => {
+    if (!res.committed) { showToast('Yetersiz bakiye.', { variant: 'error' }); }
+  });
 }
 
 // ── El/koltuk yardımcıları ──
@@ -229,6 +240,12 @@ function bahisSuresiDolunca() {
     mevcut.kurpiyerEli = { kartlar: krupiyerKartlari, acikMi: false };
     mevcut.aktifKoltuk = ilkAktif === undefined ? null : ilkAktif;
     mevcut.durum = ilkAktif === undefined ? 'kurpiyer_sirasi' : 'oyunculuk';
+    // Her el için artan bir numara -- bakiye düşme/ödeme işlemlerini KİM
+    // DAĞITTIYSA onun değil, HER oturan istemcinin kendi listener'ında bir kez
+    // işlemesi için (bkz. islemBakiyeYansit). "Kim dağıtıyor" yarışını sadece
+    // BİR istemci kazanır ama masadaki HERKESİN kendi bahsini düşmesi/ödemesini
+    // alması gerekiyor -- bu numaraya göre "bu eli zaten işledim mi" kontrolü var.
+    mevcut.elNo = (mevcut.elNo || 0) + 1;
     mevcut.guncellemeTs = Date.now();
     return mevcut;
   });
@@ -282,17 +299,6 @@ function krupiyerSirasiGeldi() {
     mevcut.durum = 'el_sonucu';
     mevcut.guncellemeTs = Date.now();
     return mevcut;
-  }).then((res) => {
-    if (!res.committed || !res.snapshot.exists()) { return; }
-    const table = res.snapshot.val();
-    // Ödemeleri YAZAN taraf sadece KENDİ bakiyesini günceller -- herkesin
-    // istemcisi kendi koltuğunun ödemesini işler (cipBakiyeleri kuralı zaten
-    // sadece auth.uid===$uid yazmasına izin veriyor).
-    const benimKoltuk = benimKoltukIndex(table);
-    if (benimKoltuk !== null && table.koltuklar[benimKoltuk].eller) {
-      const toplamOdeme = table.koltuklar[benimKoltuk].eller.reduce((t, el) => t + (el.odeme || 0), 0);
-      if (toplamOdeme > 0) { bakiyeGuncelle(currentUserUid, toplamOdeme); }
-    }
   });
 }
 // Bir sonraki adıma geçişi TEK bir istemcinin zamanlayıcısına bağlamıyoruz --
@@ -306,6 +312,31 @@ function belkiSonrakiFazaGec(table) {
   if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); }
+}
+
+// "Kim dağıtıyor / kim krupiyeri oynatıyor" yarışını SADECE BİR istemci
+// kazanır (bkz. yukarıdaki transaction'lar) -- ama masadaki HERKESİN kendi
+// bahsini düşmesi ve kendi ödemesini alması gerekiyor. Bu yüzden bakiye
+// hareketleri o yarışı kazanan istemciye değil, HER oturan istemcinin kendi
+// `value` dinleyicisine bağlı -- elNo'ya göre "bu eli zaten işledim mi" diye
+// bakıp bir kez uyguluyor (bkz. sonIslenenBahisElNo/sonOdenenElNo).
+let sonIslenenBahisElNo = -1;
+let sonOdenenElNo = -1;
+function islemBakiyeYansit(table) {
+  const benimKoltuk = benimKoltukIndex(table);
+  if (benimKoltuk === null || !table.elNo) { return; }
+  const koltuk = table.koltuklar[benimKoltuk];
+  if (!koltuk || !koltuk.eller || !koltuk.eller[0]) { return; }
+  if (table.elNo !== sonIslenenBahisElNo) {
+    sonIslenenBahisElNo = table.elNo;
+    const dusulecek = koltuk.eller[0].bahisMiktari;
+    if (dusulecek > 0) { bakiyeGuncelle(currentUserUid, -dusulecek); }
+  }
+  if (table.durum === 'el_sonucu' && table.elNo !== sonOdenenElNo && koltuk.eller[0].odeme !== undefined) {
+    sonOdenenElNo = table.elNo;
+    const toplamOdeme = koltuk.eller.reduce((t, el) => t + (el.odeme || 0), 0);
+    if (toplamOdeme > 0) { bakiyeGuncelle(currentUserUid, toplamOdeme); }
+  }
 }
 
 // ── Oyuncu aksiyonları ──
@@ -419,16 +450,17 @@ function elHtml(el, uid) {
     '<div class="bj-el-bahis">' + el.bahisMiktari + ' çip</div>' + sonucEtiket +
     '</div>';
 }
-function koltukHtml(koltukIndex, koltuk, table) {
+function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
   if (!koltuk || !koltuk.uid) {
-    return '<div class="bj-koltuk bj-koltuk-bos"><button type="button" class="btn btn-outline" data-bj-otur="' + koltukIndex + '">Otur</button></div>';
+    if (benimKoltuk !== null) { return '<div class="bj-koltuk bj-koltuk-bos"></div>'; }
+    return '<div class="bj-koltuk bj-koltuk-bos"><button type="button" class="bj-otur-btn" data-bj-otur="' + koltukIndex + '" title="Otur" aria-label="Otur">+</button></div>';
   }
   const avatarHtml = renderStaffAvatar(koltuk.isim, koltuk.uid, koltuk.isim, 40);
   const aktifMi = table.aktifKoltuk === koltukIndex;
   let icerik;
   if (table.durum === 'bahis_bekleniyor') {
     if (koltuk.uid === currentUserUid) {
-      icerik = '<div class="bj-bahis-secim">' + CIP_DEGERLERI.map((v) => '<button type="button" class="bj-cip-btn" data-bj-bahis="' + koltukIndex + '" data-miktar="' + v + '">' + v + '</button>').join('') + '</div>' +
+      icerik = '<div class="bj-bahis-secim">' + CIP_DEGERLERI.filter((v) => v <= myChipBalance).map((v) => '<button type="button" class="bj-cip-btn" data-bj-bahis="' + koltukIndex + '" data-miktar="' + v + '">' + v + '</button>').join('') + '</div>' +
         (koltuk.bahis ? '<div class="bj-bahis-mevcut">Bahis: ' + koltuk.bahis + '</div>' : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>');
     } else {
       icerik = koltuk.bahis ? '<div class="bj-bahis-mevcut">Bahis: ' + koltuk.bahis + '</div>' : '<div class="bj-bahis-mevcut bj-bahis-yok">Bekliyor…</div>';
@@ -496,10 +528,14 @@ function renderMasa(table) {
   ensureSkinsLoaded(table).then(() => {
     const koltuklarEl = document.querySelector('[data-bj-koltuklar]');
     if (koltuklarEl) {
+      // Kendi koltuğum HER ZAMAN tam ortada (goren=2, 5 koltuğun merkezi) --
+      // diğerleri bu merkeze göre sağa/sola yayla dizilir. Oturmuyorsam
+      // (izleyici) doğal sırada gösterilir.
+      const merkez = Math.floor(MAX_KOLTUK / 2);
       let html = '';
       for (let goren = 0; goren < MAX_KOLTUK; goren++) {
-        const gercekIndex = benimKoltuk === null ? goren : (goren + benimKoltuk) % MAX_KOLTUK;
-        html += '<div class="bj-koltuk-slot bj-koltuk-slot-' + goren + '">' + koltukHtml(gercekIndex, table.koltuklar && table.koltuklar[gercekIndex], table) + '</div>';
+        const gercekIndex = benimKoltuk === null ? goren : (((benimKoltuk + (goren - merkez)) % MAX_KOLTUK) + MAX_KOLTUK) % MAX_KOLTUK;
+        html += '<div class="bj-koltuk-slot bj-koltuk-slot-' + goren + '">' + koltukHtml(gercekIndex, table.koltuklar && table.koltuklar[gercekIndex], table, benimKoltuk) + '</div>';
       }
       koltuklarEl.innerHTML = html;
     }
@@ -510,9 +546,11 @@ function renderMasa(table) {
 }
 
 function eventleriBagla() {
-  const root = document.querySelector('[data-bj-root]');
-  if (!root) { return; }
-  root.addEventListener('click', (e) => {
+  // document'e bağlanıyor -- skin çarkı butonu .page-header'da, yani
+  // .bj-masa'nın (data-bj-root) DIŞINDA; sadece root'u dinlemek onu kaçırırdı.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-bj-skin-carki]')) { openSkinModal(); return; }
+    if (!e.target.closest('[data-bj-root]')) { return; }
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
     const oturBtn = e.target.closest('[data-bj-otur]'); if (oturBtn) { otur(Number(oturBtn.dataset.bjOtur)); return; }
     const kalkBtn = e.target.closest('[data-bj-kalk]'); if (kalkBtn) { kalk(Number(kalkBtn.dataset.bjKalk)); return; }
@@ -523,8 +561,7 @@ function eventleriBagla() {
     if (e.target.closest('[data-bj-kartcek]')) { kartCek(benimKoltuk, elIndex); return; }
     if (e.target.closest('[data-bj-kal]')) { kal(benimKoltuk, elIndex); return; }
     if (e.target.closest('[data-bj-katla]')) { katla(benimKoltuk, elIndex); return; }
-    if (e.target.closest('[data-bj-bol]')) { bol(benimKoltuk, elIndex); return; }
-    if (e.target.closest('[data-bj-skin-carki]')) { openSkinModal(); }
+    if (e.target.closest('[data-bj-bol]')) { bol(benimKoltuk, elIndex); }
   });
 }
 
@@ -534,6 +571,7 @@ function attachTableListener() {
     if (!snap.exists()) { bahisPenceresiniBaslat(); }
     renderMasa(table);
     belkiSonrakiFazaGec(table);
+    islemBakiyeYansit(table);
   });
   // Veri DEĞİŞMESE bile (örn. kimse kart çekmiyor, sadece süre doluyor) zaman
   // aşımı geçişlerini kaçırmamak için periyodik bir yoklama.
@@ -557,7 +595,7 @@ export function initBlackjack() {
       canPlay = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
       subscribeMyBalance();
-      loadSkinFor(currentUserUid).then(() => { if (currentTable) { renderMasa(currentTable); } });
+      loadSkinFor(currentUserUid).then(() => { if (currentTable) { renderMasa(currentTable); islemBakiyeYansit(currentTable); } });
     }).catch(() => { canPlay = false; });
   });
 

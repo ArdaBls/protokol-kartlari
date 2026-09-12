@@ -49,17 +49,36 @@ function serve() {
 	await page.goto('http://localhost:' + PORT + '/oyun-blackjack.html', { waitUntil: 'networkidle' });
 	await page.waitForSelector('[data-bj-otur]', { timeout: 5000 });
 	results.lobiPageErrors = pageErrors.length;
+	results.tamBesKoltukVar = await page.locator('[data-bj-koltuklar] > *').count() === 5;
 
 	// 1) Otur -- boş koltuğa tıkla.
 	await page.click('[data-bj-otur="0"]');
 	await page.waitForTimeout(200);
 	results.oturuncaKendiKoltuguGorunur = await page.locator('.bj-koltuk-ben').count() === 1;
 
+	// 1b) Başka bir koltuğa "+" ile tekrar oturmaya ÇALIŞ -- kullanıcı bildirimi:
+	// "ben tek başıma tüm koltuklara oturabiliyorum". Zaten oturuyorken diğer
+	// koltuklarda "+" butonu hiç GÖRÜNMEMELİ (aynı zamanda otur() da reddediyor).
+	results.digerKoltuklardaOturButonuYok = await page.locator('[data-bj-otur]').count() === 0;
+
 	// 2) Bahis yap (100 çip) -- 1000 başlangıç bakiyesiyle karşılanabilir.
 	await page.waitForSelector('[data-bj-bahis][data-miktar="100"]', { timeout: 5000 });
 	await page.click('[data-bj-bahis][data-miktar="100"]');
 	await page.waitForTimeout(200);
 	results.bahisYazildi = (await page.locator('.bj-bahis-mevcut').first().textContent() || '').includes('100');
+
+	// 2b) İkinci kez 100'e bas -- TOPLANMALI (200 olmalı), üzerine yazılmamalı
+	// (bkz. kullanıcı bildirimi: "2 kere 100'e basınca 200 olması lazım").
+	await page.click('[data-bj-bahis][data-miktar="100"]');
+	await page.waitForTimeout(200);
+	results.bahisToplaniyor = (await page.locator('.bj-bahis-mevcut').first().textContent() || '').includes('200');
+
+	const bakiyeMetniOku = async () => {
+		const t = await page.locator('[data-bj-bakiye]').textContent();
+		return Number((t || '').replace(/[^\d]/g, ''));
+	};
+	const bakiyeBahistenOnce = await bakiyeMetniOku();
+	results.baslangicBakiyesiBinken = bakiyeBahistenOnce === 1000;
 
 	// 3) 6 saniyelik bahis süresini bekle -- otomatik dağıtım tetiklenmeli.
 	await page.waitForTimeout(6500);
@@ -80,6 +99,18 @@ function serve() {
 	await page.waitForTimeout(2000);
 	const durumMetni = await page.evaluate(() => document.body.innerHTML.includes('Battı') || document.querySelectorAll('.bj-el-sonuc').length > 0);
 	results.elSonucuGoruldu = durumMetni;
+
+	// 6) Bahis (200) artık bakiyeden düşülmüş OLMALI -- kullanıcı bildirimi:
+	// "kaybettiğimde çipim eksilmiyor". Sonuç metnine göre beklenen bakiyeyi
+	// hesapla: Kaybetti -> 800, Berabere -> 1000, Kazandı -> 1200, Blackjack -> 1300.
+	const sonucMetni = await page.evaluate(() => (document.querySelector('.bj-el-sonuc') || {}).textContent || '');
+	const beklenenBakiye =
+		sonucMetni.indexOf('Blackjack') !== -1 ? 1300 :
+			sonucMetni.indexOf('Kazandı') !== -1 ? 1200 :
+				sonucMetni.indexOf('Berabere') !== -1 ? 1000 : 800;
+	const bakiyeSonrasi = await bakiyeMetniOku();
+	results.bakiyeBahisMiktarinaGoreDegisti = bakiyeSonrasi !== bakiyeBahistenOnce;
+	results.bakiyeSonucaGoreDogruHesaplandi = bakiyeSonrasi === beklenenBakiye;
 
 	results.oyunPageErrors = pageErrors.length;
 	console.log(JSON.stringify(results, null, 2));
