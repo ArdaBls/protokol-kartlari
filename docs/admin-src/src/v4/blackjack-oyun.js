@@ -86,6 +86,65 @@ let lastDealerSignature = '';
 let lastDeckSignature = '';
 let lastActionSignature = '';
 let lastBetPanelSignature = '';
+let pendingTableOperation = null;
+let playerActionPending = false;
+let tableError = '';
+let modeReady = false;
+
+function masaBaglami() {
+  return { yol: dbPath(MASA_YOLU), cuzdan: cuzdanYolu(currentUserUid), uid: currentUserUid, elNo: (currentTable && currentTable.elNo) || 0 };
+}
+
+function renderIslemDurumu() {
+  const durum = document.querySelector('[data-bj-durum]');
+  const metin = tableError || (playerActionPending || pendingTableOperation ? 'İşlem onaylanıyor…' : '');
+  if (durum && durum.textContent !== metin) { durum.textContent = metin; }
+  const tekrar = document.querySelector('[data-bj-yeniden-dene]');
+  if (tekrar) { tekrar.hidden = !tableError; }
+  document.querySelectorAll('[data-bj-root] button:not([data-bj-yeniden-dene])').forEach((button) => {
+    button.disabled = !!(tableError || pendingTableOperation || playerActionPending || !canPlay || isReadOnly());
+  });
+}
+
+function masaHatasi(err) {
+  tableError = err && err.code === 'PERMISSION_DENIED'
+    ? 'Masa güncellenemedi: oyun için yazma izni bulunmuyor.'
+    : 'Masa güncellenemedi. Bağlantınızı kontrol edip tekrar deneyin.';
+  renderIslemDurumu();
+}
+
+// Firebase'in tahmini yerel yazıları faz dinleyicisini yeniden tetikliyordu.
+// Yalnız sunucunun onayladığı masa yayınlanır; aynı istemci ikinci bir masa
+// işlemini ilk işlem tamamlanmadan başlatamaz. Ret halinde otomatik döngü durur.
+function masaIslemi(guncelle, baglam = masaBaglami()) {
+  if (pendingTableOperation || tableError || !canPlay || !modeReady || isReadOnly()) {
+    return Promise.resolve({ committed: false, beklemede: true });
+  }
+  const islem = { baglam };
+  pendingTableOperation = islem;
+  renderIslemDurumu();
+  return Promise.resolve().then(() => database.ref(baglam.yol).transaction((mevcut) => {
+    if (baglam.uid !== currentUserUid || baglam.yol !== dbPath(MASA_YOLU) || isReadOnly()) { return; }
+    if (mevcut && (mevcut.elNo || 0) !== baglam.elNo) { return; }
+    return guncelle(mevcut ? JSON.parse(JSON.stringify(mevcut)) : mevcut);
+  }, undefined, false)).catch((err) => {
+    if (baglam.uid === currentUserUid && baglam.yol === dbPath(MASA_YOLU)) { masaHatasi(err); }
+    return { committed: false, hata: err };
+  }).finally(() => {
+    if (pendingTableOperation === islem) { pendingTableOperation = null; }
+    renderIslemDurumu();
+  });
+}
+
+function oyuncuIslemi(islem) {
+  if (playerActionPending || pendingTableOperation || tableError || !canPlay || !modeReady || activeDistribution) { return; }
+  playerActionPending = true;
+  renderIslemDurumu();
+  Promise.resolve().then(islem).catch(masaHatasi).finally(() => {
+    playerActionPending = false;
+    renderIslemDurumu();
+  });
+}
 
 function escapeHtml(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -146,8 +205,8 @@ function skinDinlemeyiBaslat(uid) {
     if (uid === currentUserUid) { mySkin = sonraki; }
     if (JSON.stringify(onceki) !== JSON.stringify(sonraki) && currentTable) { renderMasa(currentTable); }
   };
-  ref.on('value', listener);
   skinListeners.set(uid, { ref, listener });
+  ref.on('value', listener);
 }
 function skinDinlemeleriniEsitle(table) {
   const gerekenler = new Set();
@@ -257,7 +316,7 @@ function bootstrapCuzdan(uid) {
       const { legacyMi: _legacyMi, ...migrasyon } = cuzdan;
       return migrasyon;
     }
-  });
+  }, undefined, false);
 }
 function subscribeMyBalance() {
   if (!currentUserUid) { return; }
@@ -282,7 +341,7 @@ function renderBakiye() {
   const el = document.querySelector('[data-bj-bakiye]');
   if (el) { el.textContent = (myChipBalance === null ? '…' : myChipBalance.toLocaleString('tr-TR')) + ' çip'; }
 }
-function bakiyeGuncelle(uid, delta, islemId, kaynak) {
+function bakiyeGuncelle(uid, delta, islemId, kaynak, yol = cuzdanYolu(uid)) {
   if (!uid || uid !== currentUserUid || !Number.isFinite(delta) || !islemId || !kaynak) {
     return Promise.resolve({ committed: false, gecersiz: true });
   }
@@ -294,7 +353,7 @@ function bakiyeGuncelle(uid, delta, islemId, kaynak) {
   }
   pendingChipOperations.add(islemId);
   let yetersizBakiye = false;
-  return database.ref(cuzdanYolu(uid)).transaction((mevcut) => {
+  return database.ref(yol).transaction((mevcut) => {
     const cuzdan = normalleCuzdan(mevcut, uid);
     if (cuzdan.islemler[islemId]) { return; }
     const yeniBakiye = cuzdan.bakiye + delta;
@@ -309,7 +368,7 @@ function bakiyeGuncelle(uid, delta, islemId, kaynak) {
     }
     yeniIslemler[islemId] = { delta, kaynak, ts: Date.now() };
     return { bakiye: yeniBakiye, sonIslemId: islemId, islemler: yeniIslemler };
-  }).then((res) => {
+  }, undefined, false).then((res) => {
     const yeni = normalleCuzdan(res.snapshot && res.snapshot.val(), uid);
     const tekrar = Boolean(yeni.islemler[islemId]) && !res.committed;
     if (res.committed || tekrar) { myWalletOperationIds.add(islemId); }
@@ -324,8 +383,7 @@ function bakiyeGuncelle(uid, delta, islemId, kaynak) {
 function otur(koltukIndex) {
   if (!canPlay) { showToast('Oynamak için giriş yapmalısınız.', { variant: 'error' }); return; }
   if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_KOLTUK) { return; }
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
     const koltuklar = Object.assign({}, mevcut.koltuklar || {});
     // Sadece ekrandaki eski state'e değil, transaction'ın güncel masa haline
@@ -340,9 +398,10 @@ function otur(koltukIndex) {
 }
 function kalk(koltukIndex) {
   if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_KOLTUK) { return; }
+  const baglam = masaBaglami();
   let iadeMiktari = 0;
   let iadeElNo = 0;
-  database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
     const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
     if (!koltuk || koltuk.uid !== currentUserUid) { return; }
@@ -351,10 +410,10 @@ function kalk(koltukIndex) {
     const koltuklar = Object.assign({}, mevcut.koltuklar);
     koltuklar[koltukIndex] = null;
     return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
-  }).then((res) => {
+  }, baglam).then((res) => {
     if (!res.committed) { showToast('El bitmeden veya başka bir kullanıcının koltuğundan kalkamazsınız.', { variant: 'error' }); return; }
     if (iadeMiktari > 0) {
-      bakiyeGuncelle(currentUserUid, iadeMiktari, 'blackjack:' + iadeElNo + ':koltuk:' + koltukIndex + ':kalk-iade', 'iade')
+      return bakiyeGuncelle(baglam.uid, iadeMiktari, 'blackjack:' + iadeElNo + ':koltuk:' + koltukIndex + ':kalk-iade:' + window.crypto.randomUUID(), 'iade', baglam.cuzdan)
         .then((sonuc) => { if (!sonuc.committed) { showToast('Bahis iadesi bekliyor; sayfayı açık tutun.', { variant: 'error' }); } });
     }
   });
@@ -371,28 +430,29 @@ function bahisYap(koltukIndex, miktar) {
   const oncekiBahis = Number(yerelKoltuk.bahis) || 0;
   if (!Number.isFinite(myChipBalance) || miktar > myChipBalance) { showToast('Yetersiz bakiye.', { variant: 'error' }); return; }
   const gelecekElNo = (currentTable.elNo || 0) + 1;
-  const islemId = 'blackjack:' + gelecekElNo + ':koltuk:' + koltukIndex + ':bahis:' + oncekiBahis + ':' + miktar;
+  const baglam = masaBaglami();
+  const islemId = 'blackjack:' + gelecekElNo + ':koltuk:' + koltukIndex + ':bahis:' + oncekiBahis + ':' + miktar + ':' + window.crypto.randomUUID();
 
   // Çip önce rezervasyon olarak düşer, ardından bahis güncel masaya yazılır.
   // İkinci adım yarışta kaybederse aynı işlem kimliğiyle iade edilir; bu, eski
   // "dağıtımdan sonra düş" akışındaki ücretsiz bahis penceresini kapatır.
-  bakiyeGuncelle(currentUserUid, -miktar, islemId, 'bahis').then((bakiyeSonucu) => {
+  return bakiyeGuncelle(baglam.uid, -miktar, islemId, 'bahis', baglam.cuzdan).then((bakiyeSonucu) => {
     if (bakiyeSonucu.beklemede) { return; }
     if (!bakiyeSonucu.committed) {
       showToast(bakiyeSonucu.yetersizBakiye ? 'Yetersiz bakiye.' : 'Bahis için çip ayrılamadı.', { variant: 'error' });
       return;
     }
-    database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+    return masaIslemi((mevcut) => {
       if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
       const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
       if (!koltuk || koltuk.uid !== currentUserUid || (Number(koltuk.bahis) || 0) !== oncekiBahis) { return; }
       const koltuklar = Object.assign({}, mevcut.koltuklar);
       koltuklar[koltukIndex] = Object.assign({}, koltuk, { bahis: oncekiBahis + miktar, katilimDurumu: 'hazir' });
       return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
-    }).then((res) => {
+    }, baglam).then((res) => {
       if (res.committed) { return; }
       const iadeId = islemId + ':iade';
-      bakiyeGuncelle(currentUserUid, miktar, iadeId, 'iade').then(() => showToast('Bahis penceresi değişti; ayrılan çip iade edildi.', { variant: 'info' }));
+      return bakiyeGuncelle(baglam.uid, miktar, iadeId, 'iade', baglam.cuzdan).then((iade) => showToast(iade.committed ? 'Bahis işlenemedi; ayrılan çip iade edildi.' : 'Bahis iadesi tamamlanamadı.', { variant: iade.committed ? 'info' : 'error' }));
     });
   });
 }
@@ -435,8 +495,7 @@ function odemeGecmisiniEkle(mevcut, koltuklar) {
 
 // ── Faz geçişleri (transaction ile "kim yönetiyor" çözülür) ──
 function bahisPenceresiniBaslat() {
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     if (mevcut && mevcut.durum && mevcut.durum !== 'el_sonucu' && mevcut.durum !== undefined) { return; }
     // NOT: Firebase transaction dönen değerle DÜĞÜMÜN TAMAMINI DEĞİŞTİRİR (birleştirmez) --
     // deste/desteIndex/elNo burada KORUNMAZSA her el yeni bir 208'lik deste
@@ -456,8 +515,7 @@ function bahisPenceresiniBaslat() {
 }
 
 function bahisSuresiDolunca() {
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'bahis_bekleniyor') { return; }
     if (!mevcut.bahisSuresiBitis || Date.now() < mevcut.bahisSuresiBitis) { return; }
     const bahisliKoltuklar = [];
@@ -506,8 +564,7 @@ function bahisSuresiDolunca() {
 }
 
 function krupiyerSirasiGeldi() {
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'kurpiyer_sirasi' || (mevcut.kurpiyerEli && mevcut.kurpiyerEli.acikMi)) { return; }
     const herkesBattiMi = Object.keys(mevcut.koltuklar || {}).every((i) => {
       const k = mevcut.koltuklar[i];
@@ -555,25 +612,25 @@ function krupiyerSirasiGeldi() {
 // istemcinin kazandığını çözüyor, burada sadece "kim önce fark ederse o dener".
 const EL_SONUCU_BEKLEME_MS = 4000;
 function belkiSonrakiFazaGec(table) {
-  if (!table || isReadOnly()) { return; }
+  if (!table || !canPlay || !modeReady || isReadOnly() || pendingTableOperation || playerActionPending || tableError || activeDistribution) { return; }
+  if (table.durum !== 'bahis_bekleniyor' && benimKoltukIndex(table) === null) { return; }
   if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
   if (table.durum === 'oyunculuk' && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) { aksiyonSuresiDolunca(); }
 }
 
-// Sırası gelen oyuncu 10 sn içinde karar vermezse otomatik "Kal" -- süresiz
+// Sırası gelen oyuncu 30 sn içinde karar vermezse otomatik "Kal" -- süresiz
 // bekleme olmasın (kullanıcı bildirimi). Amiral Battı/bahis penceresindeki
 // AYNI "herkes kendi istemcisinde fark eder" deseni.
 function aksiyonSuresiDolunca() {
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'oyunculuk' || mevcut.aktifKoltuk === null || mevcut.aktifKoltuk === undefined) { return; }
     if (!mevcut.aksiyonSuresiBitis || Date.now() < mevcut.aksiyonSuresiBitis) { return; }
     const koltukIndex = mevcut.aktifKoltuk;
     const koltuk = mevcut.koltuklar[koltukIndex];
     const elIndex = activeElIndex(koltuk);
-    if (elIndex === -1) { return; }
+    if (elIndex === -1) { return sonrakiSirayiAyarla(mevcut); }
     const yeniEller = koltuk.eller.slice();
     yeniEller[elIndex] = Object.assign({}, yeniEller[elIndex], { durum: 'kaldi' });
     mevcut.koltuklar[koltukIndex] = Object.assign({}, koltuk, { eller: yeniEller });
@@ -606,8 +663,7 @@ function guncelElAl(mevcut, koltukIndex, elIndex) {
   return el && el.durum === 'oynuyor' ? { koltuk, el } : null;
 }
 function kartCek(koltukIndex, elIndex) {
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
     if (!aktif) { return; }
     const { koltuk, el } = aktif;
@@ -623,8 +679,7 @@ function kartCek(koltukIndex, elIndex) {
   });
 }
 function kal(koltukIndex, elIndex) {
-  const ref = database.ref(dbPath(MASA_YOLU));
-  ref.transaction((mevcut) => {
+  return masaIslemi((mevcut) => {
     const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
     if (!aktif) { return; }
     const { koltuk, el } = aktif;
@@ -638,11 +693,12 @@ function katla(koltukIndex, elIndex) {
   const el = koltuk && koltuk.eller && koltuk.eller[elIndex];
   if (!koltuk || koltuk.uid !== currentUserUid || !el || el.durum !== 'oynuyor' || el.kartlar.length !== 2) { showToast('Sadece ilk karardan sonra katlayabilirsiniz.', { variant: 'error' }); return; }
   if (el.bahisMiktari > myChipBalance) { showToast('Katlamak için yetersiz bakiye.', { variant: 'error' }); return; }
-  const islemId = 'blackjack:' + currentTable.elNo + ':koltuk:' + koltukIndex + ':el:' + elIndex + ':katla';
-  bakiyeGuncelle(currentUserUid, -el.bahisMiktari, islemId, 'katla').then((bakiyeSonucu) => {
+  const baglam = masaBaglami();
+  const islemId = 'blackjack:' + baglam.elNo + ':koltuk:' + koltukIndex + ':el:' + elIndex + ':katla:' + window.crypto.randomUUID();
+  return bakiyeGuncelle(baglam.uid, -el.bahisMiktari, islemId, 'katla', baglam.cuzdan).then((bakiyeSonucu) => {
     if (bakiyeSonucu.beklemede) { return; }
     if (!bakiyeSonucu.committed) { showToast('Katlama için yeterli çip yok.', { variant: 'error' }); return; }
-    database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+    return masaIslemi((mevcut) => {
       const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
       if (!aktif || aktif.el.kartlar.length !== 2 || aktif.el.katlandi) { return; }
       const yeniKart = mevcut.deste[mevcut.desteIndex];
@@ -654,10 +710,8 @@ function katla(koltukIndex, elIndex) {
       mevcut.koltuklar[koltukIndex] = Object.assign({}, aktif.koltuk, { eller: yeniEller });
       mevcut.desteIndex = mevcut.desteIndex + 1;
       return sonrakiSirayiAyarla(mevcut);
-    }).then((res) => {
-      const sonucKoltuk = res.snapshot && res.snapshot.val() && res.snapshot.val().koltuklar && res.snapshot.val().koltuklar[koltukIndex];
-      const zatenKatlandi = sonucKoltuk && sonucKoltuk.eller && sonucKoltuk.eller[elIndex] && sonucKoltuk.eller[elIndex].katlandi === true;
-      if (!res.committed && !zatenKatlandi) { bakiyeGuncelle(currentUserUid, el.bahisMiktari, islemId + ':iade', 'iade'); }
+    }, baglam).then((res) => {
+      if (!res.committed) { return bakiyeGuncelle(baglam.uid, el.bahisMiktari, islemId + ':iade', 'iade', baglam.cuzdan); }
     });
   });
 }
@@ -667,11 +721,12 @@ function bol(koltukIndex, elIndex) {
   if (!koltuk || koltuk.uid !== currentUserUid || !el || !bolunebilirMi(el.kartlar)) { return; }
   if (koltuk.eller.length !== 1 || elIndex !== 0) { showToast('Sadece bir kez bölebilirsiniz.', { variant: 'error' }); return; }
   if (el.bahisMiktari > myChipBalance) { showToast('Bölmek için yetersiz bakiye.', { variant: 'error' }); return; }
-  const islemId = 'blackjack:' + currentTable.elNo + ':koltuk:' + koltukIndex + ':el:' + elIndex + ':bol';
-  bakiyeGuncelle(currentUserUid, -el.bahisMiktari, islemId, 'bol').then((bakiyeSonucu) => {
+  const baglam = masaBaglami();
+  const islemId = 'blackjack:' + baglam.elNo + ':koltuk:' + koltukIndex + ':el:' + elIndex + ':bol:' + window.crypto.randomUUID();
+  return bakiyeGuncelle(baglam.uid, -el.bahisMiktari, islemId, 'bol', baglam.cuzdan).then((bakiyeSonucu) => {
     if (bakiyeSonucu.beklemede) { return; }
     if (!bakiyeSonucu.committed) { showToast('Bölmek için yeterli çip yok.', { variant: 'error' }); return; }
-    database.ref(dbPath(MASA_YOLU)).transaction((mevcut) => {
+    return masaIslemi((mevcut) => {
       const aktif = guncelElAl(mevcut, koltukIndex, elIndex);
       if (!aktif || aktif.koltuk.eller.length !== 1 || !bolunebilirMi(aktif.el.kartlar)) { return; }
       const yeniKart1 = mevcut.deste[mevcut.desteIndex];
@@ -692,10 +747,8 @@ function bol(koltukIndex, elIndex) {
       mevcut.koltuklar[koltukIndex] = Object.assign({}, aktif.koltuk, { eller: [el1, el2] });
       mevcut.desteIndex = mevcut.desteIndex + 2;
       return sonrakiSirayiAyarla(mevcut);
-    }).then((res) => {
-      const sonucKoltuk = res.snapshot && res.snapshot.val() && res.snapshot.val().koltuklar && res.snapshot.val().koltuklar[koltukIndex];
-      const zatenBolundu = sonucKoltuk && sonucKoltuk.eller && sonucKoltuk.eller.length === 2 && sonucKoltuk.eller.every((h) => h.splittenGeldiMi === true);
-      if (!res.committed && !zatenBolundu) { bakiyeGuncelle(currentUserUid, el.bahisMiktari, islemId + ':iade', 'iade'); }
+    }, baglam).then((res) => {
+      if (!res.committed) { return bakiyeGuncelle(baglam.uid, el.bahisMiktari, islemId + ':iade', 'iade', baglam.cuzdan); }
     });
   });
 }
@@ -776,7 +829,7 @@ function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
     '</div>';
 }
 function activeElIndex(koltuk) {
-  if (!koltuk.eller) { return -1; }
+  if (!koltuk || !koltuk.eller) { return -1; }
   for (let i = 0; i < koltuk.eller.length; i++) { if (koltuk.eller[i].durum === 'oynuyor') { return i; } }
   return -1;
 }
@@ -830,7 +883,7 @@ function renderBahisSayaci(table) {
   if (countdownTimer) { clearInterval(countdownTimer); }
   const tick = () => {
     const kalanMs = table.bahisSuresiBitis - Date.now();
-    if (kalanMs <= 0) { el.textContent = 'Bahisler kapandı…'; clearInterval(countdownTimer); countdownTimer = null; bahisSuresiDolunca(); return; }
+    if (kalanMs <= 0) { el.textContent = 'Bahisler kapandı…'; clearInterval(countdownTimer); countdownTimer = null; return; }
     el.textContent = 'Bahis için: ' + Math.ceil(kalanMs / 1000) + ' sn';
   };
   tick();
@@ -849,7 +902,7 @@ function renderAksiyonSayaci(table) {
   const isim = koltuk ? koltuk.isim : '';
   const tick = () => {
     const kalanMs = table.aksiyonSuresiBitis - Date.now();
-    if (kalanMs <= 0) { el.textContent = 'Süre doldu…'; clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; aksiyonSuresiDolunca(); return; }
+    if (kalanMs <= 0) { el.textContent = 'Süre doldu…'; clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; return; }
     el.textContent = escapeHtml(isim || 'Sıradaki') + ' için: ' + Math.ceil(kalanMs / 1000) + ' sn';
   };
   tick();
@@ -859,13 +912,14 @@ function renderAksiyonSayaci(table) {
 function renderAksiyonlar(table, benimKoltuk) {
   const el = document.querySelector('[data-bj-aksiyonlar]');
   if (!el) { return; }
-  if (benimKoltuk === null || table.aktifKoltuk !== benimKoltuk) {
-    if (lastActionSignature !== '') { el.innerHTML = ''; lastActionSignature = ''; }
+  if (table.durum !== 'oyunculuk' || benimKoltuk === null || table.aktifKoltuk !== benimKoltuk) {
+    if (el.childElementCount) { el.innerHTML = ''; }
+    lastActionSignature = '';
     return;
   }
   const koltuk = table.koltuklar[benimKoltuk];
   const elIndex = activeElIndex(koltuk);
-  if (elIndex === -1) { if (lastActionSignature !== '') { el.innerHTML = ''; lastActionSignature = ''; } return; }
+  if (elIndex === -1) { if (el.childElementCount) { el.innerHTML = ''; } lastActionSignature = ''; return; }
   const aktifEl = koltuk.eller[elIndex];
   const ilkKararMi = aktifEl.kartlar.length === 2;
   const html =
@@ -880,7 +934,8 @@ function renderBahisPaneli(table, benimKoltuk) {
   if (!panel) { return; }
   const koltuk = benimKoltuk === null ? null : table.koltuklar && table.koltuklar[benimKoltuk];
   if (!koltuk || table.durum !== 'bahis_bekleniyor') {
-    if (lastBetPanelSignature !== '') { panel.innerHTML = ''; lastBetPanelSignature = ''; }
+    if (panel.childElementCount) { panel.innerHTML = ''; }
+    lastBetPanelSignature = '';
     return;
   }
   const bahisSecim = CIP_DEGERLERI.filter((v) => Number.isFinite(myChipBalance) && v <= myChipBalance).map((v) =>
@@ -940,7 +995,7 @@ function kirpilmisTabloOlustur(table, bahisliKoltuklar, koltukSayaclari, krupiye
   }
   // Animasyon adımları sırasında aksiyon çubuğu/sayaç/aktif koltuk vurgusu
   // henüz devreye girmesin -- bahis_bekleniyor gibi "sakin" bir görünüm.
-  kopya.durum = 'bahis_bekleniyor';
+  kopya.durum = 'dagitiliyor';
   kopya.aktifKoltuk = null;
   return kopya;
 }
@@ -1005,6 +1060,7 @@ function renderMasaGercek(table, geciciMi) {
   renderAksiyonSayaci(table);
   renderBahisPaneli(table, benimKoltuk);
   renderAksiyonlar(table, benimKoltuk);
+  renderIslemDurumu();
 }
 
 function eventleriBagla() {
@@ -1019,6 +1075,12 @@ function eventleriBagla() {
     kart.src = fallback;
   }, true);
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-bj-yeniden-dene]')) {
+      tableError = '';
+      renderIslemDurumu();
+      attachTableListener(true);
+      return;
+    }
     if (e.target.closest('[data-bj-skin-carki]')) {
       if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
       openSkinModal();
@@ -1026,25 +1088,27 @@ function eventleriBagla() {
     }
     if (!e.target.closest('[data-bj-root]')) { return; }
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
-    const oturBtn = e.target.closest('[data-bj-otur]'); if (oturBtn) { otur(Number(oturBtn.dataset.bjOtur)); return; }
-    const kalkBtn = e.target.closest('[data-bj-kalk]'); if (kalkBtn) { kalk(Number(kalkBtn.dataset.bjKalk)); return; }
-    const bahisBtn = e.target.closest('[data-bj-bahis]'); if (bahisBtn) { bahisYap(Number(bahisBtn.dataset.bjBahis), Number(bahisBtn.dataset.miktar)); return; }
+    const oturBtn = e.target.closest('[data-bj-otur]'); if (oturBtn) { oyuncuIslemi(() => otur(Number(oturBtn.dataset.bjOtur))); return; }
+    const kalkBtn = e.target.closest('[data-bj-kalk]'); if (kalkBtn) { oyuncuIslemi(() => kalk(Number(kalkBtn.dataset.bjKalk))); return; }
+    const bahisBtn = e.target.closest('[data-bj-bahis]'); if (bahisBtn) { oyuncuIslemi(() => bahisYap(Number(bahisBtn.dataset.bjBahis), Number(bahisBtn.dataset.miktar))); return; }
     const benimKoltuk = benimKoltukIndex(currentTable);
     if (benimKoltuk === null || !currentTable) { return; }
     const elIndex = activeElIndex(currentTable.koltuklar[benimKoltuk]);
-    if (e.target.closest('[data-bj-kartcek]')) { kartCek(benimKoltuk, elIndex); return; }
-    if (e.target.closest('[data-bj-kal]')) { kal(benimKoltuk, elIndex); return; }
-    if (e.target.closest('[data-bj-katla]')) { katla(benimKoltuk, elIndex); return; }
-    if (e.target.closest('[data-bj-bol]')) { bol(benimKoltuk, elIndex); }
+    if (e.target.closest('[data-bj-kartcek]')) { oyuncuIslemi(() => kartCek(benimKoltuk, elIndex)); return; }
+    if (e.target.closest('[data-bj-kal]')) { oyuncuIslemi(() => kal(benimKoltuk, elIndex)); return; }
+    if (e.target.closest('[data-bj-katla]')) { oyuncuIslemi(() => katla(benimKoltuk, elIndex)); return; }
+    if (e.target.closest('[data-bj-bol]')) { oyuncuIslemi(() => bol(benimKoltuk, elIndex)); }
   });
 }
 
-function attachTableListener() {
+function attachTableListener(force = false) {
+  if (!modeReady || !canPlay) { return; }
   const yeniYol = dbPath(MASA_YOLU);
-  if (tableRef && attachedTablePath === yeniYol && tableListener) { return; }
+  if (!force && tableRef && attachedTablePath === yeniYol && tableListener) { return; }
   if (tableRef && tableListener) { tableRef.off('value', tableListener); }
   if (phaseWatchdog) { clearInterval(phaseWatchdog); phaseWatchdog = null; }
   activeDistribution = null;
+  sonAnimeEdilenElNo = -1;
   currentTable = null;
   lastSeatOrderSignature = '';
   renderedSeatSignatures.clear();
@@ -1055,13 +1119,14 @@ function attachTableListener() {
   tableRef = database.ref(yeniYol);
   attachedTablePath = yeniYol;
   tableListener = (snap) => {
+    if (attachedTablePath !== yeniYol || !canPlay) { return; }
     const table = snap.val() || { durum: 'bahis_bekleniyor', koltuklar: {} };
     if (!snap.exists()) { bahisPenceresiniBaslat(); }
     renderMasa(table);
     belkiSonrakiFazaGec(table);
     islemBakiyeYansit(table);
   };
-  tableRef.on('value', tableListener);
+  tableRef.on('value', tableListener, masaHatasi);
   // Veri DEĞİŞMESE bile (örn. kimse kart çekmiyor, sadece süre doluyor) zaman
   // aşımı geçişlerini kaçırmamak için periyodik bir yoklama.
   phaseWatchdog = setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);
@@ -1086,30 +1151,40 @@ export function initBlackjack() {
       walletListener = null;
       myWalletOperationIds.clear();
       skinDinlemeleriniTemizle();
+      if (tableRef && tableListener) { tableRef.off('value', tableListener); }
+      tableRef = null;
+      tableListener = null;
+      if (phaseWatchdog) { clearInterval(phaseWatchdog); phaseWatchdog = null; }
       if (currentTable) { renderMasa(currentTable); }
       return;
     }
     currentUserEmail = user.email || '';
     currentUserUid = user.uid;
-    database.ref('users/' + user.uid).once('value').then((snap) => {
+    database.ref('users/' + user.uid).once('value').then(async (snap) => {
+      if (user.uid !== currentUserUid) { return; }
       const u = snap.val() || {};
       canPlay = (u.role === 'editor' || u.role === 'admin' || u.role === 'owner') && u.blocked !== true;
       currentUserName = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || currentUserEmail;
+      if (!canPlay) { renderIslemDurumu(); return; }
+      await initDbMode(database);
+      if (user.uid !== currentUserUid) { return; }
+      modeReady = true;
+      renderDbModeBanner();
       subscribeMyBalance();
+      attachTableListener();
       loadSkinFor(currentUserUid).then(() => { if (currentTable) { renderMasa(currentTable); islemBakiyeYansit(currentTable); } });
-    }).catch(() => { canPlay = false; });
+    }).catch((err) => { canPlay = false; masaHatasi(err); });
   });
 
   // Test modu çözümlenmeden masa/cüzdan/skin dinleyicisi açılmaz. Mod sonradan
   // değişirse eski canlı yol mutlaka kapatılıp yeni test/canlı yola bağlanır.
-  initDbMode(database).then(() => {
-    renderDbModeBanner();
-    attachTableListener();
-  });
   onDbModeChange(() => {
+    if (!modeReady || !canPlay) { return; }
     renderDbModeBanner();
     skinDinlemeleriniTemizle();
+    tableError = '';
     if (currentUserUid) { subscribeMyBalance(); }
     attachTableListener();
+    renderIslemDurumu();
   });
 }

@@ -20,6 +20,8 @@ $bj-kirmizi-cember: #c62828;
   margin-right: 8px;
 }
 .bj-skin-carki-btn { font-size: 18px; line-height: 1; padding: 6px 12px; }
+.bj-islem-durumu { min-height: 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.bj-islem-durumu [hidden] { display: none; }
 
 // Bu sarmalayıcı yalnızca Blackjack sahasını izole eder. Sayfanın geri kalanı
 // normal akışında kalır; iOS'ta masa üstünden başlayan jestin bütün belgeyi
@@ -43,22 +45,22 @@ $bj-kirmizi-cember: #c62828;
   isolation: isolate;
   width: min(1560px, 100%);
   align-self: center;
-  min-height: 660px;
+  min-height: min(660px, calc(100dvh - 200px));
   border-radius: 40px;
   background: $bj-yesil;
   border: 8px solid $bj-bordo;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
-  padding: 40px clamp(16px, 3vw, 48px) 174px;
+  padding: 20px clamp(16px, 3vw, 48px) 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 32px;
+  gap: 18px;
 }
 // Masaüstünde daha büyük masa + 1.75x kart -- kullanıcı isteği: "kartlar tam
 // okunaklı olsun", "masayı biraz daha uzat aşağıya ve yanlara doğru".
 @media (min-width: 1200px) {
-  .bj-masa { min-height: 760px; padding: 48px clamp(32px, 4vw, 64px) 190px; border-radius: 56px; }
+  .bj-masa { min-height: min(760px, calc(100dvh - 200px)); padding: 24px clamp(32px, 4vw, 64px) 140px; border-radius: 40px; }
   .bj-kart { width: clamp(64px, 6.75vw, 91px); margin-left: clamp(-31px, -2.3vw, -22px); }
 }
 
@@ -68,7 +70,7 @@ $bj-kirmizi-cember: #c62828;
   justify-content: center;
   gap: 24px;
   width: 100%;
-  margin-bottom: 28px;
+  margin-bottom: 12px;
 }
 .bj-krupiyer-alani { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .bj-krupiyer { min-height: 90px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -239,6 +241,8 @@ $bj-kirmizi-cember: #c62828;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
 }
 .bj-aksiyonlar { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.bj-aksiyonlar .btn { min-height: 44px; min-width: 64px; touch-action: manipulation; }
+.bj-aksiyonlar .btn:disabled { cursor: wait; }
 // Aksiyon/tur sayacı yoksa boş bir panel göstermeyelim. :has desteklemeyen
 // eski tarayıcıda işlev kaybı olmaz; yalnızca boş alanın çerçevesi görünür.
 .bj-aksiyonlar-satiri:has(.bj-aksiyonlar:empty):has(.bj-aksiyon-sayac:empty) { display: none; }
@@ -275,7 +279,7 @@ $bj-kirmizi-cember: #c62828;
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 
 @media (max-width: 720px) {
-  .bj-masa { min-height: 590px; padding: 20px 8px 148px; border-width: 5px; border-radius: 26px; }
+  .bj-masa { min-height: min(590px, calc(100dvh - 180px)); padding: 16px 8px 128px; border-width: 5px; border-radius: 26px; }
   .bj-krupiyer-satiri { gap: 12px; margin-bottom: 18px; }
   .bj-koltuklar { column-gap: 4px; row-gap: 10px; }
   .bj-koltuk { min-height: 132px; gap: 5px; }

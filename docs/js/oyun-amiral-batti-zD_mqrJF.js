@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/amiral-batti-B2sME2Md.js","js/main-v4-BugNi0wb.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js","assets/main-v4-JYKW7fKF.css"])))=>i.map(i=>d[i]);
+import{n as i}from"./main-v4-BugNi0wb.js";i(()=>import("./amiral-batti-B2sME2Md.js").then(i=>i.initAmiralBatti()),__vite__mapDeps([0,1,2,3,4]));
