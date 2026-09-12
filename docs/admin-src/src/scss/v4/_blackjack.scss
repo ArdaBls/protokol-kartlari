@@ -61,7 +61,7 @@ $bj-kirmizi-cember: #c62828;
 // okunaklı olsun", "masayı biraz daha uzat aşağıya ve yanlara doğru".
 @media (min-width: 1200px) {
   .bj-masa { min-height: min(760px, calc(100dvh - 200px)); padding: 24px clamp(32px, 4vw, 64px) 140px; border-radius: 40px; }
-  .bj-kart { width: clamp(64px, 6.75vw, 91px); margin-left: clamp(-31px, -2.3vw, -22px); }
+  .bj-kart { width: clamp(80px, 8.5vw, 118px); margin-left: clamp(-36px, -2.8vw, -26px); }
 }
 
 .bj-krupiyer-satiri {
@@ -190,9 +190,9 @@ $bj-kirmizi-cember: #c62828;
 .bj-el { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 4px; }
 .bj-el-kartlar { display: flex; }
 .bj-kart {
-  width: 52px;
+  width: 64px;
   height: auto;
-  margin-left: -18px;
+  margin-left: -20px;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
@@ -229,6 +229,9 @@ $bj-kirmizi-cember: #c62828;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
+// Kazanan taraf yeşile döner -- kullanıcı isteği: oyuncu kazanınca kendi
+// toplamı, krupiyer kazanınca krupiyerin toplamı yeşil yansın.
+.bj-el-toplam-kazandi { background: $bj-yesil-cember; }
 .bj-el-sonuc { font-size: 11px; font-weight: var(--font-weight-bold); padding: 1px 6px; border-radius: 8px; }
 .bj-sonuc-kazandi { background: rgba(46, 125, 50, 0.35); color: #a5d6a7; }
 .bj-sonuc-kaybetti { background: rgba(198, 40, 40, 0.35); color: #ef9a9a; }
@@ -336,10 +339,12 @@ $bj-kirmizi-cember: #c62828;
 
 .bj-skin-grup { margin-bottom: 16px; }
 .bj-skin-grup h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
-.bj-skin-secenek { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
-.bj-skin-onizleme { width: 28px; height: auto; border-radius: 2px; }
+// Skin önizlemeleri okunur olsun diye büyütüldü -- kullanıcı bildirimi:
+// "skinler gözükmüyor" (28px'te kart deseni ayırt edilemiyordu).
+.bj-skin-secenek { display: flex; align-items: center; gap: 12px; font-size: 13px; padding: 6px 0; }
+.bj-skin-onizleme { width: 60px; height: auto; border-radius: 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 .bj-skin-uclu { display: inline-flex; align-items: center; }
-.bj-skin-uclu .bj-skin-onizleme { margin-left: -10px; }
+.bj-skin-uclu .bj-skin-onizleme { margin-left: -14px; }
 .bj-skin-uclu .bj-skin-onizleme:first-child { margin-left: 0; }
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 
@@ -350,7 +355,7 @@ $bj-kirmizi-cember: #c62828;
   .bj-koltuk { min-height: 132px; gap: 5px; }
   .bj-koltuk-oyuncu { flex-direction: column; gap: 3px; text-align: center; }
   .bj-koltuk-oyuncu span { max-width: 100%; font-size: 10px; }
-  .bj-kart { width: 38px; margin-left: -13px; }
+  .bj-kart { width: 46px; margin-left: -16px; }
   .bj-cip-gorsel { width: 28px; height: 28px; }
   .bj-cip-yigin .bj-cip-gorsel { width: 22px; height: 22px; margin-left: -10px; }
   .bj-bahis-secim { gap: 4px; }
@@ -372,7 +377,7 @@ $bj-kirmizi-cember: #c62828;
 }
 
 @media (max-width: 360px) {
-  .bj-kart { width: 32px; margin-left: -11px; }
+  .bj-kart { width: 38px; margin-left: -13px; }
   .bj-koltuk-oyuncu span { font-size: 9px; }
 }
 

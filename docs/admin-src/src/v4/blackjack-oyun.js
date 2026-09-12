@@ -809,11 +809,20 @@ function kartHtml(kart, uid, kapaliMi, animasyonSinifi) {
 }
 function elHtml(el, uid) {
   const degerlendirme = elDegerlendir(el.kartlar);
-  const kartlarHtml = el.kartlar.map((k) => kartHtml(k, uid, false, 'bj-slide-bottom')).join('');
+  // Yalnızca EN SON gelen kart kayma animasyonuyla girer -- önceki kartlara
+  // her yeniden render'da (yeni kart çekilince, hit/split) animasyon
+  // sınıfı TEKRAR verilirse hepsi aynı anda yeniden kayıyormuş gibi görünür
+  // (kullanıcı bildirimi: "her kart geldiğinde bütün kartlar yeniden slide
+  // animasyonu ile gelmesin ... dursun bir yere gitmesin").
+  const sonKartIndex = el.kartlar.length - 1;
+  const kartlarHtml = el.kartlar.map((k, i) => kartHtml(k, uid, false, i === sonKartIndex ? 'bj-slide-bottom' : '')).join('');
   const sonucEtiket = el.sonuc ? '<span class="bj-el-sonuc ' + hucreSinifi(el.sonuc) + '">' + escapeHtml({ kazandi: 'Kazandı', kaybetti: 'Kaybetti', berabere: 'Berabere', blackjack: 'Blackjack!' }[el.sonuc] || '') + '</span>' : '';
+  // Kazanınca toplam rozeti yeşile döner -- kullanıcı isteği: "kazanınca
+  // bj-el-toplam yeşil yansın".
+  const toplamSinifi = 'bj-el-toplam' + ((el.sonuc === 'kazandi' || el.sonuc === 'blackjack') ? ' bj-el-toplam-kazandi' : '');
   return '<div class="bj-el">' +
     '<div class="bj-el-kartlar">' + kartlarHtml + '</div>' +
-    '<div class="bj-el-toplam">' + degerlendirme.toplam + (degerlendirme.battiMi ? ' (Battı)' : '') + '</div>' +
+    '<div class="' + toplamSinifi + '">' + degerlendirme.toplam + (degerlendirme.battiMi ? ' (Battı)' : '') + '</div>' +
     cipYiginiHtml(el.bahisMiktari) + sonucEtiket +
     '</div>';
 }
@@ -880,6 +889,12 @@ function activeElIndex(koltuk) {
   return -1;
 }
 
+// Krupiyer bu elde en az bir oyuncuya karşı kazandı mı (o oyuncunun sonucu
+// "kaybetti") -- kullanıcı isteği: "kurpiyer kazanırsa o [toplam] yeşil
+// yansın" (krupiyerin kendi toplam rozeti için).
+function krupiyerKazandiMi(table) {
+  return Object.values(table.koltuklar || {}).some((k) => k && k.eller && k.eller.some((el) => el.sonuc === 'kaybetti'));
+}
 function renderKrupiyer(table) {
   const el = document.querySelector('[data-bj-krupiyer]');
   const signature = JSON.stringify({ el: table.kurpiyerEli || null, desteStili: mySkin.desteStili, tema: mySkin.yuzKartiTemasi });
@@ -889,11 +904,17 @@ function renderKrupiyer(table) {
       el.innerHTML = '<div class="bj-krupiyer-bos">Bahisler bekleniyor…</div>';
     } else {
       const acikMi = table.kurpiyerEli.acikMi;
-      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi, 'bj-slide-top')).join('');
+      // Yalnızca en son kart kayarak gelir -- bkz. elHtml'deki aynı düzeltme.
+      const sonKartIndex = table.kurpiyerEli.kartlar.length - 1;
+      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi, i === sonKartIndex ? 'bj-slide-top' : '')).join('');
       // Gerçek kumarhanede kapalı kart açılana kadar sadece AÇIK kartın değeri
       // görünür -- kullanıcı bildirimi: "kurpiyerin toplamı yok".
       const toplamHtml = acikMi
-        ? (() => { const d = elDegerlendir(table.kurpiyerEli.kartlar); return '<div class="bj-el-toplam">' + d.toplam + (d.battiMi ? ' (Battı)' : '') + '</div>'; })()
+        ? (() => {
+          const d = elDegerlendir(table.kurpiyerEli.kartlar);
+          const sinif = 'bj-el-toplam' + (krupiyerKazandiMi(table) ? ' bj-el-toplam-kazandi' : '');
+          return '<div class="' + sinif + '">' + d.toplam + (d.battiMi ? ' (Battı)' : '') + '</div>';
+        })()
         : (table.kurpiyerEli.kartlar[0] ? '<div class="bj-el-toplam bj-el-toplam-kismi">Görünen: ' + kartDegeri(table.kurpiyerEli.kartlar[0]) + '</div>' : '');
       el.innerHTML = '<div class="bj-el-kartlar">' + kartlarHtml + '</div>' + toplamHtml;
     }
