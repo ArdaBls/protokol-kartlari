@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/calendar-DahMENP5.js","js/main-v4-C2MdulZU.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js","assets/main-v4-DfRkuBXX.css","js/attendance-CeZQF42Q.js","js/roster-B3ADIca_.js"])))=>i.map(i=>d[i]);
+import{n as a}from"./main-v4-C2MdulZU.js";a(async()=>{const{initCalendar:a}=await(import("./calendar-DahMENP5.js"));return{initCalendar:a}},__vite__mapDeps([0,1,2,3,4,5,6])).then(({initCalendar:a})=>{a()});

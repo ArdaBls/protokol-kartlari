@@ -168,7 +168,22 @@ $bj-kirmizi-cember: #c62828;
 
 // Kazanma/kaybetme halkası -- kullanıcı isteği: "kazanınca yeşil çember
 // kaybedince kırmızı".
-.bj-avatar-cember { border-radius: 50%; padding: 2px; transition: box-shadow 150ms; }
+.bj-avatar-cember {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 50%;
+  padding: 2px;
+  line-height: 0;
+  transition: box-shadow 150ms;
+}
+.bj-avatar-cember > .staff-avatar { margin: 0; flex-shrink: 0; aspect-ratio: 1 / 1; }
 .bj-cember-kazandi { box-shadow: 0 0 0 3px $bj-yesil-cember; }
 .bj-cember-kaybetti { box-shadow: 0 0 0 3px $bj-kirmizi-cember; }
 
@@ -215,10 +230,14 @@ $bj-kirmizi-cember: #c62828;
   background: transparent;
   color: #fff;
   cursor: pointer;
-  transition: transform 100ms;
-  padding: 0;
+  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  touch-action: manipulation;
+  &:focus-visible { outline: 2px solid #d6ffe8; outline-offset: 2px; }
+  &:disabled { opacity: 0.5; cursor: wait; }
 }
-.bj-cip-btn:hover { transform: scale(1.12); }
 .bj-cip-deger { font-size: 9px; font-weight: var(--font-weight-bold); }
 .bj-cip-yigin { display: flex; justify-content: center; }
 .bj-cip-yigin .bj-cip-gorsel { width: 26px; height: 26px; margin-left: -12px; }
@@ -227,47 +246,72 @@ $bj-kirmizi-cember: #c62828;
 
 .bj-aksiyonlar-satiri {
   position: absolute;
-  right: clamp(20px, 4vw, 64px);
+  left: 50%;
+  transform: translateX(-50%);
   bottom: clamp(20px, 3vw, 40px);
   width: min(400px, calc(100% - 40px));
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 20px;
-  background: rgba(7, 40, 29, 0.84);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  padding: 0;
 }
+.bj-aksiyon-sayac:empty { display: none; }
+.bj-cip-iade { display: flex; flex-direction: column; align-items: center; border: 0; background: none; padding: 4px; min-height: 44px; cursor: pointer; touch-action: manipulation; }
+.bj-cip-iade:focus-visible { outline: 2px solid $bj-altin; outline-offset: 3px; }
 .bj-aksiyonlar { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .bj-aksiyonlar .btn { min-height: 44px; min-width: 64px; touch-action: manipulation; }
 .bj-aksiyonlar .btn:disabled { cursor: wait; }
-// Aksiyon/tur sayacı yoksa boş bir panel göstermeyelim. :has desteklemeyen
-// eski tarayıcıda işlev kaybı olmaz; yalnızca boş alanın çerçevesi görünür.
+// Cam yüzey yalnız butonlarda: hover sırasında boyut/konum değişmez.
+// Blur desteklenmeyen tarayıcıda yeşil zemin ve beyaz yazı korunur.
+.bj-aksiyonlar .btn, .bj-bahis-panel .btn {
+  min-height: 44px;
+  min-width: 44px;
+  border: 1px solid rgba(185, 255, 216, 0.48);
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(155deg, rgba(112, 237, 170, 0.28), rgba(9, 109, 68, 0.78) 48%, rgba(6, 72, 45, 0.92));
+  box-shadow: inset 0 1px 0 rgba(235, 255, 244, 0.4), inset 0 -1px 0 rgba(0, 38, 23, 0.3), 0 4px 12px rgba(0, 24, 14, 0.2);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  text-shadow: 0 1px 2px rgba(0, 27, 17, 0.6);
+  touch-action: manipulation;
+  transform: none;
+  transition: border-color 140ms, box-shadow 140ms;
+  &:hover:not(:disabled) { transform: none; border-color: rgba(215, 255, 232, 0.9); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 4px 16px rgba(30, 211, 128, 0.2); }
+  &:active:not(:disabled) { transform: none; box-shadow: inset 0 2px 6px rgba(0, 30, 19, 0.35); }
+  &:focus-visible { outline: 2px solid #d6ffe8; outline-offset: 3px; }
+  &:disabled { opacity: 0.5; cursor: wait; }
+}
+.bj-aksiyonlar .btn { padding: 11px 14px; font-weight: 600; }
+.bj-bahis-panel .bj-kalk-btn { padding: 8px 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .bj-aksiyonlar .btn, .bj-bahis-panel .btn { transition: none; }
+}
+// Aksiyon/tur sayacı yoksa boş kontrol alanını gizle.
 .bj-aksiyonlar-satiri:has(.bj-aksiyonlar:empty):has(.bj-aksiyon-sayac:empty) { display: none; }
 
-// Referanstaki "Oyun Başlarken" kartı ayrı veri hedefinden render edilir;
-// böylece merkezdeki fiziksel koltuk sabit kalırken avatar, ad ve çipler sağ
-// alttaki erişilebilir kontrol kartında birlikte görünür.
+// Bahis seçimi de aksiyonlarla aynı yatay merkezde kalır.
 .bj-bahis-panel {
   position: absolute;
-  right: clamp(20px, 4vw, 64px);
+  left: 50%;
+  transform: translateX(-50%);
   bottom: clamp(20px, 3vw, 40px);
   width: min(400px, calc(100% - 40px));
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 22px;
+  border: 0;
   color: #fff;
-  background: rgba(7, 40, 29, 0.9);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  background: transparent;
+  box-shadow: none;
 }
 .bj-bahis-panel:empty { display: none; }
-.bj-bahis-panel-baslik { margin: 0 0 10px; text-align: center; font-size: 16px; }
+// Ortadaki bahis kartı zaten kendi avatarını/bahsini içerir. Arkasında aynı
+// oyuncuyu ikinci kez göstermeyelim; grid yuvası yerini korusun.
+.bj-masa:has(.bj-bahis-panel:not(:empty)) .bj-koltuk-ben { visibility: hidden; }
 .bj-bahis-panel-oyuncu { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; font-weight: var(--font-weight-bold); }
 .bj-bahis-panel .bj-bahis-secim { gap: 8px; }
-.bj-bahis-panel-alt { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
-.bj-bahis-panel-alt .bj-bahis-mevcut { text-align: left; }
+.bj-bahis-panel-alt { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 10px; }
+.bj-bahis-panel-alt .bj-bahis-mevcut { text-align: center; }
 
 .bj-skin-grup { margin-bottom: 16px; }
 .bj-skin-grup h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
@@ -291,22 +335,17 @@ $bj-kirmizi-cember: #c62828;
   .bj-bahis-secim { gap: 4px; }
   .bj-cip-deger { font-size: 8px; }
   .bj-aksiyonlar-satiri {
-    right: 8px;
     bottom: 8px;
     width: calc(100% - 16px);
     min-height: 0;
-    padding: 8px;
-    border-radius: 14px;
+    padding: 0;
   }
   .bj-aksiyonlar { gap: 6px; }
   .bj-bahis-panel {
-    right: 8px;
     bottom: 8px;
     width: calc(100% - 16px);
     padding: 10px;
-    border-radius: 14px;
   }
-  .bj-bahis-panel-baslik { font-size: 14px; margin-bottom: 6px; }
   .bj-bahis-panel .bj-bahis-secim { gap: 5px; }
   .bj-bahis-panel-alt { margin-top: 6px; }
 }

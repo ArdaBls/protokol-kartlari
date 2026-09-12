@@ -333,6 +333,10 @@ function subscribeMyBalance() {
     myChipBalance = cuzdan.bakiye;
     myWalletOperationIds = new Set(Object.keys(cuzdan.islemler));
     renderBakiye();
+    if (currentTable && !activeDistribution) {
+      renderBahisPaneli(currentTable, benimKoltukIndex(currentTable));
+      renderIslemDurumu();
+    }
     if (cuzdan.legacyMi) { bootstrapCuzdan(currentUserUid).catch((err) => console.error('Çip bakiyesi dönüştürülemedi:', err)); }
   };
   walletRef.on('value', walletListener);
@@ -458,6 +462,32 @@ function bahisYap(koltukIndex, miktar) {
 }
 
 // ── El/koltuk yardımcıları ──
+function eldekiOyuncuSayisi(table) {
+  return Object.values(table.koltuklar || {}).filter((k) => k && k.eller && k.eller.length).length;
+}
+
+// Bahis kapanınca iade yapılamaz. Masadan yalnızca bu işlem gerçekten
+// kaldırdıysa cüzdana geri yazılır; çift tıklama/çoklu sekme çip çoğaltamaz.
+function bahsiGeriAl(koltukIndex) {
+  const baglam = masaBaglami();
+  const islemId = 'blackjack:' + (baglam.elNo + 1) + ':koltuk:' + koltukIndex + ':bahis-iade:' + window.crypto.randomUUID();
+  let miktar = 0;
+  return masaIslemi((mevcut) => {
+    if (!mevcut || mevcut.durum !== 'bahis_bekleniyor' || Date.now() >= mevcut.bahisSuresiBitis) { return; }
+    const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
+    if (!koltuk || koltuk.uid !== baglam.uid || !(koltuk.bahis > 0)) { return; }
+    miktar = koltuk.bahis;
+    koltuk.bahis = null;
+    mevcut.guncellemeTs = Date.now();
+    return mevcut;
+  }, baglam).then((res) => {
+    if (!res.committed) { return; }
+    return bakiyeGuncelle(baglam.uid, miktar, islemId, 'iade', baglam.cuzdan).then((iade) => {
+      showToast(iade.committed ? 'Bahsiniz geri alındı.' : 'Çip iadesi tamamlanamadı.', { variant: iade.committed ? 'info' : 'error' });
+    });
+  });
+}
+
 function sonrakiAktifElVarMi(table) {
   for (let i = 0; i < MAX_KOLTUK; i++) {
     const k = table.koltuklar && table.koltuklar[i];
@@ -470,7 +500,7 @@ function sonrakiSirayiAyarla(mevcut) {
   const sonraki = sonrakiAktifElVarMi(mevcut);
   if (sonraki) {
     mevcut.aktifKoltuk = sonraki.koltuk;
-    mevcut.aksiyonSuresiBitis = Date.now() + AKSIYON_SURESI_MS;
+    mevcut.aksiyonSuresiBitis = eldekiOyuncuSayisi(mevcut) > 1 ? Date.now() + AKSIYON_SURESI_MS : null;
   } else {
     mevcut.durum = 'kurpiyer_sirasi';
     mevcut.aktifKoltuk = null;
@@ -530,15 +560,17 @@ function bahisSuresiDolunca() {
       desteIndex = 0;
     }
     const koltuklar = Object.assign({}, mevcut.koltuklar);
-    // Sırayla: her bahisli koltuğa 1 kart, krupiyere 1 (açık), sonra tekrar
-    // her koltuğa 1 kart ve krupiyere 1 (kapalı). Render animasyonu da aynı
-    // sırayı kullandığı için ekranda görülen kart ile desteden çıkan kart eşleşir.
+    // Krupiyer açık → oyuncular açık → krupiyer kapalı → oyuncular açık.
+    // Animasyon da desteden alınan kartlarla tam olarak aynı sırayı izler.
     const elBaslangic = {};
     bahisliKoltuklar.forEach((i) => { elBaslangic[i] = []; });
-    bahisliKoltuklar.forEach((i) => { elBaslangic[i].push(deste[desteIndex]); desteIndex++; });
     const krupiyerKartlari = [deste[desteIndex]]; desteIndex++;
     bahisliKoltuklar.forEach((i) => { elBaslangic[i].push(deste[desteIndex]); desteIndex++; });
     krupiyerKartlari.push(deste[desteIndex]); desteIndex++;
+    bahisliKoltuklar.forEach((i) => { elBaslangic[i].push(deste[desteIndex]); desteIndex++; });
+    Object.values(koltuklar).forEach((k) => {
+      if (k && !(k.bahis > 0)) { k.eller = null; k.katilimDurumu = 'sonraki-elde'; }
+    });
 
     bahisliKoltuklar.forEach((i) => {
       const degerlendirme = elDegerlendir(elBaslangic[i]);
@@ -553,7 +585,7 @@ function bahisSuresiDolunca() {
     mevcut.kurpiyerEli = { kartlar: krupiyerKartlari, acikMi: false };
     mevcut.aktifKoltuk = ilkAktif === undefined ? null : ilkAktif;
     mevcut.durum = ilkAktif === undefined ? 'kurpiyer_sirasi' : 'oyunculuk';
-    mevcut.aksiyonSuresiBitis = ilkAktif === undefined ? null : Date.now() + AKSIYON_SURESI_MS;
+    mevcut.aksiyonSuresiBitis = ilkAktif === undefined || bahisliKoltuklar.length === 1 ? null : Date.now() + AKSIYON_SURESI_MS;
     // Her el için artan numara, kalıcı cüzdan işlem anahtarlarında kullanılır.
     // Bahisler artık dağıtımdan ÖNCE rezerve edildiği için burada ikinci kez
     // tahsilat yapılmaz; sonuç ödemeleri de bu numarayla idempotent kalır.
@@ -617,7 +649,7 @@ function belkiSonrakiFazaGec(table) {
   if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
-  if (table.durum === 'oyunculuk' && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) { aksiyonSuresiDolunca(); }
+  if (table.durum === 'oyunculuk' && eldekiOyuncuSayisi(table) > 1 && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) { aksiyonSuresiDolunca(); }
 }
 
 // Sırası gelen oyuncu 30 sn içinde karar vermezse otomatik "Kal" -- süresiz
@@ -626,7 +658,7 @@ function belkiSonrakiFazaGec(table) {
 function aksiyonSuresiDolunca() {
   return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'oyunculuk' || mevcut.aktifKoltuk === null || mevcut.aktifKoltuk === undefined) { return; }
-    if (!mevcut.aksiyonSuresiBitis || Date.now() < mevcut.aksiyonSuresiBitis) { return; }
+    if (eldekiOyuncuSayisi(mevcut) <= 1 || !mevcut.aksiyonSuresiBitis || Date.now() < mevcut.aksiyonSuresiBitis) { return; }
     const koltukIndex = mevcut.aktifKoltuk;
     const koltuk = mevcut.koltuklar[koltukIndex];
     const elIndex = activeElIndex(koltuk);
@@ -788,6 +820,10 @@ function cipYiginiHtml(miktar) {
   return '<div class="bj-cip-yigin">' + imgHtml + '</div><div class="bj-bahis-mevcut">' + miktar + ' çip</div>';
 }
 
+function iadeCipiHtml(koltukIndex, miktar) {
+  return '<button type="button" class="bj-cip-iade" data-bj-bahis-iade="' + koltukIndex + '" aria-label="' + miktar + ' çip bahsini geri al" title="Bahsi geri al">' + cipYiginiHtml(miktar) + '</button>';
+}
+
 // Avatarın etrafındaki kazanma (yeşil)/kaybetme (kırmızı) halkası -- kullanıcı
 // isteği: "kazanınca yeşil çember kaybedince kırmızı". Bölünmüş elde ilk elin
 // sonucu esas alınır (çoğunlukla tek el olduğu için yeterli).
@@ -812,7 +848,7 @@ function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
     if (benimMi) {
       // Çip seçimi ayrı "Oyun Başlarken" panelinde gösterilir. Merkezdeki
       // oyuncu koltuğu yalnızca yerleştirilmiş bahsi/kartları taşır.
-      icerik = koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis seçin</div>';
+      icerik = koltuk.bahis ? iadeCipiHtml(koltukIndex, koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis bekleniyor</div>';
     } else {
       // Diğer oyuncular için sade görünüm -- kullanıcı isteği: "sadece avatar
       // ve kartları gözükecek" (metin etiketleri değil).
@@ -821,7 +857,7 @@ function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
   } else if (koltuk.eller) {
     icerik = koltuk.eller.map((el, i) => elHtml(el, koltuk.uid) + ((aktifMi && i === activeElIndex(koltuk)) ? '<span class="bj-sira-isareti">◀ sırası</span>' : '')).join('');
   } else {
-    icerik = '';
+    icerik = koltuk.katilimDurumu === 'sonraki-elde' ? '<div class="bj-bahis-mevcut">Bu el pas</div>' : '';
   }
   return '<div class="bj-koltuk' + (aktifMi ? ' bj-koltuk-aktif' : '') + (benimMi ? ' bj-koltuk-ben' : '') + '">' +
     '<div class="bj-koltuk-oyuncu">' + avatarHtml + '<span>' + escapeHtml(koltuk.isim || '') + '</span></div>' +
@@ -893,7 +929,7 @@ function renderBahisSayaci(table) {
 function renderAksiyonSayaci(table) {
   const el = document.querySelector('[data-bj-aksiyon-sayac]');
   if (!el) { return; }
-  const signature = table.durum === 'oyunculuk' && table.aksiyonSuresiBitis ? String(table.aktifKoltuk) + ':' + table.aksiyonSuresiBitis : '';
+  const signature = table.durum === 'oyunculuk' && eldekiOyuncuSayisi(table) > 1 && table.aksiyonSuresiBitis ? String(table.aktifKoltuk) + ':' + table.aksiyonSuresiBitis : '';
   if (!signature) { el.textContent = ''; aksiyonCountdownSignature = ''; if (aksiyonCountdownTimer) { clearInterval(aksiyonCountdownTimer); aksiyonCountdownTimer = null; } return; }
   if (signature === aksiyonCountdownSignature && aksiyonCountdownTimer) { return; }
   aksiyonCountdownSignature = signature;
@@ -939,13 +975,12 @@ function renderBahisPaneli(table, benimKoltuk) {
     return;
   }
   const bahisSecim = CIP_DEGERLERI.filter((v) => Number.isFinite(myChipBalance) && v <= myChipBalance).map((v) =>
-    '<button type="button" class="bj-cip-btn" data-bj-bahis="' + benimKoltuk + '" data-miktar="' + v + '"><img class="bj-cip-gorsel" src="' + cipGorselYolu(v) + '" alt=""><span class="bj-cip-deger">' + v + '</span></button>'
+    '<button type="button" class="bj-cip-btn" aria-label="' + v + ' çip bahis yap" data-bj-bahis="' + benimKoltuk + '" data-miktar="' + v + '"><img class="bj-cip-gorsel" src="' + cipGorselYolu(v) + '" alt=""><span class="bj-cip-deger">' + v + '</span></button>'
   ).join('');
   const avatar = '<div class="bj-avatar-cember">' + renderStaffAvatar(koltuk.isim, koltuk.uid, koltuk.isim, 40) + '</div>';
-  const html = '<h2 class="bj-bahis-panel-baslik">Oyun Başlarken</h2>' +
-    '<div class="bj-bahis-panel-oyuncu">' + avatar + '<span>' + escapeHtml(koltuk.isim || '') + '</span></div>' +
-    '<div class="bj-bahis-secim">' + bahisSecim + '</div>' +
-    '<div class="bj-bahis-panel-alt">' + (koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>') +
+  const html = '<div class="bj-bahis-panel-oyuncu">' + avatar + '<span>' + escapeHtml(koltuk.isim || '') + '</span></div>' +
+    '<div class="bj-bahis-secim">' + (bahisSecim || (!koltuk.bahis && Number.isFinite(myChipBalance) ? '<span class="bj-bahis-mevcut">Yeterli çip yok. Bu eli pas geçiyorsunuz.</span>' : '')) + '</div>' +
+    '<div class="bj-bahis-panel-alt">' + (koltuk.bahis ? iadeCipiHtml(benimKoltuk, koltuk.bahis) : '<div class="bj-bahis-mevcut bj-bahis-yok">Bahis yok</div>') +
     '<button type="button" class="btn btn-ghost bj-kalk-btn" data-bj-kalk="' + benimKoltuk + '">Kalk</button></div>';
   if (html !== lastBetPanelSignature) { lastBetPanelSignature = html; panel.innerHTML = html; }
 }
@@ -953,8 +988,7 @@ function renderBahisPaneli(table, benimKoltuk) {
 // ── Kademeli dağıtım animasyonu (madde 1: "kartlar bana spawn oluyor") ──
 // bahisSuresiDolunca TÜM eli TEK transaction'da yazıyor -- elimizde zaten
 // NİHAİ veri var, sunucuya ekstra istek atmadan YEREL olarak kademeli açığa
-// çıkarılıyor: gerçek kumarhane sırası (koltuklar artan indeksle 1. tur,
-// krupiyer açık, 2. tur, krupiyer kapalı).
+// çıkarılıyor: krupiyer açık, oyuncular, krupiyer kapalı, oyuncular.
 let sonAnimeEdilenElNo = -1;
 const DAGITIM_ADIM_MS = 300;
 
@@ -1007,8 +1041,8 @@ function dagitimAnimasyonuOynat(table, tabloImzasi) {
   for (let i = 0; i < MAX_KOLTUK; i++) { if (table.koltuklar && table.koltuklar[i] && table.koltuklar[i].eller) { bahisliKoltuklar.push(i); } }
   const adimlar = [];
   for (let tur = 0; tur < 2; tur++) {
-    bahisliKoltuklar.forEach((i) => adimlar.push(i));
     adimlar.push('krupiyer');
+    bahisliKoltuklar.forEach((i) => adimlar.push(i));
   }
   const koltukSayaclari = {};
   bahisliKoltuklar.forEach((i) => { koltukSayaclari[i] = 0; });
@@ -1091,6 +1125,7 @@ function eventleriBagla() {
     const oturBtn = e.target.closest('[data-bj-otur]'); if (oturBtn) { oyuncuIslemi(() => otur(Number(oturBtn.dataset.bjOtur))); return; }
     const kalkBtn = e.target.closest('[data-bj-kalk]'); if (kalkBtn) { oyuncuIslemi(() => kalk(Number(kalkBtn.dataset.bjKalk))); return; }
     const bahisBtn = e.target.closest('[data-bj-bahis]'); if (bahisBtn) { oyuncuIslemi(() => bahisYap(Number(bahisBtn.dataset.bjBahis), Number(bahisBtn.dataset.miktar))); return; }
+    const iadeBtn = e.target.closest('[data-bj-bahis-iade]'); if (iadeBtn) { oyuncuIslemi(() => bahsiGeriAl(Number(iadeBtn.dataset.bjBahisIade))); return; }
     const benimKoltuk = benimKoltukIndex(currentTable);
     if (benimKoltuk === null || !currentTable) { return; }
     const elIndex = activeElIndex(currentTable.koltuklar[benimKoltuk]);

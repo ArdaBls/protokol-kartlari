@@ -55,7 +55,7 @@ function serve() {
 	await page.click('[data-bj-otur="0"]');
 	await page.waitForTimeout(200);
 	results.oturuncaKendiKoltuguGorunur = await page.locator('.bj-koltuk-ben').count() === 1;
-	results.oyunBaslarkenPaneliGorunur = (await page.locator('[data-bj-bahis-panel]').textContent() || '').includes('Oyun Başlarken');
+	results.basliksizBahisPaneliGorunur = await page.locator('[data-bj-bahis-panel] .bj-bahis-panel-oyuncu').isVisible() && !(await page.locator('[data-bj-bahis-panel]').textContent()).includes('Oyun Başlarken');
 	results.besliMasaGridiOrtayiKorur = await page.locator('[data-bj-koltuklar]').evaluate((masa) => {
 		const slotlar = Array.from(masa.children).map((el) => el.getBoundingClientRect());
 		if (slotlar.length !== 5) return false;
@@ -109,11 +109,10 @@ function serve() {
 	// 4) Aksiyon çubuğu görünüyor mu (sıra bende ise).
 	const aksiyonlarVar = await page.locator('[data-bj-aksiyonlar] button').count();
 	results.aksiyonButonlariVarsaGorunur = aksiyonlarVar > 0 || kartSayisi === 0; // blackjack gelmiş olabilir, o zaman aksiyon yok -- kabul edilir
-	// 10 saniyelik sıra sayacı görünüyor mu -- kullanıcı bildirimi: "sonsuz
-	// bekleme oluyor, 10 saniye geri saysın".
+	// Tek oyunculu elde karar sayacı gösterilmez.
 	if (aksiyonlarVar > 0) {
 		const sayacMetni = await page.locator('[data-bj-aksiyon-sayac]').textContent();
-		results.aksiyonSayaciGorunur = /\d+\s*sn/.test(sayacMetni || '');
+		results.tekOyuncudaSureSiniriYok = !(sayacMetni || '').trim();
 	}
 
 	// 5) Eğer aksiyon varsa "Kal" ile eli bitir, krupiyer sırasına geçmeli.

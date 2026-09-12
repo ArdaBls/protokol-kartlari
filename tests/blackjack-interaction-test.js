@@ -63,6 +63,30 @@ async function controls(page) {
 			await page.goto('http://127.0.0.1:' + server.address().port + '/oyun-blackjack.html', { waitUntil: 'networkidle' });
 			await page.waitForSelector('[data-bj-kartcek]', { timeout: 6000 });
 			const initial = await controls(page);
+			const layout = await page.evaluate(() => {
+				const table = document.querySelector('[data-bj-root]').getBoundingClientRect();
+				const actions = document.querySelector('.bj-aksiyonlar-satiri');
+				const rect = actions.getBoundingClientRect();
+				const style = getComputedStyle(actions);
+				return { centered: Math.abs((rect.left + rect.width / 2) - (table.left + table.width / 2)) < 1, background: style.backgroundColor, border: style.borderTopWidth, shadow: style.boxShadow };
+			});
+			assert(layout.centered, 'Kontroller masanın yatay merkezinde olmalı');
+			assert.equal(layout.background, 'rgba(0, 0, 0, 0)');
+			assert.equal(layout.border, '0px');
+			assert.equal(layout.shadow, 'none');
+			const avatarGeometry = await page.evaluate(() => {
+				const ring = document.querySelector('.bj-koltuk-ben .bj-avatar-cember');
+				return ['', 'bj-cember-kazandi', 'bj-cember-kaybetti'].every((color) => {
+					if (color) ring.classList.add(color);
+					const outer = ring.getBoundingClientRect();
+					const inner = ring.firstElementChild.getBoundingClientRect();
+					if (color) ring.classList.remove(color);
+					return Math.abs(outer.width - outer.height) < 0.5 && Math.abs(inner.width - inner.height) < 0.5 &&
+						Math.abs(outer.left + outer.width / 2 - inner.left - inner.width / 2) < 0.5 &&
+						Math.abs(outer.top + outer.height / 2 - inner.top - inner.height / 2) < 0.5;
+				});
+			});
+			assert(avatarGeometry, 'Avatar ve sonuç halkaları eş merkezli tam daire olmalı');
 			const report = { device: device.name, initial, errors };
 			reports.push(report);
 			// Ölçümden sonra ayrıca hover davranışını incele. İlk ölçümün başarısızlığı

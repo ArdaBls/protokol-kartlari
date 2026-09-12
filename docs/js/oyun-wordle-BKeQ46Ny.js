@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/wordle-CLb6VpeT.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js"])))=>i.map(i=>d[i]);
+import{n as i}from"./main-v4-C2MdulZU.js";i(()=>import("./wordle-CLb6VpeT.js").then(i=>i.initWordle()),__vite__mapDeps([0,1,2]));
