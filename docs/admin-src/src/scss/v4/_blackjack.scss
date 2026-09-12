@@ -197,6 +197,27 @@ $bj-kirmizi-cember: #c62828;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 .bj-kart:first-child { margin-left: 0; }
+
+// Dağıtım animasyonu -- kullanıcı isteği: kartlar anlık "spawn" olmak yerine
+// krupiyer kartları yukarıdan (bj-slide-top), oyuncu kartları aşağıdan
+// (bj-slide-bottom) kayarak masaya gelsin (Animista "slide-top"/"slide-bottom").
+// NOT: kart <img> zaten NİHAİ konumunda render ediliyor (bkz. dagitimAnimasyonuOynat),
+// bu yüzden Animista'nın orijinal 0→-100px yönü burada TERS çevrildi: kart
+// -100px/+100px OFFSET'TEN başlayıp 0'da (gerçek konumunda) duruyor --
+// aksi halde "both" dolgusuyla kart kalıcı olarak kaymış kalırdı.
+.bj-slide-top { animation: bj-slide-top 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.bj-slide-bottom { animation: bj-slide-bottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+@keyframes bj-slide-top {
+  0% { transform: translateY(-100px); }
+  100% { transform: translateY(0); }
+}
+@keyframes bj-slide-bottom {
+  0% { transform: translateY(100px); }
+  100% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bj-slide-top, .bj-slide-bottom { animation: none; }
+}
 // Kullanıcının gönderdiği referans görsele göre: küçük kırmızı rozet.
 .bj-el-toplam {
   display: inline-block;

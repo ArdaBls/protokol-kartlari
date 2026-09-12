@@ -465,6 +465,13 @@ function bahisYap(koltukIndex, miktar) {
 function eldekiOyuncuSayisi(table) {
   return Object.values(table.koltuklar || {}).filter((k) => k && k.eller && k.eller.length).length;
 }
+// Bahis penceresindeyken oturan (uid dolu) koltuk sayısı -- kullanıcı isteği:
+// "tek kişi oynayınca geri sayım olmasın" (aksiyon sırası sayacı zaten
+// eldekiOyuncuSayisi>1 ile aynı şekilde gizleniyordu, bahis sayacı için de
+// aynı kural uygulanır).
+function oturanKoltukSayisi(table) {
+  return Object.values(table.koltuklar || {}).filter((k) => k && k.uid).length;
+}
 
 // Bahis kapanınca iade yapılamaz. Masadan yalnızca bu işlem gerçekten
 // kaldırdıysa cüzdana geri yazılır; çift tıklama/çoklu sekme çip çoğaltamaz.
@@ -792,14 +799,17 @@ function hucreSinifi(sonuc) {
   if (sonuc === 'berabere') { return 'bj-sonuc-berabere'; }
   return '';
 }
-function kartHtml(kart, uid, kapaliMi) {
+// animasyonSinifi: kartın masaya konurken kaydığı yön -- kullanıcı isteği
+// üzerine krupiyer kartları yukarıdan (bj-slide-top), oyuncu kartları
+// aşağıdan (bj-slide-bottom) kayarak gelir (bkz. _blackjack.scss).
+function kartHtml(kart, uid, kapaliMi, animasyonSinifi) {
   const src = kapaliMi ? desteArkasiYolu() : kartGorselYolu(kart, uid);
   const fallback = kapaliMi ? desteArkasiYolu() : varsayilanKartGorselYolu(kart, (skinCache[uid] || mySkin).desteStili);
-  return '<img class="bj-kart" src="' + src + '" data-bj-kart-fallback="' + fallback + '" alt="" decoding="async">';
+  return '<img class="bj-kart' + (animasyonSinifi ? ' ' + animasyonSinifi : '') + '" src="' + src + '" data-bj-kart-fallback="' + fallback + '" alt="" decoding="async">';
 }
 function elHtml(el, uid) {
   const degerlendirme = elDegerlendir(el.kartlar);
-  const kartlarHtml = el.kartlar.map((k) => kartHtml(k, uid, false)).join('');
+  const kartlarHtml = el.kartlar.map((k) => kartHtml(k, uid, false, 'bj-slide-bottom')).join('');
   const sonucEtiket = el.sonuc ? '<span class="bj-el-sonuc ' + hucreSinifi(el.sonuc) + '">' + escapeHtml({ kazandi: 'Kazandı', kaybetti: 'Kaybetti', berabere: 'Berabere', blackjack: 'Blackjack!' }[el.sonuc] || '') + '</span>' : '';
   return '<div class="bj-el">' +
     '<div class="bj-el-kartlar">' + kartlarHtml + '</div>' +
@@ -879,7 +889,7 @@ function renderKrupiyer(table) {
       el.innerHTML = '<div class="bj-krupiyer-bos">Bahisler bekleniyor…</div>';
     } else {
       const acikMi = table.kurpiyerEli.acikMi;
-      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi)).join('');
+      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi, 'bj-slide-top')).join('');
       // Gerçek kumarhanede kapalı kart açılana kadar sadece AÇIK kartın değeri
       // görünür -- kullanıcı bildirimi: "kurpiyerin toplamı yok".
       const toplamHtml = acikMi
@@ -912,7 +922,7 @@ function renderDesteYigini(table) {
 function renderBahisSayaci(table) {
   const el = document.querySelector('[data-bj-sayac]');
   if (!el) { return; }
-  const signature = table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis ? String(table.bahisSuresiBitis) : '';
+  const signature = table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && oturanKoltukSayisi(table) > 1 ? String(table.bahisSuresiBitis) : '';
   if (!signature) { el.textContent = ''; countdownSignature = ''; if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } return; }
   if (signature === countdownSignature && countdownTimer) { return; }
   countdownSignature = signature;
@@ -990,7 +1000,10 @@ function renderBahisPaneli(table, benimKoltuk) {
 // NİHAİ veri var, sunucuya ekstra istek atmadan YEREL olarak kademeli açığa
 // çıkarılıyor: krupiyer açık, oyuncular, krupiyer kapalı, oyuncular.
 let sonAnimeEdilenElNo = -1;
-const DAGITIM_ADIM_MS = 300;
+// 650ms -- kullanıcı isteği: "kartlar yavaş dağıtılsın" (0.5s'lik kayma
+// animasyonu bir sonraki kart gelmeden tamamen bitsin diye animasyon
+// süresinden biraz uzun tutuldu).
+const DAGITIM_ADIM_MS = 650;
 
 function renderMasa(table) {
   currentTable = table;
