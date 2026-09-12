@@ -220,7 +220,15 @@ function bahisPenceresiniBaslat() {
   const ref = database.ref(dbPath(MASA_YOLU));
   ref.transaction((mevcut) => {
     if (mevcut && mevcut.durum && mevcut.durum !== 'el_sonucu' && mevcut.durum !== undefined) { return; }
-    const temiz = { durum: 'bahis_bekleniyor', bahisSuresiBitis: Date.now() + BAHIS_SURESI_MS, aktifKoltuk: null, kurpiyerEli: null, guncellemeTs: Date.now() };
+    // NOT: Firebase transaction dönen değerle DÜĞÜMÜN TAMAMINI DEĞİŞTİRİR (birleştirmez) --
+    // deste/desteIndex/elNo burada KORUNMAZSA her el yeni bir 208'lik deste
+    // karılıyor (kullanıcı bildirimi: "kart sayısı her oyunda yeniden
+    // yükseliyor"). Deste SADECE bahisSuresiDolunca'daki desteYeterliMi
+    // kontrolü yetersiz derse yeniden karılmalı, her elin başında değil.
+    const temiz = {
+      durum: 'bahis_bekleniyor', bahisSuresiBitis: Date.now() + BAHIS_SURESI_MS, aktifKoltuk: null, kurpiyerEli: null, guncellemeTs: Date.now(),
+      deste: (mevcut && mevcut.deste) || null, desteIndex: (mevcut && mevcut.desteIndex) || 0, elNo: (mevcut && mevcut.elNo) || 0
+    };
     const koltuklar = (mevcut && mevcut.koltuklar) || {};
     Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { bahis: null, eller: null, katilimDurumu: 'hazir' }); } });
     temiz.koltuklar = koltuklar;

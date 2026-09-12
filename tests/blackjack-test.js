@@ -134,6 +134,21 @@ function serve() {
 		results.avatarCemberDogruRenkte = await page.locator(beklenenSinif).count() > 0;
 	}
 
+	// 8) Deste, el bitip yeni bahis penceresi açılınca SIFIRLANMAMALI --
+	// kullanıcı bildirimi: "208 olan kart sayısı giderek aşağı düşmüyor her
+	// oyunda yeniden yükseliyor". Kök neden: bahisPenceresiniBaslat Firebase
+	// transaction'ından TAMAMEN YENİ bir nesne döndürüyordu (deste/desteIndex
+	// dahil edilmeden) -- transaction dönen değerle düğümün TAMAMINI
+	// değiştirdiği için bu alanlar her el kayboluyordu.
+	const masaOku = () => page.evaluate(() => {
+		const s = window.__mockLiveState;
+		return s && s.oyunBasarimlari && s.oyunBasarimlari.blackjack && s.oyunBasarimlari.blackjack.masalar && s.oyunBasarimlari.blackjack.masalar['ana-masa'];
+	});
+	const elBitmedenOnceDesteIndex = (await masaOku()).desteIndex;
+	await page.waitForTimeout(4500); // EL_SONUCU_BEKLEME_MS (4000) + pay
+	const yeniElMasasi = await masaOku();
+	results.desteSifirlanmadanKorundu = yeniElMasasi.durum === 'bahis_bekleniyor' && yeniElMasasi.desteIndex === elBitmedenOnceDesteIndex;
+
 	if (pageErrors.length) { console.log('PAGE ERRORS:', JSON.stringify(pageErrors)); }
 	results.oyunPageErrors = pageErrors.length;
 	console.log(JSON.stringify(results, null, 2));

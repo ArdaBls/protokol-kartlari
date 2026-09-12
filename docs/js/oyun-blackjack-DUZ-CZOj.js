@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/blackjack-oyun-BcODylgL.js","js/main-v4-By-XRcph.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js","assets/main-v4-DxbwUPmw.css"])))=>i.map(i=>d[i]);
+import{n as a}from"./main-v4-By-XRcph.js";a(()=>import("./blackjack-oyun-BcODylgL.js").then(a=>a.initBlackjack()),__vite__mapDeps([0,1,2,3,4]));
