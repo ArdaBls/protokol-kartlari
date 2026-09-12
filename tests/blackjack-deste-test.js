@@ -102,11 +102,14 @@ const { pathToFileURL } = require('url');
 		const bjSonuc = elSonucuHesapla(oyuncuBJ, krupiyer20, 100);
 		results.blackjackUcIkiOder = bjSonuc.sonuc === 'blackjack' && bjSonuc.odeme === 250;
 
-		// 25/75 gibi mevcut çip değerleri 3:2'de yarım çip üretir. Bu değer
-		// kaybolmamalı; eski Math.floor davranışı oyuncuyu eksik ödüyordu.
+		// 25/75 gibi mevcut çip değerleri 3:2'de matematiksel olarak yarım çip
+		// üretir (62.5/187.5), ama kullanıcı bildirimi: "0,5 li çipler geliyor
+		// ... sayı hep tam sayı olmalı" -- bakiyeye yansıyan ödeme HER ZAMAN
+		// en yakın tam çipe yuvarlanmalı, kesirli kalmamalı.
 		const kucukBjSonuc = elSonucuHesapla(oyuncuBJ, krupiyer20, 25);
 		const yetmisBesBjSonuc = elSonucuHesapla(oyuncuBJ, krupiyer20, 75);
-		results.blackjackYarimCipHassasiyetiKorur = kucukBjSonuc.odeme === 62.5 && yetmisBesBjSonuc.odeme === 187.5;
+		results.blackjackOdemeTamSayiyaYuvarlanir = kucukBjSonuc.odeme === 63 && yetmisBesBjSonuc.odeme === 188 &&
+			Number.isInteger(kucukBjSonuc.odeme) && Number.isInteger(yetmisBesBjSonuc.odeme);
 
 		// Split As + 10, iki kartla 21 olsa dahi doğal blackjack değildir:
 		// krupiyer 20'ye karşı normal 1:1 öder; doğal krupiyere karşı da kaybeder.

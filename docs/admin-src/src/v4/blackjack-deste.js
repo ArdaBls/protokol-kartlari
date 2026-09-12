@@ -12,10 +12,12 @@ export const TOPLAM_KART_SAYISI = DESTE_SAYISI * TEK_DESTE_KART_SAYISI; // 208
 export const MAX_KOLTUK = 5;
 export const BAHIS_SURESI_MS = 6000;
 export const BASLANGIC_BAKIYESI = 1000;
-// Masadaki bahisler tam sayı değerli çiplerden oluşuyor. Blackjack'in 3:2
-// ödemesi 25'lik bir bahiste 62,5 gibi yarım çipli bir toplam üretebilir;
-// bakiye/ödeme katmanı bu hassasiyeti korumalıdır, aşağı yuvarlamamalıdır.
-export const ODEME_HASSASIYETI = 0.5;
+// Masadaki bahisler ve bakiyeler HER ZAMAN tam sayı çiplerden oluşmalı --
+// kullanıcı bildirimi: "0,5 li çipler geliyor ... sayı hep tam sayı olmalı".
+// Blackjack'in 3:2 ödemesi 25'lik bir bahiste 62,5 gibi yarım çipli bir
+// toplam üretebildiği için en yakın TAM ÇİPE yuvarlanır (0.5 önceden yarım
+// çipi olduğu gibi bırakıyordu, bu da kesirli bakiyeye yol açıyordu).
+export const ODEME_HASSASIYETI = 1;
 // Bunlar ekstra puanlı/ayrı bir kart türü değildir: standarta ait "joker"
 // (vale) rütbesinin yalnızca görünüm varyasyonudur. Böylece özel Joker daha
 // sık görünürken 4 destelik 208 kart yapısı ve Blackjack olasılıkları değişmez.

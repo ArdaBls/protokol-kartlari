@@ -61,7 +61,7 @@ $bj-kirmizi-cember: #c62828;
 // okunaklı olsun", "masayı biraz daha uzat aşağıya ve yanlara doğru".
 @media (min-width: 1200px) {
   .bj-masa { min-height: min(760px, calc(100dvh - 200px)); padding: 24px clamp(32px, 4vw, 64px) 140px; border-radius: 40px; }
-  .bj-kart { width: clamp(80px, 8.5vw, 118px); margin-left: clamp(-36px, -2.8vw, -26px); }
+  .bj-kart { width: clamp(92px, 9.5vw, 136px); margin-left: clamp(-40px, -3.1vw, -30px); }
 }
 
 .bj-krupiyer-satiri {
@@ -133,20 +133,33 @@ $bj-kirmizi-cember: #c62828;
   color: #fff;
 }
 .bj-koltuk-bos { justify-content: center; align-items: center; min-height: 60px; }
+// Uzun bir el komşu koltuğun üstüne taşarsa bile KENDİ kartlarım her zaman
+// üstte/okunur kalsın.
+.bj-koltuk-ben { position: relative; z-index: 2; }
 .bj-otur-btn {
   width: 48px; height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   border-radius: 50%;
   border: 2px dashed rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  font-size: 24px;
-  line-height: 1;
+  // "+" karakteri font metriklerine göre optik olarak tam ortaya oturmuyordu
+  // (kullanıcı bildirimi: "artı tam ortada değil") -- metin yerine iki
+  // çubuktan piksel-hassas bir artı çiziliyor, font'tan bağımsız.
+  font-size: 0;
   cursor: pointer;
   transition: background 120ms, transform 120ms;
 }
+.bj-otur-btn::before, .bj-otur-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: currentColor;
+  border-radius: 1px;
+}
+.bj-otur-btn::before { width: 18px; height: 2px; transform: translate(-50%, -50%); }
+.bj-otur-btn::after { width: 2px; height: 18px; transform: translate(-50%, -50%); }
 .bj-otur-btn:hover { background: rgba(255, 255, 255, 0.18); transform: scale(1.06); }
 // Aktif/kendi koltuk vurgusu artık bir KUTU çerçevesi değil (kullanıcı
 // isteği: "çerçeve çıkmasın") -- avatarın altın halkası yeterli.
@@ -190,11 +203,16 @@ $bj-kirmizi-cember: #c62828;
 .bj-el { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 4px; }
 .bj-el-kartlar { display: flex; }
 .bj-kart {
-  width: 64px;
+  width: 72px;
   height: auto;
-  margin-left: -20px;
+  margin-left: -22px;
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  // NOT: box-shadow BİLEREK yok -- kartlar üst üste bindiğinde gölge, üstteki
+  // kartın gerçek (yuvarlak köşeli) sınırının DIŞINA taşarak alttaki kartın
+  // üzerine "saydam bir çerçeve/iz" gibi düşüyordu (kullanıcı bildirimi:
+  // "kartların dışında böyle bir saydam iz var, direkt kartın kendisi gelse
+  // daha iyi olmaz mı"). Kartın kendisi (PNG'nin kendi ince gri çerçevesi)
+  // yeterli görsel ayrım sağlıyor.
 }
 .bj-kart:first-child { margin-left: 0; }
 
@@ -347,6 +365,10 @@ $bj-kirmizi-cember: #c62828;
 .bj-skin-uclu .bj-skin-onizleme { margin-left: -14px; }
 .bj-skin-uclu .bj-skin-onizleme:first-child { margin-left: 0; }
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+// Kart arkası seçenekleri (18 tasarım) isim gerektirmez -- sarmalayan bir
+// önizleme ızgarası olarak gösterilir.
+.bj-skin-arka-liste { flex-direction: row; flex-wrap: wrap; gap: 8px; max-height: none; }
+.bj-skin-arka-liste .bj-skin-secenek { padding: 0; }
 
 @media (max-width: 720px) {
   .bj-masa { min-height: min(590px, calc(100dvh - 180px)); padding: 16px 8px 128px; border-width: 5px; border-radius: 26px; }
@@ -356,6 +378,10 @@ $bj-kirmizi-cember: #c62828;
   .bj-koltuk-oyuncu { flex-direction: column; gap: 3px; text-align: center; }
   .bj-koltuk-oyuncu span { max-width: 100%; font-size: 10px; }
   .bj-kart { width: 46px; margin-left: -16px; }
+  // Uzun bir el (çok kart çekildiğinde) yan koltuğun alanına taşmasın diye
+  // 5. karttan itibaren üst üste binme artırılır -- kullanıcı bildirimi:
+  // "telefonda ... çok kart çekerse benim kartlarıma giriyor kartları".
+  .bj-el-kartlar .bj-kart:nth-child(n + 5) { margin-left: -30px; }
   .bj-cip-gorsel { width: 28px; height: 28px; }
   .bj-cip-yigin .bj-cip-gorsel { width: 22px; height: 22px; margin-left: -10px; }
   .bj-bahis-secim { gap: 4px; }

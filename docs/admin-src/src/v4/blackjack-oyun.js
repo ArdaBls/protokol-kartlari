@@ -64,7 +64,7 @@ let canPlay = false;
 
 let currentTable = null;
 let myChipBalance = 0;
-let mySkin = { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA };
+let mySkin = { desteStili: 'temel', yuzKartiTemasi: VARSAYILAN_TEMA, desteArkasi: '01' };
 let skinCache = {}; // uid -> {desteStili, yuzKartiTemasi}
 const skinListeners = new Map(); // uid -> { ref, listener }
 let walletRef = null;
@@ -156,13 +156,16 @@ function benimKoltukIndex(table) {
   return null;
 }
 
+const DESTE_ARKASI_SAYISI = 18;
+function desteArkasiKodlari() { return Array.from({ length: DESTE_ARKASI_SAYISI }, (_, i) => String(i + 1).padStart(2, '0')); }
 // ── Kart görsel yolu -- kullanıcının seçtiği stil/temaya göre. ──
 function normalleSkin(raw) {
   const skin = raw && typeof raw === 'object' ? raw : {};
   const desteStili = DESTE_STILLERI.includes(skin.desteStili) ? skin.desteStili : 'temel';
   const tema = typeof skin.yuzKartiTemasi === 'string' ? skin.yuzKartiTemasi : VARSAYILAN_TEMA;
   const temaGecerliMi = tema === VARSAYILAN_TEMA || collabKodlari().some((kod) => tema === kod + '-1' || tema === kod + '-2');
-  return { desteStili, yuzKartiTemasi: temaGecerliMi ? tema : VARSAYILAN_TEMA };
+  const arka = typeof skin.desteArkasi === 'string' && desteArkasiKodlari().includes(skin.desteArkasi) ? skin.desteArkasi : '01';
+  return { desteStili, yuzKartiTemasi: temaGecerliMi ? tema : VARSAYILAN_TEMA, desteArkasi: arka };
 }
 function varsayilanKartGorselYolu(kart, stil = 'temel') {
   const rutbeKodlari = { as: '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06', '7': '07', '8': '08', '9': '09', '10': '10', joker: '11', kiz: '12', papaz: '13' };
@@ -191,7 +194,10 @@ function kartGorselYolu(kart, uid) {
   }
   return varsayilanKartGorselYolu(kart, skin.desteStili);
 }
-function desteArkasiYolu() { return '/assets/blackjack/deste-arkalari/deste-arkasi-01.png'; }
+function desteArkasiYolu(uid) {
+  const skin = (uid && skinCache[uid]) || mySkin;
+  return '/assets/blackjack/deste-arkalari/deste-arkasi-' + (skin.desteArkasi || '01') + '.png';
+}
 
 // ── Skin ayarları ──
 function skinYolu(uid) { return dbPath('blackjackAyarlari/' + uid); }
@@ -253,16 +259,24 @@ function openSkinModal() {
     const temaHtml = temaSecenekleri.map((t) =>
       '<label class="bj-skin-secenek"><input type="radio" name="bj-tema" value="' + t + '"' + (mySkin.yuzKartiTemasi === t ? ' checked' : '') + '>' + temaUcluOnizlemeHtml(t) + '<span>' + escapeHtml(t === 'varsayilan' ? 'Varsayılan üçlü' : t) + '</span></label>'
     ).join('');
+    // Kart arkası (kapalı kart/deste) seçimi -- kullanıcı isteği: "arkası
+    // dönük destenin kart skinini de seçmeliyim".
+    const arkaHtml = desteArkasiKodlari().map((kod) =>
+      '<label class="bj-skin-secenek"><input type="radio" name="bj-destearkasi" value="' + kod + '"' + (mySkin.desteArkasi === kod ? ' checked' : '') + '><img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + kod + '.png" alt=""></label>'
+    ).join('');
     showModal({
       title: 'Kart Skinleri',
-      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4>' + stilHtml + '</div><div class="bj-skin-grup"><h4>Vale + Kız + Papaz üçlüsü</h4><p class="hint">Tek seçim, aynı koleksiyondaki üç kartı birlikte değiştirir.</p><div class="bj-skin-tema-liste">' + temaHtml + '</div></div>',
+      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4>' + stilHtml + '</div>' +
+        '<div class="bj-skin-grup"><h4>Vale + Kız + Papaz üçlüsü</h4><p class="hint">Tek seçim, aynı koleksiyondaki üç kartı birlikte değiştirir.</p><div class="bj-skin-tema-liste">' + temaHtml + '</div></div>' +
+        '<div class="bj-skin-grup"><h4>Kart Arkası</h4><div class="bj-skin-tema-liste bj-skin-arka-liste">' + arkaHtml + '</div></div>',
       actions: [
         {
           label: 'Kaydet', variant: 'primary', action: ({ dialog }) => {
             const stil = dialog.querySelector('input[name="bj-destestili"]:checked').value;
             const tema = dialog.querySelector('input[name="bj-tema"]:checked').value;
-            database.ref(skinYolu(currentUserUid)).set({ desteStili: stil, yuzKartiTemasi: tema }).then(() => {
-              skinCache[currentUserUid] = normalleSkin({ desteStili: stil, yuzKartiTemasi: tema });
+            const arka = dialog.querySelector('input[name="bj-destearkasi"]:checked').value;
+            database.ref(skinYolu(currentUserUid)).set({ desteStili: stil, yuzKartiTemasi: tema, desteArkasi: arka }).then(() => {
+              skinCache[currentUserUid] = normalleSkin({ desteStili: stil, yuzKartiTemasi: tema, desteArkasi: arka });
               mySkin = skinCache[currentUserUid];
               if (currentTable) { renderMasa(currentTable); }
               showToast('Skin kaydedildi.', { variant: 'success' });
@@ -384,6 +398,7 @@ function bakiyeGuncelle(uid, delta, islemId, kaynak, yol = cuzdanYolu(uid)) {
 }
 
 // ── Oturma / kalkma ──
+const MERKEZ_KOLTUK = Math.floor(MAX_KOLTUK / 2);
 function otur(koltukIndex) {
   if (!canPlay) { showToast('Oynamak için giriş yapmalısınız.', { variant: 'error' }); return; }
   if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_KOLTUK) { return; }
@@ -393,8 +408,13 @@ function otur(koltukIndex) {
     // Sadece ekrandaki eski state'e değil, transaction'ın güncel masa haline
     // bakılır; böylece aynı hesap iki sekmede iki koltuğa oturamaz.
     if (Object.keys(koltuklar).some((i) => koltuklar[i] && koltuklar[i].uid === currentUserUid)) { return; }
-    if (koltuklar[koltukIndex] && koltuklar[koltukIndex].uid) { return; }
-    koltuklar[koltukIndex] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, bahis: null, katilimDurumu: 'hazir' };
+    // Masaya ilk oturan kişi, hangi "+" düğmesine bassa da her zaman ORTA
+    // koltuğa oturtulur -- kullanıcı isteği: "oyuna ilk gelen kişi her daim
+    // hangi seçeneği seçerse seçsin ortaya oturtulsun".
+    const kimseYok = Object.keys(koltuklar).every((i) => !koltuklar[i] || !koltuklar[i].uid);
+    const hedefKoltuk = kimseYok ? MERKEZ_KOLTUK : koltukIndex;
+    if (koltuklar[hedefKoltuk] && koltuklar[hedefKoltuk].uid) { return; }
+    koltuklar[hedefKoltuk] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, bahis: null, katilimDurumu: 'hazir' };
     return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
   }).then((res) => {
     if (!res.committed) { showToast('Bu koltuk dolu veya el başlamış.', { variant: 'error' }); }
@@ -803,19 +823,20 @@ function hucreSinifi(sonuc) {
 // üzerine krupiyer kartları yukarıdan (bj-slide-top), oyuncu kartları
 // aşağıdan (bj-slide-bottom) kayarak gelir (bkz. _blackjack.scss).
 function kartHtml(kart, uid, kapaliMi, animasyonSinifi) {
-  const src = kapaliMi ? desteArkasiYolu() : kartGorselYolu(kart, uid);
-  const fallback = kapaliMi ? desteArkasiYolu() : varsayilanKartGorselYolu(kart, (skinCache[uid] || mySkin).desteStili);
+  const src = kapaliMi ? desteArkasiYolu(uid) : kartGorselYolu(kart, uid);
+  const fallback = kapaliMi ? desteArkasiYolu(uid) : varsayilanKartGorselYolu(kart, (skinCache[uid] || mySkin).desteStili);
   return '<img class="bj-kart' + (animasyonSinifi ? ' ' + animasyonSinifi : '') + '" src="' + src + '" data-bj-kart-fallback="' + fallback + '" alt="" decoding="async">';
 }
-function elHtml(el, uid) {
+function elHtml(el, uid, animeAnahtari, tableElNo) {
   const degerlendirme = elDegerlendir(el.kartlar);
-  // Yalnızca EN SON gelen kart kayma animasyonuyla girer -- önceki kartlara
-  // her yeniden render'da (yeni kart çekilince, hit/split) animasyon
-  // sınıfı TEKRAR verilirse hepsi aynı anda yeniden kayıyormuş gibi görünür
-  // (kullanıcı bildirimi: "her kart geldiğinde bütün kartlar yeniden slide
-  // animasyonu ile gelmesin ... dursun bir yere gitmesin").
-  const sonKartIndex = el.kartlar.length - 1;
-  const kartlarHtml = el.kartlar.map((k, i) => kartHtml(k, uid, false, i === sonKartIndex ? 'bj-slide-bottom' : '')).join('');
+  // Yalnızca İLK KEZ görünen (henüz hiç animasyonla gösterilmemiş) kartlar
+  // kayma animasyonuyla girer -- bkz. yeniKartAnimasyonSinifi. Basit "son
+  // index" kontrolü, dağıtım animasyonu bitip durum 'oyunculuk'a geçtiğinde
+  // TAM RENDER'ın aynı son kartı yeniden "en son" sayıp animasyonu İKİNCİ
+  // KEZ oynatmasına yol açıyordu (kullanıcı bildirimi: "en son gelen kart
+  // yine animasyona giriyor").
+  const sinifAl = yeniKartAnimasyonSinifi(animeAnahtari, el.kartlar.length, tableElNo, 'bj-slide-bottom');
+  const kartlarHtml = el.kartlar.map((k, i) => kartHtml(k, uid, false, sinifAl(i))).join('');
   const sonucEtiket = el.sonuc ? '<span class="bj-el-sonuc ' + hucreSinifi(el.sonuc) + '">' + escapeHtml({ kazandi: 'Kazandı', kaybetti: 'Kaybetti', berabere: 'Berabere', blackjack: 'Blackjack!' }[el.sonuc] || '') + '</span>' : '';
   // Kazanınca toplam rozeti yeşile döner -- kullanıcı isteği: "kazanınca
   // bj-el-toplam yeşil yansın".
@@ -874,7 +895,7 @@ function koltukHtml(koltukIndex, koltuk, table, benimKoltuk) {
       icerik = koltuk.bahis ? cipYiginiHtml(koltuk.bahis) : '';
     }
   } else if (koltuk.eller) {
-    icerik = koltuk.eller.map((el, i) => elHtml(el, koltuk.uid) + ((aktifMi && i === activeElIndex(koltuk)) ? '<span class="bj-sira-isareti">◀ sırası</span>' : '')).join('');
+    icerik = koltuk.eller.map((el, i) => elHtml(el, koltuk.uid, koltukIndex + ':' + i, table.elNo) + ((aktifMi && i === activeElIndex(koltuk)) ? '<span class="bj-sira-isareti">◀ sırası</span>' : '')).join('');
   } else {
     icerik = koltuk.katilimDurumu === 'sonraki-elde' ? '<div class="bj-bahis-mevcut">Bu el pas</div>' : '';
   }
@@ -897,16 +918,17 @@ function krupiyerKazandiMi(table) {
 }
 function renderKrupiyer(table) {
   const el = document.querySelector('[data-bj-krupiyer]');
-  const signature = JSON.stringify({ el: table.kurpiyerEli || null, desteStili: mySkin.desteStili, tema: mySkin.yuzKartiTemasi });
+  const signature = JSON.stringify({ el: table.kurpiyerEli || null, desteStili: mySkin.desteStili, tema: mySkin.yuzKartiTemasi, arka: mySkin.desteArkasi });
   if (el && signature !== lastDealerSignature) {
     lastDealerSignature = signature;
     if (!table.kurpiyerEli) {
       el.innerHTML = '<div class="bj-krupiyer-bos">Bahisler bekleniyor…</div>';
     } else {
       const acikMi = table.kurpiyerEli.acikMi;
-      // Yalnızca en son kart kayarak gelir -- bkz. elHtml'deki aynı düzeltme.
-      const sonKartIndex = table.kurpiyerEli.kartlar.length - 1;
-      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi, i === sonKartIndex ? 'bj-slide-top' : '')).join('');
+      // Yalnızca ilk kez görünen kart kayarak gelir -- bkz. elHtml'deki
+      // aynı düzeltme (yeniKartAnimasyonSinifi).
+      const sinifAl = yeniKartAnimasyonSinifi('krupiyer', table.kurpiyerEli.kartlar.length, table.elNo, 'bj-slide-top');
+      const kartlarHtml = table.kurpiyerEli.kartlar.map((k, i) => kartHtml(k, currentUserUid, i === 1 && !acikMi, sinifAl(i))).join('');
       // Gerçek kumarhanede kapalı kart açılana kadar sadece AÇIK kartın değeri
       // görünür -- kullanıcı bildirimi: "kurpiyerin toplamı yok".
       const toplamHtml = acikMi
@@ -929,13 +951,13 @@ function renderDesteYigini(table) {
   const el = document.querySelector('[data-bj-deste-yigini]');
   if (!el) { return; }
   const kalan = table.deste ? (table.deste.length - (table.desteIndex || 0)) : TOPLAM_KART_SAYISI;
-  const signature = String(kalan);
+  const signature = kalan + ':' + mySkin.desteArkasi;
   if (signature === lastDeckSignature) { return; }
   lastDeckSignature = signature;
   if (kalan <= 0) { el.innerHTML = ''; return; }
   const KART_SAYISI_GORUNEN = 4;
   let html = '';
-  for (let i = 0; i < KART_SAYISI_GORUNEN; i++) { html += '<img class="bj-deste-kart" src="' + desteArkasiYolu() + '" alt="">'; }
+  for (let i = 0; i < KART_SAYISI_GORUNEN; i++) { html += '<img class="bj-deste-kart" src="' + desteArkasiYolu(currentUserUid) + '" alt="">'; }
   html += '<div class="bj-deste-sayac">' + kalan + '</div>';
   el.innerHTML = html;
 }
@@ -1021,6 +1043,22 @@ function renderBahisPaneli(table, benimKoltuk) {
 // NİHAİ veri var, sunucuya ekstra istek atmadan YEREL olarak kademeli açığa
 // çıkarılıyor: krupiyer açık, oyuncular, krupiyer kapalı, oyuncular.
 let sonAnimeEdilenElNo = -1;
+// Her el (elNo) için, koltuk/krupiyer başına ŞİMDİYE KADAR animasyonla
+// gösterilmiş kart sayısı -- kullanıcı bildirimi: "en son gelen kart yine
+// animasyona giriyor". Dağıtım animasyonu bittikten sonra durum
+// 'oyunculuk'a geçince YENİDEN tam render tetikleniyordu ve son kart index'i
+// hâlâ "en son" olduğu için animasyon İKİNCİ KEZ oynuyordu. Bu sayaçlar
+// sayesinde bir kart yalnızca İLK kez göründüğünde animasyon sınıfı alır;
+// aynı elde tekrar render edilirse (faz değişimi, hit, split) daha önce
+// sayılmış kartlar bir daha işaretlenmez.
+let animasyonElNo = null;
+let animeSayaclari = {};
+function yeniKartAnimasyonSinifi(anahtar, mevcutUzunluk, tableElNo, sinif) {
+  if (animasyonElNo !== tableElNo) { animasyonElNo = tableElNo; animeSayaclari = {}; }
+  const onceki = animeSayaclari[anahtar] || 0;
+  animeSayaclari[anahtar] = Math.max(onceki, mevcutUzunluk);
+  return (i) => (i >= onceki ? sinif : '');
+}
 // 650ms -- kullanıcı isteği: "kartlar yavaş dağıtılsın" (0.5s'lik kayma
 // animasyonu bir sonraki kart gelmeden tamamen bitsin diye animasyon
 // süresinden biraz uzun tutuldu).
@@ -1178,6 +1216,8 @@ function attachTableListener(force = false) {
   if (phaseWatchdog) { clearInterval(phaseWatchdog); phaseWatchdog = null; }
   activeDistribution = null;
   sonAnimeEdilenElNo = -1;
+  animasyonElNo = null;
+  animeSayaclari = {};
   currentTable = null;
   lastSeatOrderSignature = '';
   renderedSeatSignatures.clear();
@@ -1201,11 +1241,26 @@ function attachTableListener(force = false) {
   phaseWatchdog = setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);
 }
 
+// Kart görselleri her render'da yeni bir <img> düğümü olarak yazıldığından
+// (bkz. renderMasaGercek), tarayıcı önbelleğinde olmayan bir kart bir an
+// için saydam görünüp sonra beliriyordu -- kullanıcı bildirimi: "kartlar
+// hep gözüksün ... çok kısa bir an için saydam oluyorlar ve geri geliyorlar".
+// Sayfa açılır açılmaz TÜM standart 52 kart + deste arkası tarayıcı
+// önbelleğine ısıtılır, böylece ilk dağıtımda bile görseller zaten hazırdır.
+function kartGorselleriniOnbellekleOnYukle() {
+  const takimlar = ['kupa', 'sinek', 'karo', 'maca'];
+  const rutbeler = ['as', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'joker', 'kiz', 'papaz'];
+  const yollar = [desteArkasiYolu()];
+  takimlar.forEach((s) => rutbeler.forEach((r) => yollar.push(varsayilanKartGorselYolu({ r, s }, 'temel'))));
+  yollar.forEach((yol) => { const img = new Image(); img.src = yol; });
+}
+
 export function initBlackjack() {
   if (!firebase.apps.length) { firebase.initializeApp(FIREBASE_CONFIG); }
   database = firebase.database();
   const auth = firebase.auth();
 
+  kartGorselleriniOnbellekleOnYukle();
   eventleriBagla();
   subscribeStaffProfiles(database, () => { if (currentTable) { renderMasa(currentTable); } });
 
