@@ -31,20 +31,22 @@ $bj-kirmizi-cember: #c62828;
   position: relative;
   width: min(960px, 100%);
   align-self: center;
-  min-height: 520px;
-  border-radius: var(--radius-lg);
+  min-height: 640px;
+  border-radius: 40px;
   background: $bj-yesil;
   border: 8px solid $bj-bordo;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
-  padding: 28px 16px 130px;
+  padding: 40px 24px 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 32px;
 }
 // Masaüstünde daha büyük masa + 1.75x kart -- kullanıcı isteği: "kartlar tam
-// okunaklı olsun".
+// okunaklı olsun", "masayı biraz daha uzat aşağıya ve yanlara doğru".
 @media (min-width: 900px) {
-  .bj-masa { width: min(1360px, 100%); padding: 36px 28px 150px; }
+  .bj-masa { width: min(1360px, 100%); min-height: 760px; padding: 48px 40px 170px; border-radius: 56px; }
   .bj-kart { width: 91px; margin-left: -31px; } // 52*1.75
   .bj-koltuk-slot { max-width: 260px; }
 }
@@ -92,11 +94,13 @@ $bj-kirmizi-cember: #c62828;
 }
 .bj-koltuk-slot { flex: 1 1 0; min-width: 0; max-width: 180px; }
 
+// NOT: Kullanıcı isteği: "kenarlarında kişilerin çerçeve çıkmasın hiçbir
+// zaman" -- her koltuk artık kutu/çerçeve OLMADAN doğrudan yeşil keçe
+// üzerinde duruyor (avatar + kartlar + rozet), referans görseldeki gibi.
 .bj-koltuk {
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-lg);
-  padding: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
   min-height: 150px;
   display: flex;
   flex-direction: column;
@@ -104,7 +108,7 @@ $bj-kirmizi-cember: #c62828;
   gap: 6px;
   color: #fff;
 }
-.bj-koltuk-bos { justify-content: center; align-items: center; background: transparent; border: none; }
+.bj-koltuk-bos { justify-content: center; align-items: center; min-height: 60px; }
 .bj-otur-btn {
   width: 48px; height: 48px;
   display: flex;
@@ -120,8 +124,9 @@ $bj-kirmizi-cember: #c62828;
   transition: background 120ms, transform 120ms;
 }
 .bj-otur-btn:hover { background: rgba(255, 255, 255, 0.18); transform: scale(1.06); }
-.bj-koltuk-aktif { border-color: $bj-altin; box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.5); }
-.bj-koltuk-ben { border-color: rgba(255, 255, 255, 0.4); }
+// Aktif/kendi koltuk vurgusu artık bir KUTU çerçevesi değil (kullanıcı
+// isteği: "çerçeve çıkmasın") -- avatarın altın halkası yeterli.
+.bj-koltuk-aktif .bj-avatar-cember { box-shadow: 0 0 0 3px $bj-altin; }
 .bj-koltuk-oyuncu { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: var(--font-weight-medium); }
 
 // Kazanma/kaybetme halkası -- kullanıcı isteği: "kazanınca yeşil çember

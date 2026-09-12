@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/press-directory-CzZyPCiS.js","js/main-v4-By-XRcph.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js","assets/main-v4-DxbwUPmw.css"])))=>i.map(i=>d[i]);
+import{n as r}from"./main-v4-By-XRcph.js";r(()=>import("./press-directory-CzZyPCiS.js").then(r=>r.initPressDirectory()),__vite__mapDeps([0,1,2,3,4]));
