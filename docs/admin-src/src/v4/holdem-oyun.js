@@ -110,7 +110,16 @@ function botTurunuPlanla() {
     try {
       previewMasa = holdemAksiyonUygula(previewMasa, { koltukIndex: index, aksiyon: karar.action, miktar: karar.amount }, Date.now());
       demoEkraniEsitle(); renderMasa(); botTurunuPlanla();
-    } catch { /* Beklenmeyen bot kararı masayı kilitlemez; sıradaki turda yeniden dener. */ }
+    } catch {
+      // Strateji motorundan bir miktar sınır dışı gelirse timer'ın sessizce
+      // bitmesi masayı donduruyordu. Güvenli hamle ile sırayı ilerletmek,
+      // oynanabilirliği karar kalitesinden her zaman önde tutar.
+      try {
+        const guvenliAksiyon = toCall > 0 ? 'fold' : 'check';
+        previewMasa = holdemAksiyonUygula(previewMasa, { koltukIndex: index, aksiyon: guvenliAksiyon }, Date.now());
+        demoEkraniEsitle(); renderMasa(); botTurunuPlanla();
+      } catch { lobiGorunumuOlustur(); renderMasa(); botTurunuPlanla(); }
+    }
   }, 550);
 }
 
