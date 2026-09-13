@@ -698,13 +698,24 @@ function krupiyerSirasiGeldi() {
 // diye kontrol ediyor (bkz. attachTableListener) -- transaction zaten hangi
 // istemcinin kazandığını çözüyor, burada sadece "kim önce fark ederse o dener".
 const EL_SONUCU_BEKLEME_MS = 4000;
+// Firebase kuralındaki (masalar/$masaId .write) "guncellemeTs 120 saniyeden
+// eskiyse koltukta oturmayan biri de yazabilir" kurtarma cümlesiyle eşleşir
+// -- bilinçli olarak 120000'in ÜZERİNDE tutuluyor ki yazma denendiğinde kural
+// zaten sağlanmış olsun. SOLO oyunda aksiyonSuresiBitis hep null bırakılıyor
+// (kullanıcı isteği: "tek kişi oynayınca geri sayım olmasın"), yani tek
+// oyuncu elin ORTASINDA (durum='oyunculuk') bağlantısını kaybederse hiçbir
+// zaman-aşımı mekanizması devreye girmiyordu -- masa SONSUZA KADAR kilitli
+// kalıyordu (kimse otur()/bahisYap() da çağıramaz, ikisi de
+// durum==='bahis_bekleniyor' şartı arıyor). Bu, o kilidi de kırar.
+const TERK_EDILME_MS = 130000;
 function belkiSonrakiFazaGec(table) {
   if (!table || !canPlay || !modeReady || isReadOnly() || pendingTableOperation || playerActionPending || tableError || activeDistribution) { return; }
-  if (table.durum !== 'bahis_bekleniyor' && benimKoltukIndex(table) === null) { return; }
+  const terkEdilmisMi = Boolean(table.guncellemeTs) && Date.now() - table.guncellemeTs > TERK_EDILME_MS;
+  if (table.durum !== 'bahis_bekleniyor' && benimKoltukIndex(table) === null && !terkEdilmisMi) { return; }
   if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
-  if (table.durum === 'oyunculuk' && eldekiOyuncuSayisi(table) > 1 && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) { aksiyonSuresiDolunca(); }
+  if (table.durum === 'oyunculuk' && ((eldekiOyuncuSayisi(table) > 1 && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) || terkEdilmisMi)) { aksiyonSuresiDolunca(); }
 }
 
 // Sırası gelen oyuncu 30 sn içinde karar vermezse otomatik "Kal" -- süresiz
@@ -713,7 +724,9 @@ function belkiSonrakiFazaGec(table) {
 function aksiyonSuresiDolunca() {
   return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'oyunculuk' || mevcut.aktifKoltuk === null || mevcut.aktifKoltuk === undefined) { return; }
-    if (eldekiOyuncuSayisi(mevcut) <= 1 || !mevcut.aksiyonSuresiBitis || Date.now() < mevcut.aksiyonSuresiBitis) { return; }
+    const suresiDolduMu = eldekiOyuncuSayisi(mevcut) > 1 && mevcut.aksiyonSuresiBitis && Date.now() >= mevcut.aksiyonSuresiBitis;
+    const terkEdilmisMi = Boolean(mevcut.guncellemeTs) && Date.now() - mevcut.guncellemeTs > TERK_EDILME_MS;
+    if (!suresiDolduMu && !terkEdilmisMi) { return; }
     const koltukIndex = mevcut.aktifKoltuk;
     const koltuk = mevcut.koltuklar[koltukIndex];
     const elIndex = activeElIndex(koltuk);

@@ -44,7 +44,13 @@ async function controls(page) {
 	const reports = [];
 	try {
 		browser = await chromium.launch({ headless: true });
-		for (const device of [{ name: 'desktop', width: 1366, height: 768, touch: false }, { name: 'mobile', width: 390, height: 844, touch: true }, { name: 'small-mobile', width: 375, height: 667, touch: true }]) {
+		// Mobil cihazlar artık YATAY (landscape) boyutlarla test ediliyor --
+		// kullanıcı isteği: "blackjacki telefonu sadece yatayda tutunca
+		// çalışıcak şekilde ayarlayalım". Dikey telefonda tam ekran "telefonu
+		// çevir" uyarısı gösterilip masa gizleniyor (bkz. .bj-rotate-overlay),
+		// bu yüzden dikey boyutlarla test etmek artık anlamsız/zamanaşımına
+		// yol açar.
+		for (const device of [{ name: 'desktop', width: 1366, height: 768, touch: false }, { name: 'mobile-landscape', width: 844, height: 390, touch: true }, { name: 'small-mobile-landscape', width: 667, height: 375, touch: true }]) {
 			const context = await browser.newContext({ viewport: { width: device.width, height: device.height }, hasTouch: device.touch, isMobile: device.touch });
 			const page = await context.newPage();
 			const errors = [];

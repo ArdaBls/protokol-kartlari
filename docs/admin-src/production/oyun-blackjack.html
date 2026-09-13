@@ -16,7 +16,14 @@
 </head>
 <body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Blackjack">
 
-<main class="main">
+<!-- Dikey telefonda masa hiç açılmaz; cihaz yönü tarayıcı tarafından kilitlenemediği için yönlendirme kullanılır (Hold'em ile aynı desen). -->
+<div class="bj-rotate-overlay" data-bj-rotate-overlay role="alert" aria-live="assertive">
+  <div class="bj-rotate-icon" aria-hidden="true">↻</div>
+  <strong>Telefonunu yatay çevir</strong>
+  <span>Blackjack masasındaki tüm koltukları ve kartları görebilmek için yatay görünüm gerekir.</span>
+</div>
+
+<main class="main bj-main">
 <div class="page-wrapper">
 
   <div class="page-header">

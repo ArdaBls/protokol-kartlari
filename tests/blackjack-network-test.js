@@ -103,7 +103,10 @@ function table(pair = false) {
 				await page.waitForSelector('[data-bj-bahis-panel] .bj-bahis-panel-oyuncu');
 				assert.equal(await page.locator('.bj-bahis-panel-baslik').count(), 0);
 				if (scenario === 'refund-deal') {
-					for (const viewport of [{ width: 375, height: 667 }, { width: 1366, height: 768 }]) {
+					// Mobil boyut artık YATAY (landscape) -- dikey telefonda tam ekran "telefonu
+						// çevir" uyarısı masayı gizliyor (kullanıcı isteği: "blackjacki telefonu
+						// sadece yatayda tutunca çalışıcak şekilde ayarlayalım").
+						for (const viewport of [{ width: 667, height: 375 }, { width: 1366, height: 768 }]) {
 						await page.setViewportSize(viewport);
 						await page.waitForTimeout(400); // Kabuk resize debounce ve sidebar geçişini tamamlasın.
 						const bareSurfaces = await page.locator('[data-bj-bahis-panel]').evaluate((panel) => {
