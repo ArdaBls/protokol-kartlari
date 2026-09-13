@@ -54,6 +54,9 @@ async function createServer() {
       assert.equal(await page.locator('[data-holdem-bot-zorlugu]').inputValue(), 'normal', view.name + ': varsayılan zorluk dengeli olmalı');
       assert.equal(await page.locator('[data-holdem-ortak-kartlar] img').count(), 0, view.name + ': el preflop başlamalı, ortak kart açılmamalı');
       assert.equal(await page.locator('[data-slot="3"] .holdem-kart').count(), 2, view.name + ': oyuncunun iki kapalı kartı olmalı');
+      if (view.name === 'desktop') {
+        assert(await page.locator('[data-holdem-masaya-otur]').isVisible(), view.name + ': izleyici masaya katılabilmeli');
+      }
       assert.equal(await page.locator('[data-holdem-kombinasyon-listesi] .holdem-kombinasyon-satir').count(), 10, view.name + ': tüm kombinasyonlar listelenmeli');
       assert.equal(await page.locator('[data-holdem-bakiye]').textContent(), '850 çip');
       const cardStyle = await page.locator('[data-slot="3"] .holdem-kart').first().evaluate((card) => {
@@ -68,10 +71,9 @@ async function createServer() {
       });
       assert(dimensions.width > 0 && dimensions.height > 0 && dimensions.background.includes('holdem-masa-v1.png'), view.name + ': masa PNG arka planı görünmeli');
       if (view.name === 'desktop') {
-        const eskiDeste = await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id');
-        await page.locator('[data-holdem-yeni-el]').click();
-        await page.waitForFunction((id) => document.querySelector('[data-holdem-root]').dataset.holdemDesteId !== id, eskiDeste);
-        assert(await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id'), view.name + ': yeni el benzersiz deste kimliği almalı');
+        await page.locator('[data-holdem-masaya-otur]').click();
+        await page.waitForFunction(() => document.querySelector('[data-holdem-durum]').textContent.includes('El bitince'));
+        assert(await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id'), view.name + ': bot eli benzersiz deste kimliği almalı');
       }
       assert.deepEqual(errors, [], view.name + ': JavaScript hatası olmamalı');
       await page.screenshot({ path: path.join(site, '..', '.impeccable', 'holdem-' + view.name + '.png') });

@@ -28,6 +28,13 @@ $he-gold: #ffd26d;
 .holdem-pot { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; color: #fff; font-size: clamp(12px, 1.2vw, 17px); font-weight: 700; text-shadow: 0 2px 3px #000; }
 .holdem-pot::before { content: ''; width: 30px; height: 30px; background: url('/assets/blackjack/cipler/cip-04-mavi.png') center / contain no-repeat; }
 .holdem-pot small { color: rgba(255, 255, 255, .76); font-size: .75em; font-weight: 600; }
+.holdem-canli-kombinasyon { position: absolute; z-index: 3; top: 30%; left: clamp(18px, 4.3vw, 70px); width: clamp(128px, 11.2vw, 174px); padding: 9px; border: 1px solid rgba(151, 219, 246, .48); border-radius: 8px; color: rgba(226, 245, 255, .72); background: rgba(2, 28, 48, .82); font-size: clamp(8px, .72vw, 11px); text-shadow: 0 1px 2px #001321; }
+.holdem-canli-kombinasyon-baslik { display: block; margin-bottom: 6px; color: #effaff; font-size: 1.08em; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.holdem-canli-kombinasyon > p { margin: 0; line-height: 1.35; }
+.holdem-canli-kombinasyon-listesi { display: grid; gap: 3px; }
+.holdem-canli-kombinasyon-satir { width: 100%; padding: 4px 6px; border: 1px solid transparent; border-radius: 4px; color: rgba(222, 240, 250, .45); background: transparent; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.holdem-canli-kombinasyon-satir:hover, .holdem-canli-kombinasyon-satir:focus-visible { color: #fff; background: rgba(95, 192, 231, .18); outline: none; }
+.holdem-canli-kombinasyon-satir.is-active { border-color: rgba(255, 205, 65, .9); color: #ffe27c; background: linear-gradient(90deg, rgba(248, 190, 39, .32), rgba(248, 190, 39, .06)); box-shadow: inset 3px 0 #ffd24b; }
 .holdem-kurpiyer { position: absolute; z-index: 2; top: 2%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; color: #fff; font-size: clamp(9px, .9vw, 13px); font-weight: 700; text-align: center; text-shadow: 0 2px 3px #000; }
 .holdem-kurpiyer span { color: rgba(232, 248, 255, .72); font-size: .82em; font-weight: 500; }
 .holdem-kurpiyer-avatar { display: grid; width: clamp(34px, 4vw, 56px); height: clamp(34px, 4vw, 56px); place-items: center; border: 2px solid rgba(219, 244, 255, .92); border-radius: 50%; background: radial-gradient(circle at 50% 30%, #5bc7ef 0 16%, #143b61 18% 65%, #071e36 67%); color: #eafaff; font-family: Georgia, serif; font-size: 1.25em; }
@@ -100,17 +107,31 @@ $he-gold: #ffd26d;
   .holdem-page-wrapper { max-width: none; padding: 0 !important; }
   .holdem-masa { width: 100vw; height: 100dvh; min-height: 0; aspect-ratio: auto; }
   .holdem-kontrol-alani { width: min(84%, 680px); bottom: 2%; }
+  .holdem-canli-kombinasyon { top: 28%; left: 2%; width: 112px; padding: 6px; font-size: 8px; }
+  .holdem-canli-kombinasyon-satir { padding: 2px 4px; }
   .holdem-aksiyonlar .btn { min-height: 36px; font-size: 12px; }
   // Yatay telefonda oyuncunun fotoğrafı ve eli görünür; adı/bakiyesi alt
   // aksiyon şeridiyle yarışmaz. Ayrıntılar masaüstünde görünmeye devam eder.
   .holdem-koltuk[data-slot='3'] { bottom: 13.5%; }
   .holdem-koltuk-ben > strong, .holdem-koltuk-ben > span:not(.holdem-aktif-el) { display: none; }
 }
-@media (min-width: 821px) { .holdem-page-wrapper { max-width: 1600px; } }
+// Genel sayfa kabuğu flex sütunu olduğu için yalnız max-width vermek geniş
+// masaüstlerinde Hold'em alanını sol kenara yaslı bırakıyordu. Genişliği
+// görünür oyun alanına göre sınırlayıp iki yana eşit auto marjin vermek,
+// masayı sidebar'dan sonraki gerçek viewport'un tam ortasına alır.
+@media (min-width: 821px) {
+  .holdem-page-wrapper {
+    width: 100%;
+    max-width: 1600px;
+    margin-inline: auto;
+    box-sizing: border-box;
+  }
+}
 @media (max-width: 540px) and (orientation: landscape) {
   .holdem-koltuk { width: 78px; font-size: 8px; }
   .holdem-koltuk[data-slot='1'] { right: 3%; }
   .holdem-koltuk[data-slot='0'] { left: 3%; }
   .holdem-ortak-kartlar .holdem-kart, .holdem-kart-yuva { width: 43px; }
   .holdem-kontrol-alani { width: 88%; }
+  .holdem-canli-kombinasyon { display: none; }
 }

@@ -36,6 +36,9 @@ let botTuruTimer = null;
 let currentUserRole = '';
 let masaAyarlari = holdemVarsayilanAyarlaraDon();
 let masaAyarRef = null;
+let masayaOturdu = false;
+let katilimBekliyor = false;
+let siraSaati = null;
 
 // Bu sahne, veri modeli ve görsel akışı doğrulamak için deterministik bir
 // örnek el gösterir. Beş oyuncu koltuğu vardır; üst orta kurpiyer ayrı DOM
@@ -44,6 +47,24 @@ let demoEl = null;
 
 function kayitliZorluguAl() {
   try { return HOLDEM_ZORLUKLARI[globalThis.localStorage && globalThis.localStorage.getItem('holdem.botZorlugu')] ? globalThis.localStorage.getItem('holdem.botZorlugu') : 'normal'; } catch { return 'normal'; }
+}
+function yerelMasaAnahtari() { return 'holdem.yerelMasa.' + (currentUser?.uid || 'misafir'); }
+function yerelMasaKaydet() {
+  if (!masayaOturdu || !previewMasa) { return; }
+  try { globalThis.localStorage.setItem(yerelMasaAnahtari(), JSON.stringify({ surum: 1, masa: previewMasa })); } catch {}
+}
+function yerelMasaYukle() {
+  try {
+    const kayit = JSON.parse(globalThis.localStorage.getItem(yerelMasaAnahtari()) || 'null');
+    if (!kayit || kayit.surum !== 1 || !kayit.masa || !Array.isArray(kayit.masa.koltuklar)) { return false; }
+    previewMasa = kayit.masa; masayaOturdu = true; katilimBekliyor = false; demoEkraniEsitle(); return true;
+  } catch { return false; }
+}
+function lobiGorunumuOlustur() {
+  if (botTuruTimer) { clearTimeout(botTuruTimer); botTuruTimer = null; }
+  const botlar = ['Rota Bot', 'Mira Bot', 'Nova Bot', 'Atlas Bot', 'Luna Bot'].map((isim, index) => ({ uid: 'izleyici-bot-' + index, isim, bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }));
+  previewMasa = holdemEliBaslat({ ...holdemBosCanliMasa({ masaId: 'onizleme-masasi', ayarlar: masaAyarlari }), koltuklar: botlar }, Date.now());
+  demoEkraniEsitle();
 }
 function yeniDemoEliOlustur() {
   if (botTuruTimer) { clearTimeout(botTuruTimer); botTuruTimer = null; }
@@ -60,11 +81,21 @@ function demoEkraniEsitle() {
   demoEl = {
     asama: previewMasa.durum, pot: previewMasa.koltuklar.reduce((toplam, koltuk) => toplam + koltuk.toplamYatirim, 0), siradaki: previewMasa.aktifKoltuk, desteId: previewMasa.desteId,
     ortakKartlar: previewMasa.communityCards,
-    koltuklar: previewMasa.koltuklar.map((oyuncu, index) => ({ isim: isimler[index], bot: oyuncu.bot, bakiye: oyuncu.masaBakiyesi, bahis: oyuncu.sokakYatirimi, rozet: index === previewMasa.smallBlind ? 'Küçük kör bahis' : index === previewMasa.bigBlind ? 'Büyük kör bahis' : '', kartlar: oyuncu.kartlar, pas: oyuncu.pas, skin: oyuncu.skin }))
+    koltuklar: previewMasa.koltuklar.map((oyuncu, index) => ({ isim: oyuncu.isim || isimler[index], bot: oyuncu.bot, bakiye: oyuncu.masaBakiyesi, bahis: oyuncu.sokakYatirimi, rozet: index === previewMasa.smallBlind ? 'Küçük kör bahis' : index === previewMasa.bigBlind ? 'Büyük kör bahis' : '', kartlar: oyuncu.kartlar, pas: oyuncu.pas, skin: oyuncu.skin }))
   };
+  yerelMasaKaydet();
 }
 function botTurunuPlanla() {
-  if (!previewMasa || !['preflop', 'flop', 'turn', 'river'].includes(previewMasa.durum)) { return; }
+  if (!previewMasa) { return; }
+  if (previewMasa.durum === 'el_sonucu') {
+    botTuruTimer = setTimeout(() => {
+      if (katilimBekliyor) { katilimBekliyor = false; masayaOturdu = true; yeniDemoEliOlustur(); }
+      else if (!masayaOturdu) { lobiGorunumuOlustur(); }
+      renderMasa(); botTurunuPlanla();
+    }, 1200);
+    return;
+  }
+  if (!['preflop', 'flop', 'turn', 'river'].includes(previewMasa.durum)) { return; }
   const index = previewMasa.aktifKoltuk;
   const bot = previewMasa.koltuklar[index];
   if (!bot || !bot.bot) { return; }
@@ -121,7 +152,10 @@ function masaAyarlariniDinle() {
   masaAyarRef = database.ref(dbPath(MASA_AYAR_YOLU));
   masaAyarRef.on('value', (snap) => {
     masaAyarlari = holdemAyarlariNormalle(snap.val() || {});
-    yeniDemoEliOlustur();
+    if (masayaOturdu && previewMasa) {
+      previewMasa = { ...previewMasa, ayarlar: masaAyarlari };
+      demoEkraniEsitle();
+    } else { lobiGorunumuOlustur(); }
     renderMasa();
   });
 }
@@ -146,21 +180,35 @@ function renderKombinasyonlar() {
   if (!list) {return;}
   list.innerHTML = KOMBINASYONLAR.map(([ad, aciklama]) => '<div class="holdem-kombinasyon-satir"><strong>' + ad + '</strong><span>' + aciklama + '</span></div>').join('');
 }
+function renderCanliKombinasyon(hand) {
+  const panel = document.querySelector('[data-holdem-canli-kombinasyon]');
+  if (!panel) { return; }
+  if (!hand) {
+    panel.innerHTML = '<span class="holdem-canli-kombinasyon-baslik">Kombinasyonlar</span><p>Yerde en az üç kart açıldığında en iyi elin burada vurgulanır.</p>';
+    return;
+  }
+  panel.innerHTML = '<span class="holdem-canli-kombinasyon-baslik">En iyi elin</span><div class="holdem-canli-kombinasyon-listesi">' +
+    KOMBINASYONLAR.map(([ad]) => '<button class="holdem-canli-kombinasyon-satir' + (ad === hand.turAdi ? ' is-active' : '') + '" type="button" data-holdem-kombinasyon-ac' + (ad === hand.turAdi ? ' aria-current="true"' : '') + '>' + escapeHtml(ad) + '</button>').join('') +
+    '</div>';
+}
 function renderMasa() {
-  if (!demoEl) { yeniDemoEliOlustur(); }
+  if (!demoEl) { lobiGorunumuOlustur(); }
   const root = document.querySelector('[data-holdem-root]');
   if (root && demoEl.desteId) { root.dataset.holdemDesteId = demoEl.desteId; }
   const ownSeat = demoEl.koltuklar[3];
-  ownSeat.isim = currentUserName;
+  if (masayaOturdu) { ownSeat.isim = currentUserName; }
   const all = ownSeat.kartlar.concat(demoEl.ortakKartlar);
-  const hand = all.length >= 5 ? holdemElDegerlendir(all) : null;
+  // İzleyici modunda botun kapalı kartlarından kullanıcıya kombinasyon
+  // çıkarılmaz; panel yalnız masaya oturan kişinin gerçek eli için çalışır.
+  const hand = masayaOturdu && all.length >= 5 ? holdemElDegerlendir(all) : null;
+  renderCanliKombinasyon(hand);
   const pot = document.querySelector('[data-holdem-pot]');
   if (pot) {pot.innerHTML = '<small>Pot</small><span>' + demoEl.pot + ' çip</span>';}
   const board = document.querySelector('[data-holdem-ortak-kartlar]');
   if (board) {board.innerHTML = demoEl.ortakKartlar.map((k) => kartHtml(k)).join('') + Array.from({ length: 5 - demoEl.ortakKartlar.length }, () => '<span class="holdem-kart-yuva" aria-hidden="true"></span>').join('');}
   const seats = document.querySelector('[data-holdem-koltuklar]');
   if (seats) {seats.innerHTML = demoEl.koltuklar.map((seat, index) => {
-    const mine = index === 3;
+    const mine = masayaOturdu && index === 3;
     const avatar = mine ? renderStaffAvatar(currentUserName, currentUser && currentUser.uid, currentUserName, 56) : '<span class="staff-avatar staff-avatar--initial" aria-hidden="true">' + escapeHtml(seat.isim.charAt(0)) + '</span>';
     const cards = mine ? seat.kartlar.map((k) => kartHtml(k, false, seat.skin || skin)).join('') : kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin) + kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin);
     const cardsBlock = '<div class="holdem-kartlarim">' + cards + '</div>';
@@ -175,7 +223,7 @@ function renderMasa() {
   const handInfo = document.querySelector('[data-holdem-el-bilgisi]');
   if (handInfo) {handInfo.innerHTML = hand ? escapeHtml(hand.turAdi) + '<small>Şu anki en iyi elin</small>' : '<small>Kombinasyon için flop bekleniyor</small>';}
   const turn = document.querySelector('[data-holdem-sira-bildirimi]');
-  if (turn) {turn.textContent = previewMasa?.durum === 'el_sonucu' ? 'El bitti · Yeni el dağıtabilirsin' : demoEl.siradaki === 3 ? 'Sıra sende · Gör ya da artır' : 'Bot karar veriyor';}
+  if (turn) {turn.textContent = !masayaOturdu ? (katilimBekliyor ? 'El bitince masaya oturacaksın' : 'Botlar oynuyor · Masaya oturabilirsin') : previewMasa?.durum === 'el_sonucu' ? 'El bitti · Yeni el dağıtabilirsin' : demoEl.siradaki === 3 ? 'Sıra sende · Gör ya da artır' : 'Bot karar veriyor';}
   const actions = document.querySelector('[data-holdem-aksiyonlar]');
   const benimSiram = previewMasa && previewMasa.aktifKoltuk === 3 && ['preflop', 'flop', 'turn', 'river'].includes(previewMasa.durum);
   const kendi = previewMasa?.koltuklar[3];
@@ -185,6 +233,28 @@ function renderMasa() {
   const minRaise = kendi ? Math.min(kendi.sokakYatirimi + kendi.masaBakiyesi, previewMasa.mevcutBahis + previewMasa.minArtirma) : 0;
   const maxRaise = kendi ? kendi.sokakYatirimi + kendi.masaBakiyesi : 0;
   if (raise) {raise.innerHTML = '<label><span class="sr-only">Artırma miktarı</span><input data-holdem-raise type="range" min="' + minRaise + '" max="' + maxRaise + '" value="' + minRaise + '"' + (benimSiram ? '' : ' disabled') + '></label><label class="holdem-raise-number"><span>Artırma</span><input data-holdem-raise-number type="number" min="' + minRaise + '" max="' + maxRaise + '" step="1" value="' + minRaise + '"' + (benimSiram ? '' : ' disabled') + '></label><output data-holdem-raise-output>' + minRaise + ' çip</output>';}
+  const durum = document.querySelector('[data-holdem-durum]');
+  if (durum) {
+    const saniye = previewMasa?.aksiyonBitis ? Math.max(0, Math.ceil((previewMasa.aksiyonBitis - Date.now()) / 1000)) : 0;
+    durum.textContent = !masayaOturdu ? (katilimBekliyor ? 'El bitince masaya oturacaksın.' : 'Botlar oynuyor · Katılmak için masaya otur.') : previewMasa?.durum === 'el_sonucu' ? 'El tamamlandı.' : (demoEl.siradaki === 3 ? 'Sıra sende · ' + saniye + ' sn' : 'Bot sırası · ' + saniye + ' sn');
+  }
+  const join = document.querySelector('[data-holdem-masaya-otur]');
+  const yeniEl = document.querySelector('[data-holdem-yeni-el]');
+  if (join) { join.hidden = masayaOturdu || katilimBekliyor; }
+  if (yeniEl) { yeniEl.hidden = !masayaOturdu; }
+}
+
+function siraSaatiniBaslat() {
+  if (siraSaati) { return; }
+  siraSaati = setInterval(() => {
+    if (!previewMasa || !masayaOturdu || !previewMasa.aksiyonBitis) { return; }
+    if (Date.now() >= previewMasa.aksiyonBitis && previewMasa.aktifKoltuk === 3) {
+      const own = previewMasa.koltuklar[3];
+      const action = previewMasa.mevcutBahis > own.sokakYatirimi ? 'fold' : 'check';
+      previewMasa = holdemAksiyonUygula(previewMasa, { koltukIndex: 3, aksiyon: action }, Date.now());
+      demoEkraniEsitle(); renderMasa(); botTurunuPlanla();
+    } else { renderMasa(); }
+  }, 1000);
 }
 
 function loadSkin(uid) {
@@ -214,6 +284,10 @@ function bindUi() {
       yeniDemoEliOlustur();
       renderMasa();
       botTurunuPlanla();
+    }
+    if (event.target.closest('[data-holdem-masaya-otur]') && !masayaOturdu) {
+      katilimBekliyor = true;
+      renderMasa();
     }
     const aksiyon = event.target.closest('[data-holdem-aksiyon]')?.dataset.holdemAksiyon;
     if (aksiyon && previewMasa && previewMasa.aktifKoltuk === 3) {
@@ -257,8 +331,10 @@ export function initHoldem() {
   const zorlukSecici = document.querySelector('[data-holdem-bot-zorlugu]');
   if (zorlukSecici) { zorlukSecici.value = botZorlugu; }
   renderKombinasyonlar();
+  lobiGorunumuOlustur();
   renderMasa();
   bindUi();
+  siraSaatiniBaslat();
   botTurunuPlanla();
   firebase.auth().onAuthStateChanged(async (user) => {
     currentUser = user;
@@ -271,6 +347,11 @@ export function initHoldem() {
       currentUserRole = p.role || '';
       masaAyariButonunuGuncelle();
       currentUserName = ((p.firstName || '') + ' ' + (p.lastName || '')).trim() || user.email || 'Sen';
+      if (yerelMasaYukle()) {
+        if (botTuruTimer) { clearTimeout(botTuruTimer); botTuruTimer = null; }
+        renderMasa();
+        botTurunuPlanla();
+      }
       subscribeStaffProfiles(database);
       subscribeWallet(user.uid);
       loadSkin(user.uid);

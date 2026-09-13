@@ -28,11 +28,11 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/oyun-holdem-BP3nDABq.js"></script>
+  <script type="module" crossorigin src="/js/oyun-holdem-DwXLsGnm.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-F_jprkvV.js">
-  <link rel="modulepreload" crossorigin href="/js/main-v4-B-HTlFPW.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-D5o1cB1F.css">
+  <link rel="modulepreload" crossorigin href="/js/main-v4-Db-Yu4XD.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-v4-DKFgq7Oj.css">
 </head>
 <body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Texas Hold'em">
 
@@ -69,6 +69,7 @@
 
   <div class="holdem-islem-durumu" aria-live="polite">
     <span data-holdem-durum></span>
+    <button type="button" class="btn btn-primary" data-holdem-masaya-otur>Masaya otur</button>
     <button type="button" class="btn btn-outline" data-holdem-yeni-el>Yeni el dağıt</button>
   </div>
 
@@ -81,6 +82,10 @@
         <span>Dağıtıcı</span>
       </div>
       <div class="holdem-pot" data-holdem-pot aria-live="polite"></div>
+      <aside class="holdem-canli-kombinasyon" data-holdem-canli-kombinasyon aria-live="polite" aria-label="Canlı el kombinasyonu">
+        <span class="holdem-canli-kombinasyon-baslik">Kombinasyonlar</span>
+        <p>Yerde en az üç kart açıldığında en iyi elin burada vurgulanır.</p>
+      </aside>
       <div class="holdem-ortak-kartlar" data-holdem-ortak-kartlar aria-label="Ortak kartlar"></div>
       <div class="holdem-el-bilgisi" data-holdem-el-bilgisi aria-live="polite"></div>
       <div class="holdem-koltuklar" data-holdem-koltuklar aria-label="Oyuncular"></div>
