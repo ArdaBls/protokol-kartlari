@@ -89,6 +89,19 @@ function demoEkraniEsitle() {
   yerelMasaKaydet();
   if (previewMasa.durum === 'el_sonucu') { elSonuCuzdanaAktar(); }
 }
+function botPozisyonu(masa, index) {
+  if (index === masa.smallBlind) { return 'small_blind'; }
+  if (index === masa.bigBlind) { return 'big_blind'; }
+  const siralama = [];
+  for (let adim = 1; adim < masa.koltuklar.length; adim++) {
+    const aday = (masa.bigBlind + adim) % masa.koltuklar.length;
+    if (aday !== masa.smallBlind && aday !== masa.bigBlind) { siralama.push(aday); }
+  }
+  const sira = siralama.indexOf(index);
+  if (sira < 0) { return 'middle'; }
+  if (sira === siralama.length - 1) { return 'late'; }
+  return sira === 0 ? 'early' : 'middle';
+}
 function botTurunuPlanla() {
   if (!previewMasa) { return; }
   if (previewMasa.durum === 'el_sonucu') {
@@ -110,7 +123,7 @@ function botTurunuPlanla() {
       bot, holeCards: bot.kartlar, communityCards: previewMasa.communityCards, stack: bot.masaBakiyesi,
       pot: previewMasa.koltuklar.reduce((toplam, koltuk) => toplam + koltuk.toplamYatirim, 0), toCall,
       bigBlind: previewMasa.ayarlar.buyukKor, currentBet: previewMasa.mevcutBahis, activeOpponents: previewMasa.koltuklar.filter((koltuk) => !koltuk.pas).length,
-      position: index === previewMasa.smallBlind ? 'small_blind' : 'middle', actionContext: previewMasa.mevcutBahis > previewMasa.ayarlar.buyukKor ? 'facing_open' : 'unopened'
+      position: botPozisyonu(previewMasa, index), actionContext: previewMasa.mevcutBahis > previewMasa.ayarlar.buyukKor ? 'facing_open' : 'unopened'
     });
     try {
       previewMasa = holdemAksiyonUygula(previewMasa, { koltukIndex: index, aksiyon: karar.action, miktar: karar.amount }, Date.now());

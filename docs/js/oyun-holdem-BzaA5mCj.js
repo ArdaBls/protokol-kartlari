@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/holdem-oyun-DR2pnD98.js","js/main-v4-C_GCiyKZ.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js","assets/main-v4-CcmDM4TW.css"])))=>i.map(i=>d[i]);
+import{n as m}from"./main-v4-C_GCiyKZ.js";m(()=>import("./holdem-oyun-DR2pnD98.js").then(m=>m.initHoldem()),__vite__mapDeps([0,1,2,3,4]));
