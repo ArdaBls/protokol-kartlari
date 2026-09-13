@@ -75,9 +75,16 @@ function renderIslemDurumu() {
 }
 
 function masaHatasi(err) {
+  // Teşhis: gerçek Firebase'de bu hatanın kesin nedeni (kural reddi mi,
+  // gerçekten bağlantı mı, yoksa güncelleme fonksiyonunda atılan bir JS
+  // istisnası mı) konsolsuz görülemiyor -- geçici olarak tam hataburada
+  // loglanıyor, kullanıcıdan F12 konsolundaki "Pişti masa hatası:" satırını
+  // istemek için.
+  console.error('Pişti masa hatası:', err);
+  const kod = err && (err.code || err.name || '');
   tableError = err && err.code === 'PERMISSION_DENIED'
     ? 'Masa güncellenemedi: oyun için yazma izni bulunmuyor.'
-    : 'Masa güncellenemedi. Bağlantınızı kontrol edip tekrar deneyin.';
+    : 'Masa güncellenemedi. Bağlantınızı kontrol edip tekrar deneyin.' + (kod ? ' (' + kod + ')' : '');
   renderIslemDurumu();
 }
 
