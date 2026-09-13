@@ -80,7 +80,7 @@ bozmaması gereken üç kural:
 
 ## Brand Commitments
 
-- Ad: "OMÜ Protokol Kartları"; panel kısa adı "Protokol".
+- Ad: "Protokol Kartları"; panel kısa adı "Protokol".
 - Kurum: Ondokuz Mayıs Üniversitesi Basın ve Halkla İlişkiler.
 - Uygulama ikonu: `docs/admin-src/public/icon-192.png` ve `icon-512.png`
   (kullanıcı bunları sonradan SVG ile değiştirecek; dosya adları korunmalı).

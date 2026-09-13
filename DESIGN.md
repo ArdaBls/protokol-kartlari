@@ -1,5 +1,5 @@
 ---
-name: OMÜ Protokol Kartları
+name: Protokol Kartları
 description: Ekibin etkinlik anında ve masabaşında aynı protokol sırasına baktığı canlı operasyon panosu.
 colors:
   teal: "#1ABB9C"
@@ -108,7 +108,7 @@ components:
     textColor: "{colors.yuzey}"
 ---
 
-# Design System: OMÜ Protokol Kartları
+# Design System: Protokol Kartları
 
 ## Overview
 
