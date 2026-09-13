@@ -382,5 +382,12 @@ export function holdemBotAksiyonSec(options = {}, random = Math.random) {
   if (blöfUygun) {
     return sonuc('raise', artirmaMiktari({ bigBlind, stack, toCall: 0, currentBet: options.currentBet, profil }), 'Preflop pozisyon blöfü', { preflop: sinif, isBluff: true });
   }
+  // Masa oyunu yalnız dar bir chart ezberi gibi görünmesin: kötü eller de
+  // küçük kör bahis bedelinde zaman zaman limp/call ile flop görür. Oran
+  // düşük tutulur; pahalı bahis ya da yükseltilmiş potta bu istisna çalışmaz.
+  const gevsekGormeIhtimali = sinirliSayi(0.16 + profil.blöf * 0.65 + (position === 'late' ? 0.1 : 0) - korku * 0.16, 0.08, 0.3);
+  if (toCall > 0 && toCall <= bigBlind && random() < gevsekGormeIhtimali) {
+    return sonuc('call', toCall, 'Ucuz kör bahiste zayıf eli de flopta deniyor', { preflop: sinif, isBluff: false, stackBb, güven, korku, stratejiKullanimi: gevsekGormeIhtimali });
+  }
   return toCall === 0 ? sonuc('check', 0, 'Zayıf eli kontrol etme', { preflop: sinif, isBluff: false, stackBb, güven, korku, stratejiKullanimi: artırmaİhtimali }) : sonuc('fold', 0, korku >= 0.5 ? 'Büyük pot ve görme bedeli botu preflop pasına itti' : 'Pozisyon ve preflop strateji matrisi pas öneriyor', { preflop: sinif, isBluff: false, stackBb, güven, korku, stratejiKullanimi: artırmaİhtimali });
 }

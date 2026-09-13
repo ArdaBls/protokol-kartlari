@@ -42,6 +42,7 @@ let katilimBekliyor = false;
 let siraSaati = null;
 let masaGirisiOdendi = false;
 let masaCuzdanIslemiBekliyor = false;
+let masaBaslangicBakiyesi = 0;
 
 // Bu sahne, veri modeli ve görsel akışı doğrulamak için deterministik bir
 // örnek el gösterir. Beş oyuncu koltuğu vardır; üst orta kurpiyer ayrı DOM
@@ -54,13 +55,13 @@ function kayitliZorluguAl() {
 function yerelMasaAnahtari() { return 'holdem.yerelMasa.' + (currentUser?.uid || 'misafir'); }
 function yerelMasaKaydet() {
   if (!masayaOturdu || !previewMasa) { return; }
-  try { globalThis.localStorage.setItem(yerelMasaAnahtari(), JSON.stringify({ surum: 1, masa: previewMasa, masaGirisiOdendi })); } catch {}
+  try { globalThis.localStorage.setItem(yerelMasaAnahtari(), JSON.stringify({ surum: 2, masa: previewMasa, masaGirisiOdendi, masaBaslangicBakiyesi })); } catch {}
 }
 function yerelMasaYukle() {
   try {
     const kayit = JSON.parse(globalThis.localStorage.getItem(yerelMasaAnahtari()) || 'null');
-    if (!kayit || kayit.surum !== 1 || !kayit.masa || !Array.isArray(kayit.masa.koltuklar)) { return false; }
-    previewMasa = kayit.masa; masayaOturdu = true; katilimBekliyor = false; masaGirisiOdendi = kayit.masaGirisiOdendi === true; demoEkraniEsitle(); return true;
+    if (!kayit || ![1, 2].includes(kayit.surum) || !kayit.masa || !Array.isArray(kayit.masa.koltuklar)) { return false; }
+    previewMasa = kayit.masa; masayaOturdu = true; katilimBekliyor = false; masaGirisiOdendi = kayit.masaGirisiOdendi === true; masaBaslangicBakiyesi = Math.max(0, Number(kayit.masaBaslangicBakiyesi) || Number(kayit.masa.koltuklar[3]?.masaBakiyesi) || 0); demoEkraniEsitle(); return true;
   } catch { return false; }
 }
 function lobiGorunumuOlustur() {
@@ -73,7 +74,7 @@ function yeniDemoEliOlustur() {
   if (botTuruTimer) { clearTimeout(botTuruTimer); botTuruTimer = null; }
   const oyuncular = [
     { uid: 'bot-rota', isim: 'Rota Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }, { uid: 'bot-mira', isim: 'Mira Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli },
-    { uid: 'bot-nova', isim: 'Nova Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }, { uid: 'ben', isim: 'Sen', bot: false, masaBakiyesi: masaAyarlari.girisBedeli, skin }, { uid: 'bot-luna', isim: 'Luna Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }
+    { uid: 'bot-nova', isim: 'Nova Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }, { uid: 'ben', isim: 'Sen', bot: false, masaBakiyesi: masaBaslangicBakiyesi, skin }, { uid: 'bot-luna', isim: 'Luna Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }
   ];
   previewMasa = holdemEliBaslat({ ...holdemBosCanliMasa({ masaId: 'onizleme-masasi', ayarlar: masaAyarlari }), koltuklar: oyuncular }, Date.now());
   demoEkraniEsitle();
@@ -152,22 +153,20 @@ function masaAyarlariniAc() {
   const ayar = masaAyarlari;
   showModal({
     title: 'Hold’em masa ayarları',
-    body: '<p class="hint">Bu ayarlar yalnız yeni elde uygulanır. Oyuncular giriş çipini masaya yatırır; masadan kalkınca kalan bakiye cüzdana iade edilir.</p>' +
-      '<div class="form-group"><label>Giriş çipi<input class="form-control" data-he-ayar-giris type="number" min="100" max="100000" step="1" value="' + ayar.girisBedeli + '"></label></div>' +
+    body: '<p class="hint">Bu ayarlar yalnız yeni elde uygulanır. Oyuncu masaya site bakiyesinin tamamıyla oturur; giriş ücreti alınmaz.</p>' +
       '<div class="form-group"><label>Küçük kör bahis<input class="form-control" data-he-ayar-sb type="number" min="1" max="10000" step="1" value="' + ayar.kucukKor + '"></label></div>' +
       '<div class="form-group"><label>Büyük kör bahis<input class="form-control" data-he-ayar-bb type="number" min="2" max="20000" step="1" value="' + ayar.buyukKor + '"></label></div>' +
       '<p class="hint">Oyuncu sırası: 60 saniye. Site bağlantısı kesilirse, sıra geldiğinde süre 10 saniyeye iner.</p>',
     actions: [
       { label: 'Varsayılana dön', variant: 'outline', closeOnAction: false, action: ({ dialog }) => {
         const varsayilan = holdemVarsayilanAyarlaraDon();
-        dialog.querySelector('[data-he-ayar-giris]').value = varsayilan.girisBedeli;
         dialog.querySelector('[data-he-ayar-sb]').value = varsayilan.kucukKor;
         dialog.querySelector('[data-he-ayar-bb]').value = varsayilan.buyukKor;
         return false;
       } },
       { label: 'Kaydet', variant: 'primary', action: ({ dialog }) => {
         if (isReadOnly()) { showToast('Salt-okunur modda masa ayarı değiştirilemez.', { variant: 'error' }); return false; }
-        const sonraki = holdemAyarlariNormalle({ girisBedeli: sayiGirdisi(dialog, '[data-he-ayar-giris]'), kucukKor: sayiGirdisi(dialog, '[data-he-ayar-sb]'), buyukKor: sayiGirdisi(dialog, '[data-he-ayar-bb]') });
+        const sonraki = holdemAyarlariNormalle({ girisBedeli: ayar.girisBedeli, kucukKor: sayiGirdisi(dialog, '[data-he-ayar-sb]'), buyukKor: sayiGirdisi(dialog, '[data-he-ayar-bb]') });
         return database.ref(dbPath(MASA_AYAR_YOLU)).set({ ...sonraki, guncellemeTs: globalThis.firebase.database.ServerValue.TIMESTAMP }).then(() => showToast('Masa ayarları yeni el için kaydedildi.', { variant: 'success' })).catch(() => { showToast('Masa ayarları kaydedilemedi.', { variant: 'error' }); return false; });
       } },
       { label: 'Vazgeç', variant: 'outline' }
@@ -200,20 +199,43 @@ function kartYolu(kart, kapali = false, cardSkin = skin) {
   return '/assets/blackjack/kartlar/varsayilan/' + stil + '/' + rutbeNo(kart.r) + '-' + kartAdi(kart.r) + '-' + kart.s + '.png';
 }
 function kartHtml(kart, kapali = false, cardSkin = skin) { return '<img class="holdem-kart" draggable="false" src="' + kartYolu(kart, kapali, cardSkin) + '" alt="' + (kapali ? 'Kapalı kart' : escapeHtml(kartAdi(kart.r) + ' ' + kart.s)) + '">'; }
+function cüzdanYolu(uid) { return dbPath('cipBakiyeleri/' + uid); }
 function cüzdanDegeri(value) { return typeof value === 'number' ? value : Number(value && value.bakiye) || 0; }
-function cüzdanNormalle(value) {
-  if (typeof value === 'number') { return { bakiye: Math.max(0, value), islemler: {} }; }
-  return { bakiye: Math.max(0, Number(value?.bakiye) || 0), islemler: value?.islemler && typeof value.islemler === 'object' ? { ...value.islemler } : {} };
+function cüzdanNormalle(value, uid = currentUser?.uid || '') {
+  if (typeof value === 'number') {
+    const migrasyonId = 'blackjack:migrasyon:' + uid;
+    return { bakiye: Math.max(0, value), sonIslemId: migrasyonId, islemler: { [migrasyonId]: { delta: value, kaynak: 'migrasyon', ts: Date.now() } }, legacyMi: true };
+  }
+  return {
+    bakiye: Math.max(0, Number(value?.bakiye) || 0),
+    sonIslemId: typeof value?.sonIslemId === 'string' ? value.sonIslemId : '',
+    islemler: value?.islemler && typeof value.islemler === 'object' ? { ...value.islemler } : {},
+    legacyMi: false
+  };
 }
-function cüzdanIslemId(sonEk) {
-  const rastgele = globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
-  return 'holdem:' + (currentUser?.uid || 'misafir') + ':' + sonEk + ':' + rastgele;
+// Çip cüzdanı Blackjack ile ortaktır. Yeni kullanıcıda önce onun izin verilen
+// bootstrap kaydı açılır; Hold'em doğrudan boş bir cüzdandan ücret çekmez.
+function cüzdanHazirla(uid) {
+  if (!database || !uid) { return Promise.reject(new Error('Cüzdan bağlantısı kurulamadı.')); }
+  const bootstrapId = 'blackjack:bootstrap:' + uid;
+  return database.ref(cüzdanYolu(uid)).transaction((mevcut) => {
+    if (mevcut === null || mevcut === undefined) {
+      return { bakiye: 1000, sonIslemId: bootstrapId, islemler: { [bootstrapId]: { delta: 1000, kaynak: 'baslangic', ts: Date.now() } } };
+    }
+    const cüzdan = cüzdanNormalle(mevcut, uid);
+    if (cüzdan.legacyMi) {
+      const { legacyMi: _legacyMi, ...migrasyon } = cüzdan;
+      return migrasyon;
+    }
+  }, undefined, false);
 }
 function cüzdanGuncelle(delta, islemId, kaynak) {
   if (!database || !currentUser || !Number.isInteger(delta)) { return Promise.resolve({ committed: false }); }
   let yetersiz = false;
-  return database.ref(dbPath('cipBakiyeleri/' + currentUser.uid)).transaction((mevcut) => {
-    const cüzdan = cüzdanNormalle(mevcut);
+  const uid = currentUser.uid;
+  const ref = database.ref(cüzdanYolu(uid));
+  return cüzdanHazirla(uid).then(() => ref.transaction((mevcut) => {
+    const cüzdan = cüzdanNormalle(mevcut, uid);
     if (cüzdan.islemler[islemId]) { return; }
     const bakiye = cüzdan.bakiye + delta;
     if (bakiye < 0) { yetersiz = true; return; }
@@ -225,29 +247,41 @@ function cüzdanGuncelle(delta, islemId, kaynak) {
     }
     islemler[islemId] = { delta, kaynak, ts: Date.now() };
     return { bakiye, sonIslemId: islemId, islemler };
-  }, undefined, false).then((sonuc) => {
-    const tekrar = Boolean(cüzdanNormalle(sonuc.snapshot?.val()).islemler[islemId]);
+  }, undefined, false)).then((sonuc) => {
+    const tekrar = Boolean(cüzdanNormalle(sonuc.snapshot?.val(), uid).islemler[islemId]);
     return { committed: sonuc.committed || tekrar, yetersiz };
-  }).catch(() => ({ committed: false, yetersiz: false }));
+  }).catch((hata) => {
+    console.error('Hold’em çip işlemi tamamlanamadı:', hata);
+    return { committed: false, yetersiz, hata };
+  });
 }
 function masaGirisiniOde(sonrasi) {
   if (masaGirisiOdendi) { sonrasi(); return; }
   if (masaCuzdanIslemiBekliyor) { return; }
   if (!currentUser) { showToast('Masaya oturmak için giriş yapmalısın.', { variant: 'error' }); return; }
   masaCuzdanIslemiBekliyor = true;
-  cüzdanGuncelle(-masaAyarlari.girisBedeli, cüzdanIslemId('giris'), 'holdem-giris').then((sonuc) => {
-    if (!sonuc.committed) { showToast(sonuc.yetersiz ? 'Masaya oturmak için yeterli çipin yok.' : 'Giriş çipi ayrılamadı.', { variant: 'error' }); return; }
+  // Buy-in yok: oyuncunun gerçek site bakiyesi masadaki stack'idir. Cüzdandan
+  // girişte para ayrılmaz; el sonunda yalnız net kazanç veya kayıp yazılır.
+  cüzdanHazirla(currentUser.uid).then(() => database.ref(cüzdanYolu(currentUser.uid)).once('value')).then((snap) => {
+    masaBaslangicBakiyesi = cüzdanDegeri(snap.val());
+    if (masaBaslangicBakiyesi < masaAyarlari.buyukKor) { showToast('Masaya oturmak için büyük kör bahis kadar çipin olmalı.', { variant: 'error' }); return; }
     masaGirisiOdendi = true;
     sonrasi();
+  }).catch((hata) => {
+    console.error('Hold’em cüzdanı okunamadı:', hata);
+    const mesaj = hata?.code === 'PERMISSION_DENIED' ? 'Çip cüzdanı için yazma izni yok. Hesap rolünü ve Firebase kuralını kontrol edin.' : 'Site çip bakiyene erişilemedi.';
+    showToast(mesaj, { variant: 'error' });
   }).finally(() => { masaCuzdanIslemiBekliyor = false; renderMasa(); });
 }
 function elSonuCuzdanaAktar() {
   if (!masayaOturdu || !masaGirisiOdendi || !previewMasa || previewMasa.durum !== 'el_sonucu' || masaCuzdanIslemiBekliyor) { return; }
-  const iade = Math.max(0, Number(previewMasa.koltuklar[3]?.masaBakiyesi) || 0);
-  const islemId = 'holdem:' + (currentUser?.uid || 'misafir') + ':el:' + previewMasa.desteId + ':odeme';
+  const masaSonu = Math.max(0, Number(previewMasa.koltuklar[3]?.masaBakiyesi) || 0);
+  const net = masaSonu - masaBaslangicBakiyesi;
+  const islemId = 'holdem:' + (currentUser?.uid || 'misafir') + ':el:' + previewMasa.desteId + ':net';
+  if (!net) { masaGirisiOdendi = false; yerelMasaKaydet(); return; }
   masaCuzdanIslemiBekliyor = true;
-  cüzdanGuncelle(iade, islemId, 'holdem-odeme').then((sonuc) => {
-    if (sonuc.committed) { masaGirisiOdendi = false; yerelMasaKaydet(); showToast(iade ? iade.toLocaleString('tr-TR') + ' çip cüzdanına aktarıldı.' : 'Bu elde masadaki çipin kalmadı.', { variant: iade ? 'success' : 'info' }); }
+  cüzdanGuncelle(net, islemId, 'holdem-el-sonucu').then((sonuc) => {
+    if (sonuc.committed) { masaGirisiOdendi = false; yerelMasaKaydet(); showToast((net > 0 ? '+' : '') + net.toLocaleString('tr-TR') + ' çip site bakiyene işlendi.', { variant: net > 0 ? 'success' : 'info' }); }
     else { showToast('El sonu çip aktarımı tamamlanamadı; sayfayı açık tutun.', { variant: 'error' }); }
   }).finally(() => { masaCuzdanIslemiBekliyor = false; renderMasa(); });
 }
@@ -372,10 +406,11 @@ function loadSkin(uid) {
 }
 function subscribeWallet(uid) {
   if (!database || !uid) {return;}
-  database.ref('cipBakiyeleri/' + uid).on('value', (snap) => {
+  database.ref(cüzdanYolu(uid)).on('value', (snap) => {
     const balance = cüzdanDegeri(snap.val());
     const el = document.querySelector('[data-holdem-bakiye]');
     if (el) {el.textContent = balance.toLocaleString('tr-TR') + ' çip';}
+    if (!snap.exists() || cüzdanNormalle(snap.val(), uid).legacyMi) { cüzdanHazirla(uid).catch((hata) => console.error('Hold’em başlangıç cüzdanı açılamadı:', hata)); }
   });
 }
 function bindUi() {

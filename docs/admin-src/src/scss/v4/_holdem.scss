@@ -67,7 +67,7 @@ $he-gold: #ffd26d;
 .holdem-koltuk-aktif::after { content: 'SIRA'; order: -1; padding: 2px 7px; border-radius: 99px; color: #06271c; background: #4cf4ae; box-shadow: 0 1px 6px rgba(0, 0, 0, .45); font-size: .67em; font-weight: 900; letter-spacing: .08em; text-shadow: none; }
 .holdem-son-aksiyon, .holdem-kazanan-rozet, .holdem-pas-rozet { padding: 2px 7px; border-radius: 99px; background: rgba(0, 23, 40, .82); color: #dff9ff; font-size: .72em; font-weight: 800; }
 .holdem-pas-rozet { color: #fff; background: #d82f3f; box-shadow: 0 1px 7px rgba(69, 0, 8, .55); }
-.holdem-koltuk-ben.holdem-koltuk-aktif::after { position: absolute; top: -26px; left: 50%; transform: translateX(-50%); z-index: 4; white-space: nowrap; }
+.holdem-koltuk-ben.holdem-koltuk-aktif::after { position: absolute; top: -31px; left: 50%; transform: translateX(-50%); z-index: 4; white-space: nowrap; }
 .holdem-koltuk-kazanan .holdem-avatar { border-color: #ffd26d; box-shadow: 0 0 0 3px rgba(255, 210, 109, .28), 0 0 20px rgba(255, 210, 109, .55); }
 .holdem-kazanan-rozet { color: #332000; background: #ffd26d; text-shadow: none; }
 .holdem-koltuk-showdown .holdem-kartlarim { filter: saturate(1.08); }

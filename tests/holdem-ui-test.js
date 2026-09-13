@@ -73,7 +73,7 @@ async function createServer() {
       if (view.name === 'desktop') {
         await page.locator('[data-holdem-masaya-otur]').click();
         await page.waitForFunction(() => document.querySelector('[data-holdem-durum]').textContent.includes('El bitince'));
-        assert.equal(await page.evaluate(() => window.__mockLiveState.cipBakiyeleri.oyuncu1.bakiye), 1000, 'giriş çipi cüzdandan bir kez ayrılmalı');
+        assert.equal(await page.evaluate(() => window.__mockLiveState.cipBakiyeleri.oyuncu1.bakiye), 2000, 'masaya oturmak site bakiyesinden giriş ücreti kesmemeli');
         assert(await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id'), view.name + ': bot eli benzersiz deste kimliği almalı');
       }
       assert.deepEqual(errors, [], view.name + ': JavaScript hatası olmamalı');
