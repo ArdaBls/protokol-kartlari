@@ -411,9 +411,29 @@ $bj-kirmizi-cember: #c62828;
   // hesaplanıyor, bu da masanın ve ona göre absolute konumlanan aksiyon
   // çubuğunun sürekli zıplamasına/kaybolmasına yol açıyordu (kullanıcı
   // bildirimi: "ekran sabit değil ... dikey tuttuğumda altta Kart Çek ya da
-  // Kal yok, yan çevirince geliyor"). Artık dvh'ye HİÇ bağlı değil, sabit bir
-  // taban değer.
-  .bj-masa { min-height: 480px; padding: 16px 8px 20px; border-width: 5px; border-radius: 26px; }
+  // Kal yok, yan çevirince geliyor"). Artık dvh'ye HİÇ bağlı değil.
+  // Yeşil masa artık .page-wrapper'ın kalan TÜM dikey alanını dolduruyor
+  // (flex:1) -- kullanıcı isteği: "yeşili alttaki boşluğa uzat" (sabit
+  // 480px'lik masa altında boş, koyu bir alan bırakıyordu).
+  .bj-masa-viewport { flex: 1 1 auto; min-height: 0; }
+  .bj-masa {
+    flex: 1 1 auto;
+    // Temel kuraldaki align-self:center (masaüstünde YATAY ortalama için)
+    // .bj-masa-viewport row yönlü olduğundan burada DİKEY ekseni kontrol
+    // ediyor -- flex:1'i geçersiz kılıp masayı, artık uzayan viewport'un
+    // İÇİNDE dikeyde ortalanmış küçük bir kutu olarak bırakıyordu (üstte
+    // büyük boş alan). stretch ile gerçekten dolduruyor.
+    align-self: stretch;
+    min-height: 0;
+    justify-content: flex-start;
+    padding: 16px 8px 20px;
+    border-width: 5px;
+    border-radius: 26px;
+  }
+  // Aksiyon/bahis çubuğu, üstündeki içerik ne kadar kısa olursa olsun masanın
+  // (artık uzayan) EN ALTINA yapışsın -- kullanıcı isteği: "butonları
+  // aşağıya koy".
+  .bj-aksiyonlar-satiri, .bj-bahis-panel { margin-top: auto; }
   .bj-krupiyer-satiri { gap: 12px; margin-bottom: 18px; }
   .bj-koltuklar { column-gap: 4px; row-gap: 10px; }
   .bj-koltuk { min-height: 132px; gap: 5px; }
