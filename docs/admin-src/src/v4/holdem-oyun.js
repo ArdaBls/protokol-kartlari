@@ -173,15 +173,23 @@ function masaAyarlariniAc() {
     ]
   });
 }
+const HOLDEM_AKTIF_DURUMLAR = new Set(['preflop', 'flop', 'turn', 'river']);
 function masaAyarlariniDinle() {
   if (!database || masaAyarRef) { return; }
   masaAyarRef = database.ref(dbPath(MASA_AYAR_YOLU));
   masaAyarRef.on('value', (snap) => {
     masaAyarlari = holdemAyarlariNormalle(snap.val() || {});
-    if (masayaOturdu && previewMasa) {
+    // Modal metni "Bu ayarlar yalnız yeni elde uygulanır" diyor ama önceden
+    // owner ayarı değiştirdiği anda previewMasa.ayarlar da hemen değişiyordu
+    // -- kör bahisler/aksiyon süresi DEVAM EDEN elde anlık değişip mevcut
+    // minArtirma/sayaç hesaplarıyla tutarsız kalabiliyordu. Artık aktif bir
+    // el sürerken yalnız modül seviyesindeki masaAyarlari güncellenir; bu,
+    // bir sonraki elin kurulumunda (holdemEliBaslat) zaten kullanılır.
+    const elAktifMi = previewMasa && HOLDEM_AKTIF_DURUMLAR.has(previewMasa.durum);
+    if (masayaOturdu && previewMasa && !elAktifMi) {
       previewMasa = { ...previewMasa, ayarlar: masaAyarlari };
       demoEkraniEsitle();
-    } else { lobiGorunumuOlustur(); }
+    } else if (!masayaOturdu) { lobiGorunumuOlustur(); }
     renderMasa();
   });
 }
@@ -371,7 +379,14 @@ function renderMasa() {
   const join = document.querySelector('[data-holdem-masaya-otur]');
   const yeniEl = document.querySelector('[data-holdem-yeni-el]');
   if (join) { join.hidden = masayaOturdu || katilimBekliyor; }
-  if (yeniEl) { yeniEl.hidden = !masayaOturdu || previewMasa?.durum !== 'el_sonucu'; }
+  if (yeniEl) {
+    yeniEl.hidden = !masayaOturdu || previewMasa?.durum !== 'el_sonucu';
+    // El sonucu cüzdana yazılırken ikinci bir elin başlaması, yeni elin
+    // masa-girişi durumunu eski ödemenin finally bloğuyla ezebiliyordu.
+    // Ödeme motoru tamamlanana kadar düğme yalnız arayüzden pasiftir.
+    yeniEl.disabled = masaCuzdanIslemiBekliyor;
+    yeniEl.setAttribute('aria-busy', masaCuzdanIslemiBekliyor ? 'true' : 'false');
+  }
 }
 
 function siraSaatiniBaslat() {
@@ -449,7 +464,16 @@ function bindUi() {
     if (!select || !HOLDEM_ZORLUKLARI[select.value]) { return; }
     botZorlugu = select.value;
     try { globalThis.localStorage.setItem('holdem.botZorlugu', botZorlugu); } catch {}
-    yeniDemoEliOlustur();
+    // Zorluk seçimi eldeki kartları/sıra akışını sıfırlamamalı. Mevcut
+    // botların sonraki kararlarına yeni profil uygulanır; yeni el de zaten
+    // bu genel seçimle kurulur. Böylece izleyici masasındaki timer da kesilmez.
+    if (previewMasa) {
+      previewMasa = {
+        ...previewMasa,
+        koltuklar: previewMasa.koltuklar.map((koltuk) => koltuk.bot ? { ...koltuk, zorluk: botZorlugu } : koltuk)
+      };
+      demoEkraniEsitle();
+    }
     renderMasa();
   });
   document.addEventListener('input', (event) => {

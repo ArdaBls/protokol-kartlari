@@ -65,6 +65,13 @@ function sonrakiIndeks(koltuklar, baslangic, filtre = () => true) {
 function oynayabilir(koltuk) { return koltuk && !koltuk.pas && !koltuk.allIn && koltuk.masaBakiyesi > 0; }
 function devamEden(koltuk) { return koltuk && !koltuk.pas; }
 function potHesapla(koltuklar) { return koltuklar.reduce((toplam, koltuk) => toplam + Math.max(0, tamSayi(koltuk.toplamYatirim, 0)), 0); }
+function bahisYapabilenSayisi(masa) { return masa.koltuklar.filter((koltuk) => devamEden(koltuk) && oynayabilir(koltuk)).length; }
+// Birden çok oyuncu elde kalsa bile yalnız birinin arkasında çip varsa, artık
+// karşılayacak rakip yoktur. O oyuncuya anlamsız check/bet butonları vermek
+// yerine kalan ortak kartlar otomatik açılır.
+function otomatikRunoutGerekliMi(masa) {
+  return masa.koltuklar.filter(devamEden).length > 1 && bahisYapabilenSayisi(masa) <= 1;
+}
 function kartDagit(deste, koltuklar) {
   const eller = koltuklar.map(() => []);
   let index = 0;
@@ -86,7 +93,7 @@ function sokakBaslat(masa, durum, communityCards, desteIndex, now) {
   const koltuklar = masa.koltuklar.map((koltuk) => ({ ...koltuk, sokakYatirimi: 0 }));
   const bekleyen = sokakBekleyenleri(koltuklar, masa.dagitici);
   const currentSeat = sonrakiIndeks(koltuklar, masa.dagitici, (koltuk, indeks) => bekleyen.includes(indeks));
-  return { ...masa, durum, koltuklar, communityCards, desteIndex, mevcutBahis: 0, minArtirma: masa.ayarlar.buyukKor, bekleyen, aktifKoltuk: currentSeat, aksiyonBitis: currentSeat === -1 ? null : now + masa.ayarlar.aksiyonSuresiMs };
+  return { ...masa, durum, koltuklar, communityCards, desteIndex, mevcutBahis: 0, minArtirma: masa.ayarlar.buyukKor, bekleyen, artirmaKapali: [], aktifKoltuk: currentSeat, aksiyonBitis: currentSeat === -1 ? null : now + masa.ayarlar.aksiyonSuresiMs };
 }
 
 /** Masaya gelen kişi aktif elde bekleme kuyruğuna alınır; bot ancak el sonunda değişir. */
@@ -133,7 +140,7 @@ export function holdemEliBaslat(masa, now = Date.now(), random) {
     ...masa, ayarlar, durum: 'preflop', elNo: tamSayi(masa.elNo, 0) + 1, dagitici,
     desteId: destePaketi.desteId, deste: destePaketi.kartlar, desteIndex: dagitim.index, yakilanKartlar: [], communityCards: [],
     koltuklar, smallBlind, bigBlind, mevcutBahis: Math.max(koltuklar[bigBlind].sokakYatirimi, ayarlar.buyukKor), minArtirma: ayarlar.buyukKor,
-    bekleyen, aktifKoltuk, aksiyonBitis: now + ayarlar.aksiyonSuresiMs, sonuclar: null, guncellemeTs: now
+    bekleyen, artirmaKapali: [], aktifKoltuk, aksiyonBitis: now + ayarlar.aksiyonSuresiMs, sonuclar: null, guncellemeTs: now
   };
 }
 
@@ -145,13 +152,16 @@ function sokakIlerle(masa, now) {
   const yakilan = masa.deste[masa.desteIndex];
   const acilan = masa.deste.slice(masa.desteIndex + 1, masa.desteIndex + 1 + kartSayisi);
   const durum = masa.durum === 'preflop' ? 'flop' : masa.durum === 'flop' ? 'turn' : 'river';
-  return sokakBaslat({ ...masa, yakilanKartlar: masa.yakilanKartlar.concat([yakilan]) }, durum, masa.communityCards.concat(acilan), masa.desteIndex + kartSayisi + 1, now);
+  const sonraki = sokakBaslat({ ...masa, yakilanKartlar: masa.yakilanKartlar.concat([yakilan]) }, durum, masa.communityCards.concat(acilan), masa.desteIndex + kartSayisi + 1, now);
+  // Tüm rakipler all-in olduğunda ya da yalnız bir oyuncunun bahis yapacak
+  // çipi kaldığında flopta takılı kalmadan turn, river ve showdown açılır.
+  return otomatikRunoutGerekliMi(sonraki) ? sokakIlerle(sonraki, now) : sonraki;
 }
 function tumAktiflerAllInMi(masa) { return masa.koltuklar.filter(devamEden).every((koltuk) => koltuk.allIn); }
 function sonrakiAksiyon(masa, now) {
   const bekleyen = masa.bekleyen.filter((index) => oynayabilir(masa.koltuklar[index]));
   if (!bekleyen.length) {
-    if (tumAktiflerAllInMi(masa) && masa.durum !== 'river') { return sokakIlerle(masa, now); }
+    if ((tumAktiflerAllInMi(masa) || otomatikRunoutGerekliMi(masa)) && masa.durum !== 'river') { return sokakIlerle(masa, now); }
     return sokakIlerle({ ...masa, bekleyen: [] }, now);
   }
   const aktifKoltuk = sonrakiIndeks(masa.koltuklar, masa.aktifKoltuk, (_, index) => bekleyen.includes(index));
@@ -168,6 +178,7 @@ export function holdemAksiyonUygula(masa, { koltukIndex, aksiyon, miktar } = {},
   let mevcutBahis = masa.mevcutBahis;
   let minArtirma = masa.minArtirma;
   let bekleyen = masa.bekleyen.filter((index) => index !== koltukIndex);
+  let artirmaKapali = Array.isArray(masa.artirmaKapali) ? masa.artirmaKapali.filter((index) => index !== koltukIndex) : [];
   if (aksiyon === 'fold') { koltuklar[koltukIndex] = { ...koltuk, pas: true, sonAksiyon: 'fold' }; }
   else if (aksiyon === 'check') {
     if (toCall) { throw new Error('Bahis varken check yapılamaz.'); }
@@ -177,7 +188,14 @@ export function holdemAksiyonUygula(masa, { koltukIndex, aksiyon, miktar } = {},
     koltuklar[koltukIndex] = { ...bahisYatir(koltuk, toCall), sonAksiyon: 'call' };
   } else if (aksiyon === 'raise' || aksiyon === 'bet' || aksiyon === 'all_in') {
     const hedef = aksiyon === 'all_in' ? koltuk.sokakYatirimi + koltuk.masaBakiyesi : tamSayi(miktar, 0);
+    // Bir oyuncu bahis miktarını karşılayamıyorsa all-in, eksik miktarla call
+    // sayılır; yeni bir raise değildir ama side-pot için yatırımı korunur.
+    if (aksiyon === 'all_in' && hedef <= masa.mevcutBahis) {
+      koltuklar[koltukIndex] = { ...bahisYatir(koltuk, toCall), sonAksiyon: 'all_in' };
+      return sonrakiAksiyon({ ...masa, koltuklar, bekleyen, artirmaKapali }, now);
+    }
     if (hedef <= masa.mevcutBahis || hedef > koltuk.sokakYatirimi + koltuk.masaBakiyesi) { throw new Error('Geçersiz artırma miktarı.'); }
+    if (artirmaKapali.includes(koltukIndex)) { throw new Error('Kısa all-in sonrası bahis yeniden açılmadı; yalnız gör veya pas geçebilirsin.'); }
     const artis = hedef - masa.mevcutBahis;
     const tamArtirma = artis >= masa.minArtirma;
     if (!tamArtirma && hedef !== koltuk.sokakYatirimi + koltuk.masaBakiyesi) { throw new Error('Artırma minimum artırmayı karşılamıyor.'); }
@@ -186,9 +204,16 @@ export function holdemAksiyonUygula(masa, { koltukIndex, aksiyon, miktar } = {},
     if (tamArtirma) {
       minArtirma = artis;
       bekleyen = koltuklar.map((aday, index) => index !== koltukIndex && oynayabilir(aday) ? index : null).filter((index) => index !== null);
+      artirmaKapali = [];
+    } else {
+      // Min-raise altında kalan all-in, daha önce hamle yapmış kişilere yalnız
+      // farkı görme/pas geçme hakkını geri verir; bahis yeniden açılmaz.
+      const oncekiBekleyen = new Set(masa.bekleyen || []);
+      bekleyen = koltuklar.map((aday, index) => index !== koltukIndex && oynayabilir(aday) && aday.sokakYatirimi < mevcutBahis ? index : null).filter((index) => index !== null);
+      artirmaKapali = [...new Set(artirmaKapali.concat(bekleyen.filter((index) => !oncekiBekleyen.has(index))))].filter((index) => bekleyen.includes(index));
     }
   } else { throw new Error('Bilinmeyen Hold’em aksiyonu.'); }
-  return sonrakiAksiyon({ ...masa, koltuklar, mevcutBahis, minArtirma, bekleyen }, now);
+  return sonrakiAksiyon({ ...masa, koltuklar, mevcutBahis, minArtirma, bekleyen, artirmaKapali }, now);
 }
 
 function kazananlariBul(koltuklar, communityCards, katilanlar) {

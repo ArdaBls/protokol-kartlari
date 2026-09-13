@@ -148,8 +148,14 @@ function artirmaMiktari({ bigBlind, stack, toCall, currentBet, profil, dörtX = 
   const bb = Math.max(1, tamSayi(bigBlind, 50));
   const karsilanan = Math.max(0, tamSayi(toCall, 0));
   const mevcut = Math.max(bb, tamSayi(currentBet, bb));
+  // Motorun `miktar` alanı yatırılacak ek para değil, bu sokaktaki toplam
+  // hedef bahistir. Stack ise yalnız elde kalan paradır; mevcut sokak yatırımı
+  // (currentBet - toCall) buna eklenmeden stack ile kırpmak güçlü eli geçersiz
+  // bir raise'e dönüştürüp botu güvenli fold/check yoluna gönderiyordu.
+  const sokakYatirimi = Math.max(0, mevcut - karsilanan);
+  const maksimumHedef = sokakYatirimi + Math.max(0, tamSayi(stack, 0));
   const hedef = dörtX ? Math.max(bb * 4, mevcut * 2) : Math.max(mevcut + bb * 2, Math.round((mevcut + bb) * profil.agresiflik));
-  return Math.min(Math.max(0, tamSayi(stack, 0)), Math.max(karsilanan, hedef));
+  return Math.min(maksimumHedef, Math.max(mevcut, hedef));
 }
 
 /** Flop/turn/river kartlarını kuru, draw'lı veya eşleşmiş dokuya ayırır. */
@@ -343,7 +349,11 @@ export function holdemBotAksiyonSec(options = {}, random = Math.random) {
   const toCall = Math.max(0, tamSayi(options.toCall, 0));
   const bigBlind = Math.max(1, tamSayi(options.bigBlind, 50));
   const stack = Math.max(0, tamSayi(options.stack, 0));
-  if (stack < toCall) { return sonuc('fold', 0, 'Karşılanacak bahis desteyi aşıyor', { isBluff: false }); }
+  // Kısa stack, karşılanacak bahis kadar çipi olmasa bile kalanıyla all-in
+  // call yapabilir ve ana/yan pot hakkını korur. Engine bunu `all_in` olarak
+  // ayrı ele alır; burada fold etmek botların gereksizce eli bırakmasına yol
+  // açıyordu.
+  if (toCall > 0 && stack <= toCall) { return sonuc('all_in', stack, 'Kısa stack ile all-in görme', { isBluff: false }); }
   if (communityCards.length >= 3) {
     return postflopKarari({ ...options, holeCards, communityCards, toCall, bigBlind, stack }, profil, random);
   }

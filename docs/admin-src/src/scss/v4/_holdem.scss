@@ -117,7 +117,23 @@ $he-gold: #ffd26d;
 // Bazı modern telefonlar yataydayken 820px'ten geniş CSS viewport verir.
 // Kısa yatay ekranı da hedeflemek masa kabuğunun bu cihazlarda kalmasını önler.
 @media ((max-width: 820px) and (orientation: landscape)), ((max-height: 600px) and (orientation: landscape)) {
-  .holdem-page-header, .holdem-islem-durumu, .topbar, .sidebar, .footer { display: none !important; }
+  .holdem-page-header, .topbar, .sidebar, .footer { display: none !important; }
+  // Masaya otur/Yeni el düğmeleri bu satırın içindedir. Satırı tamamen
+  // saklamak yatay telefonda oyuncunun oyuna hiç katılamamasına yol açıyordu.
+  // Masa yüksekliği sabit kalırken eylemleri güvenli alanda ince bir katman
+  // olarak üst sağda bırakıyoruz; yalnız metinsel durum satırı gizlenir.
+  .holdem-islem-durumu {
+    position: fixed;
+    z-index: 12;
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    right: calc(env(safe-area-inset-right, 0px) + 6px);
+    display: flex !important;
+    min-height: 0;
+    gap: 6px;
+    align-items: center;
+  }
+  .holdem-islem-durumu [data-holdem-durum] { display: none; }
+  .holdem-islem-durumu .btn { min-height: 32px; padding: 0 10px; font-size: 11px; }
   .holdem-main { margin-left: 0 !important; padding: 0 !important; min-height: 100dvh; }
   .holdem-page-wrapper { max-width: none; padding: 0 !important; }
   .holdem-masa { width: 100vw; height: 100dvh; min-height: 0; aspect-ratio: auto; }

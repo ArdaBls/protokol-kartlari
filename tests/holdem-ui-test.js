@@ -54,11 +54,17 @@ async function createServer() {
       assert.equal(await page.locator('[data-holdem-bot-zorlugu]').inputValue(), 'normal', view.name + ': varsayılan zorluk dengeli olmalı');
       assert.equal(await page.locator('[data-holdem-ortak-kartlar] img').count(), 0, view.name + ': el preflop başlamalı, ortak kart açılmamalı');
       assert.equal(await page.locator('[data-slot="3"] .holdem-kart').count(), 2, view.name + ': oyuncunun iki kapalı kartı olmalı');
-      if (view.name === 'desktop') {
-        assert(await page.locator('[data-holdem-masaya-otur]').isVisible(), view.name + ': izleyici masaya katılabilmeli');
-      }
       assert.equal(await page.locator('[data-holdem-kombinasyon-listesi] .holdem-kombinasyon-satir').count(), 10, view.name + ': tüm kombinasyonlar listelenmeli');
       assert.equal(await page.locator('[data-holdem-bakiye]').textContent(), '2.000 çip');
+      if (view.name === 'desktop') {
+        const initialDeckId = await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id');
+        await page.locator('[data-holdem-bot-zorlugu]').selectOption('kolay');
+        assert.equal(
+          await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id'),
+          initialDeckId,
+          'masaüstü: bot zorluğu değişince eldeki deste/sıra sıfırlanmamalı'
+        );
+      }
       const cardStyle = await page.locator('[data-slot="3"] .holdem-kart').first().evaluate((card) => {
         const style = getComputedStyle(card);
         return { shadow: style.boxShadow, source: card.getAttribute('src') };
@@ -70,7 +76,8 @@ async function createServer() {
         return { width: rect.width, height: rect.height, background: getComputedStyle(table).backgroundImage };
       });
       assert(dimensions.width > 0 && dimensions.height > 0 && dimensions.background.includes('holdem-masa-v1.png'), view.name + ': masa PNG arka planı görünmeli');
-      if (view.name === 'desktop') {
+      assert(await page.locator('[data-holdem-masaya-otur]').isVisible(), view.name + ': masaya oturma düğmesi erişilebilir kalmalı');
+      if (view.name === 'desktop' || view.name === 'landscape-phone') {
         await page.locator('[data-holdem-masaya-otur]').click();
         await page.waitForFunction(() => document.querySelector('[data-holdem-durum]').textContent.includes('El bitince'));
         assert.equal(await page.evaluate(() => window.__mockLiveState.cipBakiyeleri.oyuncu1.bakiye), 2000, 'masaya oturmak site bakiyesinden giriş ücreti kesmemeli');
