@@ -406,7 +406,14 @@ $bj-kirmizi-cember: #c62828;
 .bj-skin-arka-liste .bj-skin-secenek { padding: 0; }
 
 @media (max-width: 720px) {
-  .bj-masa { min-height: min(590px, calc(100dvh - 180px)); padding: 16px 8px 128px; border-width: 5px; border-radius: 26px; }
+  // NOT: min-height eskiden calc(100dvh - 180px) kullanıyordu -- Safari'de
+  // dvh, adres çubuğu açılıp kapandıkça (kaydırma sırasında) YENİDEN
+  // hesaplanıyor, bu da masanın ve ona göre absolute konumlanan aksiyon
+  // çubuğunun sürekli zıplamasına/kaybolmasına yol açıyordu (kullanıcı
+  // bildirimi: "ekran sabit değil ... dikey tuttuğumda altta Kart Çek ya da
+  // Kal yok, yan çevirince geliyor"). Artık dvh'ye HİÇ bağlı değil, sabit bir
+  // taban değer.
+  .bj-masa { min-height: 480px; padding: 16px 8px 20px; border-width: 5px; border-radius: 26px; }
   .bj-krupiyer-satiri { gap: 12px; margin-bottom: 18px; }
   .bj-koltuklar { column-gap: 4px; row-gap: 10px; }
   .bj-koltuk { min-height: 132px; gap: 5px; }
@@ -421,27 +428,34 @@ $bj-kirmizi-cember: #c62828;
   .bj-cip-yigin .bj-cip-gorsel { width: 22px; height: 22px; margin-left: -10px; }
   .bj-bahis-secim { gap: 4px; }
   .bj-cip-deger { font-size: 8px; }
-  // NOT: (fixed/ekrana-sabitleme denendi ama kullanıcı geri bildirdi: "buton
-  // oyunun ekranına gelsin, sayfanın altında durmasın" -- masanın DIŞINA
-  // taşıp footer'ın üzerine biniyordu.) Gerçek kök neden .bj-masa'daki
-  // touch-action:none idi: masa min-height'i aşacak kadar uzun bir el
-  // olduğunda kullanıcı sayfayı/masayı aşağı kaydırıp çubuğa ulaşamıyordu
-  // (bkz. aşağıdaki hover:none/pointer:coarse bloğu -- artık pan-y'ye
-  // gevşetildi). Çubuk yine masanın İÇİNDE (position:absolute, alt kısımda).
+  // NOT: hem "position:fixed" (ekranın DIŞINA, footer'ın üstüne taşıyordu)
+  // hem de "position:absolute + touch-action:pan-y" (Safari'nin dvh
+  // yeniden-hesaplamasıyla hâlâ kayboluyordu) denendi. Kalıcı çözüm: mobilde
+  // bu çubuklar artık HİÇ konumlandırılmıyor -- .bj-masa'nın normal akıştaki
+  // (flex) SON çocukları olarak koltukların hemen altında duruyorlar. Masa
+  // içeriğe göre büyür, sayfa normal şekilde kaydırılır, hiçbir viewport-
+  // birimi hesaplamasına bağlı değil.
   .bj-aksiyonlar-satiri {
-    bottom: 8px;
-    width: calc(100% - 16px);
+    position: static;
+    transform: none;
+    width: 100%;
     min-height: 0;
     padding: 0;
   }
   .bj-aksiyonlar { gap: 6px; }
   .bj-bahis-panel {
-    bottom: 8px;
-    width: calc(100% - 16px);
+    position: static;
+    transform: none;
+    width: 100%;
     padding: 10px;
   }
   .bj-bahis-panel .bj-bahis-secim { gap: 5px; }
   .bj-bahis-panel-alt { margin-top: 6px; }
+  // Bahis paneli artık akış içinde (masaüstünde olduğu gibi koltukların
+  // ÜSTÜNE değil, ALTINA) render edildiği için, hâlâ boş duran 5 koltuk
+  // ızgarası gereksiz yükseklik ekliyordu -- bahis beklenirken tamamen
+  // gizlenir, tek ekrana sığar.
+  .bj-masa:has(.bj-bahis-panel:not(:empty)) .bj-koltuklar { display: none; }
 }
 
 @media (max-width: 360px) {
