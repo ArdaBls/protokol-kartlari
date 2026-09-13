@@ -7,6 +7,10 @@ $he-blue: #0e5d91;
 $he-gold: #ffd26d;
 
 .holdem-masa-viewport { width: 100%; display: flex; justify-content: center; }
+// Uygulama kabuğu footer'ı dinamik ekleyebildiği için oyun sayfasında iki
+// kez görünme ihtimali vardı. Masa kendi başına bir oyun ekranı olduğundan
+// burada footer gösterilmez.
+.holdem-main .footer, .holdem-main ~ .footer { display: none !important; }
 .holdem-masa {
   position: relative;
   isolation: isolate;
@@ -28,7 +32,7 @@ $he-gold: #ffd26d;
 .holdem-pot { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; color: #fff; font-size: clamp(12px, 1.2vw, 17px); font-weight: 700; text-shadow: 0 2px 3px #000; }
 .holdem-pot::before { content: ''; width: 30px; height: 30px; background: url('/assets/blackjack/cipler/cip-04-mavi.png') center / contain no-repeat; }
 .holdem-pot small { color: rgba(255, 255, 255, .76); font-size: .75em; font-weight: 600; }
-.holdem-canli-kombinasyon { position: absolute; z-index: 3; top: 30%; left: clamp(18px, 4.3vw, 70px); width: clamp(128px, 11.2vw, 174px); padding: 9px; border: 1px solid rgba(151, 219, 246, .48); border-radius: 8px; color: rgba(226, 245, 255, .72); background: rgba(2, 28, 48, .82); font-size: clamp(8px, .72vw, 11px); text-shadow: 0 1px 2px #001321; }
+.holdem-canli-kombinasyon { position: absolute; z-index: 3; top: 19%; left: clamp(18px, 4.3vw, 70px); width: clamp(128px, 11.2vw, 174px); padding: 9px; border: 1px solid rgba(151, 219, 246, .48); border-radius: 8px; color: rgba(226, 245, 255, .72); background: rgba(2, 28, 48, .82); font-size: clamp(8px, .72vw, 11px); text-shadow: 0 1px 2px #001321; }
 .holdem-canli-kombinasyon-baslik { display: block; margin-bottom: 6px; color: #effaff; font-size: 1.08em; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
 .holdem-canli-kombinasyon > p { margin: 0; line-height: 1.35; }
 .holdem-canli-kombinasyon-listesi { display: grid; gap: 3px; }
@@ -50,13 +54,21 @@ $he-gold: #ffd26d;
 .holdem-koltuk[data-slot='0'] { top: 13%; left: 15%; }
 .holdem-koltuk[data-slot='1'] { top: 13%; right: 15%; }
 .holdem-koltuk[data-slot='2'] { top: 52%; right: 4%; }
-.holdem-koltuk[data-slot='3'] { bottom: 9%; left: 50%; transform: translateX(-50%); }
+.holdem-koltuk[data-slot='3'] { bottom: clamp(112px, 18%, 210px); left: 50%; transform: translateX(-50%); }
 .holdem-koltuk[data-slot='4'] { top: 52%; left: 4%; }
 .holdem-avatar { width: clamp(34px, 4.2vw, 62px); height: clamp(34px, 4.2vw, 62px); display: grid; place-items: center; border: 2px solid rgba(205, 246, 255, .88); border-radius: 50%; background: rgba(3, 33, 56, .66); overflow: hidden; }
 .holdem-avatar .staff-avatar { width: 100% !important; height: 100% !important; }
 .holdem-koltuk-ben .holdem-avatar { border-color: $he-gold; }
 .holdem-koltuk-ben .holdem-avatar { width: clamp(38px, 3.2vw, 46px); height: clamp(38px, 3.2vw, 46px); }
-.holdem-koltuk-aktif .holdem-avatar { box-shadow: 0 0 0 3px #4cf4ae; }
+.holdem-koltuk-aktif .holdem-avatar { position: relative; border-color: #4cf4ae; box-shadow: 0 0 0 3px rgba(76, 244, 174, .22), 0 0 18px rgba(76, 244, 174, .5); }
+// Değer 1'den 0'a iner: boş bölüm en üstten başlar ve saat yönünde büyür.
+// Böylece tur süresi hem görsel hem yazılı olarak izlenebilir.
+.holdem-koltuk-aktif .holdem-avatar::after { content: ''; position: absolute; inset: -7px; border-radius: inherit; padding: 3px; pointer-events: none; background: conic-gradient(transparent 0 calc((1 - var(--holdem-tur-orani, 1)) * 1turn), #4cf4ae 0 1turn); -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.holdem-koltuk-aktif::after { content: 'SIRA'; order: -1; padding: 2px 7px; border-radius: 99px; color: #06271c; background: #4cf4ae; box-shadow: 0 1px 6px rgba(0, 0, 0, .45); font-size: .67em; font-weight: 900; letter-spacing: .08em; text-shadow: none; }
+.holdem-son-aksiyon, .holdem-kazanan-rozet { padding: 2px 7px; border-radius: 99px; background: rgba(0, 23, 40, .82); color: #dff9ff; font-size: .72em; font-weight: 800; }
+.holdem-koltuk-kazanan .holdem-avatar { border-color: #ffd26d; box-shadow: 0 0 0 3px rgba(255, 210, 109, .28), 0 0 20px rgba(255, 210, 109, .55); }
+.holdem-kazanan-rozet { color: #332000; background: #ffd26d; text-shadow: none; }
+.holdem-koltuk-showdown .holdem-kartlarim { filter: saturate(1.08); }
 .holdem-rol-rozet { min-height: 17px; padding: 1px 5px; border-radius: 99px; background: rgba(0, 23, 40, .74); font-size: .76em; }
 .holdem-kartlarim { display: flex; justify-content: center; align-items: flex-end; height: clamp(44px, 6vw, 94px); }
 .holdem-kartlarim .holdem-kart { width: clamp(48px, 5.7vw, 90px); }
@@ -107,12 +119,12 @@ $he-gold: #ffd26d;
   .holdem-page-wrapper { max-width: none; padding: 0 !important; }
   .holdem-masa { width: 100vw; height: 100dvh; min-height: 0; aspect-ratio: auto; }
   .holdem-kontrol-alani { width: min(84%, 680px); bottom: 2%; }
-  .holdem-canli-kombinasyon { top: 28%; left: 2%; width: 112px; padding: 6px; font-size: 8px; }
+  .holdem-canli-kombinasyon { top: 19%; left: 2%; width: 112px; padding: 6px; font-size: 8px; }
   .holdem-canli-kombinasyon-satir { padding: 2px 4px; }
   .holdem-aksiyonlar .btn { min-height: 36px; font-size: 12px; }
   // Yatay telefonda oyuncunun fotoğrafı ve eli görünür; adı/bakiyesi alt
   // aksiyon şeridiyle yarışmaz. Ayrıntılar masaüstünde görünmeye devam eder.
-  .holdem-koltuk[data-slot='3'] { bottom: 13.5%; }
+  .holdem-koltuk[data-slot='3'] { bottom: 24%; }
   .holdem-koltuk-ben > strong, .holdem-koltuk-ben > span:not(.holdem-aktif-el) { display: none; }
 }
 // Genel sayfa kabuğu flex sütunu olduğu için yalnız max-width vermek geniş
