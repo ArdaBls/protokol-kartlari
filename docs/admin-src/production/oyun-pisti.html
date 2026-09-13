@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Pişti | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. pisti-oyun.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script type="module" src="/src/main-v4.js"></script>
+</head>
+<body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Pişti">
+
+<main class="main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">Pişti</h1>
+      </div>
+      <div class="card-options">
+        <button type="button" class="btn btn-primary" data-pisti-baslat hidden>Oyunu başlat</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pisti-islem-durumu">
+    <span data-pisti-durum role="status" aria-live="polite"></span>
+    <button type="button" class="btn btn-outline" data-pisti-yeniden-dene hidden>Tekrar dene</button>
+  </div>
+
+  <div class="pisti-skor-tablosu" data-pisti-skor-tablosu></div>
+
+  <div class="pisti-masa-viewport">
+    <div class="pisti-masa" data-pisti-root>
+      <div class="pisti-koltuklar" data-pisti-koltuklar></div>
+      <div class="pisti-masa-kartlari-alani">
+        <div class="pisti-masa-kartlari" data-pisti-masa-kartlari></div>
+      </div>
+      <div class="pisti-elim" data-pisti-elim></div>
+      <div class="pisti-el-bitti-paneli" data-pisti-el-bitti-paneli hidden></div>
+      <div class="pisti-oyun-bitti-paneli" data-pisti-oyun-bitti-paneli hidden></div>
+    </div>
+  </div>
+
+  <p class="hint" data-pisti-oturmadim hidden style="text-align:center;">Oynamak için boş bir koltuğa (+) tıklayın.</p>
+  <div style="text-align:center;">
+    <span aria-live="polite" data-pisti-sira-bildirimi></span>
+    <strong data-pisti-sayac></strong>
+  </div>
+
+</div>
+</main>
+
+<script type="module">
+import('/src/v4/pisti-oyun.js').then((m) => m.initPisti());
+</script>
+
+</body>
+</html>

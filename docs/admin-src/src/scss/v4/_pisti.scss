@@ -1,0 +1,147 @@
+// Pişti (oyun-pisti.html) -- bkz. pisti-oyun.js. Blackjack ile aynı düz
+// kumarhane-yeşili masa yaklaşımı, ama kendi elin klasik bir İSKAMBİL
+// YELPAZESİ (fan) olarak gösterilir -- kullanıcının verdiği referans
+// bileşenin (React/Motion) hover-kaldırma + tıkla-oyna davranışını saf
+// CSS transform'larla taklit eder (bağımlılık eklemeden).
+
+$pisti-yesil-koyu: #0b3d2e;
+$pisti-yesil: #0f5132;
+$pisti-altin: #d4af37;
+$pisti-bordo: #6b1f2a;
+
+.pisti-bakiye { font-weight: var(--font-weight-bold); color: $pisti-altin; padding: 6px 12px; border-radius: var(--radius); background: rgba(212, 175, 55, 0.12); margin-right: 8px; }
+.pisti-islem-durumu { min-height: 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+// .btn'in genel display:inline-flex kuralı [hidden] öznitelik seçicisiyle EŞİT
+// özgüllükte olduğundan sonradan gelip kazanıyor -- Blackjack'te aynı isimle
+// (.bj-islem-durumu [hidden]) bulunup düzeltilen aynı desen.
+.pisti-islem-durumu [hidden] { display: none; }
+// "Oyunu başlat" .card-options (sayfa başlığı) içinde yaşıyor, .pisti-*
+// kapsamının dışında -- aynı [hidden] sorununu tek bu düğmeye özel öznitelik
+// seçiciyle (diğer sayfaların .card-options'ını ETKİLEMEDEN) çözer.
+[data-pisti-baslat][hidden] { display: none; }
+
+.pisti-masa-viewport { width: 100%; min-width: 0; align-self: stretch; display: flex; justify-content: center; }
+.pisti-masa {
+  position: relative;
+  isolation: isolate;
+  width: min(1200px, 100%);
+  align-self: center;
+  min-height: min(620px, calc(100dvh - 220px));
+  border-radius: 40px;
+  background: $pisti-yesil;
+  border: 8px solid $pisti-bordo;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
+  padding: 20px clamp(16px, 3vw, 48px) 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  overflow: hidden;
+}
+
+// ── Koltuklar (rakipler) ──
+.pisti-koltuklar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(6px, 2vw, 24px); width: 100%; }
+.pisti-koltuk-slot { display: flex; justify-content: center; min-width: 0; }
+.pisti-koltuk { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #fff; min-height: 120px; }
+.pisti-koltuk-bos { justify-content: center; align-items: center; min-height: 60px; }
+.pisti-koltuk-ben { visibility: hidden; } // kendi koltuğum -- elim ayrı panelde (bkz. .pisti-elim), burada tekrar gösterilmez ama grid yuvası korunur
+.pisti-avatar-cember { display: grid; place-items: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; aspect-ratio: 1 / 1; border-radius: 50%; padding: 2px; box-sizing: border-box; transition: box-shadow 150ms; }
+.pisti-koltuk-aktif .pisti-avatar-cember { box-shadow: 0 0 0 3px $pisti-altin; }
+.pisti-koltuk-kazanan .pisti-avatar-cember { box-shadow: 0 0 0 3px #2e7d32; }
+.pisti-koltuk strong { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pisti-koltuk-skor { font-size: 11px; color: $pisti-altin; font-weight: var(--font-weight-bold); }
+.pisti-koltuk-topladigi { font-size: 10px; color: rgba(255, 255, 255, 0.7); }
+.pisti-sira-isareti { font-size: 11px; color: $pisti-altin; animation: pisti-yanip-son 1s infinite; }
+@keyframes pisti-yanip-son { 50% { opacity: 0.3; } }
+.pisti-otur-btn {
+  width: 40px; height: 40px; position: relative; border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 0; cursor: pointer;
+}
+.pisti-otur-btn::before, .pisti-otur-btn::after { content: ''; position: absolute; top: 50%; left: 50%; background: currentColor; border-radius: 1px; }
+.pisti-otur-btn::before { width: 16px; height: 2px; transform: translate(-50%, -50%); }
+.pisti-otur-btn::after { width: 2px; height: 16px; transform: translate(-50%, -50%); }
+.pisti-kapali-yigin { position: relative; display: inline-block; width: 60px; }
+.pisti-kapali-sayac { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: var(--font-weight-bold); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+
+// ── Kart görseli (ortak) -- diğer kart boyutu kurallarından ÖNCE gelmeli:
+// .pisti-ust-kart/.pisti-el-kart-btn img gibi seçiciler AYNI özgüllükte
+// (tek sınıf) olduğundan hangisi KAYNAKTA sonra gelirse o kazanır --
+// .pisti-kart burada önce tanımlanmazsa width:100% sonradan gelip 72px/76px
+// gibi daha spesifik boyutları ezip kartları devasa (doğal piksel boyutunda)
+// gösteriyordu.
+.pisti-kart { width: 100%; height: auto; display: block; border-radius: 4px; }
+
+// ── Masadaki ortak yığın ──
+.pisti-masa-kartlari-alani { position: relative; display: flex; align-items: center; justify-content: center; min-height: 130px; }
+.pisti-masa-bos { color: rgba(255, 255, 255, 0.6); font-size: 13px; }
+.pisti-yigin-alt-kart {
+  position: absolute; width: 72px; aspect-ratio: 5 / 7; border-radius: 4px;
+  background: #fff; border: 1px solid rgba(0, 0, 0, 0.15);
+  transform: translate(calc(var(--i) * 3px), calc(var(--i) * -2px)) rotate(calc(var(--i) * 4deg - 4deg));
+  opacity: 0.85;
+}
+.pisti-ust-kart { position: relative; width: 72px; z-index: 5; }
+
+// Dağıtım/oynama kayma animasyonu -- Blackjack'teki AYNI teknik: kart zaten
+// NİHAİ konumunda render edildiği için yön TERSİNE çevrilmiş (offsetten 0'a),
+// yoksa "both" doluşuyla kart kalıcı olarak kaymış kalırdı.
+.pisti-slide-top { animation: pisti-slide-top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.pisti-slide-bottom { animation: pisti-slide-bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+@keyframes pisti-slide-top { 0% { transform: translateY(-60px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes pisti-slide-bottom { 0% { transform: translateY(60px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pisti-slide-top, .pisti-slide-bottom { animation: none; } }
+
+// ── Kendi elim: yelpaze -- kullanıcının verdiği referans bileşenin hover-
+// kaldırma davranışı saf CSS transform + transition ile taklit ediliyor.
+.pisti-elim { position: relative; height: 132px; width: 100%; margin-top: 8px; }
+.pisti-el-kart-btn {
+  position: absolute;
+  left: 50%;
+  bottom: -34px;
+  width: 76px;
+  margin-left: -38px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform: translateX(var(--pisti-x)) translateY(var(--pisti-y)) rotate(var(--pisti-rot));
+  transform-origin: 50% 100%;
+  transition: transform 180ms ease-out, filter 180ms ease-out;
+  touch-action: manipulation;
+}
+.pisti-el-kart-btn:disabled { cursor: default; filter: brightness(0.75); }
+.pisti-el-kart-btn:not(:disabled):hover, .pisti-el-kart-btn:not(:disabled):focus-visible {
+  transform: translateX(var(--pisti-x)) translateY(-54px) rotate(calc(var(--pisti-rot) * 0.3)) scale(1.08);
+  z-index: 999 !important;
+  outline: none;
+}
+.pisti-el-kart-btn .pisti-kart { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+
+// ── Skor/panel ──
+.pisti-skor-tablosu { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 8px; }
+.pisti-skor-satir { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 12px; }
+.pisti-skor-satir strong { color: $pisti-altin; }
+.pisti-el-bitti-paneli, .pisti-oyun-bitti-paneli {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 40;
+  background: rgba(11, 61, 46, 0.96); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px;
+  padding: 18px 24px; color: #fff; text-align: center; display: flex; flex-direction: column; gap: 8px; min-width: 220px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+.pisti-el-bitti-satir { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; }
+.pisti-oyun-bitti-paneli strong { font-size: 18px; }
+// Kendi display:flex kuralımız [hidden] öznitelik seçicisiyle EŞİT
+// özgüllükte ve kaynak sırasında SONRA geldiği için hidden'ı eziyordu --
+// panel her zaman (boşken bile) görünür kalıyordu.
+.pisti-el-bitti-paneli[hidden], .pisti-oyun-bitti-paneli[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .pisti-masa { min-height: min(560px, calc(100dvh - 180px)); padding: 16px 8px 140px; border-width: 5px; border-radius: 26px; }
+  .pisti-koltuklar { gap: 4px; }
+  .pisti-koltuk { min-height: 92px; gap: 2px; }
+  .pisti-avatar-cember { width: 34px; height: 34px; min-width: 34px; min-height: 34px; }
+  .pisti-koltuk strong { font-size: 10px; }
+  .pisti-yigin-alt-kart, .pisti-ust-kart { width: 52px; }
+  .pisti-el-kart-btn { width: 58px; margin-left: -29px; bottom: -24px; }
+  .pisti-elim { height: 100px; }
+}
