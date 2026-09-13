@@ -400,6 +400,7 @@ $bj-kirmizi-cember: #c62828;
 .bj-skin-akordeon .hint, .bj-skin-akordeon .bj-skin-tema-liste { padding: 0 12px 12px; }
 .bj-skin-akordeon .hint { margin: 8px 0 0; }
 .bj-skin-tema-liste { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.bj-skin-tema-liste.bj-skin-yatay { flex-direction: row; gap: 16px; max-height: none; }
 // Kart arkası seçenekleri (18 tasarım) isim gerektirmez -- sarmalayan bir
 // önizleme ızgarası olarak gösterilir.
 .bj-skin-arka-liste { flex-direction: row; flex-wrap: wrap; gap: 8px; max-height: none; }

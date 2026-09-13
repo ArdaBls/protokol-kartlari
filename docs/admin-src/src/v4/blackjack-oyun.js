@@ -251,12 +251,13 @@ function temaUcluOnizlemeHtml(tema) {
   return '<span class="bj-skin-uclu">' + yollar.map((src) => '<img class="bj-skin-onizleme" src="' + src + '" alt="">').join('') + '</span>';
 }
 function temaEtiketi(t) { return t === VARSAYILAN_TEMA ? 'Varsayılan üçlü' : t; }
+function desteStiliEtiketi(stil) { return stil === 'temel' ? 'Sade' : stil === 'altin' ? 'Altın' : 'Çelik'; }
 function openSkinModal() {
   loadSkinFor(currentUserUid).then(() => {
-    // Deste Stili artık yan yana 3 sütun (kullanıcı isteği: "ilk başta deste
-    // stili yan yana kalsın").
+    // Her skin ailesi akordeon içinde kalır; kapalıyken aktif seçimin küçük
+    // önizlemesi görünür, açılınca seçenekler karşılaştırılabilir.
     const stilHtml = DESTE_STILLERI.map((s) =>
-      '<label class="bj-skin-secenek bj-skin-secenek-dikey"><input type="radio" name="bj-destestili" value="' + s + '"' + (mySkin.desteStili === s ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(s) + '" alt=""><span>' + escapeHtml(s === 'temel' ? 'Sade' : s === 'altin' ? 'Altın' : 'Çelik') + '</span></label>'
+      '<label class="bj-skin-secenek bj-skin-secenek-dikey"><input type="radio" name="bj-destestili" value="' + s + '"' + (mySkin.desteStili === s ? ' checked' : '') + '><img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(s) + '" alt=""><span>' + escapeHtml(desteStiliEtiketi(s)) + '</span></label>'
     ).join('');
     const temaSecenekleri = ['varsayilan'].concat(collabKodlari().flatMap((kod) => [kod + '-1', kod + '-2']));
     const temaHtml = temaSecenekleri.map((t) =>
@@ -267,18 +268,18 @@ function openSkinModal() {
     const arkaHtml = desteArkasiKodlari().map((kod) =>
       '<label class="bj-skin-secenek"><input type="radio" name="bj-destearkasi" value="' + kod + '"' + (mySkin.desteArkasi === kod ? ' checked' : '') + '><img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + kod + '.png" alt=""></label>'
     ).join('');
-    // Vale/Kız/Papaz üçlüsü ve Kart Arkası akordeon (kapalı) olarak açılır --
-    // kullanıcı isteği: "seçenek akordeon olsun açınca kartları görelim".
-    // Kapalıyken hangi seçimin aktif olduğu <summary>'de küçük bir önizlemeyle
-    // gösterilir, radio'lar DOM'da kalmaya devam ettiği için kaydet her
-    // durumda doğru çalışır.
-    const temaAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Vale + Kız + Papaz üçlüsü</span><span class="bj-skin-akordeon-secili">' + temaUcluOnizlemeHtml(mySkin.yuzKartiTemasi) + '<span>' + escapeHtml(temaEtiketi(mySkin.yuzKartiTemasi)) + '</span></span></summary>' +
+    const stilAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Deste stili</span><span class="bj-skin-akordeon-secili" data-bj-skin-secili="stil"><img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(mySkin.desteStili) + '" alt=""><span>' + escapeHtml(desteStiliEtiketi(mySkin.desteStili)) + '</span></span></summary>' +
+      '<div class="bj-skin-tema-liste bj-skin-yatay">' + stilHtml + '</div></details>';
+    // Kapalıyken hangi seçimin aktif olduğu <summary> içinde küçük bir
+    // önizlemeyle gösterilir; radio'lar DOM'da kaldığı için Kaydet her
+    // durumda doğru değeri yazar.
+    const temaAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Vale + Kız + Papaz üçlüsü</span><span class="bj-skin-akordeon-secili" data-bj-skin-secili="tema">' + temaUcluOnizlemeHtml(mySkin.yuzKartiTemasi) + '<span>' + escapeHtml(temaEtiketi(mySkin.yuzKartiTemasi)) + '</span></span></summary>' +
       '<p class="hint">Tek seçim, aynı koleksiyondaki üç kartı birlikte değiştirir.</p><div class="bj-skin-tema-liste">' + temaHtml + '</div></details>';
-    const arkaAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Kart Arkası</span><span class="bj-skin-akordeon-secili"><img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + mySkin.desteArkasi + '.png" alt=""></span></summary>' +
+    const arkaAkordeon = '<details class="bj-skin-akordeon"><summary><span class="bj-skin-akordeon-baslik">Kart Arkası</span><span class="bj-skin-akordeon-secili" data-bj-skin-secili="arka"><img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + mySkin.desteArkasi + '.png" alt=""></span></summary>' +
       '<div class="bj-skin-tema-liste bj-skin-arka-liste">' + arkaHtml + '</div></details>';
-    showModal({
+    const modal = showModal({
       title: 'Kart Skinleri',
-      body: '<div class="bj-skin-grup"><h4>Deste Stili</h4><div class="bj-skin-yatay">' + stilHtml + '</div></div>' +
+      body: '<div class="bj-skin-grup">' + stilAkordeon + '</div>' +
         '<div class="bj-skin-grup">' + temaAkordeon + '</div>' +
         '<div class="bj-skin-grup">' + arkaAkordeon + '</div>',
       actions: [
@@ -297,6 +298,21 @@ function openSkinModal() {
         },
         { label: 'Vazgeç', variant: 'outline' }
       ]
+    });
+    const seciliOnizlemeyiGuncelle = (alan, html) => {
+      const hedef = modal.body.querySelector('[data-bj-skin-secili="' + alan + '"]');
+      if (hedef) { hedef.innerHTML = html; }
+    };
+    modal.body.addEventListener('change', (event) => {
+      const input = event.target;
+      if (!input.matches('input[type="radio"]')) { return; }
+      if (input.name === 'bj-destestili') {
+        seciliOnizlemeyiGuncelle('stil', '<img class="bj-skin-onizleme" src="' + stilOnizlemeYolu(input.value) + '" alt=""><span>' + escapeHtml(desteStiliEtiketi(input.value)) + '</span>');
+      } else if (input.name === 'bj-tema') {
+        seciliOnizlemeyiGuncelle('tema', temaUcluOnizlemeHtml(input.value) + '<span>' + escapeHtml(temaEtiketi(input.value)) + '</span>');
+      } else if (input.name === 'bj-destearkasi') {
+        seciliOnizlemeyiGuncelle('arka', '<img class="bj-skin-onizleme" src="/assets/blackjack/deste-arkalari/deste-arkasi-' + input.value + '.png" alt="">');
+      }
     });
   });
 }

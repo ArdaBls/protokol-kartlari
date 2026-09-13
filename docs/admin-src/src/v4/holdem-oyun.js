@@ -1,0 +1,283 @@
+// Texas Hold'em saha katmanı. İlk sürüm yalnız masa, ortak kartlar,
+// kombinasyon görünümü ve ortak çip bakiyesini okur. Gerçek masa transaction
+// ve bot karar motoru ayrı pakette eklenecek; bu yüzden burada cüzdana yazılmaz.
+import { dbPath, initDbMode, isReadOnly, renderDbModeBanner } from './db-mode.js';
+import { showModal } from './modal.js';
+import { showToast } from './toast.js';
+import { subscribeStaffProfiles, renderStaffAvatar } from './staff-profiles.js';
+import { holdemElDegerlendir } from './holdem-engine.js';
+import { HOLDEM_ZORLUKLARI, holdemBotAksiyonSec } from './holdem-bot-strateji.js';
+import { holdemAksiyonUygula, holdemAyarlariNormalle, holdemBosCanliMasa, holdemEliBaslat, holdemVarsayilanAyarlaraDon } from './holdem-masa-oyun.js';
+
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
+  authDomain: 'omu-protokol.firebaseapp.com',
+  databaseURL: 'https://omu-protokol-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'omu-protokol'
+};
+const CIP_DEGERLERI = [25, 50, 75, 100, 200, 500, 750, 1000, 5000, 10000];
+const CIP_GORSELLERI = ['cip-01-beyaz', 'cip-02-kirmizi', 'cip-03-yesil', 'cip-04-mavi', 'cip-05-siyah', 'cip-06-mor', 'cip-07-turuncu-koyu', 'cip-08-bej', 'cip-09-turuncu', 'cip-10-joker'];
+const KOMBINASYONLAR = [
+  ['Royal flush', 'A–10 aynı takım'], ['Sıralı renk', 'Aynı takımda ardışık beş kart'],
+  ['Kare', 'Aynı rütbeden dört kart'], ['Full', 'Üçlü ve bir çift'],
+  ['Renk', 'Aynı takımdan beş kart'], ['Kent', 'Ardışık beş kart'],
+  ['Üçlü', 'Aynı rütbeden üç kart'], ['İki çift', 'İki farklı çift'],
+  ['Bir çift', 'Aynı rütbeden iki kart'], ['Yüksek kart', 'Başka kombinasyon yoksa en büyük kart']
+];
+const MASA_AYAR_YOLU = 'oyunBasarimlari/holdem/ayarlar/ana-masa';
+
+let database = null;
+let currentUser = null;
+let currentUserName = 'Sen';
+let skin = { desteStili: 'temel', yuzKartiTemasi: 'varsayilan', desteArkasi: '01' };
+let botZorlugu = 'normal';
+let previewMasa = null;
+let botTuruTimer = null;
+let currentUserRole = '';
+let masaAyarlari = holdemVarsayilanAyarlaraDon();
+let masaAyarRef = null;
+
+// Bu sahne, veri modeli ve görsel akışı doğrulamak için deterministik bir
+// örnek el gösterir. Beş oyuncu koltuğu vardır; üst orta kurpiyer ayrı DOM
+// elemanıdır ve oyuncu/bot sayısına dahil edilmez.
+let demoEl = null;
+
+function kayitliZorluguAl() {
+  try { return HOLDEM_ZORLUKLARI[globalThis.localStorage && globalThis.localStorage.getItem('holdem.botZorlugu')] ? globalThis.localStorage.getItem('holdem.botZorlugu') : 'normal'; } catch { return 'normal'; }
+}
+function yeniDemoEliOlustur() {
+  if (botTuruTimer) { clearTimeout(botTuruTimer); botTuruTimer = null; }
+  const oyuncular = [
+    { uid: 'bot-rota', isim: 'Rota Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }, { uid: 'bot-mira', isim: 'Mira Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli },
+    { uid: 'bot-nova', isim: 'Nova Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }, { uid: 'ben', isim: 'Sen', bot: false, masaBakiyesi: masaAyarlari.girisBedeli, skin }, { uid: 'bot-luna', isim: 'Luna Bot', bot: true, zorluk: botZorlugu, masaBakiyesi: masaAyarlari.girisBedeli }
+  ];
+  previewMasa = holdemEliBaslat({ ...holdemBosCanliMasa({ masaId: 'onizleme-masasi', ayarlar: masaAyarlari }), koltuklar: oyuncular }, Date.now());
+  demoEkraniEsitle();
+}
+function demoEkraniEsitle() {
+  if (!previewMasa) { return; }
+  const isimler = ['Rota Bot', 'Mira Bot', 'Nova Bot', 'Sen', 'Luna Bot'];
+  demoEl = {
+    asama: previewMasa.durum, pot: previewMasa.koltuklar.reduce((toplam, koltuk) => toplam + koltuk.toplamYatirim, 0), siradaki: previewMasa.aktifKoltuk, desteId: previewMasa.desteId,
+    ortakKartlar: previewMasa.communityCards,
+    koltuklar: previewMasa.koltuklar.map((oyuncu, index) => ({ isim: isimler[index], bot: oyuncu.bot, bakiye: oyuncu.masaBakiyesi, bahis: oyuncu.sokakYatirimi, rozet: index === previewMasa.smallBlind ? 'Küçük kör bahis' : index === previewMasa.bigBlind ? 'Büyük kör bahis' : '', kartlar: oyuncu.kartlar, pas: oyuncu.pas, skin: oyuncu.skin }))
+  };
+}
+function botTurunuPlanla() {
+  if (!previewMasa || !['preflop', 'flop', 'turn', 'river'].includes(previewMasa.durum)) { return; }
+  const index = previewMasa.aktifKoltuk;
+  const bot = previewMasa.koltuklar[index];
+  if (!bot || !bot.bot) { return; }
+  botTuruTimer = setTimeout(() => {
+    const toCall = Math.max(0, previewMasa.mevcutBahis - bot.sokakYatirimi);
+    const karar = holdemBotAksiyonSec({
+      bot, holeCards: bot.kartlar, communityCards: previewMasa.communityCards, stack: bot.masaBakiyesi,
+      pot: previewMasa.koltuklar.reduce((toplam, koltuk) => toplam + koltuk.toplamYatirim, 0), toCall,
+      bigBlind: previewMasa.ayarlar.buyukKor, currentBet: previewMasa.mevcutBahis, activeOpponents: previewMasa.koltuklar.filter((koltuk) => !koltuk.pas).length,
+      position: index === previewMasa.smallBlind ? 'small_blind' : 'middle', actionContext: previewMasa.mevcutBahis > previewMasa.ayarlar.buyukKor ? 'facing_open' : 'unopened'
+    });
+    try {
+      previewMasa = holdemAksiyonUygula(previewMasa, { koltukIndex: index, aksiyon: karar.action, miktar: karar.amount }, Date.now());
+      demoEkraniEsitle(); renderMasa(); botTurunuPlanla();
+    } catch { /* Beklenmeyen bot kararı masayı kilitlemez; sıradaki turda yeniden dener. */ }
+  }, 550);
+}
+
+function ownerMi() { return currentUserRole === 'owner' || currentUserRole === 'admin'; }
+function masaAyariButonunuGuncelle() {
+  const button = document.querySelector('[data-holdem-masa-ayarlari]');
+  if (button) { button.hidden = !ownerMi(); }
+}
+function sayiGirdisi(dialog, selector) { return Number(dialog.querySelector(selector)?.value); }
+function masaAyarlariniAc() {
+  if (!database || !ownerMi()) { return; }
+  const ayar = masaAyarlari;
+  showModal({
+    title: 'Hold’em masa ayarları',
+    body: '<p class="hint">Bu ayarlar yalnız yeni elde uygulanır. Oyuncular giriş çipini masaya yatırır; masadan kalkınca kalan bakiye cüzdana iade edilir.</p>' +
+      '<div class="form-group"><label>Giriş çipi<input class="form-control" data-he-ayar-giris type="number" min="100" max="100000" step="1" value="' + ayar.girisBedeli + '"></label></div>' +
+      '<div class="form-group"><label>Küçük kör bahis<input class="form-control" data-he-ayar-sb type="number" min="1" max="10000" step="1" value="' + ayar.kucukKor + '"></label></div>' +
+      '<div class="form-group"><label>Büyük kör bahis<input class="form-control" data-he-ayar-bb type="number" min="2" max="20000" step="1" value="' + ayar.buyukKor + '"></label></div>' +
+      '<p class="hint">Oyuncu sırası: 60 saniye. Site bağlantısı kesilirse, sıra geldiğinde süre 10 saniyeye iner.</p>',
+    actions: [
+      { label: 'Varsayılana dön', variant: 'outline', closeOnAction: false, action: ({ dialog }) => {
+        const varsayilan = holdemVarsayilanAyarlaraDon();
+        dialog.querySelector('[data-he-ayar-giris]').value = varsayilan.girisBedeli;
+        dialog.querySelector('[data-he-ayar-sb]').value = varsayilan.kucukKor;
+        dialog.querySelector('[data-he-ayar-bb]').value = varsayilan.buyukKor;
+        return false;
+      } },
+      { label: 'Kaydet', variant: 'primary', action: ({ dialog }) => {
+        if (isReadOnly()) { showToast('Salt-okunur modda masa ayarı değiştirilemez.', { variant: 'error' }); return false; }
+        const sonraki = holdemAyarlariNormalle({ girisBedeli: sayiGirdisi(dialog, '[data-he-ayar-giris]'), kucukKor: sayiGirdisi(dialog, '[data-he-ayar-sb]'), buyukKor: sayiGirdisi(dialog, '[data-he-ayar-bb]') });
+        return database.ref(dbPath(MASA_AYAR_YOLU)).set({ ...sonraki, guncellemeTs: globalThis.firebase.database.ServerValue.TIMESTAMP }).then(() => showToast('Masa ayarları yeni el için kaydedildi.', { variant: 'success' })).catch(() => { showToast('Masa ayarları kaydedilemedi.', { variant: 'error' }); return false; });
+      } },
+      { label: 'Vazgeç', variant: 'outline' }
+    ]
+  });
+}
+function masaAyarlariniDinle() {
+  if (!database || masaAyarRef) { return; }
+  masaAyarRef = database.ref(dbPath(MASA_AYAR_YOLU));
+  masaAyarRef.on('value', (snap) => {
+    masaAyarlari = holdemAyarlariNormalle(snap.val() || {});
+    yeniDemoEliOlustur();
+    renderMasa();
+  });
+}
+
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function cipYolu(miktar) { const i = CIP_DEGERLERI.indexOf(miktar); return '/assets/blackjack/cipler/' + (CIP_GORSELLERI[i] || CIP_GORSELLERI[0]) + '.png'; }
+function rutbeNo(r) { return r === 'as' ? '01' : r === 'joker' ? '11' : r === 'kiz' ? '12' : r === 'papaz' ? '13' : String(r).padStart(2, '0'); }
+function kartAdi(r) { return r === 'as' ? 'as' : r === 'joker' ? 'joker' : r === 'kiz' ? 'kiz' : r === 'papaz' ? 'papaz' : String(r); }
+function guvenliTema(cardSkin = skin) { return /^koleksiyon-(ac|au|bug|c7|cl|cr|cyp|d2|dbd|ds|dtd|eg|fo|pc|r|sk|stp|sts|sv|tboi|tw|vs|wf|xr)-(1|2)$/.test(cardSkin.yuzKartiTemasi || '') ? cardSkin.yuzKartiTemasi : ''; }
+function kartYolu(kart, kapali = false, cardSkin = skin) {
+  if (kapali) { return '/assets/blackjack/deste-arkalari/deste-arkasi-' + (/^(0[1-9]|1[0-8])$/.test(cardSkin.desteArkasi || '') ? cardSkin.desteArkasi : '01') + '.png'; }
+  const tema = guvenliTema(cardSkin);
+  if (tema && ['joker', 'kiz', 'papaz'].includes(kart.r)) { return '/assets/blackjack/yuz-kartlari-koleksiyon/' + tema + '-' + kart.r + '.png'; }
+  const stil = ['temel', 'altin', 'celik'].includes(cardSkin.desteStili) ? cardSkin.desteStili : 'temel';
+  return '/assets/blackjack/kartlar/varsayilan/' + stil + '/' + rutbeNo(kart.r) + '-' + kartAdi(kart.r) + '-' + kart.s + '.png';
+}
+function kartHtml(kart, kapali = false, cardSkin = skin) { return '<img class="holdem-kart" draggable="false" src="' + kartYolu(kart, kapali, cardSkin) + '" alt="' + (kapali ? 'Kapalı kart' : escapeHtml(kartAdi(kart.r) + ' ' + kart.s)) + '">'; }
+function cüzdanDegeri(value) { return typeof value === 'number' ? value : Number(value && value.bakiye) || 0; }
+
+function renderKombinasyonlar() {
+  const list = document.querySelector('[data-holdem-kombinasyon-listesi]');
+  if (!list) {return;}
+  list.innerHTML = KOMBINASYONLAR.map(([ad, aciklama]) => '<div class="holdem-kombinasyon-satir"><strong>' + ad + '</strong><span>' + aciklama + '</span></div>').join('');
+}
+function renderMasa() {
+  if (!demoEl) { yeniDemoEliOlustur(); }
+  const root = document.querySelector('[data-holdem-root]');
+  if (root && demoEl.desteId) { root.dataset.holdemDesteId = demoEl.desteId; }
+  const ownSeat = demoEl.koltuklar[3];
+  ownSeat.isim = currentUserName;
+  const all = ownSeat.kartlar.concat(demoEl.ortakKartlar);
+  const hand = all.length >= 5 ? holdemElDegerlendir(all) : null;
+  const pot = document.querySelector('[data-holdem-pot]');
+  if (pot) {pot.innerHTML = '<small>Pot</small><span>' + demoEl.pot + ' çip</span>';}
+  const board = document.querySelector('[data-holdem-ortak-kartlar]');
+  if (board) {board.innerHTML = demoEl.ortakKartlar.map((k) => kartHtml(k)).join('') + Array.from({ length: 5 - demoEl.ortakKartlar.length }, () => '<span class="holdem-kart-yuva" aria-hidden="true"></span>').join('');}
+  const seats = document.querySelector('[data-holdem-koltuklar]');
+  if (seats) {seats.innerHTML = demoEl.koltuklar.map((seat, index) => {
+    const mine = index === 3;
+    const avatar = mine ? renderStaffAvatar(currentUserName, currentUser && currentUser.uid, currentUserName, 56) : '<span class="staff-avatar staff-avatar--initial" aria-hidden="true">' + escapeHtml(seat.isim.charAt(0)) + '</span>';
+    const cards = mine ? seat.kartlar.map((k) => kartHtml(k, false, seat.skin || skin)).join('') : kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin) + kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin);
+    const cardsBlock = '<div class="holdem-kartlarim">' + cards + '</div>';
+    const betBlock = seat.bahis ? '<span class="holdem-yatirim"><img src="' + cipYolu(seat.bahis) + '" alt="">' + seat.bahis + '</span>' : '';
+    const identityBlock = '<div class="holdem-avatar">' + avatar + '</div><strong>' + escapeHtml(seat.isim) + '</strong>' +
+      '<span>' + seat.bakiye.toLocaleString('tr-TR') + ' çip</span>' +
+      (seat.rozet && !mine ? '<span class="holdem-rol-rozet">' + escapeHtml(seat.rozet) + '</span>' : '');
+    const playerHand = mine && hand ? '<span class="holdem-aktif-el">' + escapeHtml(hand.turAdi) + '</span>' : '';
+    return '<article class="holdem-koltuk' + (mine ? ' holdem-koltuk-ben' : '') + (demoEl.siradaki === index ? ' holdem-koltuk-aktif' : '') + '" data-slot="' + index + '">' +
+      (mine ? cardsBlock + playerHand + identityBlock : identityBlock + cardsBlock + betBlock) + '</article>';
+  }).join('');}
+  const handInfo = document.querySelector('[data-holdem-el-bilgisi]');
+  if (handInfo) {handInfo.innerHTML = hand ? escapeHtml(hand.turAdi) + '<small>Şu anki en iyi elin</small>' : '<small>Kombinasyon için flop bekleniyor</small>';}
+  const turn = document.querySelector('[data-holdem-sira-bildirimi]');
+  if (turn) {turn.textContent = previewMasa?.durum === 'el_sonucu' ? 'El bitti · Yeni el dağıtabilirsin' : demoEl.siradaki === 3 ? 'Sıra sende · Gör ya da artır' : 'Bot karar veriyor';}
+  const actions = document.querySelector('[data-holdem-aksiyonlar]');
+  const benimSiram = previewMasa && previewMasa.aktifKoltuk === 3 && ['preflop', 'flop', 'turn', 'river'].includes(previewMasa.durum);
+  const kendi = previewMasa?.koltuklar[3];
+  const toCall = kendi ? Math.max(0, previewMasa.mevcutBahis - kendi.sokakYatirimi) : 0;
+  if (actions) {actions.innerHTML = '<button class="btn" type="button" data-holdem-aksiyon="fold"' + (benimSiram ? '' : ' disabled') + '>Pas</button><button class="btn" type="button" data-holdem-aksiyon="' + (toCall ? 'call' : 'check') + '"' + (benimSiram ? '' : ' disabled') + '>' + (toCall ? 'Gör · ' + toCall : 'Check') + '</button><button class="btn" type="button" data-holdem-aksiyon="raise"' + (benimSiram ? '' : ' disabled') + '>Artır</button><button class="btn" type="button" data-holdem-aksiyon="all_in"' + (benimSiram ? '' : ' disabled') + '>All-in</button>';}
+  const raise = document.querySelector('[data-holdem-artirma-alani]');
+  const minRaise = kendi ? Math.min(kendi.sokakYatirimi + kendi.masaBakiyesi, previewMasa.mevcutBahis + previewMasa.minArtirma) : 0;
+  const maxRaise = kendi ? kendi.sokakYatirimi + kendi.masaBakiyesi : 0;
+  if (raise) {raise.innerHTML = '<label><span class="sr-only">Artırma miktarı</span><input data-holdem-raise type="range" min="' + minRaise + '" max="' + maxRaise + '" value="' + minRaise + '"' + (benimSiram ? '' : ' disabled') + '></label><label class="holdem-raise-number"><span>Artırma</span><input data-holdem-raise-number type="number" min="' + minRaise + '" max="' + maxRaise + '" step="1" value="' + minRaise + '"' + (benimSiram ? '' : ' disabled') + '></label><output data-holdem-raise-output>' + minRaise + ' çip</output>';}
+}
+
+function loadSkin(uid) {
+  if (!database || !uid) {return;}
+  database.ref('blackjackAyarlari/' + uid).once('value').then((snap) => {
+    const next = snap.val() || {};
+    skin = Object.assign(skin, next);
+    renderMasa();
+  }).catch(() => {});
+}
+function subscribeWallet(uid) {
+  if (!database || !uid) {return;}
+  database.ref('cipBakiyeleri/' + uid).on('value', (snap) => {
+    const balance = cüzdanDegeri(snap.val());
+    const el = document.querySelector('[data-holdem-bakiye]');
+    if (el) {el.textContent = balance.toLocaleString('tr-TR') + ' çip';}
+  });
+}
+function bindUi() {
+  document.addEventListener('click', (event) => {
+    const open = event.target.closest('[data-holdem-kombinasyon-ac]');
+    const close = event.target.closest('[data-holdem-kombinasyon-kapat]');
+    const modal = document.querySelector('[data-holdem-kombinasyon-modal]');
+    if (open && modal && !modal.open) {modal.showModal();}
+    if (close && modal && modal.open) {modal.close();}
+    if (event.target.closest('[data-holdem-yeni-el]')) {
+      yeniDemoEliOlustur();
+      renderMasa();
+      botTurunuPlanla();
+    }
+    const aksiyon = event.target.closest('[data-holdem-aksiyon]')?.dataset.holdemAksiyon;
+    if (aksiyon && previewMasa && previewMasa.aktifKoltuk === 3) {
+      const miktar = Number(document.querySelector('[data-holdem-raise-number]')?.value || document.querySelector('[data-holdem-raise]')?.value || 0);
+      try {
+        previewMasa = holdemAksiyonUygula(previewMasa, { koltukIndex: 3, aksiyon, miktar }, Date.now());
+        demoEkraniEsitle(); renderMasa(); botTurunuPlanla();
+      } catch (err) { showToast(err.message || 'Bu hamle yapılamaz.', { variant: 'error' }); }
+    }
+    if (event.target.closest('[data-holdem-masa-ayarlari]')) { masaAyarlariniAc(); }
+  });
+  document.addEventListener('change', (event) => {
+    const select = event.target.closest('[data-holdem-bot-zorlugu]');
+    if (!select || !HOLDEM_ZORLUKLARI[select.value]) { return; }
+    botZorlugu = select.value;
+    try { globalThis.localStorage.setItem('holdem.botZorlugu', botZorlugu); } catch {}
+    yeniDemoEliOlustur();
+    renderMasa();
+  });
+  document.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-holdem-raise], [data-holdem-raise-number]');
+    const output = document.querySelector('[data-holdem-raise-output]');
+    if (input && output) {
+      const min = Number(input.min); const max = Number(input.max);
+      const value = Math.max(min, Math.min(max, Number(input.value) || min));
+      const slider = document.querySelector('[data-holdem-raise]');
+      const number = document.querySelector('[data-holdem-raise-number]');
+      if (slider) { slider.value = String(value); }
+      if (number) { number.value = String(value); }
+      output.textContent = value + ' çip';
+    }
+  });
+}
+
+export function initHoldem() {
+  const firebase = globalThis.firebase;
+  if (!firebase) {return;}
+  if (!firebase.apps.length) {firebase.initializeApp(FIREBASE_CONFIG);}
+  database = firebase.database();
+  botZorlugu = kayitliZorluguAl();
+  const zorlukSecici = document.querySelector('[data-holdem-bot-zorlugu]');
+  if (zorlukSecici) { zorlukSecici.value = botZorlugu; }
+  renderKombinasyonlar();
+  renderMasa();
+  bindUi();
+  botTurunuPlanla();
+  firebase.auth().onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (!user) { currentUserRole = ''; masaAyariButonunuGuncelle(); renderMasa(); return; }
+    try {
+      await initDbMode(database);
+      renderDbModeBanner();
+      const profile = await database.ref('users/' + user.uid).once('value');
+      const p = profile.val() || {};
+      currentUserRole = p.role || '';
+      masaAyariButonunuGuncelle();
+      currentUserName = ((p.firstName || '') + ' ' + (p.lastName || '')).trim() || user.email || 'Sen';
+      subscribeStaffProfiles(database);
+      subscribeWallet(user.uid);
+      loadSkin(user.uid);
+      masaAyarlariniDinle();
+      renderMasa();
+    } catch {
+      renderMasa();
+    }
+  });
+}
