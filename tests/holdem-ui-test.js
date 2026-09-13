@@ -43,7 +43,7 @@ async function createServer() {
         window.__mockUserProfile = window.__mockOnceSnapshot = { role: 'editor', firstName: 'Test', lastName: 'Oyuncu' };
         window.__mockLiveState = {
           users: { oyuncu1: { role: 'editor', firstName: 'Test', lastName: 'Oyuncu' } },
-          cipBakiyeleri: { oyuncu1: { bakiye: 850, sonIslemId: 'seed', islemler: {} } },
+          cipBakiyeleri: { oyuncu1: { bakiye: 2000, sonIslemId: 'seed', islemler: {} } },
           blackjackAyarlari: { oyuncu1: { desteStili: 'temel', yuzKartiTemasi: 'varsayilan', desteArkasi: '01' } }
         };
       });
@@ -58,7 +58,7 @@ async function createServer() {
         assert(await page.locator('[data-holdem-masaya-otur]').isVisible(), view.name + ': izleyici masaya katılabilmeli');
       }
       assert.equal(await page.locator('[data-holdem-kombinasyon-listesi] .holdem-kombinasyon-satir').count(), 10, view.name + ': tüm kombinasyonlar listelenmeli');
-      assert.equal(await page.locator('[data-holdem-bakiye]').textContent(), '850 çip');
+      assert.equal(await page.locator('[data-holdem-bakiye]').textContent(), '2.000 çip');
       const cardStyle = await page.locator('[data-slot="3"] .holdem-kart').first().evaluate((card) => {
         const style = getComputedStyle(card);
         return { shadow: style.boxShadow, source: card.getAttribute('src') };
@@ -73,6 +73,7 @@ async function createServer() {
       if (view.name === 'desktop') {
         await page.locator('[data-holdem-masaya-otur]').click();
         await page.waitForFunction(() => document.querySelector('[data-holdem-durum]').textContent.includes('El bitince'));
+        assert.equal(await page.evaluate(() => window.__mockLiveState.cipBakiyeleri.oyuncu1.bakiye), 1000, 'giriş çipi cüzdandan bir kez ayrılmalı');
         assert(await page.locator('[data-holdem-root]').getAttribute('data-holdem-deste-id'), view.name + ': bot eli benzersiz deste kimliği almalı');
       }
       assert.deepEqual(errors, [], view.name + ': JavaScript hatası olmamalı');

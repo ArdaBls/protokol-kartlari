@@ -25,6 +25,7 @@ const KOMBINASYONLAR = [
   ['Bir çift', 'Aynı rütbeden iki kart'], ['Yüksek kart', 'Başka kombinasyon yoksa en büyük kart']
 ];
 const MASA_AYAR_YOLU = 'oyunBasarimlari/holdem/ayarlar/ana-masa';
+const CIP_ISLEM_KAYIT_LIMITI = 80;
 
 let database = null;
 let currentUser = null;
@@ -39,6 +40,8 @@ let masaAyarRef = null;
 let masayaOturdu = false;
 let katilimBekliyor = false;
 let siraSaati = null;
+let masaGirisiOdendi = false;
+let masaCuzdanIslemiBekliyor = false;
 
 // Bu sahne, veri modeli ve görsel akışı doğrulamak için deterministik bir
 // örnek el gösterir. Beş oyuncu koltuğu vardır; üst orta kurpiyer ayrı DOM
@@ -51,13 +54,13 @@ function kayitliZorluguAl() {
 function yerelMasaAnahtari() { return 'holdem.yerelMasa.' + (currentUser?.uid || 'misafir'); }
 function yerelMasaKaydet() {
   if (!masayaOturdu || !previewMasa) { return; }
-  try { globalThis.localStorage.setItem(yerelMasaAnahtari(), JSON.stringify({ surum: 1, masa: previewMasa })); } catch {}
+  try { globalThis.localStorage.setItem(yerelMasaAnahtari(), JSON.stringify({ surum: 1, masa: previewMasa, masaGirisiOdendi })); } catch {}
 }
 function yerelMasaYukle() {
   try {
     const kayit = JSON.parse(globalThis.localStorage.getItem(yerelMasaAnahtari()) || 'null');
     if (!kayit || kayit.surum !== 1 || !kayit.masa || !Array.isArray(kayit.masa.koltuklar)) { return false; }
-    previewMasa = kayit.masa; masayaOturdu = true; katilimBekliyor = false; demoEkraniEsitle(); return true;
+    previewMasa = kayit.masa; masayaOturdu = true; katilimBekliyor = false; masaGirisiOdendi = kayit.masaGirisiOdendi === true; demoEkraniEsitle(); return true;
   } catch { return false; }
 }
 function lobiGorunumuOlustur() {
@@ -84,6 +87,7 @@ function demoEkraniEsitle() {
     koltuklar: previewMasa.koltuklar.map((oyuncu, index) => ({ isim: oyuncu.isim || isimler[index], bot: oyuncu.bot, bakiye: oyuncu.masaBakiyesi, bahis: oyuncu.sokakYatirimi, rozet: index === previewMasa.smallBlind ? 'Küçük kör bahis' : index === previewMasa.bigBlind ? 'Büyük kör bahis' : '', kartlar: oyuncu.kartlar, pas: oyuncu.pas, skin: oyuncu.skin, sonAksiyon: oyuncu.sonAksiyon }))
   };
   yerelMasaKaydet();
+  if (previewMasa.durum === 'el_sonucu') { elSonuCuzdanaAktar(); }
 }
 function botTurunuPlanla() {
   if (!previewMasa) { return; }
@@ -184,6 +188,56 @@ function kartYolu(kart, kapali = false, cardSkin = skin) {
 }
 function kartHtml(kart, kapali = false, cardSkin = skin) { return '<img class="holdem-kart" draggable="false" src="' + kartYolu(kart, kapali, cardSkin) + '" alt="' + (kapali ? 'Kapalı kart' : escapeHtml(kartAdi(kart.r) + ' ' + kart.s)) + '">'; }
 function cüzdanDegeri(value) { return typeof value === 'number' ? value : Number(value && value.bakiye) || 0; }
+function cüzdanNormalle(value) {
+  if (typeof value === 'number') { return { bakiye: Math.max(0, value), islemler: {} }; }
+  return { bakiye: Math.max(0, Number(value?.bakiye) || 0), islemler: value?.islemler && typeof value.islemler === 'object' ? { ...value.islemler } : {} };
+}
+function cüzdanIslemId(sonEk) {
+  const rastgele = globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+  return 'holdem:' + (currentUser?.uid || 'misafir') + ':' + sonEk + ':' + rastgele;
+}
+function cüzdanGuncelle(delta, islemId, kaynak) {
+  if (!database || !currentUser || !Number.isInteger(delta)) { return Promise.resolve({ committed: false }); }
+  let yetersiz = false;
+  return database.ref(dbPath('cipBakiyeleri/' + currentUser.uid)).transaction((mevcut) => {
+    const cüzdan = cüzdanNormalle(mevcut);
+    if (cüzdan.islemler[islemId]) { return; }
+    const bakiye = cüzdan.bakiye + delta;
+    if (bakiye < 0) { yetersiz = true; return; }
+    const islemler = { ...cüzdan.islemler };
+    const anahtarlar = Object.keys(islemler);
+    if (anahtarlar.length >= CIP_ISLEM_KAYIT_LIMITI) {
+      anahtarlar.sort((a, b) => (islemler[a].ts || 0) - (islemler[b].ts || 0));
+      delete islemler[anahtarlar[0]];
+    }
+    islemler[islemId] = { delta, kaynak, ts: Date.now() };
+    return { bakiye, sonIslemId: islemId, islemler };
+  }, undefined, false).then((sonuc) => {
+    const tekrar = Boolean(cüzdanNormalle(sonuc.snapshot?.val()).islemler[islemId]);
+    return { committed: sonuc.committed || tekrar, yetersiz };
+  }).catch(() => ({ committed: false, yetersiz: false }));
+}
+function masaGirisiniOde(sonrasi) {
+  if (masaGirisiOdendi) { sonrasi(); return; }
+  if (masaCuzdanIslemiBekliyor) { return; }
+  if (!currentUser) { showToast('Masaya oturmak için giriş yapmalısın.', { variant: 'error' }); return; }
+  masaCuzdanIslemiBekliyor = true;
+  cüzdanGuncelle(-masaAyarlari.girisBedeli, cüzdanIslemId('giris'), 'holdem-giris').then((sonuc) => {
+    if (!sonuc.committed) { showToast(sonuc.yetersiz ? 'Masaya oturmak için yeterli çipin yok.' : 'Giriş çipi ayrılamadı.', { variant: 'error' }); return; }
+    masaGirisiOdendi = true;
+    sonrasi();
+  }).finally(() => { masaCuzdanIslemiBekliyor = false; renderMasa(); });
+}
+function elSonuCuzdanaAktar() {
+  if (!masayaOturdu || !masaGirisiOdendi || !previewMasa || previewMasa.durum !== 'el_sonucu' || masaCuzdanIslemiBekliyor) { return; }
+  const iade = Math.max(0, Number(previewMasa.koltuklar[3]?.masaBakiyesi) || 0);
+  const islemId = 'holdem:' + (currentUser?.uid || 'misafir') + ':el:' + previewMasa.desteId + ':odeme';
+  masaCuzdanIslemiBekliyor = true;
+  cüzdanGuncelle(iade, islemId, 'holdem-odeme').then((sonuc) => {
+    if (sonuc.committed) { masaGirisiOdendi = false; yerelMasaKaydet(); showToast(iade ? iade.toLocaleString('tr-TR') + ' çip cüzdanına aktarıldı.' : 'Bu elde masadaki çipin kalmadı.', { variant: iade ? 'success' : 'info' }); }
+    else { showToast('El sonu çip aktarımı tamamlanamadı; sayfayı açık tutun.', { variant: 'error' }); }
+  }).finally(() => { masaCuzdanIslemiBekliyor = false; renderMasa(); });
+}
 
 function renderKombinasyonlar() {
   const list = document.querySelector('[data-holdem-kombinasyon-listesi]');
@@ -232,16 +286,17 @@ function renderMasa() {
   if (seats) {seats.innerHTML = demoEl.koltuklar.map((seat, index) => {
     const mine = masayaOturdu && index === 3;
     const avatar = mine ? renderStaffAvatar(currentUserName, currentUser && currentUser.uid, currentUserName, 56) : '<span class="staff-avatar staff-avatar--initial" aria-hidden="true">' + escapeHtml(seat.isim.charAt(0)) + '</span>';
-    const kartlariAc = mine || (showdown && masayaOturdu);
-    const cards = kartlariAc ? seat.kartlar.map((k) => kartHtml(k, false, seat.skin || skin)).join('') : kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin) + kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin);
-    const cardsBlock = '<div class="holdem-kartlarim">' + cards + '</div>';
+    const pasGecti = seat.pas && !mine;
+    const kartlariAc = mine || (showdown && masayaOturdu && !pasGecti);
+    const cards = pasGecti ? '' : kartlariAc ? seat.kartlar.map((k) => kartHtml(k, false, seat.skin || skin)).join('') : kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin) + kartHtml({ r: 'as', s: 'kupa' }, true, seat.skin || skin);
+    const cardsBlock = '<div class="holdem-kartlarim' + (pasGecti ? ' holdem-kartlarim-pas' : '') + '">' + cards + '</div>';
     const betBlock = seat.bahis ? '<span class="holdem-yatirim"><img src="' + cipYolu(seat.bahis) + '" alt="">' + seat.bahis + '</span>' : '';
     const identityBlock = '<div class="holdem-avatar">' + avatar + '</div><strong>' + escapeHtml(seat.isim) + '</strong>' +
       '<span>' + seat.bakiye.toLocaleString('tr-TR') + ' çip</span>' +
       (seat.rozet && !mine ? '<span class="holdem-rol-rozet">' + escapeHtml(seat.rozet) + '</span>' : '');
     const playerHand = mine && hand ? '<span class="holdem-aktif-el">' + escapeHtml(hand.turAdi) + '</span>' : '';
     const kazanan = showdown && (previewMasa?.sonuclar?.odemeler?.[index] || 0) > 0;
-    const aksiyon = !showdown && seat.sonAksiyon ? '<span class="holdem-son-aksiyon">' + aksiyonMetni(seat.sonAksiyon) + '</span>' : '';
+    const aksiyon = pasGecti ? '<span class="holdem-pas-rozet">Pas geçti</span>' : !showdown && seat.sonAksiyon ? '<span class="holdem-son-aksiyon">' + aksiyonMetni(seat.sonAksiyon) + '</span>' : '';
     const sonuc = kazanan ? '<span class="holdem-kazanan-rozet">Pot aldı</span>' : '';
     const aktif = demoEl.siradaki === index;
     const sureStili = aktif ? ' style="--holdem-tur-orani:' + aktifSure.toFixed(4) + '"' : '';
@@ -269,7 +324,7 @@ function renderMasa() {
   const join = document.querySelector('[data-holdem-masaya-otur]');
   const yeniEl = document.querySelector('[data-holdem-yeni-el]');
   if (join) { join.hidden = masayaOturdu || katilimBekliyor; }
-  if (yeniEl) { yeniEl.hidden = !masayaOturdu; }
+  if (yeniEl) { yeniEl.hidden = !masayaOturdu || previewMasa?.durum !== 'el_sonucu'; }
 }
 
 function siraSaatiniBaslat() {
@@ -318,13 +373,18 @@ function bindUi() {
     if (open && modal && !modal.open) {modal.showModal();}
     if (close && modal && modal.open) {modal.close();}
     if (event.target.closest('[data-holdem-yeni-el]')) {
-      yeniDemoEliOlustur();
-      renderMasa();
-      botTurunuPlanla();
+      if (previewMasa?.durum !== 'el_sonucu') { return; }
+      masaGirisiniOde(() => {
+        yeniDemoEliOlustur();
+        renderMasa();
+        botTurunuPlanla();
+      });
     }
     if (event.target.closest('[data-holdem-masaya-otur]') && !masayaOturdu) {
-      katilimBekliyor = true;
-      renderMasa();
+      masaGirisiniOde(() => {
+        katilimBekliyor = true;
+        renderMasa();
+      });
     }
     const aksiyon = event.target.closest('[data-holdem-aksiyon]')?.dataset.holdemAksiyon;
     if (aksiyon && previewMasa && previewMasa.aktifKoltuk === 3) {
