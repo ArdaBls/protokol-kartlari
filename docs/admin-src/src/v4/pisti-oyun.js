@@ -181,6 +181,21 @@ function kalk(koltukIndex) {
     if (!koltuk || koltuk.uid !== currentUserUid) { return; }
     const koltuklar = Object.assign({}, mevcut.koltuklar);
     koltuklar[koltukIndex] = null;
+    // En az bir el oynanmışsa (elNo > 0) burası artık boş bir lobi değil,
+    // devam eden bir oyunun eller-arası "hazır mısın" molası -- kullanıcı
+    // isteği: biri kalkarsa oyun yarım kalmasın, O ANA KADARKİ puanlarla
+    // TAMAMEN bitsin (en yüksek puanlı kazanır).
+    if ((mevcut.elNo || 0) > 0) {
+      const skorlar = mevcut.skorlar || {};
+      const skorluKoltuklar = Object.keys(skorlar).map(Number);
+      const kazananIndex = skorluKoltuklar.length
+        ? skorluKoltuklar.reduce((en, i) => (en === null || skorlar[i] > skorlar[en] ? i : en), null)
+        : null;
+      return Object.assign({}, mevcut, {
+        koltuklar, durum: 'oyun_bitti', kazananKoltuk: kazananIndex, sonElPuanlari: null,
+        aktifKoltuk: null, aksiyonBitis: null, guncellemeTs: Date.now()
+      });
+    }
     return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
   }).then((res) => { if (!res.committed) { showToast('Oyun başlamadan önce/oyun bekleme fazında kalkabilirsiniz.', { variant: 'error' }); } });
 }
@@ -223,16 +238,26 @@ function oyunuBaslat() {
     if (!mevcut || mevcut.durum !== 'oyuncu_bekleniyor') { return; }
     const oturanIndeksler = oturanKoltukIndeksleri(mevcut);
     if (oturanIndeksler.length < MIN_OYUNCU) { return; }
-    return yeniElBaslatSifirdan(mevcut, oturanIndeksler, oturanIndeksler[0]);
+    // İlk oyunda dağıtıcı henüz yok -- ilk koltuk dağıtır. Bir önceki elden
+    // (kullanıcı isteği: her el sonrası tekrar "hazır mısın" sorulsun) gelen
+    // 'oyuncu_bekleniyor' ise mevcut.dagitici zaten BİR SONRAKİ dağıtıcıya
+    // döndürülmüş durumda (bkz. elSonunuIsle) -- rotasyon burada BOZULMASIN.
+    const dagitici = mevcut.dagitici != null && oturanIndeksler.includes(mevcut.dagitici) ? mevcut.dagitici : oturanIndeksler[0];
+    return yeniElBaslatSifirdan(mevcut, oturanIndeksler, dagitici);
   }).then((res) => { if (!res.committed) { showToast('Oyunu başlatmak için en az ' + MIN_OYUNCU + ' oyuncu oturmalı.', { variant: 'error' }); } });
 }
-function elBittiSonrakiEl() {
+// Kullanıcı isteği: 101 puana ulaşılana kadar eller otomatik ZİNCİRLEME
+// oynanmasın (kaç el süreceği belirsiz), her el bitince oyuncular TEKRAR
+// "Hazır" demeli -- bu yüzden el_bitti sonrası doğrudan yeni el DAĞITMAK
+// yerine 'oyuncu_bekleniyor'a dönüyoruz; asıl dağıtım oyunuBaslat() (yukarı
+// bkz.) hepsiHazirMi kontrolüyle zaten tetikleniyor.
+function elBittiHazirlikaGec() {
   return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'el_bitti') { return; }
     if (!mevcut.guncellemeTs || Date.now() - mevcut.guncellemeTs < EL_BITTI_BEKLEME_MS) { return; }
-    const oturanIndeksler = oturanKoltukIndeksleri(mevcut);
-    if (oturanIndeksler.length < MIN_OYUNCU) { return Object.assign({}, mevcut, { durum: 'oyuncu_bekleniyor', guncellemeTs: Date.now() }); }
-    return yeniElBaslatSifirdan(mevcut, oturanIndeksler, mevcut.dagitici);
+    const koltuklar = Object.assign({}, mevcut.koltuklar);
+    Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { katilimDurumu: 'hazir', hazir: false }); } });
+    return Object.assign({}, mevcut, { durum: 'oyuncu_bekleniyor', koltuklar, aktifKoltuk: null, aksiyonBitis: null, guncellemeTs: Date.now() });
   });
 }
 
@@ -413,7 +438,7 @@ function belkiSonrakiFazaGec(table) {
   if (!table || !canPlay || !modeReady || isReadOnly() || pendingTableOperation || playerActionPending || tableError) { return; }
   const terkEdilmisMi = Boolean(table.guncellemeTs) && Date.now() - table.guncellemeTs > TERK_EDILME_MS;
   if (table.durum !== 'oyuncu_bekleniyor' && benimKoltukIndex(table) === null && !terkEdilmisMi) { return; }
-  if (table.durum === 'el_bitti' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_BITTI_BEKLEME_MS) { elBittiSonrakiEl(); return; }
+  if (table.durum === 'el_bitti' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_BITTI_BEKLEME_MS) { elBittiHazirlikaGec(); return; }
   if (table.durum === 'oynaniyor' && table.aksiyonBitis && Date.now() >= table.aksiyonBitis) { zamanAsimindaOtomatikOyna(); return; }
   // DENEYSEL (Godot köprüsü) -- oturan herkes "hazır" ise (hazirVer()),
   // manuel "Oyunu başlat"a gerek kalmadan otomatik başlat. Kimse hazirVer()
