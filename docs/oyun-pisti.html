@@ -247,13 +247,9 @@
     </div>
   </div>
 
-  <!-- Godot masası -- içerik alanına (sidebar'ın SAĞINA) sığıyor, tüm
-       viewport'u KAPLAMIYOR. NOT: sabit bir en-boy oranı ZORLAMIYORUZ --
-       Godot tarafı (Masa.gd _hesapla_masa_olculeri) zaten HANGİ boyut/oran
-       verilirse versin masayı/koltukları/eli buna göre YENİDEN diziyor
-       (mobil/duyarlı tasarım için böyle yapılmıştı) -- kutuyu sadece
-       viewport yüksekliğine göre sınırlamak yeterli, taşma olmaz. -->
-  <div id="pisti-godot-sarici" style="position:relative; width:100%; height:calc(100vh - 220px); min-height:420px; max-height:900px; background:#1a2332; border-radius:12px; overflow:hidden; box-sizing:border-box;">
+  <!-- Godot masası -- SABİT 1600x1100 (motorun kendi çözünürlüğüyle AYNI),
+       yalnız dar ekranlarda (mobil) max-width:100% ile küçülüyor. -->
+  <div id="pisti-godot-sarici" style="position:relative; width:1600px; height:auto; max-width:100%; aspect-ratio:1600/1100; margin:0 auto; background:#1a2332; border-radius:12px; overflow:hidden; box-sizing:border-box;">
     <canvas id="pisti-godot-canvas" style="width:100%; height:100%; display:block;">
       Tarayıcınız canvas'ı desteklemiyor.
     </canvas>
