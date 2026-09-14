@@ -69,16 +69,11 @@
 
   // Parent (pisti-oyun.js) -> buraya: kimlik + masa güncellemeleri.
   window.addEventListener('message', function (e) {
-    console.log('[pistiGodotTeshis-frame] mesaj geldi:', e.data && e.data.type, 'origin uyumlu:', e.origin === location.origin, 'kaynak parent mi:', e.source === parent);
     if (e.origin !== location.origin || e.source !== parent || !e.data) { return; }
     if (e.data.type === 'pistiKimlik' && window.pistiGodotKimlik) {
-      console.log('[pistiGodotTeshis-frame] pistiGodotKimlik çağrılıyor:', e.data.uid);
       window.pistiGodotKimlik(e.data.uid || '');
     } else if (e.data.type === 'pistiMasaGuncelle' && window.pistiGodotMasaGuncelle) {
-      console.log('[pistiGodotTeshis-frame] pistiGodotMasaGuncelle çağrılıyor:', e.data.table);
       window.pistiGodotMasaGuncelle(JSON.stringify(e.data.table));
-    } else {
-      console.log('[pistiGodotTeshis-frame] eşleşmedi -- window.pistiGodotKimlik:', !!window.pistiGodotKimlik, 'window.pistiGodotMasaGuncelle:', !!window.pistiGodotMasaGuncelle);
     }
   });
 
