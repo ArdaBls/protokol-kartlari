@@ -62,10 +62,11 @@
   </div>
 
   <!-- Godot masası -- içerik alanına (sidebar'ın SAĞINA) sığıyor, tüm
-       viewport'u KAPLAMIYOR (position:fixed DEĞİL -- sidebar'ın altına
-       girme sorunu buradan geliyordu). -->
-  <div id="pisti-godot-sarici" style="position:relative; width:100%; height:min(78vh, calc((100vw - 260px) * 1100 / 1600)); min-height:420px; background:#1a2332; border-radius:12px; overflow:hidden;">
-    <canvas id="pisti-godot-canvas" style="width:100%; height:100%; display:block;">
+       viewport'u KAPLAMIYOR. aspect-ratio ile genişlik HER ZAMAN veli
+       kutunun (page-wrapper) genişliğini geçmiyor -- eski min()/calc
+       kombosu (sidebar genişliğini tahmin ediyordu) taşmaya sebep oluyordu. -->
+  <div id="pisti-godot-sarici" style="position:relative; width:100%; max-width:100%; aspect-ratio:1600/1100; max-height:75vh; margin:0 auto; background:#1a2332; border-radius:12px; overflow:hidden; box-sizing:border-box;">
+    <canvas id="pisti-godot-canvas" style="width:100%; height:100%; max-width:100%; display:block;">
       Tarayıcınız canvas'ı desteklemiyor.
     </canvas>
     <div id="pisti-godot-durum" style="position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; color:#fff; font-family:sans-serif;"></div>
