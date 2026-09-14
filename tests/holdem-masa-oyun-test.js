@@ -20,11 +20,14 @@ assert.equal(holdemAyarlariNormalle({ kucukKor: 80, buyukKor: 10 }).buyukKor, 16
 
 let masa = holdemBosCanliMasa();
 masa = { ...masa, koltuklar: [insan('u1'), bot('b1'), bot('b2'), bot('b3'), bot('b4')] };
-masa = holdemKatilimTalebi(masa, insan('u2'));
+masa = holdemKatilimTalebi(masa, { ...insan('u2'), masaBakiyesi: 3450 });
 assert.equal(masa.kuyruk.length, 1);
 masa = holdemElSonuKuyruguUygula(masa);
 assert.equal(masa.koltuklar.some((koltuk) => koltuk.uid === 'u2'), true);
 assert.equal(masa.koltuklar.find((koltuk) => koltuk.uid === 'u2').skin.desteArkasi, '08');
+// Kuyruktan oturan gerçek oyuncu KENDİ site bakiyesiyle oturmalı, masanın
+// sabit girisBedeli varsayılanıyla DEĞİL (aksi halde çip yaratılır/yok olur).
+assert.equal(masa.koltuklar.find((koltuk) => koltuk.uid === 'u2').masaBakiyesi, 3450);
 
 // Deterministik deste ile kör bahis, sıra ve legal check akışı.
 masa = holdemEliBaslat(masa, 1000, () => 0.42);

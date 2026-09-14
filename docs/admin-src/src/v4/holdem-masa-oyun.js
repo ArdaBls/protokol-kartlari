@@ -114,7 +114,11 @@ export function holdemElSonuKuyruguUygula(masa) {
     let hedef = koltuklar.findIndex((koltuk) => koltuk.bot);
     if (hedef < 0 && koltuklar.length < kapasite) { hedef = koltuklar.length; }
     if (hedef < 0) { kuyruk.unshift(aday); break; }
-    const yeni = { ...aday, masaBakiyesi: masa.ayarlar.girisBedeli, oynuyor: true, pas: false, allIn: false, ayrilacak: false, toplamYatirim: 0, sokakYatirimi: 0, kartlar: [] };
+    // NOT: sabit girisBedeli DEĞİL, adayın kendi masaBakiyesi'yle oturuyor --
+    // gerçek oyuncularda bu, oturma anında okunan site cüzdanı bakiyesidir;
+    // sabit bir tutar kullanmak (eski davranış) bota özgüydü ve gerçek
+    // ekonomide çip yaratıp yok edebilirdi.
+    const yeni = { ...aday, oynuyor: true, pas: false, allIn: false, ayrilacak: false, toplamYatirim: 0, sokakYatirimi: 0, kartlar: [] };
     if (hedef === koltuklar.length) { koltuklar.push(yeni); } else { koltuklar[hedef] = yeni; }
   }
   return { ...masa, koltuklar, kuyruk, guncellemeTs: Date.now() };

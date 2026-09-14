@@ -34,13 +34,6 @@
       </div>
       <div class="card-options">
         <span class="holdem-bakiye" data-holdem-bakiye>… çip</span>
-        <label class="holdem-zorluk-label">Bot zorluğu
-          <select data-holdem-bot-zorlugu aria-label="Bot zorluğu">
-            <option value="kolay">Kolay</option>
-            <option value="normal" selected>Dengeli</option>
-            <option value="zor">Zor</option>
-          </select>
-        </label>
         <button type="button" class="btn btn-outline" data-holdem-masa-ayarlari hidden>Masa ayarları</button>
         <button type="button" class="btn btn-outline holdem-kombinasyon-btn" data-holdem-kombinasyon-ac aria-haspopup="dialog">Kombinasyonlar</button>
       </div>
@@ -49,8 +42,7 @@
 
   <div class="holdem-islem-durumu" aria-live="polite">
     <span data-holdem-durum></span>
-    <button type="button" class="btn btn-primary" data-holdem-masaya-otur>Masaya otur</button>
-    <button type="button" class="btn btn-outline" data-holdem-yeni-el>Yeni el dağıt</button>
+    <button type="button" class="btn btn-outline" data-holdem-yeniden-dene hidden>Yeniden dene</button>
   </div>
 
   <section class="holdem-masa-viewport" aria-label="Texas Hold'em poker masası">
