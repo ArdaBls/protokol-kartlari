@@ -28,7 +28,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
 <style>html.auth-bekliyor body{visibility:hidden!important}</style><script>(function(){try{var d=document.documentElement;d.classList.add("auth-bekliyor");setTimeout(function(){d.classList.remove("auth-bekliyor");},4000);}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/oyun-blackjack-DWcGCiKH.js"></script>
+  <script type="module" crossorigin src="/js/oyun-blackjack-C9UgCUdt.js"></script>
   <link rel="modulepreload" crossorigin href="/js/toast-C9dk_WzR.js">
   <link rel="modulepreload" crossorigin href="/js/db-mode-F_jprkvV.js">
   <link rel="modulepreload" crossorigin href="/js/main-v4-BGl9BFB5.js">
@@ -81,20 +81,6 @@
     </div>
   </div>
 
-  <!-- Godot masası -- DENEYSEL, yalnız ?godot=1 ile açılıyor (Pişti'nin ilk
-       aşamasıyla AYNI güvenlik deseni: varsayılan ziyaretçiler etkilenmez).
-       Mobilde YATAY moddayken tam ekrana geçer. -->
-  <style>
-    #bj-godot-sarici { position: relative; width: 1600px; height: auto; max-width: 100%; min-width: 0; aspect-ratio: 1600/1100; margin: 0 auto; background: #1a2332; border-radius: 12px; overflow: hidden; box-sizing: border-box; }
-    #bj-godot-iframe { width: 100%; height: 100%; min-width: 0; border: 0; display: block; }
-    @media (max-width: 900px) and (orientation: landscape) {
-      #bj-godot-sarici { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; max-width: none !important; aspect-ratio: unset !important; margin: 0 !important; border-radius: 0 !important; z-index: 9999 !important; }
-    }
-  </style>
-  <div id="bj-godot-sarici" hidden>
-    <iframe id="bj-godot-iframe" src="/godot/blackjack/frame.html" title="Blackjack" allow="autoplay"></iframe>
-  </div>
-
 </div>
 
     <footer class="footer">
@@ -104,15 +90,6 @@
   
 </main>
 
-
-<script>
-(function () {
-  if (new URLSearchParams(location.search).get('godot') !== '1') { return; }
-  document.querySelector('[data-bj-root]').hidden = true;
-  document.querySelector('.bj-islem-durumu').hidden = true;
-  document.getElementById('bj-godot-sarici').hidden = false;
-}());
-</script>
 
 </body>
 </html>
