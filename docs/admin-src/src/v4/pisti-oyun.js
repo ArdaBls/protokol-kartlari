@@ -696,7 +696,7 @@ function eventleriBagla() {
   });
 }
 
-// ── Godot köprüsü (DENEYSEL, ?godot=1 ile aktif) -- Godot ayrı bir
+// ── Godot köprüsü -- ARTIK VARSAYILAN oyun deneyimi, Godot ayrı bir
 // iframe'de (/godot/pisti/frame.html) çalışıyor, sitenin CSS/CSP'siyle
 // çakışmasın diye izole. window.pistiXxx doğrudan çağrı YOK -- iframe
 // sınırını postMessage ile aşıyoruz. Gerçek kural/yazma mantığı HEP burada
