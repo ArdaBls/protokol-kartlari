@@ -26,44 +26,85 @@
         <h1 class="page-title">Pişti</h1>
       </div>
       <div class="card-options">
-        <button type="button" class="btn btn-primary" data-pisti-baslat hidden>Oyunu başlat</button>
+        <button type="button" class="btn btn-primary" data-pisti-baslat hidden>Hazırım</button>
       </div>
     </div>
   </div>
 
-  <div class="pisti-islem-durumu">
-    <span data-pisti-durum role="status" aria-live="polite"></span>
-    <button type="button" class="btn btn-outline" data-pisti-yeniden-dene hidden>Tekrar dene</button>
-    <button type="button" class="btn btn-outline" data-pisti-kalk-durum hidden>Kalk</button>
-    <button type="button" class="btn btn-outline" data-pisti-teklif-bitir hidden>Oyunu bitir</button>
-  </div>
-  <div class="pisti-teklif-paneli" data-pisti-teklif-paneli hidden></div>
-
-  <div class="pisti-skor-tablosu" data-pisti-skor-tablosu></div>
-
-  <div class="pisti-masa-viewport">
-    <div class="pisti-masa" data-pisti-root>
-      <div class="pisti-koltuklar" data-pisti-koltuklar></div>
-      <div class="pisti-masa-kartlari-alani">
-        <div class="pisti-masa-kartlari" data-pisti-masa-kartlari></div>
-      </div>
-      <div class="pisti-elim" data-pisti-elim></div>
-      <div class="pisti-el-bitti-paneli" data-pisti-el-bitti-paneli hidden></div>
-      <div class="pisti-oyun-bitti-paneli" data-pisti-oyun-bitti-paneli hidden></div>
+  <div data-pisti-dom-ui>
+    <div class="pisti-islem-durumu">
+      <span data-pisti-durum role="status" aria-live="polite"></span>
+      <button type="button" class="btn btn-outline" data-pisti-yeniden-dene hidden>Tekrar dene</button>
+      <button type="button" class="btn btn-outline" data-pisti-kalk-durum hidden>Kalk</button>
+      <button type="button" class="btn btn-outline" data-pisti-teklif-bitir hidden>Oyunu bitir</button>
     </div>
-  </div>
+    <div class="pisti-teklif-paneli" data-pisti-teklif-paneli hidden></div>
 
-  <p class="hint" data-pisti-oturmadim hidden style="text-align:center;">Oynamak için boş bir koltuğa (+) tıklayın.</p>
-  <div style="text-align:center;">
-    <span aria-live="polite" data-pisti-sira-bildirimi></span>
-    <strong data-pisti-sayac></strong>
+    <div class="pisti-skor-tablosu" data-pisti-skor-tablosu></div>
+
+    <div class="pisti-masa-viewport">
+      <div class="pisti-masa" data-pisti-root>
+        <div class="pisti-koltuklar" data-pisti-koltuklar></div>
+        <div class="pisti-masa-kartlari-alani">
+          <div class="pisti-masa-kartlari" data-pisti-masa-kartlari></div>
+        </div>
+        <div class="pisti-elim" data-pisti-elim></div>
+        <div class="pisti-el-bitti-paneli" data-pisti-el-bitti-paneli hidden></div>
+        <div class="pisti-oyun-bitti-paneli" data-pisti-oyun-bitti-paneli hidden></div>
+      </div>
+    </div>
+
+    <p class="hint" data-pisti-oturmadim hidden style="text-align:center;">Oynamak için boş bir koltuğa (+) tıklayın.</p>
+    <div style="text-align:center;">
+      <span aria-live="polite" data-pisti-sira-bildirimi></span>
+      <strong data-pisti-sayac></strong>
+    </div>
   </div>
 
 </div>
 </main>
 
+<!-- Godot (deneysel) masa -- şimdilik yalnız ?godot=1 ile açılıyor, DOM
+     sürümü varsayılan/güvenli fallback olarak kalıyor. -->
+<div id="pisti-godot-sarici" hidden style="position:fixed; inset:0; z-index:200; background:#1a2332;">
+  <canvas id="pisti-godot-canvas" style="width:100%; height:100%; display:block;">
+    Tarayıcınız canvas'ı desteklemiyor.
+  </canvas>
+  <div id="pisti-godot-durum" style="position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; color:#fff; font-family:sans-serif;"></div>
+</div>
+
 <script type="module">
 import('/src/v4/pisti-oyun.js').then((m) => m.initPisti());
+</script>
+
+<script src="/godot/pisti/index.js"></script>
+<script>
+(function () {
+  if (new URLSearchParams(location.search).get('godot') !== '1') { return; }
+  document.querySelector('[data-pisti-dom-ui]').hidden = true;
+  var sarici = document.getElementById('pisti-godot-sarici');
+  var durumEl = document.getElementById('pisti-godot-durum');
+  sarici.hidden = false;
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 2, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 394204, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var engine = new Engine(GODOT_CONFIG);
+  var eksikler = Engine.getMissingFeatures({ threads: false });
+  if (eksikler.length !== 0) {
+    durumEl.textContent = 'Tarayıcınız bu oyunu desteklemiyor: ' + eksikler.join(', ');
+    return;
+  }
+  durumEl.textContent = 'Yükleniyor…';
+  engine.startGame({
+    'canvas': document.getElementById('pisti-godot-canvas'),
+    'onProgress': function (guncel, toplam) {
+      if (guncel > 0 && toplam > 0) { durumEl.textContent = 'Yükleniyor… ' + Math.round((guncel / toplam) * 100) + '%'; }
+    }
+  }).then(function () {
+    durumEl.remove();
+  }, function (hata) {
+    console.error('Pişti (Godot) yüklenemedi:', hata);
+    durumEl.textContent = 'Oyun yüklenemedi, sayfayı yenileyin.';
+  });
+}());
 </script>
 
 </body>
