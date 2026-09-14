@@ -29,7 +29,6 @@ const MASA_ID = 'ana-masa';
 const MASA_YOLU = 'pisti/masalar/' + MASA_ID;
 const AKSIYON_SURESI_MS = 30000;
 const EL_BITTI_BEKLEME_MS = 3500;
-const OYUN_BITTI_BEKLEME_MS = 3500;
 // Firebase kuralındaki (masalar/$masaId .write) "guncellemeTs 130 saniyeden
 // eskiyse koltukta oturmayan biri de yazabilir" kurtarma cümlesiyle eşleşir
 // -- bkz. Blackjack'te bulunan "terk edilmiş masa sonsuza kadar kilitli
@@ -154,7 +153,7 @@ function otur(koltukIndex) {
     const koltuklar = Object.assign({}, taban.koltuklar || {});
     if (Object.keys(koltuklar).some((i) => koltuklar[i] && koltuklar[i].uid === currentUserUid)) { return; }
     if (koltuklar[koltukIndex] && koltuklar[koltukIndex].uid) { return; }
-    koltuklar[koltukIndex] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, katilimDurumu: 'hazir', hazir: false };
+    koltuklar[koltukIndex] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, katilimDurumu: 'hazir' };
     return Object.assign({}, taban, { durum: 'oyuncu_bekleniyor', koltuklar, guncellemeTs: Date.now() });
   }).then((res) => { if (!res.committed) { showToast('Bu koltuk dolu veya oyun başlamış.', { variant: 'error' }); } });
 }
@@ -168,22 +167,6 @@ function kalk(koltukIndex) {
     koltuklar[koltukIndex] = null;
     return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
   }).then((res) => { if (!res.committed) { showToast('Oyun başlamadan önce/oyun bekleme fazında kalkabilirsiniz.', { variant: 'error' }); } });
-}
-
-// "Oyunu başlat" düğmesi YOK -- oturan HERKES kendi hazır durumunu açıp
-// kapatıyor, SON kişi hazır deyince belkiSonrakiFazaGec otomatik başlatıyor
-// (bkz. aşağı). Godot istemcisi de AYNI fonksiyonu çağıracak.
-function hazirVer() {
-  return masaIslemi((mevcut) => {
-    if (!mevcut || mevcut.durum !== 'oyuncu_bekleniyor') { return; }
-    const benim = benimKoltukIndex(mevcut);
-    if (benim === null) { return; }
-    const koltuklar = Object.assign({}, mevcut.koltuklar);
-    const koltuk = koltuklar[benim];
-    if (!koltuk) { return; }
-    koltuklar[benim] = Object.assign({}, koltuk, { hazir: !koltuk.hazir });
-    return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
-  });
 }
 
 // ── El başlatma ──
@@ -355,9 +338,7 @@ function yeniOyunBaslat() {
   return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'oyun_bitti') { return; }
     const koltuklar = Object.assign({}, mevcut.koltuklar);
-    // hazir SIFIRLANIR -- yoksa herkes zaten "hazır" görünüp yeni oyun anında
-    // (kimse yeniden onaylamadan) tekrar başlar, sonsuz döngü olurdu.
-    Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { katilimDurumu: 'hazir', hazir: false }); } });
+    Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { katilimDurumu: 'hazir' }); } });
     return Object.assign({}, mevcut, {
       durum: 'oyuncu_bekleniyor', koltuklar, skorlar: {}, eller: {}, topladiklarim: {}, pistiSayilari: {},
       masaKartlari: [], aktifKoltuk: null, aksiyonBitis: null, kazananKoltuk: null, sonElPuanlari: null, guncellemeTs: Date.now()
@@ -417,19 +398,7 @@ function belkiSonrakiFazaGec(table) {
   const terkEdilmisMi = Boolean(table.guncellemeTs) && Date.now() - table.guncellemeTs > TERK_EDILME_MS;
   if (table.durum !== 'oyuncu_bekleniyor' && benimKoltukIndex(table) === null && !terkEdilmisMi) { return; }
   if (table.durum === 'el_bitti' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_BITTI_BEKLEME_MS) { elBittiSonrakiEl(); return; }
-  if (table.durum === 'oynaniyor' && table.aksiyonBitis && Date.now() >= table.aksiyonBitis) { zamanAsimindaOtomatikOyna(); return; }
-  // "Oyunu başlat" düğmesi YOK -- oturan herkes hazır olunca herhangi bir
-  // bağlı istemcinin bu watchdog'u (dinleyici tetiklenmesi VEYA 1sn'lik
-  // interval) devreye girip başlatması yeterli.
-  if (table.durum === 'oyuncu_bekleniyor') {
-    const oturanIndeksler = oturanKoltukIndeksleri(table);
-    const hepsiHazirMi = oturanIndeksler.length >= MIN_OYUNCU && oturanIndeksler.every((i) => table.koltuklar[i].hazir);
-    if (hepsiHazirMi) { oyunuBaslat(); return; }
-  }
-  // Oyun bitince bir süre sonuç ekranı gösterilip OTOMATİK lobiye dönülür --
-  // hazır durumları sıfırlanır (yeniOyunBaslat), tekrar başlamak için herkes
-  // yeniden hazır vermeli (sonsuz döngü olmasın diye).
-  if (table.durum === 'oyun_bitti' && table.guncellemeTs && Date.now() - table.guncellemeTs > OYUN_BITTI_BEKLEME_MS) { yeniOyunBaslat(); }
+  if (table.durum === 'oynaniyor' && table.aksiyonBitis && Date.now() >= table.aksiyonBitis) { zamanAsimindaOtomatikOyna(); }
 }
 
 // ── Render ──
@@ -579,13 +548,7 @@ function renderDurumSatiri(table, benimKoltuk) {
   const sayacEl = document.querySelector('[data-pisti-sayac]');
   const oturanSayisi = oturanKoltukIndeksleri(table).length;
   if (durum) {
-    if (table.durum === 'oyuncu_bekleniyor') {
-      if (oturanSayisi < MIN_OYUNCU) { durum.textContent = 'En az ' + MIN_OYUNCU + ' oyuncu bekleniyor…'; }
-      else {
-        const hazirSayisi = oturanKoltukIndeksleri(table).filter((i) => table.koltuklar[i].hazir).length;
-        durum.textContent = hazirSayisi + '/' + oturanSayisi + ' oyuncu hazır -- herkes hazır olunca oyun başlar.';
-      }
-    }
+    if (table.durum === 'oyuncu_bekleniyor') { durum.textContent = oturanSayisi < MIN_OYUNCU ? 'En az ' + MIN_OYUNCU + ' oyuncu bekleniyor…' : 'Herkes hazır -- oyunu başlatabilirsiniz.'; }
     else if (table.durum === 'oynaniyor') { durum.textContent = table.aktifKoltuk === benimKoltuk ? 'Sıra sende -- bir kart oyna.' : ((table.koltuklar[table.aktifKoltuk] || {}).isim || 'Rakip') + ' oynuyor…'; }
     else if (table.durum === 'el_bitti') { durum.textContent = 'El bitti -- puanlar hesaplandı.'; }
     else if (table.durum === 'oyun_bitti') { durum.textContent = ((table.koltuklar[table.kazananKoltuk] || {}).isim || 'Bir oyuncu') + ' oyunu kazandı!'; }
@@ -594,15 +557,8 @@ function renderDurumSatiri(table, benimKoltuk) {
     const saniye = table.durum === 'oynaniyor' && table.aksiyonBitis ? Math.max(0, Math.ceil((table.aksiyonBitis - Date.now()) / 1000)) : null;
     sayacEl.textContent = saniye === null ? '' : saniye + ' sn';
   }
-  // Eski "Oyunu başlat" düğmesi artık kişisel "Hazırım" değiştiricisi --
-  // herkes hazır olunca belkiSonrakiFazaGec otomatik başlatıyor.
   const baslatBtn = document.querySelector('[data-pisti-baslat]');
-  if (baslatBtn) {
-    baslatBtn.hidden = benimKoltuk === null || table.durum !== 'oyuncu_bekleniyor';
-    const benimHazirMi = benimKoltuk !== null && table.koltuklar[benimKoltuk] && table.koltuklar[benimKoltuk].hazir;
-    baslatBtn.textContent = benimHazirMi ? 'Hazır ✓' : 'Hazırım';
-    baslatBtn.classList.toggle('btn-outline', Boolean(benimHazirMi));
-  }
+  if (baslatBtn) { baslatBtn.hidden = table.durum !== 'oyuncu_bekleniyor' || oturanSayisi < MIN_OYUNCU; }
   const oturBos = document.querySelector('[data-pisti-oturmadim]');
   if (oturBos) { oturBos.hidden = benimKoltuk !== null || table.durum !== 'oyuncu_bekleniyor'; }
   // Kalkma yalnız oyun BAŞLAMADAN ÖNCE anlamlı -- oynaniyor/el_bitti/oyun_bitti
@@ -662,7 +618,7 @@ function eventleriBagla() {
     // "Oyunu başlat" sayfa BAŞLIĞINDA (.card-options), [data-pisti-root]'un
     // (yalnız masayı saran) DIŞINDA yaşıyor -- aşağıdaki kapsam kontrolünden
     // ÖNCE ele alınmalı, yoksa tıklama sessizce yok sayılıyordu.
-    if (e.target.closest('[data-pisti-baslat]')) { if (!isReadOnly()) { oyuncuIslemi(hazirVer); } return; }
+    if (e.target.closest('[data-pisti-baslat]')) { if (!isReadOnly()) { oyuncuIslemi(oyunuBaslat); } return; }
     if (e.target.closest('[data-pisti-kalk-durum]')) {
       if (!isReadOnly()) { const benim = benimKoltukIndex(currentTable); if (benim !== null) { oyuncuIslemi(() => kalk(benim)); } }
       return;
@@ -682,32 +638,6 @@ function eventleriBagla() {
       oyuncuIslemi(() => kartOyna(benimKoltuk, Number(oynaBtn.dataset.pistiOyna)));
     }
   });
-}
-
-// ── Godot köprüsü -- Godot (WebAssembly) artık AYRI bir iframe'de
-// (/godot/pisti/frame.html) çalışıyor, sitenin CSS/flex/CSP'siyle
-// çakışmasın diye izole edildi. Doğrudan window.pistiXxx çağrısı YOK --
-// iframe sınırını postMessage ile aşıyoruz. Gerçek kural/yazma mantığı HEP
-// burada (masaIslemi/transaction) kalır -- Godot sadece görselleştirip
-// tıklamayı yönlendirir, kendi başına state hesaplamaz.
-let pistiGodotFrame = null;
-window.addEventListener('message', (e) => {
-  if (e.origin !== location.origin || !pistiGodotFrame || e.source !== pistiGodotFrame.contentWindow || !e.data) { return; }
-  if (e.data.type === 'pistiHazir') { pistiGodotIlet(); return; }
-  if (e.data.type === 'pistiOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
-  if (e.data.type === 'pistiHazirVer') { oyuncuIslemi(hazirVer); return; }
-  if (e.data.type === 'pistiKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
-  if (e.data.type === 'pistiKartOyna') {
-    const benim = benimKoltukIndex(currentTable);
-    if (benim === null) { return; }
-    oyuncuIslemi(() => kartOyna(benim, Number(e.data.kartIndex)));
-  }
-});
-function pistiGodotIlet() {
-  if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
-  if (!pistiGodotFrame || !pistiGodotFrame.contentWindow || !currentTable) { return; }
-  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiKimlik', uid: currentUserUid }, location.origin);
-  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiMasaGuncelle', table: currentTable }, location.origin);
 }
 
 function attachTableListener(force = false) {
@@ -730,7 +660,6 @@ function attachTableListener(force = false) {
     const table = snap.val() || { durum: 'oyuncu_bekleniyor', koltuklar: {}, skorlar: {}, guncellemeTs: Date.now(), elNo: 0 };
     renderMasa(table);
     belkiSonrakiFazaGec(table);
-    pistiGodotIlet(); // Godot iframe'i varsa (bkz. yukarısı) her güncellemeyi ona da ilet
   };
   tableRef.on('value', tableListener, masaHatasi);
   phaseWatchdog = setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);

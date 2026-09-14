@@ -26,46 +26,37 @@
         <h1 class="page-title">Pişti</h1>
       </div>
       <div class="card-options">
-        <button type="button" class="btn btn-primary" data-pisti-baslat hidden>Hazırım</button>
+        <button type="button" class="btn btn-primary" data-pisti-baslat hidden>Oyunu başlat</button>
       </div>
     </div>
   </div>
 
-  <div data-pisti-dom-ui>
-    <div class="pisti-islem-durumu">
-      <span data-pisti-durum role="status" aria-live="polite"></span>
-      <button type="button" class="btn btn-outline" data-pisti-yeniden-dene hidden>Tekrar dene</button>
-      <button type="button" class="btn btn-outline" data-pisti-kalk-durum hidden>Kalk</button>
-      <button type="button" class="btn btn-outline" data-pisti-teklif-bitir hidden>Oyunu bitir</button>
-    </div>
-    <div class="pisti-teklif-paneli" data-pisti-teklif-paneli hidden></div>
+  <div class="pisti-islem-durumu">
+    <span data-pisti-durum role="status" aria-live="polite"></span>
+    <button type="button" class="btn btn-outline" data-pisti-yeniden-dene hidden>Tekrar dene</button>
+    <button type="button" class="btn btn-outline" data-pisti-kalk-durum hidden>Kalk</button>
+    <button type="button" class="btn btn-outline" data-pisti-teklif-bitir hidden>Oyunu bitir</button>
+  </div>
+  <div class="pisti-teklif-paneli" data-pisti-teklif-paneli hidden></div>
 
-    <div class="pisti-skor-tablosu" data-pisti-skor-tablosu></div>
+  <div class="pisti-skor-tablosu" data-pisti-skor-tablosu></div>
 
-    <div class="pisti-masa-viewport">
-      <div class="pisti-masa" data-pisti-root>
-        <div class="pisti-koltuklar" data-pisti-koltuklar></div>
-        <div class="pisti-masa-kartlari-alani">
-          <div class="pisti-masa-kartlari" data-pisti-masa-kartlari></div>
-        </div>
-        <div class="pisti-elim" data-pisti-elim></div>
-        <div class="pisti-el-bitti-paneli" data-pisti-el-bitti-paneli hidden></div>
-        <div class="pisti-oyun-bitti-paneli" data-pisti-oyun-bitti-paneli hidden></div>
+  <div class="pisti-masa-viewport">
+    <div class="pisti-masa" data-pisti-root>
+      <div class="pisti-koltuklar" data-pisti-koltuklar></div>
+      <div class="pisti-masa-kartlari-alani">
+        <div class="pisti-masa-kartlari" data-pisti-masa-kartlari></div>
       </div>
-    </div>
-
-    <p class="hint" data-pisti-oturmadim hidden style="text-align:center;">Oynamak için boş bir koltuğa (+) tıklayın.</p>
-    <div style="text-align:center;">
-      <span aria-live="polite" data-pisti-sira-bildirimi></span>
-      <strong data-pisti-sayac></strong>
+      <div class="pisti-elim" data-pisti-elim></div>
+      <div class="pisti-el-bitti-paneli" data-pisti-el-bitti-paneli hidden></div>
+      <div class="pisti-oyun-bitti-paneli" data-pisti-oyun-bitti-paneli hidden></div>
     </div>
   </div>
 
-  <!-- Godot masası -- KENDİ iframe'inde, sitenin CSS/flex/CSP'sinden
-       TAMAMEN İZOLE (bkz. /godot/pisti/frame.html) -- doğrudan gömme
-       taşma/tıklama-engellenmesi gibi sorunlara sebep oluyordu. -->
-  <div id="pisti-godot-sarici" style="position:relative; width:1600px; height:auto; max-width:100%; min-width:0; aspect-ratio:1600/1100; margin:0 auto; background:#1a2332; border-radius:12px; overflow:hidden; box-sizing:border-box;">
-    <iframe id="pisti-godot-iframe" src="/godot/pisti/frame.html" title="Pişti" style="width:100%; height:100%; min-width:0; border:0; display:block;" allow="autoplay"></iframe>
+  <p class="hint" data-pisti-oturmadim hidden style="text-align:center;">Oynamak için boş bir koltuğa (+) tıklayın.</p>
+  <div style="text-align:center;">
+    <span aria-live="polite" data-pisti-sira-bildirimi></span>
+    <strong data-pisti-sayac></strong>
   </div>
 
 </div>
@@ -73,10 +64,6 @@
 
 <script type="module">
 import('/src/v4/pisti-oyun.js').then((m) => m.initPisti());
-</script>
-
-<script>
-document.querySelector('[data-pisti-dom-ui]').hidden = true;
 </script>
 
 </body>
