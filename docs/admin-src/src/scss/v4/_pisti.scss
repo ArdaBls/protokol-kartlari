@@ -107,13 +107,14 @@ $pisti-bordo: #6b1f2a;
   position: absolute;
   left: 50%;
   bottom: -34px;
-  // Görsel kart (.pisti-kart) BUNDAN daha geniş ve taşıyor (aşağıya bak) --
-  // gerçek tıklanabilir kutu bilerek DAR tutuluyor. Aksi halde yelpazedeki
-  // üst üste binen kartların tam görsel genişliği (96px) tıklanabilir
-  // kalıyor ve komşu kartı da "tutuyordu" (kısmen görünen alt kart aslında
-  // üsttekinin görsel taşması yüzünden tıklamayı çalıyordu).
-  width: 56px;
-  margin-left: -28px;
+  // NOT (geri alındı): tıklanabilir kutuyu görselden DAHA DAR yapıp resme
+  // pointer-events:none vermiştim -- bu, kartın kenarlarına yapılan
+  // tıklamaların HİÇBİR ŞEYE isabet etmemesine yol açtı ("kart oynayamadım"
+  // şikayeti). Görünen kartın HER YERİ tıklanabilir olmalı; z-index sırası
+  // (aşağıdaki hover kuralı + her karta artan z-index) zaten üstteki kartı
+  // doğru seçiyor, ayrıca dar kutuya gerek yoktu.
+  width: 96px;
+  margin-left: -48px;
   padding: 0;
   border: 0;
   background: none;
@@ -124,10 +125,7 @@ $pisti-bordo: #6b1f2a;
   touch-action: none;
 }
 .pisti-el-kart-btn:disabled { cursor: default; filter: brightness(0.75); }
-// Görsel kart, dar tıklama kutusundan taşıp ortalanır -- ama pointer-events
-// none olduğundan taşan kısım BAŞKA bir kartın tıklamasını hiç çalamaz;
-// tüm tıklama mantığı yalnızca üstteki (dar) button kutusuna bakar.
-.pisti-el-kart-btn .pisti-kart { width: 96px; margin-left: -20px; pointer-events: none; }
+.pisti-el-kart-btn .pisti-kart { width: 100%; }
 // Sürüklenirken (pointerdown'dan bırakmaya kadar) geçiş kapatılır --
 // aksi halde her pointermove karesi 260ms'lik geçişle "gecikip" parmağın/
 // imlecin gerisinde sürüklenir gibi görünürdü.
