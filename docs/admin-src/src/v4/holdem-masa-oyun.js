@@ -263,6 +263,35 @@ export function holdemEliBitir(masa, now = Date.now()) {
   };
 }
 
+/**
+ * Bir oyuncu masadan kalkar (aktif bir el sürerken de olabilir). Sırası
+ * kendisindeyse normal pas geçme akışından (sonrakiAksiyon/sokakIlerle)
+ * geçer -- turu doğru ilerletir, gerekirse eli otomatik bitirir. Sırası
+ * BAŞKASINDAYKEN ayrılırsa bekleyen listesinden çıkarılır; bu onu tek kalan
+ * oyuncu yaparsa (ör. 2 kişiden 1'e düşerse) el hemen sonuçlandırılır.
+ */
+export function holdemOyuncuMasadanAyril(masa, koltukIndex, now = Date.now()) {
+  if (!AKTIF_DURUMLAR.has(masa.durum)) {
+    const koltuklar = masa.koltuklar.filter((_, i) => i !== koltukIndex);
+    return { ...masa, koltuklar, guncellemeTs: now };
+  }
+  const koltuk = masa.koltuklar[koltukIndex];
+  if (!koltuk || koltuk.pas) {
+    const koltuklar = masa.koltuklar.slice();
+    if (koltuk) { koltuklar[koltukIndex] = { ...koltuk, ayrilacak: true }; }
+    return { ...masa, koltuklar, guncellemeTs: now };
+  }
+  const koltuklar = masa.koltuklar.slice();
+  koltuklar[koltukIndex] = { ...koltuk, pas: true, ayrilacak: true, sonAksiyon: 'fold' };
+  const bekleyen = (masa.bekleyen || []).filter((index) => index !== koltukIndex);
+  const artirmaKapali = Array.isArray(masa.artirmaKapali) ? masa.artirmaKapali.filter((index) => index !== koltukIndex) : [];
+  const sonraki = { ...masa, koltuklar, bekleyen, artirmaKapali };
+  if (masa.aktifKoltuk === koltukIndex) { return sonrakiAksiyon(sonraki, now); }
+  const devam = sonraki.koltuklar.filter(devamEden);
+  if (devam.length <= 1) { return holdemEliBitir(sonraki, now); }
+  return { ...sonraki, guncellemeTs: now };
+}
+
 /** Tarayıcı/bağlantı gerçekten kesilirse aktif sırada 10 saniyelik son süre verilir. */
 export function holdemBaglantiKesildi(masa, uid, now = Date.now()) {
   const index = masa.koltuklar.findIndex((koltuk) => koltuk.uid === uid && !koltuk.bot);

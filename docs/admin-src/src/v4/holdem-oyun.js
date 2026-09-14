@@ -15,7 +15,7 @@ import { subscribeStaffProfiles, renderStaffAvatar } from './staff-profiles.js';
 import { holdemElDegerlendir } from './holdem-engine.js';
 import {
   holdemAksiyonUygula, holdemAyarlariNormalle, holdemBosCanliMasa, holdemEliBaslat,
-  holdemVarsayilanAyarlaraDon, holdemKatilimTalebi, holdemElSonuKuyruguUygula
+  holdemVarsayilanAyarlaraDon, holdemKatilimTalebi, holdemElSonuKuyruguUygula, holdemOyuncuMasadanAyril
 } from './holdem-masa-oyun.js';
 
 const FIREBASE_CONFIG = {
@@ -230,8 +230,14 @@ function otur() {
     showToast(mesaj, { variant: 'error' });
   }).finally(() => { masaCuzdanIslemiBekliyor = false; renderMasa(); });
 }
-function kalk() {
-  masaIslemi((mevcut) => {
+function kalkOnaySorulmaliMi(table) {
+  const index = benimKoltukIndex(table);
+  if (index === -1 || !AKTIF_DURUMLAR.has(table.durum)) { return false; }
+  const koltuk = table.koltuklar[index];
+  return Boolean(koltuk) && !koltuk.pas && (koltuk.toplamYatirim || 0) > 0;
+}
+function kalkUygula() {
+  return masaIslemi((mevcut) => {
     if (!mevcut) { return; }
     const index = benimKoltukIndex(mevcut);
     if (index === -1) {
@@ -239,21 +245,25 @@ function kalk() {
       if (kuyruk.length === (mevcut.kuyruk || []).length) { return; }
       return Object.assign({}, mevcut, { kuyruk, guncellemeTs: Date.now() });
     }
-    if (AKTIF_DURUMLAR.has(mevcut.durum)) {
-      // El sürüyor -- hemen koltuktan çıkarmak diğer oyuncuların potunu
-      // bozar; yalnız "ayrılacak" işaretlenir, el bitince kuyruk mantığı
-      // temizler. Sırası bense önce elim otomatik pas geçilir.
-      let masa = mevcut;
-      if (masa.aktifKoltuk === index) {
-        try { masa = holdemAksiyonUygula(masa, { koltukIndex: index, aksiyon: 'fold' }, Date.now()); } catch { /* zaten oynanamaz durumda olabilir */ }
-      }
-      const koltuklar = masa.koltuklar.slice();
-      koltuklar[index] = Object.assign({}, koltuklar[index], { ayrilacak: true, pas: true });
-      return Object.assign({}, masa, { koltuklar, guncellemeTs: Date.now() });
-    }
-    const koltuklar = mevcut.koltuklar.filter((_, i) => i !== index);
-    return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
+    // El sürüyorken ayrılmak artık holdemOyuncuMasadanAyril'e devredildi --
+    // sırası kendindeyse normal pas akışından geçip turu doğru ilerletir
+    // (ve gerekirse eli hemen bitirir, örn. 2 kişiden 1'e düşünce).
+    return holdemOyuncuMasadanAyril(mevcut, index, Date.now());
   });
+}
+function kalk() {
+  if (kalkOnaySorulmaliMi(currentTable)) {
+    showModal({
+      title: 'Masadan kalkmak istiyor musun?',
+      body: '<p>Bu elde zaten çip yatırdın -- masadan kalkarsan bu eldeki hakkından vazgeçmiş olursun.</p>',
+      actions: [
+        { label: 'Kalk', variant: 'primary', action: () => { kalkUygula(); } },
+        { label: 'Vazgeç', variant: 'outline' }
+      ]
+    });
+    return;
+  }
+  kalkUygula();
 }
 
 // ── El sonu net çip aktarımı -- HER seatli istemci KENDİ uid'ine yazar
@@ -277,6 +287,18 @@ function belkiCuzdanAyarla(table) {
   }).finally(() => { masaCuzdanIslemiBekliyor = false; renderMasa(); });
 }
 
+// Lobiye dönerken bir önceki elin masa/ortak kartları temizlenmeli --
+// aksi halde 'lobi' fazında bile son elin açık kartları ekranda kalıyordu
+// (durum 'lobi' olduğunda render zaten community/pot göstermiyor ama veri
+// tabanında da gereksiz/yanıltıcı kalmaması için burada sıfırlanıyor).
+function masayiLobiyeDondur(masa) {
+  return Object.assign({}, masa, {
+    durum: 'lobi', communityCards: [], deste: [], desteId: null, desteIndex: 0, yakilanKartlar: [],
+    sonuclar: null, pot: 0, mevcutBahis: 0, minArtirma: 0, bekleyen: [], artirmaKapali: [],
+    aktifKoltuk: null, aksiyonBitis: null, smallBlind: null, bigBlind: null, guncellemeTs: Date.now()
+  });
+}
+
 // ── Self-healing faz geçişi -- Pişti/Blackjack ile AYNI desen: hangi
 // istemcinin transaction'ı önce commit ederse o kazanır, tek bir istemcinin
 // zamanlayıcısına bağımlı değildir (.on('value') VE 1sn'lik watchdog'dan
@@ -290,7 +312,14 @@ function belkiSonrakiFazaGec(table) {
   // sürekli "izin yok" hatası görünür. Terk edilmiş masa kurtarma yolu
   // (130sn) istisna, o zaman oturmamış biri de kurtarabilmeli.
   const terkEdilmisMi = Boolean(table.guncellemeTs) && now - table.guncellemeTs > TERK_EDILME_MS;
-  if (table.durum !== 'lobi' && benimKoltukIndex(table) === -1 && !terkEdilmisMi) { return; }
+  const masaBosMu = (table.koltuklar || []).length === 0;
+  // Herkes bir elin (el_sonucu) hemen ardından "Kalk"a basıp ayrılırsa
+  // koltuklar boşalır ama durum henüz 'lobi'ye dönmemiş olabilir -- o anda
+  // masada oturan KİMSE kalmadığından bu geçişi kimse tetikleyemezdi (130sn
+  // terk edilme penceresini beklemek zorunda kalırdı). Masa gerçekten boşsa
+  // (koltuklar[] yok) oturmamış biri de bu SADECE 'lobi'ye döndüren geçişi
+  // deneyebilsin -- Firebase kuralında da aynı istisna var.
+  if (table.durum !== 'lobi' && benimKoltukIndex(table) === -1 && !terkEdilmisMi && !masaBosMu) { return; }
   if (table.durum === 'lobi') {
     if ((table.koltuklar || []).length < 2) { return; }
     masaIslemi((mevcut) => {
@@ -314,9 +343,9 @@ function belkiSonrakiFazaGec(table) {
     masaIslemi((mevcut) => {
       if (!mevcut || mevcut.durum !== 'el_sonucu' || !mevcut.guncellemeTs || Date.now() - mevcut.guncellemeTs < EL_SONU_BEKLEME_MS) { return; }
       const kuyruklanmis = holdemElSonuKuyruguUygula(mevcut);
-      if ((kuyruklanmis.koltuklar || []).length < 2) { return Object.assign({}, kuyruklanmis, { durum: 'lobi', guncellemeTs: Date.now() }); }
+      if ((kuyruklanmis.koltuklar || []).length < 2) { return masayiLobiyeDondur(kuyruklanmis); }
       try { return holdemEliBaslat(Object.assign({}, kuyruklanmis, { ayarlar: masaAyarlari }), Date.now()); }
-      catch { return Object.assign({}, kuyruklanmis, { durum: 'lobi', guncellemeTs: Date.now() }); }
+      catch { return masayiLobiyeDondur(kuyruklanmis); }
     });
   }
 }
@@ -437,7 +466,10 @@ function renderMasa() {
   const pot = document.querySelector('[data-holdem-pot]');
   if (pot) { pot.innerHTML = '<small>Pot</small><span>' + (table.pot || 0) + ' çip</span>'; }
   const board = document.querySelector('[data-holdem-ortak-kartlar]');
-  const ortak = table.communityCards || [];
+  // 'lobi'de (el sürmüyorken) önceki elin kartları görünmemeli -- veri
+  // temizlenmiş olsa bile (bkz. masayiLobiyeDondur) burada da savunmacı
+  // olarak zorlanıyor, eski/temizlenmemiş bir masa belgesi kalsa bile.
+  const ortak = table.durum === 'lobi' ? [] : (table.communityCards || []);
   if (board) { board.innerHTML = ortak.map((k) => kartHtml(k)).join('') + Array.from({ length: 5 - ortak.length }, () => '<span class="holdem-kart-yuva" aria-hidden="true"></span>').join(''); }
 
   const aktifSure = table.aksiyonBitis && table.ayarlar ? Math.max(0, Math.min(1, (table.aksiyonBitis - Date.now()) / table.ayarlar.aksiyonSuresiMs)) : 0;

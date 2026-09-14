@@ -8,7 +8,8 @@ import {
   holdemEliBaslat,
   holdemAksiyonUygula,
   holdemEliBitir,
-  holdemBaglantiKesildi
+  holdemBaglantiKesildi,
+  holdemOyuncuMasadanAyril
 } from '../docs/admin-src/src/v4/holdem-masa-oyun.js';
 
 const bot = (uid) => ({ uid, isim: uid, bot: true, masaBakiyesi: 1000 });
@@ -52,5 +53,18 @@ masa = holdemEliBitir(masa, 1300);
 assert.equal(masa.durum, 'el_sonucu');
 assert.equal(masa.sonuclar.odemeler[0], 500);
 
-console.log(JSON.stringify({ varsayilan: true, kuyruk: true, korVeSira: true, kopma: true, pot: true }, null, 2));
+// 2 kişiden 1'e düşünce oyun otomatik sonlanmalı -- sırası KENDİSİNDE
+// OLMAYAN oyuncu masadan kalkarsa (ör. rakip düşünürken), tek kalan oyuncu
+// eli hemen kazanmalı, aksiyonBitis/aktifKoltuk temizlenmeli.
+let ikili = holdemBosCanliMasa();
+ikili = { ...ikili, koltuklar: [insan('h1'), insan('h2')] };
+ikili = holdemEliBaslat(ikili, 2000, () => 0.13);
+assert.equal(ikili.durum, 'preflop');
+const ayrilanIndex = ikili.aktifKoltuk === 0 ? 1 : 0;
+ikili = holdemOyuncuMasadanAyril(ikili, ayrilanIndex, 2100);
+assert.equal(ikili.durum, 'el_sonucu');
+assert.equal(ikili.aktifKoltuk, null);
+assert.equal(ikili.sonuclar.odemeler[ayrilanIndex === 0 ? 1 : 0] > 0, true);
+
+console.log(JSON.stringify({ varsayilan: true, kuyruk: true, korVeSira: true, kopma: true, pot: true, ikiliAyrilinca: true }, null, 2));
 console.log('ALL_TESTS_PASSED: true');
