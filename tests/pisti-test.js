@@ -170,6 +170,19 @@ function serve() {
 	results.erkenBitirmeDoguOyuncuyuKazandirdi = erkenBitenMasa.kazananKoltuk === 0;
 	results.erkenBitirmePuanlariHesapladi = (erkenBitenMasa.skorlar[0] || 0) > (erkenBitenMasa.skorlar[1] || 0);
 
+	// 7) Oyun bitince (durum: 'oyun_bitti') masadan kalkabilmeli, VE masada
+	// artık kimse kalmayınca masa 'oyuncu_bekleniyor'a sıfırlanmalı -- yoksa
+	// 'oyun_bitti'de sıkışıp kalır, otur() bir daha hiç çalışmaz (Firebase'den
+	// elle silmek gerekirdi).
+	await page.click('[data-pisti-kalk-durum]');
+	await page.waitForTimeout(200);
+	await page.evaluate(() => firebase.database().ref('pisti/masalar/ana-masa/koltuklar/0/uid').set('oyuncu1'));
+	await page.waitForTimeout(150);
+	await page.click('[data-pisti-kalk-durum]');
+	await page.waitForTimeout(300);
+	const sonMasa = await page.evaluate(() => window.__mockLiveState.pisti.masalar['ana-masa']);
+	results.herkesKalkincaMasaSifirlandi = sonMasa.durum === 'oyuncu_bekleniyor' && !sonMasa.koltuklar[0] && !sonMasa.koltuklar[1];
+
 	if (pageErrors.length) { console.log('PAGE ERRORS:', JSON.stringify(pageErrors)); }
 	results.oyunPageErrors = pageErrors.length;
 	console.log(JSON.stringify(results, null, 2));

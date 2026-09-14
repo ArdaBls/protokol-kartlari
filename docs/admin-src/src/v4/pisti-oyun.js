@@ -175,16 +175,29 @@ function hazirVer() {
 function kalk(koltukIndex) {
   if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_OYUNCU) { return; }
   return masaIslemi((mevcut) => {
-    if (!mevcut || mevcut.durum !== 'oyuncu_bekleniyor') { return; }
+    // 'oyun_bitti' de kalkılabilir bir faz -- oyun zaten bitmiş (101 puan,
+    // erken bitirme mutabakatı VEYA aşağıdaki "biri kalkınca bitir" dalı ile)
+    // masadan ayrılmak istemek gayet normal, sadece koltuğu boşaltıyoruz.
+    if (!mevcut || (mevcut.durum !== 'oyuncu_bekleniyor' && mevcut.durum !== 'oyun_bitti')) { return; }
     const koltuk = mevcut.koltuklar && mevcut.koltuklar[koltukIndex];
     if (!koltuk || koltuk.uid !== currentUserUid) { return; }
     const koltuklar = Object.assign({}, mevcut.koltuklar);
     koltuklar[koltukIndex] = null;
-    // En az bir el oynanmışsa (elNo > 0) burası artık boş bir lobi değil,
-    // devam eden bir oyunun eller-arası "hazır mısın" molası -- kullanıcı
-    // isteği: biri kalkarsa oyun yarım kalmasın, O ANA KADARKİ puanlarla
-    // TAMAMEN bitsin (en yüksek puanlı kazanır).
-    if ((mevcut.elNo || 0) > 0) {
+    // Oyun bitmiş VE masada artık kimse kalmamışsa -- masa 'oyun_bitti'de
+    // sıkışıp kalmasın (otur() sadece 'oyuncu_bekleniyor'da çalışır, yoksa
+    // yeni bir oyun için Firebase'den elle silmek gerekirdi). Tamamen taze
+    // bir lobiye sıfırla (yeniOyunBaslat() ile AYNI reset deseni).
+    if (mevcut.durum === 'oyun_bitti' && oturanKoltukIndeksleri(Object.assign({}, mevcut, { koltuklar })).length === 0) {
+      return Object.assign({}, mevcut, {
+        durum: 'oyuncu_bekleniyor', koltuklar, skorlar: {}, eller: {}, topladiklarim: {}, pistiSayilari: {},
+        masaKartlari: [], aktifKoltuk: null, aksiyonBitis: null, kazananKoltuk: null, sonElPuanlari: null, guncellemeTs: Date.now()
+      });
+    }
+    // En az bir el oynanmışsa (elNo > 0) VE hâlâ 'oyuncu_bekleniyor' fazındaysak
+    // burası artık boş bir lobi değil, devam eden bir oyunun eller-arası
+    // "hazır mısın" molası -- kullanıcı isteği: biri kalkarsa oyun yarım
+    // kalmasın, O ANA KADARKİ puanlarla TAMAMEN bitsin (en yüksek puanlı kazanır).
+    if (mevcut.durum === 'oyuncu_bekleniyor' && (mevcut.elNo || 0) > 0) {
       const skorlar = mevcut.skorlar || {};
       const skorluKoltuklar = Object.keys(skorlar).map(Number);
       const kazananIndex = skorluKoltuklar.length
@@ -607,11 +620,12 @@ function renderDurumSatiri(table, benimKoltuk) {
   }
   const oturBos = document.querySelector('[data-pisti-oturmadim]');
   if (oturBos) { oturBos.hidden = benimKoltuk !== null || table.durum !== 'oyuncu_bekleniyor'; }
-  // Kalkma yalnız oyun BAŞLAMADAN ÖNCE anlamlı -- oynaniyor/el_bitti/oyun_bitti
-  // fazlarında Pişti'nin sıra bazlı el mekaniği yarım bırakılmış bir koltuğu
-  // desteklemiyor (kalk() zaten bu fazlarda no-op, düğme de o yüzden gizli).
+  // Kalkma yalnız oyun BAŞLAMADAN ÖNCE / eller ARASINDA / oyun BİTTİKTEN
+  // SONRA anlamlı -- 'oynaniyor'/'el_bitti' fazlarında Pişti'nin sıra bazlı
+  // el mekaniği yarım bırakılmış bir koltuğu desteklemiyor (kalk() zaten bu
+  // fazlarda no-op, düğme de o yüzden gizli).
   const kalkBtn = document.querySelector('[data-pisti-kalk-durum]');
-  if (kalkBtn) { kalkBtn.hidden = benimKoltuk === null || table.durum !== 'oyuncu_bekleniyor'; }
+  if (kalkBtn) { kalkBtn.hidden = benimKoltuk === null || (table.durum !== 'oyuncu_bekleniyor' && table.durum !== 'oyun_bitti'); }
 }
 function renderSkorPaneli(table) {
   const el = document.querySelector('[data-pisti-skor-tablosu]');
