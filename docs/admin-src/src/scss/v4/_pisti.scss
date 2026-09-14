@@ -15,10 +15,6 @@ $pisti-bordo: #6b1f2a;
 // özgüllükte olduğundan sonradan gelip kazanıyor -- Blackjack'te aynı isimle
 // (.bj-islem-durumu [hidden]) bulunup düzeltilen aynı desen.
 .pisti-islem-durumu [hidden] { display: none; }
-// "Oyunu başlat" .card-options (sayfa başlığı) içinde yaşıyor, .pisti-*
-// kapsamının dışında -- aynı [hidden] sorununu tek bu düğmeye özel öznitelik
-// seçiciyle (diğer sayfaların .card-options'ını ETKİLEMEDEN) çözer.
-[data-pisti-baslat][hidden] { display: none; }
 .pisti-teklif-paneli {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 12px;
   border-radius: var(--radius); background: rgba(212, 175, 55, 0.12); font-size: 13px;

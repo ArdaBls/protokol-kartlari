@@ -50,10 +50,9 @@ function serve() {
 	results.lobiPageErrors = pageErrors.length;
 	results.dortKoltukVar = await page.locator('[data-pisti-otur]').count() === 4;
 
-	// 1) Otur -- tek koltukta HENÜZ 2. oyuncu yok, "Oyunu başlat" görünmemeli.
+	// 1) Otur -- tek koltukta HENÜZ 2. oyuncu yok.
 	await page.click('[data-pisti-otur="0"]');
 	await page.waitForTimeout(200);
-	results.oturuncaBaslatGizli = await page.locator('[data-pisti-baslat]').isHidden();
 	results.oturuncaKalkGorunur = await page.locator('[data-pisti-kalk-durum]').isVisible();
 
 	// 1b) Kalk -- oyun başlamadan önce koltuğu boşaltmalı, "Otur" düğmesi geri gelmeli.
@@ -73,12 +72,20 @@ function serve() {
 	// geçtiği için gerçek bir yazı gibi davranır.
 	await page.evaluate(() => firebase.database().ref('pisti/masalar/ana-masa/koltuklar/1').set({ uid: 'oyuncu2', isim: 'Rakip', katilimDurumu: 'hazir' }));
 	await page.waitForTimeout(200);
-	results.ikinciOyuncuGelinceBaslatGorunur = await page.locator('[data-pisti-baslat]').isVisible();
+	results.ikinciOyuncuGelinceOyunBaslamadi = (await page.evaluate(() => window.__mockLiveState.pisti.masalar['ana-masa'].durum)) === 'oyuncu_bekleniyor';
 
-	// 2) Oyunu başlat -- 4'er kart dağıtılmalı, masaya 4 kart açılmalı (vale hariç).
-	await page.click('[data-pisti-baslat]');
+	// 2) Manuel "Oyunu başlat" düğmesi YOK -- herkes "hazır" olunca
+	// belkiSonrakiFazaGec otomatik oyunuBaslat()'ı tetikler (bkz. pisti-oyun.js).
+	// Gerçek koltuk sahiplerinin "Hazırım" tıklaması yerine (mock'ta sekmeler
+	// arası paylaşım yok) doğrudan her iki koltuğun hazir alanını yazıyoruz --
+	// asıl kod yolu (belkiSonrakiFazaGec/oyunuBaslat) hâlâ çalışıyor.
+	await page.evaluate(() => Promise.all([
+		firebase.database().ref('pisti/masalar/ana-masa/koltuklar/0/hazir').set(true),
+		firebase.database().ref('pisti/masalar/ana-masa/koltuklar/1/hazir').set(true)
+	]));
 	await page.waitForTimeout(300);
 	const baslangic = await page.evaluate(() => window.__mockLiveState.pisti.masalar['ana-masa']);
+	results.herkesHazirOlunceOyunOtomatikBasladi = baslangic.durum === 'oynaniyor';
 	results.oyunBaslayinca4erKartDagitildi = baslangic.eller[0].length === 4 && baslangic.eller[1].length === 4;
 	results.masadaValeYok = !baslangic.masaKartlari.some((k) => k.r === 'joker');
 	results.aktifKoltukBirinciDegilSecildi = baslangic.aktifKoltuk === 0 || baslangic.aktifKoltuk === 1;
