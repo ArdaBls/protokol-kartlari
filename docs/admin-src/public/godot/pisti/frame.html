@@ -45,7 +45,7 @@
     new ResizeObserver(boyutlandir).observe(document.body);
   }
 
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 394732, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 398316, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
   var engine = new Engine(GODOT_CONFIG);
   var eksikler = Engine.getMissingFeatures({ threads: false });
   if (eksikler.length !== 0) {
@@ -81,6 +81,7 @@
   // çağırıyor -- biz de parent'a postMessage ile iletiyoruz.
   window.pistiOtur = function (koltukIndex) { parent.postMessage({ type: 'pistiOtur', koltukIndex: koltukIndex }, location.origin); };
   window.pistiHazirVer = function () { parent.postMessage({ type: 'pistiHazirVer' }, location.origin); };
+  window.pistiYeniOyun = function () { parent.postMessage({ type: 'pistiYeniOyun' }, location.origin); };
   window.pistiKartOyna = function (kartIndex) { parent.postMessage({ type: 'pistiKartOyna', kartIndex: kartIndex }, location.origin); };
   window.pistiKalk = function (koltukIndex) { parent.postMessage({ type: 'pistiKalk', koltukIndex: koltukIndex }, location.origin); };
 }());

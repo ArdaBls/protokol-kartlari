@@ -8,7 +8,7 @@
 // hiçbiri burada gerekmiyor.
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner } from './db-mode.js';
 import { showToast } from './toast.js';
-import { subscribeStaffProfiles, renderStaffAvatar } from './staff-profiles.js';
+import { subscribeStaffProfiles, renderStaffAvatar, findStaffProfile, isSafeAvatarUrl } from './staff-profiles.js';
 import {
   MIN_OYUNCU, MAX_OYUNCU, EL_BASINA_KART, HEDEF_PUAN, TOPLAM_KART_SAYISI,
   pistiDestesiOlustur, pistiDesteyiKaris, pistiHamleUygula, pistiSonMasayiDagit,
@@ -687,6 +687,7 @@ window.addEventListener('message', (e) => {
   if (e.data.type === 'pistiHazir') { pistiGodotHazirMi = true; pistiGodotIlet(); return; }
   if (e.data.type === 'pistiOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
   if (e.data.type === 'pistiHazirVer') { oyuncuIslemi(hazirVer); return; }
+  if (e.data.type === 'pistiYeniOyun') { oyuncuIslemi(yeniOyunBaslat); return; }
   if (e.data.type === 'pistiKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
   if (e.data.type === 'pistiKartOyna') {
     const benim = benimKoltukIndex(currentTable);
@@ -694,12 +695,27 @@ window.addEventListener('message', (e) => {
     oyuncuIslemi(() => kartOyna(benim, Number(e.data.kartIndex)));
   }
 });
+function pistiKoltuklarAvatarliKopya(koltuklar) {
+  // Godot'a gönderilen tabloya, koltuk sahibinin staffProfiles/{uid}'deki
+  // profil fotoğrafını (data:/https: -- bkz. isSafeAvatarUrl) ekliyoruz --
+  // masa verisinin kendisinde avatar YOK, ayrı bir koleksiyondan geliyor.
+  if (!koltuklar) { return koltuklar; }
+  const kopya = {};
+  Object.keys(koltuklar).forEach((i) => {
+    const koltuk = koltuklar[i];
+    const profile = koltuk && koltuk.uid ? findStaffProfile(koltuk.uid, koltuk.isim) : null;
+    const avatarUrl = profile && isSafeAvatarUrl(profile.avatarUrl) ? profile.avatarUrl : null;
+    kopya[i] = avatarUrl ? Object.assign({}, koltuk, { avatarUrl }) : koltuk;
+  });
+  return kopya;
+}
 function pistiGodotIlet() {
   if (!pistiGodotHazirMi) { return; } // Godot henüz yüklenip callback'lerini kaydetmedi
   if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
   if (!pistiGodotFrame || !pistiGodotFrame.contentWindow || !currentTable) { return; }
+  const gonderilecekMasa = Object.assign({}, currentTable, { koltuklar: pistiKoltuklarAvatarliKopya(currentTable.koltuklar) });
   pistiGodotFrame.contentWindow.postMessage({ type: 'pistiKimlik', uid: currentUserUid }, location.origin);
-  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiMasaGuncelle', table: currentTable }, location.origin);
+  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiMasaGuncelle', table: gonderilecekMasa }, location.origin);
 }
 
 function attachTableListener(force = false) {
