@@ -156,14 +156,20 @@ function sokakIlerle(masa, now) {
   const yakilan = masa.deste[masa.desteIndex];
   const acilan = masa.deste.slice(masa.desteIndex + 1, masa.desteIndex + 1 + kartSayisi);
   const durum = masa.durum === 'preflop' ? 'flop' : masa.durum === 'flop' ? 'turn' : 'river';
-  const sonraki = sokakBaslat({ ...masa, yakilanKartlar: masa.yakilanKartlar.concat([yakilan]) }, durum, masa.communityCards.concat(acilan), masa.desteIndex + kartSayisi + 1, now);
+  // NOT: gerçek Firebase boş dizileri ([]) hiç saklamaz (düğüm silinir) --
+  // preflop'ta yakilanKartlar/communityCards hep [] olarak başladığından,
+  // masadan geri okunduklarında `undefined` gelirler. `|| []` fallback'i
+  // olmadan .concat() burada patlıyordu (yalnız gerçek Firebase'de üretilen
+  // bir hata; saf JS testleri diziyi olduğu gibi koruduğu için hiç
+  // yakalanmamıştı).
+  const sonraki = sokakBaslat({ ...masa, yakilanKartlar: (masa.yakilanKartlar || []).concat([yakilan]) }, durum, (masa.communityCards || []).concat(acilan), masa.desteIndex + kartSayisi + 1, now);
   // Tüm rakipler all-in olduğunda ya da yalnız bir oyuncunun bahis yapacak
   // çipi kaldığında flopta takılı kalmadan turn, river ve showdown açılır.
   return otomatikRunoutGerekliMi(sonraki) ? sokakIlerle(sonraki, now) : sonraki;
 }
 function tumAktiflerAllInMi(masa) { return masa.koltuklar.filter(devamEden).every((koltuk) => koltuk.allIn); }
 function sonrakiAksiyon(masa, now) {
-  const bekleyen = masa.bekleyen.filter((index) => oynayabilir(masa.koltuklar[index]));
+  const bekleyen = (masa.bekleyen || []).filter((index) => oynayabilir(masa.koltuklar[index]));
   if (!bekleyen.length) {
     if ((tumAktiflerAllInMi(masa) || otomatikRunoutGerekliMi(masa)) && masa.durum !== 'river') { return sokakIlerle(masa, now); }
     return sokakIlerle({ ...masa, bekleyen: [] }, now);
@@ -181,7 +187,7 @@ export function holdemAksiyonUygula(masa, { koltukIndex, aksiyon, miktar } = {},
   let koltuklar = masa.koltuklar.slice();
   let mevcutBahis = masa.mevcutBahis;
   let minArtirma = masa.minArtirma;
-  let bekleyen = masa.bekleyen.filter((index) => index !== koltukIndex);
+  let bekleyen = (masa.bekleyen || []).filter((index) => index !== koltukIndex);
   let artirmaKapali = Array.isArray(masa.artirmaKapali) ? masa.artirmaKapali.filter((index) => index !== koltukIndex) : [];
   if (aksiyon === 'fold') { koltuklar[koltukIndex] = { ...koltuk, pas: true, sonAksiyon: 'fold' }; }
   else if (aksiyon === 'check') {
@@ -244,7 +250,7 @@ export function holdemEliBitir(masa, now = Date.now()) {
     onceki = seviye;
     const adaylar = katkiVerenler.filter((index) => !koltuklar[index].pas);
     if (!adaylar.length || !miktar) { return; }
-    const sonuc = adaylar.length === 1 ? { kazananlar: adaylar, enIyi: null } : kazananlariBul(koltuklar, masa.communityCards, adaylar);
+    const sonuc = adaylar.length === 1 ? { kazananlar: adaylar, enIyi: null } : kazananlariBul(koltuklar, masa.communityCards || [], adaylar);
     const pay = Math.floor(miktar / sonuc.kazananlar.length);
     let kalan = miktar % sonuc.kazananlar.length;
     sonuc.kazananlar.forEach((index) => { odemeler[index] += pay + (kalan-- > 0 ? 1 : 0); });

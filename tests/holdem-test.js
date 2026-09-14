@@ -70,7 +70,20 @@ function serve() {
 	results.herIkiOyuncuyaIkiserKartDagitildi = elBaslangic.koltuklar.every((k) => Array.isArray(k.kartlar) && k.kartlar.length === 2);
 	results.korBahisleriDogruAtildi = elBaslangic.mevcutBahis === elBaslangic.ayarlar.buyukKor;
 
-	// 3) Deterministik bir preflop durumu kur: koltuk 0 (ben) aktif, karşılanacak
+	// 2b) Sıra bende değilken (ilk oynayan ben olmayabilirim) kontrol alanı
+	// tamamen gizli olmalı; sıra bendeyken görünmeli.
+	results.siramDegilkenKontrolGizli = elBaslangic.aktifKoltuk !== 0
+		? await page.locator('[data-holdem-kontroller]').isHidden()
+		: true;
+
+	// 2c) Kalk -- aktif elde koltuktan çıkmak "ayrılacak" işaretlemeli (hemen
+	// silmemeli, diğer oyuncunun elini bozmamalı).
+	await page.click('[data-holdem-kalk]');
+	await page.waitForTimeout(300);
+	results.kalkIsaretlendi = await page.evaluate(() => window.__mockLiveState.holdem.masalar['ana-masa'].koltuklar[0].ayrilacak === true);
+
+	// 3) Deterministik bir preflop durumu kur (kalk işaretini geri al, teste devam) --
+	// koltuk 0 (ben) aktif, karşılanacak
 	// bahis yok (check edilebilir) -- gerçek kod yolu (holdemAksiyonUygula) hâlâ çalışıyor.
 	await page.evaluate(() => {
 		const masa = window.__mockLiveState.holdem.masalar['ana-masa'];

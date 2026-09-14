@@ -54,6 +54,16 @@ function serve() {
 	await page.click('[data-pisti-otur="0"]');
 	await page.waitForTimeout(200);
 	results.oturuncaBaslatGizli = await page.locator('[data-pisti-baslat]').isHidden();
+	results.oturuncaKalkGorunur = await page.locator('[data-pisti-kalk-durum]').isVisible();
+
+	// 1b) Kalk -- oyun başlamadan önce koltuğu boşaltmalı, "Otur" düğmesi geri gelmeli.
+	await page.click('[data-pisti-kalk-durum]');
+	await page.waitForTimeout(200);
+	results.kalkincaKoltukBosaldi = await page.evaluate(() => !window.__mockLiveState.pisti.masalar['ana-masa'].koltuklar[0]);
+	results.kalkincaOturButonuGeriGeldi = await page.locator('[data-pisti-otur="0"]').isVisible();
+	// Devamı için tekrar otur.
+	await page.click('[data-pisti-otur="0"]');
+	await page.waitForTimeout(200);
 
 	// 2. oyuncuyu mock canlı duruma DOĞRUDAN ekleyip (gerçek 2. sekme yerine --
 	// mock'ta window.__mockLiveState sekmeler arası paylaşılmıyor) sonra

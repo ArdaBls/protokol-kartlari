@@ -491,11 +491,16 @@ function renderMasa() {
   const actions = document.querySelector('[data-holdem-aksiyonlar]');
   const benimSiram = benimSirada && table.aktifKoltuk === benim && AKTIF_DURUMLAR.has(table.durum);
   const toCall = kendi ? Math.max(0, table.mevcutBahis - kendi.sokakYatirimi) : 0;
-  if (actions) { actions.innerHTML = '<button class="btn" type="button" data-holdem-aksiyon="fold"' + (benimSiram ? '' : ' disabled') + '>Pas</button><button class="btn" type="button" data-holdem-aksiyon="' + (toCall ? 'call' : 'check') + '"' + (benimSiram ? '' : ' disabled') + '>' + (toCall ? 'Gör · ' + toCall : 'Check') + '</button><button class="btn" type="button" data-holdem-aksiyon="raise"' + (benimSiram ? '' : ' disabled') + '>Artır</button><button class="btn" type="button" data-holdem-aksiyon="all_in"' + (benimSiram ? '' : ' disabled') + '>All-in</button>'; }
+  // Sıra bende değilken aksiyon/artırma alanı tamamen GİZLENİR (yalnız
+  // disabled değil) -- kullanıcı isteği: sırası gelmeyen oyuncunun ekranında
+  // tıklanamaz düğmeler dolu bir kontrol alanı görünmesin.
+  const kontroller = document.querySelector('[data-holdem-kontroller]');
+  if (kontroller) { kontroller.hidden = !benimSiram; }
+  if (actions) { actions.innerHTML = '<button class="btn" type="button" data-holdem-aksiyon="fold">Pas</button><button class="btn" type="button" data-holdem-aksiyon="' + (toCall ? 'call' : 'check') + '">' + (toCall ? 'Gör · ' + toCall : 'Check') + '</button><button class="btn" type="button" data-holdem-aksiyon="raise">Artır</button><button class="btn" type="button" data-holdem-aksiyon="all_in">All-in</button>'; }
   const raise = document.querySelector('[data-holdem-artirma-alani]');
   const minRaise = kendi ? Math.min(kendi.sokakYatirimi + kendi.masaBakiyesi, table.mevcutBahis + (table.minArtirma || 0)) : 0;
   const maxRaise = kendi ? kendi.sokakYatirimi + kendi.masaBakiyesi : 0;
-  if (raise) { raise.innerHTML = '<label><span class="sr-only">Artırma miktarı</span><input data-holdem-raise type="range" min="' + minRaise + '" max="' + maxRaise + '" value="' + minRaise + '"' + (benimSiram ? '' : ' disabled') + '></label><label class="holdem-raise-number"><span>Artırma</span><input data-holdem-raise-number type="number" min="' + minRaise + '" max="' + maxRaise + '" step="1" value="' + minRaise + '"' + (benimSiram ? '' : ' disabled') + '></label><output data-holdem-raise-output>' + minRaise + ' çip</output>'; }
+  if (raise) { raise.innerHTML = '<label><span class="sr-only">Artırma miktarı</span><input data-holdem-raise type="range" min="' + minRaise + '" max="' + maxRaise + '" value="' + minRaise + '"></label><label class="holdem-raise-number"><span>Artırma</span><input data-holdem-raise-number type="number" min="' + minRaise + '" max="' + maxRaise + '" step="1" value="' + minRaise + '"></label><output data-holdem-raise-output>' + minRaise + ' çip</output>'; }
 
   const durum = document.querySelector('[data-holdem-durum]');
   if (durum && !tableError) {

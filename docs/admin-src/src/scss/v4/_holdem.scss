@@ -97,6 +97,10 @@ $he-gold: #ffd26d;
 .holdem-koltuk[data-slot='0'] .holdem-yatirim { display: none; }
 
 .holdem-kontrol-alani { position: absolute; left: 50%; bottom: 3.2%; transform: translateX(-50%); width: min(78%, 980px); display: grid; gap: 8px; justify-items: center; }
+// Kendi display:grid kuralımız [hidden] öznitelik seçicisiyle EŞİT
+// özgüllükte ve kaynak sırasında SONRA geldiği için hidden'ı eziyordu --
+// Blackjack/Pişti'de defalarca görülüp düzeltilen aynı desen.
+.holdem-kontrol-alani[hidden] { display: none; }
 .holdem-aksiyonlar { display: grid; grid-template-columns: repeat(4, minmax(92px, 1fr)); gap: 8px; width: 100%; }
 .holdem-aksiyonlar .btn, .holdem-artirma-alani .btn { min-height: 44px; color: #f6fdff; border: 1px solid rgba(140, 227, 255, .8); border-radius: 6px; background: linear-gradient(180deg, rgba(29, 142, 201, .96), rgba(6, 59, 104, .98)); box-shadow: inset 0 1px rgba(229, 250, 255, .35); font-weight: 700; text-shadow: 0 1px #002440; }
 .holdem-aksiyonlar .btn:hover:not(:disabled), .holdem-artirma-alani .btn:hover:not(:disabled) { border-color: #fff; background: linear-gradient(180deg, #3cafe2, #0875b0); }

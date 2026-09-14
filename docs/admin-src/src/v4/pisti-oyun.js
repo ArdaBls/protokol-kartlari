@@ -231,7 +231,10 @@ function elSonunuIsle(mevcut, oturanIndeksler, koltukIndex, yeniEller, sonuc, pi
       sonAlanKoltuk: sonAlanKoltukSonraki, aktifKoltuk: sonrakiAktif, aksiyonBitis: Date.now() + AKSIYON_SURESI_MS, guncellemeTs: Date.now()
     });
   }
-  const kalanKartSayisi = mevcut.deste.length - mevcut.desteIndex;
+  // (mevcut.deste || []) -- Hold'em'de aynı sınıftan gerçek bir çökme
+  // bulundu: gerçek Firebase boş dizileri hiç saklamaz, saf JS testleri bunu
+  // yakalayamıyor. Deste pratikte hiç boş olmasa da ucuz bir sigorta.
+  const kalanKartSayisi = (mevcut.deste || []).length - mevcut.desteIndex;
   if (pistiDesteYeterliMi(kalanKartSayisi, oturanIndeksler.length)) {
     const yeniEllerYeniden = {};
     oturanIndeksler.forEach((i) => { yeniEllerYeniden[i] = []; });
@@ -476,6 +479,11 @@ function renderDurumSatiri(table, benimKoltuk) {
   if (baslatBtn) { baslatBtn.hidden = table.durum !== 'oyuncu_bekleniyor' || oturanSayisi < MIN_OYUNCU; }
   const oturBos = document.querySelector('[data-pisti-oturmadim]');
   if (oturBos) { oturBos.hidden = benimKoltuk !== null || table.durum !== 'oyuncu_bekleniyor'; }
+  // Kalkma yalnız oyun BAŞLAMADAN ÖNCE anlamlı -- oynaniyor/el_bitti/oyun_bitti
+  // fazlarında Pişti'nin sıra bazlı el mekaniği yarım bırakılmış bir koltuğu
+  // desteklemiyor (kalk() zaten bu fazlarda no-op, düğme de o yüzden gizli).
+  const kalkBtn = document.querySelector('[data-pisti-kalk-durum]');
+  if (kalkBtn) { kalkBtn.hidden = benimKoltuk === null || table.durum !== 'oyuncu_bekleniyor'; }
 }
 function renderSkorPaneli(table) {
   const el = document.querySelector('[data-pisti-skor-tablosu]');
@@ -529,6 +537,10 @@ function eventleriBagla() {
     // (yalnız masayı saran) DIŞINDA yaşıyor -- aşağıdaki kapsam kontrolünden
     // ÖNCE ele alınmalı, yoksa tıklama sessizce yok sayılıyordu.
     if (e.target.closest('[data-pisti-baslat]')) { if (!isReadOnly()) { oyuncuIslemi(oyunuBaslat); } return; }
+    if (e.target.closest('[data-pisti-kalk-durum]')) {
+      if (!isReadOnly()) { const benim = benimKoltukIndex(currentTable); if (benim !== null) { oyuncuIslemi(() => kalk(benim)); } }
+      return;
+    }
     if (!e.target.closest('[data-pisti-root]')) { return; }
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
     const oturBtn = e.target.closest('[data-pisti-otur]'); if (oturBtn) { oyuncuIslemi(() => otur(Number(oturBtn.dataset.pistiOtur))); return; }

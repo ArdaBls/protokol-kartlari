@@ -111,6 +111,15 @@ $pisti-bordo: #6b1f2a;
   touch-action: manipulation;
 }
 .pisti-el-kart-btn:disabled { cursor: default; filter: brightness(0.75); }
+// Yelpazedeki kartlar KASITLI olarak üst üste biner (bkz. spacing/width) --
+// referans bileşen bunu Framer Motion'ın pointer izlemesiyle sorunsuz
+// yapıyordu, ama ham CSS :hover geometriyi DEĞİŞTİRDİĞİ (translateY-54px)
+// için imleç kalkan kartın altından komşu karta "kayıp" onu da hover'a
+// sokuyor, o da geri iniyor, imleç yine ilk karta düşüyor -- titreşim.
+// Bir kart hover'dayken DİĞER TÜM kartların pointer-events'ini kapatmak
+// (bu artık statik geometrisi hover süresince değişmeyen TEK kart hariç)
+// bu döngüyü tamamen keser.
+.pisti-elim:has(.pisti-el-kart-btn:hover) .pisti-el-kart-btn:not(:hover) { pointer-events: none; }
 .pisti-el-kart-btn:not(:disabled):hover, .pisti-el-kart-btn:not(:disabled):focus-visible {
   transform: translateX(var(--pisti-x)) translateY(-54px) rotate(calc(var(--pisti-rot) * 0.3)) scale(1.08);
   z-index: 999 !important;
