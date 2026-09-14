@@ -281,12 +281,12 @@
   // NOT: executable'a KLASÖR YOLU dahil -- sayfa /oyun-pisti.html'de ama
   // pck/wasm /godot/pisti/ altında, aksi halde motor bunları sayfayla AYNI
   // dizinde ("/index.pck") arayıp 404 alıyordu.
-  // canvasResizePolicy: 1 ("Project") -- canvas HER ZAMAN proje ayarlarındaki
-  // 1600x1100'ü kullanır (0=Sabit, 1=Proje, 2=Uyarlanabilir/kutuya göre
-  // yeniden boyutlanır -- ikincisi kutunun gerçek boyutuna göre değişip
-  // "neden 1600x1100 değil" sorusuna yol açıyordu). CSS zaten kutuyu
-  // (max-width:100% + aspect-ratio) dar ekranlarda orantılı küçültüyor.
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 1, "executable": "godot/pisti/index", "experimentalVK": false, "fileSizes": { "godot/pisti/index.pck": 394204, "godot/pisti/index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  // canvasResizePolicy: 2 ("Adaptive") -- GERİ ALINDI (1/"Project" iken
+  // canvas hep 1600x1100 raporluyordu ama Masa.gd'nin ekran boyutuna göre
+  // koltuk/kart YENİDEN DÜZENLEME mantığı (_hesapla_masa_olculeri) devre
+  // dışı kalıyor, telefon yan çevirince masaüstü düzeni sadece küçültülüp
+  // gösteriliyordu -- gerçek mobil uyum için Adaptive ŞART.
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 2, "executable": "godot/pisti/index", "experimentalVK": false, "fileSizes": { "godot/pisti/index.pck": 394204, "godot/pisti/index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
   var engine = new Engine(GODOT_CONFIG);
   var eksikler = Engine.getMissingFeatures({ threads: false });
   if (eksikler.length !== 0) {
