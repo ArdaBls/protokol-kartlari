@@ -722,6 +722,7 @@ function attachTableListener(force = false) {
     const table = snap.val() || { durum: 'oyuncu_bekleniyor', koltuklar: {}, skorlar: {}, guncellemeTs: Date.now(), elNo: 0 };
     renderMasa(table);
     belkiSonrakiFazaGec(table);
+    pistiGodotIlet();
   };
   tableRef.on('value', tableListener, masaHatasi);
   phaseWatchdog = setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);
