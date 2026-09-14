@@ -671,7 +671,14 @@ function eventleriBagla() {
 // (masaIslemi/transaction) kalır.
 let pistiGodotFrame = null;
 window.addEventListener('message', (e) => {
-  if (e.origin !== location.origin || !pistiGodotFrame || e.source !== pistiGodotFrame.contentWindow || !e.data) { return; }
+  if (e.origin !== location.origin || !e.data) { return; }
+  // NOT (bulunan hata): pistiGodotFrame eskiden SADECE pistiGodotIlet()
+  // içinde ayarlanıyordu, o da SADECE bu mesajlardan biri (pistiHazir)
+  // geldiğinde çağrılıyordu -- yani İLK mesaj (pistiHazir'in KENDİSİ dahil)
+  // pistiGodotFrame henüz null olduğu için hep SESSİZCE yok sayılıyordu
+  // (tavuk-yumurta). Referansı burada, HER mesajda tembel çözüyoruz.
+  if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
+  if (!pistiGodotFrame || e.source !== pistiGodotFrame.contentWindow) { return; }
   if (e.data.type === 'pistiHazir') { pistiGodotIlet(); return; }
   if (e.data.type === 'pistiOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
   if (e.data.type === 'pistiHazirVer') { oyuncuIslemi(hazirVer); return; }
