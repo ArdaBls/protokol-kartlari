@@ -278,7 +278,16 @@ function kartOyna(koltukIndex, kartIndex) {
     const sonuc = pistiHamleUygula(mevcut.masaKartlari || [], kart);
     const topladiklarimSonraki = Object.assign({}, mevcut.topladiklarim);
     const pistiSayilariSonraki = Object.assign({}, mevcut.pistiSayilari);
-    let sonAlanKoltukSonraki = mevcut.sonAlanKoltuk;
+    // KÖK NEDEN (nihayet bulundu): Firebase'de bir alanı `null` yazmak o
+    // alanı TAMAMEN SİLER (silinmiş alan == hiç yazılmamış alan) -- yani
+    // `sonAlanKoltuk: null` hiçbir zaman GERÇEKTEN saklanmıyor, bir sonraki
+    // okumada `mevcut.sonAlanKoltuk` `null` DEĞİL `undefined` geliyor. Bunu
+    // doğrudan yeni bir alana yazınca (aşağıda `sonAlanKoltuk:
+    // sonAlanKoltukSonraki`) Firebase SDK'sı `undefined` DEĞER içeren
+    // nesneleri yazmayı İSTEMCİ TARAFINDA reddediyor (kod'suz, düz `Error`
+    // fırlatıyor) -- "Masa güncellenemedi (Error)" hatasının GERÇEK
+    // kaynağı buydu: hiçbir eşleşme yakalamayan HER hamlede tetikleniyordu.
+    let sonAlanKoltukSonraki = mevcut.sonAlanKoltuk === undefined ? null : mevcut.sonAlanKoltuk;
     if (sonuc.alinanKartlar.length) {
       topladiklarimSonraki[koltukIndex] = (topladiklarimSonraki[koltukIndex] || []).concat(sonuc.alinanKartlar);
       sonAlanKoltukSonraki = koltukIndex;
@@ -305,7 +314,16 @@ function zamanAsimindaOtomatikOyna() {
     const sonuc = pistiHamleUygula(mevcut.masaKartlari || [], kart);
     const topladiklarimSonraki = Object.assign({}, mevcut.topladiklarim);
     const pistiSayilariSonraki = Object.assign({}, mevcut.pistiSayilari);
-    let sonAlanKoltukSonraki = mevcut.sonAlanKoltuk;
+    // KÖK NEDEN (nihayet bulundu): Firebase'de bir alanı `null` yazmak o
+    // alanı TAMAMEN SİLER (silinmiş alan == hiç yazılmamış alan) -- yani
+    // `sonAlanKoltuk: null` hiçbir zaman GERÇEKTEN saklanmıyor, bir sonraki
+    // okumada `mevcut.sonAlanKoltuk` `null` DEĞİL `undefined` geliyor. Bunu
+    // doğrudan yeni bir alana yazınca (aşağıda `sonAlanKoltuk:
+    // sonAlanKoltukSonraki`) Firebase SDK'sı `undefined` DEĞER içeren
+    // nesneleri yazmayı İSTEMCİ TARAFINDA reddediyor (kod'suz, düz `Error`
+    // fırlatıyor) -- "Masa güncellenemedi (Error)" hatasının GERÇEK
+    // kaynağı buydu: hiçbir eşleşme yakalamayan HER hamlede tetikleniyordu.
+    let sonAlanKoltukSonraki = mevcut.sonAlanKoltuk === undefined ? null : mevcut.sonAlanKoltuk;
     if (sonuc.alinanKartlar.length) {
       topladiklarimSonraki[koltukIndex] = (topladiklarimSonraki[koltukIndex] || []).concat(sonuc.alinanKartlar);
       sonAlanKoltukSonraki = koltukIndex;

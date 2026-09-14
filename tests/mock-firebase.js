@@ -112,8 +112,25 @@
 		}
 		return deger;
 	}
+	// Gercek Firebase SDK'si, yazilan nesnenin HERHANGI bir ic ozelliginde
+	// `undefined` deger bulunursa istemci tarafinda REDDEDER (kod'suz duz
+	// Error firlatir) -- `null` farkli, o alani SILMEK anlamina gelir ve
+	// GECERLIDIR. Bu kontrol olmadan bu mock, gercek Firebase'de asla
+	// gecmeyecek yazmalari sessizce kabul ediyordu -- Pisti'de tam olarak bu
+	// sinifta gercek bir bug (sonAlanKoltuk: undefined) bu yuzden hicbir
+	// testte yakalanamamisti.
+	function icindeTanimsizVarMi(deger, izlenenler) {
+		if (deger === undefined) { return true; }
+		if (deger === null || typeof deger !== "object") { return false; }
+		izlenenler = izlenenler || [];
+		if (izlenenler.indexOf(deger) !== -1) { return false; }
+		izlenenler.push(deger);
+		if (Array.isArray(deger)) { return deger.some(function (o) { return icindeTanimsizVarMi(o, izlenenler); }); }
+		return Object.keys(deger).some(function (k) { return icindeTanimsizVarMi(deger[k], izlenenler); });
+	}
 	function canliYaz(path, deger) {
 		if (kullaniciYoluMu(path)) { return; }
+		if (icindeTanimsizVarMi(deger)) { throw new Error("set/transaction failed: value contains undefined at path " + path); }
 		window.__mockLiveState = window.__mockLiveState || {};
 		var parcalar = yolParcalari(path);
 		if (!parcalar.length) { window.__mockLiveState = deger; bildirCanliDegisiklik(path); return; }
@@ -193,7 +210,7 @@
 				var yeniDeger;
 				try { yeniDeger = updateFn(mevcut); } catch (e) { return Promise.reject(e); }
 				if (yeniDeger === undefined) { return Promise.resolve({ committed: false, snapshot: makeSnapshot(mevcut === undefined ? null : mevcut) }); }
-				canliYaz(path, yeniDeger);
+				try { canliYaz(path, yeniDeger); } catch (e) { return Promise.reject(e); }
 				return Promise.resolve({ committed: true, snapshot: makeSnapshot(yeniDeger) });
 			},
 			push: function (data) {
@@ -210,7 +227,7 @@
 			set: function (data) {
 				window.__mockSets = window.__mockSets || [];
 				window.__mockSets.push({ path: path, data: data });
-				canliYaz(path, data === undefined ? null : data);
+				try { canliYaz(path, data === undefined ? null : data); } catch (e) { return Promise.reject(e); }
 				return Promise.resolve();
 			},
 			update: function (data) {
