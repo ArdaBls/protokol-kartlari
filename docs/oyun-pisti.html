@@ -256,9 +256,10 @@
   
 </main>
 
-<!-- Godot (deneysel) masa -- şimdilik yalnız ?godot=1 ile açılıyor, DOM
-     sürümü varsayılan/güvenli fallback olarak kalıyor. -->
-<div id="pisti-godot-sarici" hidden style="position:fixed; inset:0; z-index:200; background:#1a2332;">
+<!-- Godot masası -- artık sitedeki Pişti bu (eski DOM sürümü kaldırıldı,
+     data-pisti-dom-ui gizli tutuluyor ama pisti-oyun.js hâlâ ALTTA çalışıp
+     Firebase mantığını/köprüyü sağlıyor). -->
+<div id="pisti-godot-sarici" style="position:fixed; inset:0; z-index:200; background:#1a2332;">
   <canvas id="pisti-godot-canvas" style="width:100%; height:100%; display:block;">
     Tarayıcınız canvas'ı desteklemiyor.
   </canvas>
@@ -269,12 +270,12 @@
 <script src="/godot/pisti/index.js"></script>
 <script>
 (function () {
-  if (new URLSearchParams(location.search).get('godot') !== '1') { return; }
   document.querySelector('[data-pisti-dom-ui]').hidden = true;
-  var sarici = document.getElementById('pisti-godot-sarici');
   var durumEl = document.getElementById('pisti-godot-durum');
-  sarici.hidden = false;
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 2, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 394204, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  // NOT: executable'a KLASÖR YOLU dahil -- sayfa /oyun-pisti.html'de ama
+  // pck/wasm /godot/pisti/ altında, aksi halde motor bunları sayfayla AYNI
+  // dizinde ("/index.pck") arayıp 404 alıyordu.
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 2, "executable": "godot/pisti/index", "experimentalVK": false, "fileSizes": { "godot/pisti/index.pck": 394204, "godot/pisti/index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
   var engine = new Engine(GODOT_CONFIG);
   var eksikler = Engine.getMissingFeatures({ threads: false });
   if (eksikler.length !== 0) {
