@@ -670,16 +670,21 @@ function eventleriBagla() {
 // sınırını postMessage ile aşıyoruz. Gerçek kural/yazma mantığı HEP burada
 // (masaIslemi/transaction) kalır.
 let pistiGodotFrame = null;
+// NOT (bulunan 2. hata -- YARIŞ DURUMU): site verisi HAZIR olur olmaz
+// iframe'e postMessage ile gönderiliyordu, ama Godot (38MB) o anda henüz
+// yüklenmemiş/kendi window.pistiGodotMasaGuncelle callback'ini
+// KAYDETMEMİŞ olabiliyordu -- o an gönderilen mesaj TAMPONLANMADAN
+// kayboluyordu (postMessage, henüz dinleyicisi olmayan bir alıcı için
+// hiçbir şey yapmaz). "F5 sonrası bile oturduğum görünmüyor" hatasının
+// kaynağı buydu. Çözüm: HER İKİ taraf da hazır olana kadar (Godot
+// 'pistiHazir' demiş VE currentTable dolmuş) her ilgili olayda TEKRAR
+// dene -- hangisi geç kalırsa kalsın, diğeri tetiklendiğinde iletim olur.
+let pistiGodotHazirMi = false;
 window.addEventListener('message', (e) => {
   if (e.origin !== location.origin || !e.data) { return; }
-  // NOT (bulunan hata): pistiGodotFrame eskiden SADECE pistiGodotIlet()
-  // içinde ayarlanıyordu, o da SADECE bu mesajlardan biri (pistiHazir)
-  // geldiğinde çağrılıyordu -- yani İLK mesaj (pistiHazir'in KENDİSİ dahil)
-  // pistiGodotFrame henüz null olduğu için hep SESSİZCE yok sayılıyordu
-  // (tavuk-yumurta). Referansı burada, HER mesajda tembel çözüyoruz.
   if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
   if (!pistiGodotFrame || e.source !== pistiGodotFrame.contentWindow) { return; }
-  if (e.data.type === 'pistiHazir') { pistiGodotIlet(); return; }
+  if (e.data.type === 'pistiHazir') { pistiGodotHazirMi = true; pistiGodotIlet(); return; }
   if (e.data.type === 'pistiOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
   if (e.data.type === 'pistiHazirVer') { oyuncuIslemi(hazirVer); return; }
   if (e.data.type === 'pistiKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
@@ -690,6 +695,7 @@ window.addEventListener('message', (e) => {
   }
 });
 function pistiGodotIlet() {
+  if (!pistiGodotHazirMi) { return; } // Godot henüz yüklenip callback'lerini kaydetmedi
   if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
   if (!pistiGodotFrame || !pistiGodotFrame.contentWindow || !currentTable) { return; }
   pistiGodotFrame.contentWindow.postMessage({ type: 'pistiKimlik', uid: currentUserUid }, location.origin);
