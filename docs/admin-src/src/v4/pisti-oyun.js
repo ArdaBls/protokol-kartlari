@@ -684,20 +684,31 @@ function eventleriBagla() {
   });
 }
 
-// ── Godot köprüsü -- oyun-pisti.html'e gömülü Godot (WebAssembly) canvas'ı,
-// oturma/kart oynama gibi tıklamaları BU fonksiyonları çağırarak iletir
-// (JavaScriptBridge.eval üzerinden). Gerçek kural/yazma mantığı HEP burada
-// (masaIslemi/transaction) kalır -- Godot sadece görselleştirip tıklamayı
-// yönlendirir, kendi başına state hesaplamaz (iki istemcinin farklı sonuca
-// varması / senkron kayması riskini önlemek için).
-window.pistiOtur = (koltukIndex) => oyuncuIslemi(() => otur(Number(koltukIndex)));
-window.pistiHazirVer = () => oyuncuIslemi(hazirVer);
-window.pistiKalk = (koltukIndex) => oyuncuIslemi(() => kalk(Number(koltukIndex)));
-window.pistiKartOyna = (kartIndex) => {
-  const benim = benimKoltukIndex(currentTable);
-  if (benim === null) { return; }
-  oyuncuIslemi(() => kartOyna(benim, Number(kartIndex)));
-};
+// ── Godot köprüsü -- Godot (WebAssembly) artık AYRI bir iframe'de
+// (/godot/pisti/frame.html) çalışıyor, sitenin CSS/flex/CSP'siyle
+// çakışmasın diye izole edildi. Doğrudan window.pistiXxx çağrısı YOK --
+// iframe sınırını postMessage ile aşıyoruz. Gerçek kural/yazma mantığı HEP
+// burada (masaIslemi/transaction) kalır -- Godot sadece görselleştirip
+// tıklamayı yönlendirir, kendi başına state hesaplamaz.
+let pistiGodotFrame = null;
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !pistiGodotFrame || e.source !== pistiGodotFrame.contentWindow || !e.data) { return; }
+  if (e.data.type === 'pistiHazir') { pistiGodotIlet(); return; }
+  if (e.data.type === 'pistiOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'pistiHazirVer') { oyuncuIslemi(hazirVer); return; }
+  if (e.data.type === 'pistiKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'pistiKartOyna') {
+    const benim = benimKoltukIndex(currentTable);
+    if (benim === null) { return; }
+    oyuncuIslemi(() => kartOyna(benim, Number(e.data.kartIndex)));
+  }
+});
+function pistiGodotIlet() {
+  if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
+  if (!pistiGodotFrame || !pistiGodotFrame.contentWindow || !currentTable) { return; }
+  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiKimlik', uid: currentUserUid }, location.origin);
+  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiMasaGuncelle', table: currentTable }, location.origin);
+}
 
 function attachTableListener(force = false) {
   if (!modeReady || !canPlay) { return; }
@@ -719,11 +730,7 @@ function attachTableListener(force = false) {
     const table = snap.val() || { durum: 'oyuncu_bekleniyor', koltuklar: {}, skorlar: {}, guncellemeTs: Date.now(), elNo: 0 };
     renderMasa(table);
     belkiSonrakiFazaGec(table);
-    // Godot canvas'ı sayfaya gömülüyse (bkz. window.pistiOtur vb.) her
-    // güncellemeyi ona da ilet -- yoksa bu iki satır sessizce hiçbir şey
-    // yapmaz (fonksiyonlar tanımsız).
-    if (window.pistiGodotKimlik) { window.pistiGodotKimlik(currentUserUid); }
-    if (window.pistiGodotMasaGuncelle) { window.pistiGodotMasaGuncelle(JSON.stringify(table)); }
+    pistiGodotIlet(); // Godot iframe'i varsa (bkz. yukarısı) her güncellemeyi ona da ilet
   };
   tableRef.on('value', tableListener, masaHatasi);
   phaseWatchdog = setInterval(() => { if (currentTable) { belkiSonrakiFazaGec(currentTable); } }, 1000);

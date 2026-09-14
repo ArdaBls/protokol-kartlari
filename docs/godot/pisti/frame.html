@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pişti</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #1a2332; overflow: hidden; height: 100%; }
+  #canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #durum { position: fixed; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: #fff; font-family: sans-serif; }
+</style>
+</head>
+<body>
+<canvas id="canvas">Tarayıcınız canvas'ı desteklemiyor.</canvas>
+<div id="durum"></div>
+<script src="index.js"></script>
+<script>
+(function () {
+  // NOT: Bu sayfa BİLEREK site'ın (oyun-pisti.html) DOM/CSS/CSP'sinden
+  // TAMAMEN İZOLE -- Godot'un canvas'ı artık sitenin flex düzenine/CSP'sine
+  // hiç karışmıyor (önceki doğrudan-gömme denemesinde taşma, tıklama
+  // engellenmesi gibi sorunlara sebep olan asıl kök buydu). Site ile
+  // konuşma SADECE postMessage üzerinden (window.pistiXxx doğrudan çağrı
+  // YOK -- iframe sınırını aşamaz).
+  var durumEl = document.getElementById('durum');
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 2, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 394508, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var engine = new Engine(GODOT_CONFIG);
+  var eksikler = Engine.getMissingFeatures({ threads: false });
+  if (eksikler.length !== 0) {
+    durumEl.textContent = 'Tarayıcınız bu oyunu desteklemiyor: ' + eksikler.join(', ');
+  } else {
+    durumEl.textContent = 'Yükleniyor…';
+    engine.startGame({
+      'canvas': document.getElementById('canvas'),
+      'onProgress': function (guncel, toplam) {
+        if (guncel > 0 && toplam > 0) { durumEl.textContent = 'Yükleniyor… ' + Math.round((guncel / toplam) * 100) + '%'; }
+      }
+    }).then(function () {
+      durumEl.remove();
+      if (parent !== window) { parent.postMessage({ type: 'pistiHazir' }, location.origin); }
+    }, function (hata) {
+      console.error('Pişti (Godot) yüklenemedi:', hata);
+      durumEl.textContent = 'Oyun yüklenemedi, sayfayı yenileyin.';
+    });
+  }
+
+  // Parent (pisti-oyun.js) -> buraya: kimlik + masa güncellemeleri.
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || e.source !== parent || !e.data) { return; }
+    if (e.data.type === 'pistiKimlik' && window.pistiGodotKimlik) {
+      window.pistiGodotKimlik(e.data.uid || '');
+    } else if (e.data.type === 'pistiMasaGuncelle' && window.pistiGodotMasaGuncelle) {
+      window.pistiGodotMasaGuncelle(JSON.stringify(e.data.table));
+    }
+  });
+
+  // Godot (Masa.gd _js_pencere.pistiXxx(...)) BU window'daki fonksiyonları
+  // çağırıyor -- biz de parent'a postMessage ile iletiyoruz.
+  window.pistiOtur = function (koltukIndex) { parent.postMessage({ type: 'pistiOtur', koltukIndex: koltukIndex }, location.origin); };
+  window.pistiHazirVer = function () { parent.postMessage({ type: 'pistiHazirVer' }, location.origin); };
+  window.pistiKartOyna = function (kartIndex) { parent.postMessage({ type: 'pistiKartOyna', kartIndex: kartIndex }, location.origin); };
+  window.pistiKalk = function (koltukIndex) { parent.postMessage({ type: 'pistiKalk', koltukIndex: koltukIndex }, location.origin); };
+}());
+</script>
+</body>
+</html>

@@ -61,20 +61,11 @@
     </div>
   </div>
 
-  <!-- Godot masası -- SABİT 1600x1100 (motorun kendi çözünürlüğüyle AYNI),
-       yalnız dar ekranlarda (mobil) max-width:100% ile küçülüyor. -->
+  <!-- Godot masası -- KENDİ iframe'inde, sitenin CSS/flex/CSP'sinden
+       TAMAMEN İZOLE (bkz. /godot/pisti/frame.html) -- doğrudan gömme
+       taşma/tıklama-engellenmesi gibi sorunlara sebep oluyordu. -->
   <div id="pisti-godot-sarici" style="position:relative; width:1600px; height:auto; max-width:100%; min-width:0; aspect-ratio:1600/1100; margin:0 auto; background:#1a2332; border-radius:12px; overflow:hidden; box-sizing:border-box;">
-    <!-- min-width:0 ÖNEMLİ: canvasResizePolicy "Project" olunca canvas'ın
-         GERÇEK width/height ATTRİBUTE'ları hep 1600x1100 kalıyor -- bu bir
-         <canvas>'ı (değiştirilebilir/replaced eleman) flex/grid bağlamında
-         KENDİ İÇERİK boyutuna göre bir ALT SINIR yapıyor, max-width'i
-         GEÇERSİZ kılıp taşmaya (ve sabit sidebar'ın ARKASINDA kalmaya)
-         sebep oluyordu -- özellikle %100 dışı yakınlıkta (110% gibi)
-         yuvarlama farkları bunu daha da belirginleştiriyordu. -->
-    <canvas id="pisti-godot-canvas" style="width:100%; height:100%; max-width:100%; min-width:0; display:block;">
-      Tarayıcınız canvas'ı desteklemiyor.
-    </canvas>
-    <div id="pisti-godot-durum" style="position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; color:#fff; font-family:sans-serif;"></div>
+    <iframe id="pisti-godot-iframe" src="/godot/pisti/frame.html" title="Pişti" style="width:100%; height:100%; min-width:0; border:0; display:block;" allow="autoplay"></iframe>
   </div>
 
 </div>
@@ -84,36 +75,8 @@
 import('/src/v4/pisti-oyun.js').then((m) => m.initPisti());
 </script>
 
-<script src="/godot/pisti/index.js"></script>
 <script>
-(function () {
-  document.querySelector('[data-pisti-dom-ui]').hidden = true;
-  var durumEl = document.getElementById('pisti-godot-durum');
-  // NOT: executable'a KLASÖR YOLU dahil -- sayfa /oyun-pisti.html'de ama
-  // pck/wasm /godot/pisti/ altında, aksi halde motor bunları sayfayla AYNI
-  // dizinde ("/index.pck") arayıp 404 alıyordu.
-  // canvasResizePolicy: 1 ("Project") -- Adaptive (2) denendi, mobilde
-  // beklenen sonucu vermedi, kullanıcı isteğiyle geri alındı.
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 1, "executable": "godot/pisti/index", "experimentalVK": false, "fileSizes": { "godot/pisti/index.pck": 394508, "godot/pisti/index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
-  var engine = new Engine(GODOT_CONFIG);
-  var eksikler = Engine.getMissingFeatures({ threads: false });
-  if (eksikler.length !== 0) {
-    durumEl.textContent = 'Tarayıcınız bu oyunu desteklemiyor: ' + eksikler.join(', ');
-    return;
-  }
-  durumEl.textContent = 'Yükleniyor…';
-  engine.startGame({
-    'canvas': document.getElementById('pisti-godot-canvas'),
-    'onProgress': function (guncel, toplam) {
-      if (guncel > 0 && toplam > 0) { durumEl.textContent = 'Yükleniyor… ' + Math.round((guncel / toplam) * 100) + '%'; }
-    }
-  }).then(function () {
-    durumEl.remove();
-  }, function (hata) {
-    console.error('Pişti (Godot) yüklenemedi:', hata);
-    durumEl.textContent = 'Oyun yüklenemedi, sayfayı yenileyin.';
-  });
-}());
+document.querySelector('[data-pisti-dom-ui]').hidden = true;
 </script>
 
 </body>
