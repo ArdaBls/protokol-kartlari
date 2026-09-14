@@ -328,6 +328,49 @@ function yeniOyunBaslat() {
   });
 }
 
+// ── Oyunu erken bitirme (mutabakatla) -- 101 puana ulaşmak birkaç el
+// sürebildiğinden kullanıcı isteği: herhangi bir oturan "Oyunu Bitir"
+// önerebilir, DİĞER TÜM oturanlar kabul ederse oyun O ANDA biter. Puan,
+// deste tükenmesini BEKLEMEDEN şu ana kadar toplanan kartlarla hesaplanır
+// (pistiElPuanlariniHesapla zaten kısmi veriyle de doğru çalışır -- hâlâ
+// elde/destede duran kartlar hiç kimseye sayılmaz).
+function oyunuErkenBitir(mevcut, oturanIndeksler) {
+  const topladiklarimArr = oturanIndeksler.map((i) => (mevcut.topladiklarim && mevcut.topladiklarim[i]) || []);
+  const pistiSayilariArr = oturanIndeksler.map((i) => (mevcut.pistiSayilari && mevcut.pistiSayilari[i]) || 0);
+  const elPuanlariArr = pistiElPuanlariniHesapla(topladiklarimArr, pistiSayilariArr);
+  const yeniSkorlar = Object.assign({}, mevcut.skorlar);
+  const sonElPuanlari = {};
+  oturanIndeksler.forEach((i, pos) => { yeniSkorlar[i] = (yeniSkorlar[i] || 0) + elPuanlariArr[pos]; sonElPuanlari[i] = elPuanlariArr[pos]; });
+  const kazananIndex = oturanIndeksler.reduce((en, i) => (en === null || yeniSkorlar[i] > yeniSkorlar[en] ? i : en), null);
+  return Object.assign({}, mevcut, {
+    durum: 'oyun_bitti', skorlar: yeniSkorlar, sonElPuanlari, kazananKoltuk: kazananIndex, bitirmeTeklifi: null,
+    aktifKoltuk: null, aksiyonBitis: null, guncellemeTs: Date.now()
+  });
+}
+function teklifEtBitir() {
+  return masaIslemi((mevcut) => {
+    if (!mevcut || mevcut.durum !== 'oynaniyor' || mevcut.bitirmeTeklifi) { return; }
+    const benim = benimKoltukIndex(mevcut);
+    if (benim === null) { return; }
+    return Object.assign({}, mevcut, { bitirmeTeklifi: { oneren: benim, kabulEdenler: [benim], ts: Date.now() }, guncellemeTs: Date.now() });
+  }).then((res) => { if (!res.committed && !res.beklemede) { showToast('Bitirme teklifi gönderilemedi.', { variant: 'error' }); } });
+}
+function teklifYanitla(kabul) {
+  return masaIslemi((mevcut) => {
+    if (!mevcut || !mevcut.bitirmeTeklifi) { return; }
+    const benim = benimKoltukIndex(mevcut);
+    if (benim === null) { return; }
+    if (!kabul) { return Object.assign({}, mevcut, { bitirmeTeklifi: null, guncellemeTs: Date.now() }); }
+    const oturanIndeksler = oturanKoltukIndeksleri(mevcut);
+    const kabulEdenler = Array.from(new Set((mevcut.bitirmeTeklifi.kabulEdenler || []).concat([benim])));
+    const hepsiKabulEtti = oturanIndeksler.every((i) => kabulEdenler.includes(i));
+    if (!hepsiKabulEtti) {
+      return Object.assign({}, mevcut, { bitirmeTeklifi: Object.assign({}, mevcut.bitirmeTeklifi, { kabulEdenler }), guncellemeTs: Date.now() });
+    }
+    return oyunuErkenBitir(mevcut, oturanIndeksler);
+  });
+}
+
 // Bir sonraki adıma geçişi TEK bir istemcinin zamanlayıcısına bağlamıyoruz --
 // o istemci sayfadan ayrılırsa masa kilitli kalır (bkz. Blackjack'te bulunup
 // düzeltilen aynı hata). Her bağlı istemcinin dinleyicisi tetiklendiğinde
@@ -354,7 +397,28 @@ function renderMasa(table) {
   renderSkorPaneli(table);
   renderElBittiPaneli(table);
   renderOyunBittiPaneli(table);
+  renderBitirmeTeklifi(table, benimKoltuk);
   renderIslemDurumu();
+}
+function renderBitirmeTeklifi(table, benimKoltuk) {
+  const bitirBtn = document.querySelector('[data-pisti-teklif-bitir]');
+  const teklif = table.bitirmeTeklifi;
+  const oturuyorMu = benimKoltuk !== null;
+  if (bitirBtn) { bitirBtn.hidden = !oturuyorMu || table.durum !== 'oynaniyor' || Boolean(teklif); }
+  const panel = document.querySelector('[data-pisti-teklif-paneli]');
+  if (!panel) { return; }
+  if (!teklif || !oturuyorMu) { panel.hidden = true; panel.innerHTML = ''; return; }
+  const kabulEdenler = teklif.kabulEdenler || [];
+  const benKabulEttimMi = kabulEdenler.includes(benimKoltuk);
+  const oneren = table.koltuklar && table.koltuklar[teklif.oneren];
+  panel.hidden = false;
+  if (benKabulEttimMi) {
+    panel.innerHTML = '<span>Oyunu bitirme teklifin gönderildi -- diğer oyuncular bekleniyor…</span>';
+  } else {
+    panel.innerHTML = '<span>' + escapeHtml((oneren && oneren.isim) || 'Bir oyuncu') + ' oyunu şimdi bitirmek istiyor (puanlar şu ana kadarki kartlarla hesaplanır).</span>' +
+      '<button type="button" class="btn btn-primary" data-pisti-teklif-kabul>Kabul et</button>' +
+      '<button type="button" class="btn btn-outline" data-pisti-teklif-reddet>Reddet</button>';
+  }
 }
 function renderKoltuklar(table, benimKoltuk) {
   const el = document.querySelector('[data-pisti-koltuklar]');
@@ -441,7 +505,7 @@ function renderElim(table, benimKoltuk) {
     const ofset = index - (sayi - 1) / 2;
     const stepDeg = sayi > 1 ? Math.min(9, 46 / (sayi - 1)) : 0;
     const rotate = ofset * stepDeg;
-    const spacing = sayi > 5 ? 34 : 42;
+    const spacing = sayi > 5 ? 40 : 48;
     const x = ofset * spacing;
     const y = Math.abs(rotate) * 1.9;
     const stil = '--pisti-rot:' + rotate.toFixed(2) + 'deg; --pisti-x:' + x.toFixed(1) + 'px; --pisti-y:' + y.toFixed(1) + 'px; z-index:' + (10 + index) + ';';
@@ -541,6 +605,9 @@ function eventleriBagla() {
       if (!isReadOnly()) { const benim = benimKoltukIndex(currentTable); if (benim !== null) { oyuncuIslemi(() => kalk(benim)); } }
       return;
     }
+    if (e.target.closest('[data-pisti-teklif-bitir]')) { if (!isReadOnly()) { oyuncuIslemi(teklifEtBitir); } return; }
+    if (e.target.closest('[data-pisti-teklif-kabul]')) { if (!isReadOnly()) { oyuncuIslemi(() => teklifYanitla(true)); } return; }
+    if (e.target.closest('[data-pisti-teklif-reddet]')) { if (!isReadOnly()) { oyuncuIslemi(() => teklifYanitla(false)); } return; }
     if (!e.target.closest('[data-pisti-root]')) { return; }
     if (isReadOnly()) { showToast('Salt-okunur kilit açık.', { variant: 'error' }); return; }
     const oturBtn = e.target.closest('[data-pisti-otur]'); if (oturBtn) { oyuncuIslemi(() => otur(Number(oturBtn.dataset.pistiOtur))); return; }

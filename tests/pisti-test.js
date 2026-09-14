@@ -129,6 +129,40 @@ function serve() {
 	// o kart topladiklarim'e HİÇ girmez (masada kaldı, sahibi yok) -- en çok kart oyuncu0'da (2 kart) -> +3.
 	results.skorHesabiDogru = elSonrasi.skorlar[0] === 13 && (elSonrasi.skorlar[1] || 0) === 0;
 
+	// 6) Oyunu erken bitirme mutabakatı -- deste tükenmeden, şu ana kadar
+	// toplanan kartlarla puanlama yapılıp mutabakatla oyun bitmeli.
+	await page.evaluate(() => {
+		const masa = window.__mockLiveState.pisti.masalar['ana-masa'];
+		const guncellenmis = Object.assign({}, masa, {
+			durum: 'oynaniyor', bitirmeTeklifi: null, kazananKoltuk: null, sonElPuanlari: null,
+			koltuklar: { 0: { uid: 'oyuncu1', isim: 'Ben', katilimDurumu: 'hazir' }, 1: { uid: 'oyuncu2', isim: 'Rakip', katilimDurumu: 'hazir' } },
+			eller: { 0: [{ r: '3', s: 'kupa' }], 1: [{ r: '4', s: 'karo' }] },
+			// Koltuk 0'ın topladığı daha fazla/puanlı -- erken bitirince kazanmalı.
+			topladiklarim: { 0: [{ r: '10', s: 'kupa' }, { r: 'as', s: 'sinek' }], 1: [{ r: '2', s: 'karo' }] },
+			pistiSayilari: { 0: 1, 1: 0 }, skorlar: {}, masaKartlari: [], aktifKoltuk: 0, guncellemeTs: Date.now()
+		});
+		return firebase.database().ref('pisti/masalar/ana-masa').set(guncellenmis);
+	});
+	await page.waitForTimeout(200);
+	results.bitirTeklifiButonuGorunur = await page.locator('[data-pisti-teklif-bitir]').isVisible();
+	await page.click('[data-pisti-teklif-bitir]');
+	await page.waitForTimeout(200);
+	results.teklifGonderildiPanelGorunur = await page.locator('[data-pisti-teklif-paneli]').isVisible();
+	// Rakip (koltuk 1) kabul etsin -- mock'ta sekmeler arası paylaşım
+	// olmadığından uid'leri geçici takas edip "koltuk 1 adına" tıklıyoruz;
+	// gerçek kod yolu (teklifYanitla) hâlâ çalışıyor.
+	await page.evaluate(() => Promise.all([
+		firebase.database().ref('pisti/masalar/ana-masa/koltuklar/0/uid').set('gecici'),
+		firebase.database().ref('pisti/masalar/ana-masa/koltuklar/1/uid').set('oyuncu1')
+	]));
+	await page.waitForTimeout(200);
+	await page.click('[data-pisti-teklif-kabul]');
+	await page.waitForTimeout(300);
+	const erkenBitenMasa = await page.evaluate(() => window.__mockLiveState.pisti.masalar['ana-masa']);
+	results.erkenBitirmeOyunuBitirdi = erkenBitenMasa.durum === 'oyun_bitti';
+	results.erkenBitirmeDoguOyuncuyuKazandirdi = erkenBitenMasa.kazananKoltuk === 0;
+	results.erkenBitirmePuanlariHesapladi = (erkenBitenMasa.skorlar[0] || 0) > (erkenBitenMasa.skorlar[1] || 0);
+
 	if (pageErrors.length) { console.log('PAGE ERRORS:', JSON.stringify(pageErrors)); }
 	results.oyunPageErrors = pageErrors.length;
 	console.log(JSON.stringify(results, null, 2));

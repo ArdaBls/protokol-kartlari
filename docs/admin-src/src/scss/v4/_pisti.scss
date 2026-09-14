@@ -19,6 +19,11 @@ $pisti-bordo: #6b1f2a;
 // kapsamının dışında -- aynı [hidden] sorununu tek bu düğmeye özel öznitelik
 // seçiciyle (diğer sayfaların .card-options'ını ETKİLEMEDEN) çözer.
 [data-pisti-baslat][hidden] { display: none; }
+.pisti-teklif-paneli {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 12px;
+  border-radius: var(--radius); background: rgba(212, 175, 55, 0.12); font-size: 13px;
+}
+.pisti-teklif-paneli[hidden] { display: none; }
 
 .pisti-masa-viewport { width: 100%; min-width: 0; align-self: stretch; display: flex; justify-content: center; }
 .pisti-masa {
@@ -92,38 +97,60 @@ $pisti-bordo: #6b1f2a;
 @keyframes pisti-slide-bottom { 0% { transform: translateY(60px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .pisti-slide-top, .pisti-slide-bottom { animation: none; } }
 
-// ── Kendi elim: yelpaze -- kullanıcının verdiği referans bileşenin hover-
-// kaldırma davranışı saf CSS transform + transition ile taklit ediliyor.
+// ── Kendi elim: yelpaze -- kullanıcının verdiği referans bileşenin (Framer
+// Motion PlayingCardFan) sürükle-oyna + hover-kaldırma davranışı saf CSS
+// transform + transition ile taklit ediliyor. Spring fiziği yerine (vanilla
+// JS'te tam karşılığı yok) referansın spring karakterine yakın hafif
+// "overshoot" veren bir cubic-bezier kullanılıyor.
 .pisti-elim { position: relative; height: 132px; width: 100%; margin-top: 8px; }
 .pisti-el-kart-btn {
   position: absolute;
   left: 50%;
   bottom: -34px;
-  width: 76px;
-  margin-left: -38px;
+  // Görsel kart (.pisti-kart) BUNDAN daha geniş ve taşıyor (aşağıya bak) --
+  // gerçek tıklanabilir kutu bilerek DAR tutuluyor. Aksi halde yelpazedeki
+  // üst üste binen kartların tam görsel genişliği (96px) tıklanabilir
+  // kalıyor ve komşu kartı da "tutuyordu" (kısmen görünen alt kart aslında
+  // üsttekinin görsel taşması yüzünden tıklamayı çalıyordu).
+  width: 56px;
+  margin-left: -28px;
   padding: 0;
   border: 0;
   background: none;
-  cursor: pointer;
-  transform: translateX(var(--pisti-x)) translateY(var(--pisti-y)) rotate(var(--pisti-rot));
+  cursor: grab;
+  transform: translateX(var(--pisti-x)) translateY(calc(var(--pisti-y) + var(--pisti-drag-y, 0px))) rotate(var(--pisti-rot));
   transform-origin: 50% 100%;
-  transition: transform 180ms ease-out, filter 180ms ease-out;
-  touch-action: manipulation;
+  transition: transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1), filter 180ms ease-out;
+  touch-action: none;
 }
 .pisti-el-kart-btn:disabled { cursor: default; filter: brightness(0.75); }
-// Yelpazedeki kartlar KASITLI olarak üst üste biner (bkz. spacing/width) --
-// referans bileşen bunu Framer Motion'ın pointer izlemesiyle sorunsuz
-// yapıyordu, ama ham CSS :hover geometriyi DEĞİŞTİRDİĞİ (translateY-54px)
-// için imleç kalkan kartın altından komşu karta "kayıp" onu da hover'a
-// sokuyor, o da geri iniyor, imleç yine ilk karta düşüyor -- titreşim.
-// Bir kart hover'dayken DİĞER TÜM kartların pointer-events'ini kapatmak
-// (bu artık statik geometrisi hover süresince değişmeyen TEK kart hariç)
-// bu döngüyü tamamen keser.
+// Görsel kart, dar tıklama kutusundan taşıp ortalanır -- ama pointer-events
+// none olduğundan taşan kısım BAŞKA bir kartın tıklamasını hiç çalamaz;
+// tüm tıklama mantığı yalnızca üstteki (dar) button kutusuna bakar.
+.pisti-el-kart-btn .pisti-kart { width: 96px; margin-left: -20px; pointer-events: none; }
+// Sürüklenirken (pointerdown'dan bırakmaya kadar) geçiş kapatılır --
+// aksi halde her pointermove karesi 260ms'lik geçişle "gecikip" parmağın/
+// imlecin gerisinde sürüklenir gibi görünürdü.
+.pisti-el-kart-btn.pisti-el-kart-suruklenen { cursor: grabbing; transition: filter 180ms ease-out; z-index: 999 !important; }
+// İkinci savunma katmanı: dar kutuya rağmen kalan küçük bindirme payı için
+// -- bir kart hover'dayken diğerlerinin pointer-events'i geçici kapanır.
 .pisti-elim:has(.pisti-el-kart-btn:hover) .pisti-el-kart-btn:not(:hover) { pointer-events: none; }
 .pisti-el-kart-btn:not(:disabled):hover, .pisti-el-kart-btn:not(:disabled):focus-visible {
-  transform: translateX(var(--pisti-x)) translateY(-54px) rotate(calc(var(--pisti-rot) * 0.3)) scale(1.08);
+  // Referanstaki hoverLift(54)/scale(1.06)/rotate*0.3 birebir.
+  transform: translateX(var(--pisti-x)) translateY(-54px) rotate(calc(var(--pisti-rot) * 0.3)) scale(1.06);
   z-index: 999 !important;
   outline: none;
+}
+// Oynanan kart merkeze uçarken (bkz. pisti-oyun.js kartUcusuOynat) -- gerçek
+// masa yığını FARKLI, uzaktaki bir DOM konumunda olduğundan (paylaşımlı
+// masa, referanstaki gibi kendi konteynerinde biriken kişisel yığın değil)
+// bu, geçici bir klonu FLIP tekniğiyle o gerçek konuma taşıyor.
+.pisti-kart-ucusu {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 320ms ease-in;
+  will-change: transform;
 }
 
 // ── Skor/panel ──

@@ -1,2 +1,0 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/pisti-oyun-B4phWzjQ.js","js/main-v4-3O3DwGX0.js","js/toast-C9dk_WzR.js","js/db-mode-F_jprkvV.js","assets/main-v4-Y4EPqaZS.css"])))=>i.map(i=>d[i]);
-import{n as i}from"./main-v4-3O3DwGX0.js";i(()=>import("./pisti-oyun-B4phWzjQ.js").then(i=>i.initPisti()),__vite__mapDeps([0,1,2,3,4]));
