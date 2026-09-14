@@ -153,9 +153,25 @@ function otur(koltukIndex) {
     const koltuklar = Object.assign({}, taban.koltuklar || {});
     if (Object.keys(koltuklar).some((i) => koltuklar[i] && koltuklar[i].uid === currentUserUid)) { return; }
     if (koltuklar[koltukIndex] && koltuklar[koltukIndex].uid) { return; }
-    koltuklar[koltukIndex] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, katilimDurumu: 'hazir' };
+    koltuklar[koltukIndex] = { uid: currentUserUid, isim: currentUserName || currentUserEmail, katilimDurumu: 'hazir', hazir: false };
     return Object.assign({}, taban, { durum: 'oyuncu_bekleniyor', koltuklar, guncellemeTs: Date.now() });
   }).then((res) => { if (!res.committed) { showToast('Bu koltuk dolu veya oyun başlamış.', { variant: 'error' }); } });
+}
+// DENEYSEL (Godot köprüsü) -- oturan kendi "hazır" durumunu açıp kapatır,
+// oturan HERKES hazır olunca belkiSonrakiFazaGec otomatik başlatır. DOM
+// sürümündeki "Oyunu başlat" düğmesi/oyunuBaslat() BUNDAN BAĞIMSIZ, aynen
+// çalışmaya devam ediyor -- ikisi aynı transaction'a çıkıyor, çakışmıyor.
+function hazirVer() {
+  return masaIslemi((mevcut) => {
+    if (!mevcut || mevcut.durum !== 'oyuncu_bekleniyor') { return; }
+    const benim = benimKoltukIndex(mevcut);
+    if (benim === null) { return; }
+    const koltuklar = Object.assign({}, mevcut.koltuklar);
+    const koltuk = koltuklar[benim];
+    if (!koltuk) { return; }
+    koltuklar[benim] = Object.assign({}, koltuk, { hazir: !koltuk.hazir });
+    return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
+  });
 }
 function kalk(koltukIndex) {
   if (!Number.isInteger(koltukIndex) || koltukIndex < 0 || koltukIndex >= MAX_OYUNCU) { return; }
@@ -338,7 +354,7 @@ function yeniOyunBaslat() {
   return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'oyun_bitti') { return; }
     const koltuklar = Object.assign({}, mevcut.koltuklar);
-    Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { katilimDurumu: 'hazir' }); } });
+    Object.keys(koltuklar).forEach((i) => { if (koltuklar[i]) { koltuklar[i] = Object.assign({}, koltuklar[i], { katilimDurumu: 'hazir', hazir: false }); } });
     return Object.assign({}, mevcut, {
       durum: 'oyuncu_bekleniyor', koltuklar, skorlar: {}, eller: {}, topladiklarim: {}, pistiSayilari: {},
       masaKartlari: [], aktifKoltuk: null, aksiyonBitis: null, kazananKoltuk: null, sonElPuanlari: null, guncellemeTs: Date.now()
@@ -398,7 +414,15 @@ function belkiSonrakiFazaGec(table) {
   const terkEdilmisMi = Boolean(table.guncellemeTs) && Date.now() - table.guncellemeTs > TERK_EDILME_MS;
   if (table.durum !== 'oyuncu_bekleniyor' && benimKoltukIndex(table) === null && !terkEdilmisMi) { return; }
   if (table.durum === 'el_bitti' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_BITTI_BEKLEME_MS) { elBittiSonrakiEl(); return; }
-  if (table.durum === 'oynaniyor' && table.aksiyonBitis && Date.now() >= table.aksiyonBitis) { zamanAsimindaOtomatikOyna(); }
+  if (table.durum === 'oynaniyor' && table.aksiyonBitis && Date.now() >= table.aksiyonBitis) { zamanAsimindaOtomatikOyna(); return; }
+  // DENEYSEL (Godot köprüsü) -- oturan herkes "hazır" ise (hazirVer()),
+  // manuel "Oyunu başlat"a gerek kalmadan otomatik başlat. Kimse hazirVer()
+  // çağırmadıysa (DOM sürümü) bu koşul hiç sağlanmaz, mevcut akışı etkilemez.
+  if (table.durum === 'oyuncu_bekleniyor') {
+    const oturanIndeksler = oturanKoltukIndeksleri(table);
+    const hepsiHazirMi = oturanIndeksler.length >= MIN_OYUNCU && oturanIndeksler.every((i) => table.koltuklar[i].hazir);
+    if (hepsiHazirMi) { oyunuBaslat(); }
+  }
 }
 
 // ── Render ──
@@ -638,6 +662,31 @@ function eventleriBagla() {
       oyuncuIslemi(() => kartOyna(benimKoltuk, Number(oynaBtn.dataset.pistiOyna)));
     }
   });
+}
+
+// ── Godot köprüsü (DENEYSEL, ?godot=1 ile aktif) -- Godot ayrı bir
+// iframe'de (/godot/pisti/frame.html) çalışıyor, sitenin CSS/CSP'siyle
+// çakışmasın diye izole. window.pistiXxx doğrudan çağrı YOK -- iframe
+// sınırını postMessage ile aşıyoruz. Gerçek kural/yazma mantığı HEP burada
+// (masaIslemi/transaction) kalır.
+let pistiGodotFrame = null;
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !pistiGodotFrame || e.source !== pistiGodotFrame.contentWindow || !e.data) { return; }
+  if (e.data.type === 'pistiHazir') { pistiGodotIlet(); return; }
+  if (e.data.type === 'pistiOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'pistiHazirVer') { oyuncuIslemi(hazirVer); return; }
+  if (e.data.type === 'pistiKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'pistiKartOyna') {
+    const benim = benimKoltukIndex(currentTable);
+    if (benim === null) { return; }
+    oyuncuIslemi(() => kartOyna(benim, Number(e.data.kartIndex)));
+  }
+});
+function pistiGodotIlet() {
+  if (!pistiGodotFrame) { pistiGodotFrame = document.getElementById('pisti-godot-iframe'); }
+  if (!pistiGodotFrame || !pistiGodotFrame.contentWindow || !currentTable) { return; }
+  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiKimlik', uid: currentUserUid }, location.origin);
+  pistiGodotFrame.contentWindow.postMessage({ type: 'pistiMasaGuncelle', table: currentTable }, location.origin);
 }
 
 function attachTableListener(force = false) {
