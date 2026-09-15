@@ -37,8 +37,18 @@
   // (#canvas{width:100%;height:100%}) değişmiyor, sadece iç çözünürlük
   // artıyor. 2 ile sınırlandırıyoruz ki 3x/4x telefonlarda GPU/bellek
   // yükü aşırıya kaçmasın.
+  // Router.gd, Masa.gd çalışmadan ÖNCE (hangi tasarım/cihaz sahnesinin
+  // yükleneceğine karar verirken) DisplayServer.window_get_size() okuyor --
+  // bu artık canvas'ın DPR ÇARPANLI backing-store boyutu (yukarıdaki not).
+  // Router bunu HAM CSS piksel sanıp telefonu "web" (>=700px) zannedebilir
+  // (DPR 2-3x'te 400px'lik bir telefon yüksekliği kolayca 800-1200px'e
+  // çıkıyor) -- bu yüzden çarpanı burada global olarak yayınlıyoruz, Router
+  // kendi eşik kontrolünü buna bölerek yapıyor (JavaScriptBridge.eval() CSP
+  // tarafından engellendiği için pencere property'si üzerinden okunuyor).
+  window.__godotDPR = Math.min(window.devicePixelRatio || 1, 2);
+
   function boyutlandir() {
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var dpr = window.__godotDPR;
     var w = Math.max(1, Math.round(document.body.clientWidth * dpr));
     var h = Math.max(1, Math.round(document.body.clientHeight * dpr));
     if (canvasEl.width !== w || canvasEl.height !== h) {
@@ -53,7 +63,7 @@
     new ResizeObserver(boyutlandir).observe(document.body);
   }
 
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4262860, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4264300, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
   var engine = new Engine(GODOT_CONFIG);
   var eksikler = Engine.getMissingFeatures({ threads: false });
   if (eksikler.length !== 0) {
