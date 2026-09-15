@@ -63,7 +63,7 @@
     new ResizeObserver(boyutlandir).observe(document.body);
   }
 
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4265948, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4266684, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
   var engine = new Engine(GODOT_CONFIG);
   var eksikler = Engine.getMissingFeatures({ threads: false });
   if (eksikler.length !== 0) {
@@ -91,7 +91,7 @@
     if (e.data.type === 'bjKimlik' && window.bjGodotKimlik) {
       window.bjGodotKimlik(e.data.uid || '');
     } else if (e.data.type === 'bjMasaGuncelle' && window.bjGodotMasaGuncelle) {
-      window.bjGodotMasaGuncelle(JSON.stringify(e.data.table), Number(e.data.benimBakiye));
+      window.bjGodotMasaGuncelle(JSON.stringify(e.data.table), Number(e.data.benimBakiye), e.data.benimSkin ? JSON.stringify(e.data.benimSkin) : '');
     }
   });
 
@@ -106,6 +106,7 @@
   window.bjKatla = function () { parent.postMessage({ type: 'bjKatla' }, location.origin); };
   window.bjBol = function () { parent.postMessage({ type: 'bjBol' }, location.origin); };
   window.bjAnaSayfayaDon = function () { parent.postMessage({ type: 'bjAnaSayfayaDon' }, location.origin); };
+  window.bjSkinKaydet = function (desteStili, yuzKartiTemasi, desteArkasi) { parent.postMessage({ type: 'bjSkinKaydet', desteStili: desteStili, yuzKartiTemasi: yuzKartiTemasi, desteArkasi: desteArkasi }, location.origin); };
 }());
 </script>
 </body>
