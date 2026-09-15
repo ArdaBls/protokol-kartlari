@@ -175,7 +175,11 @@ function serve() {
 		kurpiyerEli: { kartlar: [{ r: '10', s: 'karo' }, { r: '7', s: 'maca' }], acikMi: false },
 		deste: Array.from({ length: 10 }, () => ({ r: '9', s: 'sinek' })), desteIndex: 0
 	}));
-	await page.waitForTimeout(1300); // phaseWatchdog krupiyerSirasiGeldi()'yi tetiklesin
+	// Artık krupiyer eli TEK adımda değil, gerçekçi gecikmeli adımlarla ilerliyor:
+	// 1) kapalı kart açılır (KRUPIYER_ADIM_MS=1100ms bekleme), 2) 17'de durduğu için
+	// bir adım sonra sonuç yazılır. phaseWatchdog'un 1000ms'lik yoklama aralığını da
+	// hesaba katarak iki adımın da kesin tamamlanması için bolca pay bırakıyoruz.
+	await page.waitForTimeout(4500);
 	const krupiyerSonrasi = await masa();
 	results.krupiyerKapaliKartiActi = Boolean(krupiyerSonrasi.kurpiyerEli) && krupiyerSonrasi.kurpiyerEli.acikMi === true;
 	results.durumElSonucunaGecti = krupiyerSonrasi.durum === 'el_sonucu';

@@ -16,7 +16,16 @@
 </head>
 <body data-shell="admin" data-page="games" data-breadcrumb="Anasayfa|index.html > Oyunlar|oyunlar.html > Pişti">
 
-<main class="main">
+<!-- Dikey telefonda masa küçük/bozuk bir kutuya sıkışıyordu (kullanıcı
+     bildirimi) -- Blackjack'teki .bj-rotate-overlay ile AYNI desen: dikeyde
+     tüm sayfa gizlenip "telefonu çevir" uyarısı tam ekran gösterilir. -->
+<div class="pisti-rotate-overlay" role="alert" aria-live="assertive">
+  <div class="pisti-rotate-icon" aria-hidden="true">↻</div>
+  <strong>Telefonunu yatay çevir</strong>
+  <span>Pişti masasındaki tüm koltukları ve kartları görebilmek için yatay görünüm gerekir.</span>
+</div>
+
+<main class="main pisti-main">
 <div class="page-wrapper">
 
   <div class="page-header">
@@ -36,6 +45,17 @@
     #pisti-godot-iframe { width: 100%; height: 100%; min-width: 0; border: 0; display: block; }
     @media (max-width: 900px) and (orientation: landscape) {
       #pisti-godot-sarici { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; max-width: none !important; aspect-ratio: unset !important; margin: 0 !important; border-radius: 0 !important; z-index: 9999 !important; }
+    }
+    .pisti-rotate-overlay { display: none; }
+    @media (max-width: 900px) and (orientation: portrait) {
+      .pisti-rotate-overlay {
+        position: fixed; inset: 0; z-index: 9999; display: grid; place-content: center; gap: 14px;
+        padding: 32px; text-align: center; color: #fff; background: #1a2332;
+      }
+      .pisti-rotate-icon { font-size: 64px; color: #d4af37; }
+      .pisti-rotate-overlay strong { font-size: 22px; }
+      .pisti-rotate-overlay span { max-width: 310px; color: rgba(255, 255, 255, 0.74); margin: 0 auto; }
+      .pisti-main { visibility: hidden; }
     }
   </style>
   <div id="pisti-godot-sarici">

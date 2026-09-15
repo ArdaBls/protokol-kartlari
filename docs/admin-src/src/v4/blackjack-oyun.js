@@ -24,7 +24,7 @@ import { subscribeStaffProfiles, renderStaffAvatar, findStaffProfile, isSafeAvat
 import {
   MAX_KOLTUK, BAHIS_SURESI_MS, BASLANGIC_BAKIYESI, TOPLAM_KART_SAYISI,
   tazeDesteOlustur, desteyiKaris, elDegerlendir, bolunebilirMi,
-  krupiyerElOyna, desteYeterliMi, elSonucuHesapla, kartDegeri
+  desteYeterliMi, elSonucuHesapla, kartDegeri
 } from './blackjack-deste.js';
 
 const FIREBASE_CONFIG = {
@@ -47,6 +47,11 @@ function cipGorselYolu(miktar) {
 // Dağıtım animasyonu ve düşük performanslı telefonlar da bu sürenin içinde
 // kalıyordu; 10 sn bazı cihazlarda oyuncu ilk kartlarını görmeden bitiyordu.
 const AKSIYON_SURESI_MS = 30000;
+// Tek başına oturan bir oyuncu bahis yaptığında 30sn'lik TAM pencereyi
+// beklemesi gereksiz uzun geliyordu (kullanıcı bildirimi) -- kimseyle
+// paylaşılan bir zamanlayıcı yok, o yüzden bahis konulduğu anda kısa bir
+// düşünme payıyla (çip miktarını değiştirebilsin diye) hemen dağıtılabilir.
+const BAHIS_SURESI_SOLO_MS = 4000;
 const DESTE_STILLERI = ['temel', 'altin', 'celik'];
 const VARSAYILAN_TEMA = 'varsayilan';
 const KOLEKSIYON_DOSYA_ON_EKI = 'koleksiyon-';
@@ -209,7 +214,7 @@ function skinDinlemeyiBaslat(uid) {
     const onceki = skinCache[uid];
     skinCache[uid] = sonraki;
     if (uid === currentUserUid) { mySkin = sonraki; }
-    if (JSON.stringify(onceki) !== JSON.stringify(sonraki) && currentTable) { renderMasa(currentTable); }
+    if (JSON.stringify(onceki) !== JSON.stringify(sonraki) && currentTable) { renderMasa(currentTable); bjGodotIlet(); }
   };
   skinListeners.set(uid, { ref, listener });
   ref.on('value', listener);
@@ -501,7 +506,14 @@ function bahisYap(koltukIndex, miktar) {
       if (!koltuk || koltuk.uid !== currentUserUid || (Number(koltuk.bahis) || 0) !== oncekiBahis) { return; }
       const koltuklar = Object.assign({}, mevcut.koltuklar);
       koltuklar[koltukIndex] = Object.assign({}, koltuk, { bahis: oncekiBahis + miktar, katilimDurumu: 'hazir' });
-      return Object.assign({}, mevcut, { koltuklar, guncellemeTs: Date.now() });
+      // Tek kişilik masada 30sn'lik tam bahis penceresini bekletmeye gerek
+      // yok -- SADECE kısaltır (uzatmaz), böylece art arda tıklamak süreyi
+      // geri büyütmez, ikinci bir oyuncu otururken zaten bu dala hiç girilmez.
+      const soloMu = oturanKoltukSayisi(mevcut) === 1;
+      const yeniBahisSuresiBitis = soloMu
+        ? Math.min(mevcut.bahisSuresiBitis || Infinity, Date.now() + BAHIS_SURESI_SOLO_MS)
+        : mevcut.bahisSuresiBitis;
+      return Object.assign({}, mevcut, { koltuklar, bahisSuresiBitis: yeniBahisSuresiBitis, guncellemeTs: Date.now() });
     }, baglam).then((res) => {
       if (res.committed) { return; }
       const iadeId = islemId + ':iade';
@@ -651,45 +663,97 @@ function bahisSuresiDolunca() {
   });
 }
 
-function krupiyerSirasiGeldi() {
+// Krupiyer eli artık TEK bir dev transaction'la değil, gerçekçi bir masa
+// hissi için kart başına AYRI bir Firebase yazımıyla ilerliyor (Codex'in
+// önerisi): önce kapalı kart açılır, sonra (gerekiyorsa) tek tek kart
+// çekilir, en son kart göründükten KRUPIYER_ADIM_MS sonra sonuç yazılır.
+// "1 anda tüm kartlar+kazandın yazısı geliyor, gerçekçi değil" bildirimiyle
+// aynı kök neden: eski kod krupiyerElOyna()'yı TEK transaction içinde 17'ye
+// kadar döndürüp sonucu da AYNI yazımda basıyordu.
+const KRUPIYER_ADIM_MS = 1100;
+
+function krupiyerEliBattiMi(mevcut) {
+  return Object.keys(mevcut.koltuklar || {}).every((i) => {
+    const k = mevcut.koltuklar[i];
+    if (!k || !k.eller) { return true; }
+    return k.eller.every((el) => el.durum === 'batti');
+  });
+}
+
+function krupiyerSonuclandir(mevcut) {
+  const desteTukendiMi = mevcut.krupiyerDesteTukendiMi === true;
+  const krupiyerDegerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
+  const koltuklar = Object.assign({}, mevcut.koltuklar);
+  Object.keys(koltuklar).forEach((i) => {
+    const k = koltuklar[i];
+    if (!k || !k.eller) { return; }
+    const yeniEller = k.eller.map((el) => {
+      // Deste olağanüstü biçimde tükenirse eldeki bahisler eksiksiz iade
+      // edilir; eksik/undefined kart üzerinden sonuç üretmekten güvenlidir.
+      if (desteTukendiMi) { return Object.assign({}, el, { sonuc: 'berabere', odeme: el.bahisMiktari }); }
+      if (el.durum === 'batti') { return Object.assign({}, el, { sonuc: 'kaybetti', odeme: 0 }); }
+      const degerlendirme = elDegerlendir(el.kartlar);
+      const sonuc = elSonucuHesapla(degerlendirme, krupiyerDegerlendirme, el.bahisMiktari, { splittenGeldiMi: el.splittenGeldiMi === true });
+      return Object.assign({}, el, { sonuc: sonuc.sonuc, odeme: sonuc.odeme });
+    });
+    koltuklar[i] = Object.assign({}, k, { eller: yeniEller });
+  });
+  mevcut.koltuklar = koltuklar;
+  mevcut.durum = 'el_sonucu';
+  mevcut.krupiyerTamamMi = null;
+  mevcut.krupiyerAdimBitis = null;
+  mevcut.krupiyerDesteTukendiMi = null;
+  mevcut.guncellemeTs = Date.now();
+  odemeGecmisiniEkle(mevcut, koltuklar);
+  return mevcut;
+}
+
+function krupiyerAdimiOynat() {
   return masaIslemi((mevcut) => {
-    if (!mevcut || mevcut.durum !== 'kurpiyer_sirasi' || (mevcut.kurpiyerEli && mevcut.kurpiyerEli.acikMi)) { return; }
-    const herkesBattiMi = Object.keys(mevcut.koltuklar || {}).every((i) => {
-      const k = mevcut.koltuklar[i];
-      if (!k || !k.eller) { return true; }
-      return k.eller.every((el) => el.durum === 'batti');
-    });
-    let kartlar = mevcut.kurpiyerEli.kartlar;
-    let desteIndex = mevcut.desteIndex;
-    let desteTukendiMi = false;
-    if (!herkesBattiMi) {
-      const sonuc = krupiyerElOyna(kartlar, mevcut.deste, desteIndex);
-      kartlar = sonuc.kartlar;
-      desteIndex = sonuc.yeniDesteIndex;
-      desteTukendiMi = sonuc.desteTukendiMi;
+    if (!mevcut || mevcut.durum !== 'kurpiyer_sirasi') { return; }
+    if (mevcut.krupiyerAdimBitis && Date.now() < mevcut.krupiyerAdimBitis) { return; }
+
+    // Son kart gösterildikten bir adım sonra asıl sonuç (kazandın/kaybettin) yazılır.
+    if (mevcut.krupiyerTamamMi) { return krupiyerSonuclandir(mevcut); }
+
+    // 1) Kapalı kartı aç (henüz yeni kart çekilmez).
+    if (!mevcut.kurpiyerEli.acikMi) {
+      mevcut.kurpiyerEli = Object.assign({}, mevcut.kurpiyerEli, { acikMi: true });
+      const degerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
+      mevcut.krupiyerTamamMi = krupiyerEliBattiMi(mevcut) || degerlendirme.toplam >= 17;
+      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
+      mevcut.guncellemeTs = Date.now();
+      return mevcut;
     }
-    const krupiyerDegerlendirme = elDegerlendir(kartlar);
-    const koltuklar = Object.assign({}, mevcut.koltuklar);
-    Object.keys(koltuklar).forEach((i) => {
-      const k = koltuklar[i];
-      if (!k || !k.eller) { return; }
-      const yeniEller = k.eller.map((el) => {
-        // Deste olağanüstü biçimde tükenirse eldeki bahisler eksiksiz iade
-        // edilir; eksik/undefined kart üzerinden sonuç üretmekten güvenlidir.
-        if (desteTukendiMi) { return Object.assign({}, el, { sonuc: 'berabere', odeme: el.bahisMiktari }); }
-        if (el.durum === 'batti') { return Object.assign({}, el, { sonuc: 'kaybetti', odeme: 0 }); }
-        const degerlendirme = elDegerlendir(el.kartlar);
-        const sonuc = elSonucuHesapla(degerlendirme, krupiyerDegerlendirme, el.bahisMiktari, { splittenGeldiMi: el.splittenGeldiMi === true });
-        return Object.assign({}, el, { sonuc: sonuc.sonuc, odeme: sonuc.odeme });
-      });
-      koltuklar[i] = Object.assign({}, k, { eller: yeniEller });
-    });
-    mevcut.kurpiyerEli = { kartlar, acikMi: true };
-    mevcut.desteIndex = desteIndex;
-    mevcut.koltuklar = koltuklar;
-    mevcut.durum = 'el_sonucu';
+
+    // 2) Herkes battıysa krupiyer daha fazla kart çekmez, sadece bekleyip sonuçlanır.
+    if (krupiyerEliBattiMi(mevcut)) {
+      mevcut.krupiyerTamamMi = true;
+      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
+      return mevcut;
+    }
+
+    const mevcutDegerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
+    if (mevcutDegerlendirme.toplam >= 17) {
+      mevcut.krupiyerTamamMi = true;
+      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
+      return mevcut;
+    }
+
+    // 3) Tek kart çek.
+    const yeniKart = mevcut.deste[mevcut.desteIndex];
+    if (!yeniKart) {
+      mevcut.krupiyerDesteTukendiMi = true;
+      mevcut.krupiyerTamamMi = true;
+      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
+      return mevcut;
+    }
+    mevcut.kurpiyerEli = Object.assign({}, mevcut.kurpiyerEli, { kartlar: mevcut.kurpiyerEli.kartlar.concat([yeniKart]) });
+    mevcut.desteIndex = mevcut.desteIndex + 1;
+    const yeniDegerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
+    mevcut.krupiyerTamamMi = yeniDegerlendirme.toplam >= 17;
+    mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
     mevcut.guncellemeTs = Date.now();
-    odemeGecmisiniEkle(mevcut, koltuklar);
     return mevcut;
   });
 }
@@ -713,7 +777,7 @@ function belkiSonrakiFazaGec(table) {
   if (!table || !canPlay || !modeReady || isReadOnly() || pendingTableOperation || playerActionPending || tableError || activeDistribution) { return; }
   const terkEdilmisMi = Boolean(table.guncellemeTs) && Date.now() - table.guncellemeTs > TERK_EDILME_MS;
   if (table.durum !== 'bahis_bekleniyor' && benimKoltukIndex(table) === null && !terkEdilmisMi) { return; }
-  if (table.durum === 'kurpiyer_sirasi' && (!table.kurpiyerEli || !table.kurpiyerEli.acikMi)) { krupiyerSirasiGeldi(); return; }
+  if (table.durum === 'kurpiyer_sirasi' && (!table.krupiyerAdimBitis || Date.now() >= table.krupiyerAdimBitis)) { krupiyerAdimiOynat(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
   if (table.durum === 'oyunculuk' && ((eldekiOyuncuSayisi(table) > 1 && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) || terkEdilmisMi)) { aksiyonSuresiDolunca(); }
@@ -1280,19 +1344,43 @@ window.addEventListener('message', (e) => {
     if (e.data.type === 'bjKal') { oyuncuIslemi(() => kal(benim, elIndex)); return; }
     if (e.data.type === 'bjKatla') { oyuncuIslemi(() => katla(benim, elIndex)); return; }
     if (e.data.type === 'bjBol') { oyuncuIslemi(() => bol(benim, elIndex)); return; }
+    return;
+  }
+  // Kart skinleri -- site'daki openSkinModal()'ın "Kaydet" düğmesiyle AYNI
+  // yazma yolu (database.ref(skinYolu(uid)).set(...)), sadece tetikleyici
+  // Godot'taki ⚙ paneli. Godot bunu artık yerel önizleme olarak değil,
+  // GERÇEKTEN kaydediyor (kullanıcı isteği: "sonra firebase'e bağlı olanı
+  // yaparız" dediğimiz kısım).
+  if (e.data.type === 'bjSkinKaydet') {
+    if (!currentUserUid) { return; }
+    const yeni = normalleSkin({ desteStili: e.data.desteStili, yuzKartiTemasi: e.data.yuzKartiTemasi, desteArkasi: e.data.desteArkasi });
+    database.ref(skinYolu(currentUserUid)).set(yeni).then(() => {
+      skinCache[currentUserUid] = yeni;
+      mySkin = yeni;
+      bjGodotIlet();
+    }).catch((err) => console.error('Blackjack (Godot) skin kaydedilemedi:', err));
+    return;
   }
 });
 function bjKoltuklarAvatarliKopya(koltuklar) {
   // Godot'a gönderilen tabloya, koltuk sahibinin staffProfiles/{uid}'deki
-  // profil fotoğrafını (data:/https: -- bkz. isSafeAvatarUrl) ekliyoruz --
-  // masa verisinin kendisinde avatar YOK, ayrı bir koleksiyondan geliyor.
+  // profil fotoğrafını (data:/https: -- bkz. isSafeAvatarUrl) VE kendi
+  // seçtiği kart skin'ini ekliyoruz -- masa verisinin kendisinde ikisi de
+  // YOK, ayrı koleksiyonlardan (staffProfiles/, blackjackAyarlari/) geliyor.
+  // Site'daki kartGorselYolu(kart, uid)/desteArkasiYolu(uid) da AYNI mantıkla
+  // her koltuğun kartlarını O KOLTUĞUN SAHİBİNİN skin'iyle çiziyor -- Godot
+  // tarafında da böyle olsun diye her koltuğa kendi skin'i iğneleniyor
+  // (skinCache[uid] henüz gelmediyse loadSkinFor ile tetiklenir).
   if (!koltuklar) { return koltuklar; }
   const kopya = {};
   Object.keys(koltuklar).forEach((i) => {
     const koltuk = koltuklar[i];
-    const profile = koltuk && koltuk.uid ? findStaffProfile(koltuk.uid, koltuk.isim) : null;
+    if (!koltuk || !koltuk.uid) { kopya[i] = koltuk; return; }
+    const profile = findStaffProfile(koltuk.uid, koltuk.isim);
     const avatarUrl = profile && isSafeAvatarUrl(profile.avatarUrl) ? profile.avatarUrl : null;
-    kopya[i] = avatarUrl ? Object.assign({}, koltuk, { avatarUrl }) : koltuk;
+    if (!skinCache[koltuk.uid]) { loadSkinFor(koltuk.uid); }
+    const skin = skinCache[koltuk.uid] || null;
+    kopya[i] = Object.assign({}, koltuk, avatarUrl ? { avatarUrl } : {}, skin ? { skin } : {});
   });
   return kopya;
 }
@@ -1310,7 +1398,7 @@ function bjGodotIlet() {
     desteUzunluk: deste ? deste.length : TOPLAM_KART_SAYISI
   });
   bjGodotFrame.contentWindow.postMessage({ type: 'bjKimlik', uid: currentUserUid }, location.origin);
-  bjGodotFrame.contentWindow.postMessage({ type: 'bjMasaGuncelle', table: gonderilecekMasa, benimBakiye: myChipBalance }, location.origin);
+  bjGodotFrame.contentWindow.postMessage({ type: 'bjMasaGuncelle', table: gonderilecekMasa, benimBakiye: myChipBalance, benimSkin: mySkin }, location.origin);
 }
 
 function attachTableListener(force = false) {
@@ -1402,7 +1490,7 @@ export function initBlackjack() {
       renderDbModeBanner();
       subscribeMyBalance();
       attachTableListener();
-      loadSkinFor(currentUserUid).then(() => { if (currentTable) { renderMasa(currentTable); islemBakiyeYansit(currentTable); } });
+      loadSkinFor(currentUserUid).then(() => { if (currentTable) { renderMasa(currentTable); islemBakiyeYansit(currentTable); bjGodotIlet(); } });
     }).catch((err) => { canPlay = false; masaHatasi(err); });
   });
 

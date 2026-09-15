@@ -128,10 +128,16 @@ function serve() {
 	// 5) Eğer aksiyon varsa "Kal" ile eli bitir, krupiyer sırasına geçmeli.
 	if (aksiyonlarVar > 0) {
 		await page.click('[data-bj-kal]');
-		await page.waitForTimeout(1500);
 	}
-	await page.waitForTimeout(2000);
-	const durumMetni = await page.evaluate(() => document.body.innerHTML.includes('Battı') || document.querySelectorAll('.bj-el-sonuc').length > 0);
+	// Krupiyer eli artık kart başına ayrı, gerçekçi bir gecikmeyle (KRUPIYER_ADIM_MS
+	// + phaseWatchdog'un ~1sn'lik yoklama payı) ilerliyor -- kaç kart çekeceği
+	// deste sırasına bağlı olduğundan sabit bir bekleme yerine sonuç görünene
+	// kadar (ya da makul bir üst sınıra kadar) yokla.
+	let durumMetni = false;
+	for (let i = 0; i < 20 && !durumMetni; i++) {
+		await page.waitForTimeout(1000);
+		durumMetni = await page.evaluate(() => document.body.innerHTML.includes('Battı') || document.querySelectorAll('.bj-el-sonuc').length > 0);
+	}
 	results.elSonucuGoruldu = durumMetni;
 
 	// 6) Bahis (200) zaten rezervde; sonuç toplam ödemeyi yalnızca bir kez
