@@ -24,11 +24,23 @@
 
   // ── Kendi boyutlandırmamız (canvasResizePolicy: 0 = "Hiçbiri") -- bkz.
   // Pişti'nin frame.html'inde bulunan Windows DPI ölçekleme hatası notu
-  // (godotengine/godot#93106). Canvas'ın GERÇEK width/height ATTRIBUTE'larını
-  // (DPI çarpanı OLMADAN) kendimiz ayarlıyoruz.
+  // (godotengine/godot#93106) -- O hata Godot'un KENDİ "Adaptive"/"Project"
+  // resize politikalarının DPI çarpanını tarayıcınınkinin üstüne bindirip
+  // ÇİFT ölçeklemesiyle ilgili; policy 0'da Godot kendi resize kodunu HİÇ
+  // çalıştırmıyor, o yüzden BURADA DPR çarpanını biz uygulamak güvenli.
+  // Masa.gd tasarım boyutunu (tasarim_boyutu) content_scale_size ile sabit
+  // tutup gerçek pencereye STRETCH ettiği için (Pişti'nin aksine -- o ham
+  // viewport boyutuna göre elle diziyor, DPR eklemek onun matematiğini
+  // bozar) DPR'ı yalnızca burada ekliyoruz: canvas'ın backing-store
+  // çözünürlüğü CSS boyutundan küçük kalırsa retina telefonlarda oyun
+  // bulanık/piksel piksel görünüyordu (kullanıcı bildirimi). CSS boyutu
+  // (#canvas{width:100%;height:100%}) değişmiyor, sadece iç çözünürlük
+  // artıyor. 2 ile sınırlandırıyoruz ki 3x/4x telefonlarda GPU/bellek
+  // yükü aşırıya kaçmasın.
   function boyutlandir() {
-    var w = Math.max(1, Math.round(document.body.clientWidth));
-    var h = Math.max(1, Math.round(document.body.clientHeight));
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, Math.round(document.body.clientWidth * dpr));
+    var h = Math.max(1, Math.round(document.body.clientHeight * dpr));
     if (canvasEl.width !== w || canvasEl.height !== h) {
       canvasEl.width = w;
       canvasEl.height = h;
