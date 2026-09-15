@@ -63,7 +63,7 @@
     new ResizeObserver(boyutlandir).observe(document.body);
   }
 
-  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4264300, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4266028, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
   var engine = new Engine(GODOT_CONFIG);
   var eksikler = Engine.getMissingFeatures({ threads: false });
   if (eksikler.length !== 0) {
@@ -105,6 +105,7 @@
   window.bjKal = function () { parent.postMessage({ type: 'bjKal' }, location.origin); };
   window.bjKatla = function () { parent.postMessage({ type: 'bjKatla' }, location.origin); };
   window.bjBol = function () { parent.postMessage({ type: 'bjBol' }, location.origin); };
+  window.bjAnaSayfayaDon = function () { parent.postMessage({ type: 'bjAnaSayfayaDon' }, location.origin); };
 }());
 </script>
 </body>

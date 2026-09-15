@@ -1324,6 +1324,22 @@ window.addEventListener('message', (e) => {
   if (e.data.type === 'bjHazir') { bjGodotHazirMi = true; bjGodotIlet(); return; }
   if (e.data.type === 'bjOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
   if (e.data.type === 'bjKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'bjAnaSayfayaDon') {
+    // kalk() yalnızca 'bahis_bekleniyor' fazında koltuğu gerçekten boşaltır
+    // (el ortasında güvenli değildir -- masaIslemi zaten bunu reddediyor);
+    // el ortasındaysa oturum TERK_EDILME_MS sonra zaten otomatik iade edilir
+    // (aksiyonSuresiDolunca), o yüzden yönlendirmeyi kalk() sonucundan
+    // BAĞIMSIZ, her durumda yapıyoruz -- kullanıcı isteği: basınca hem
+    // masadan kalkmayı DENE hem de anasayfaya dön.
+    const benimKoltuk = benimKoltukIndex(currentTable);
+    const donusYolu = () => { window.location.href = '/index.html'; };
+    if (benimKoltuk !== null) {
+      Promise.resolve(kalk(benimKoltuk)).then(donusYolu, donusYolu);
+    } else {
+      donusYolu();
+    }
+    return;
+  }
   if (e.data.type === 'bjBahis') { oyuncuIslemi(() => bahisYap(Number(e.data.koltukIndex), Number(e.data.miktar))); return; }
   if (e.data.type === 'bjBahisIade') { oyuncuIslemi(() => bahsiGeriAl(Number(e.data.koltukIndex))); return; }
   if (e.data.type === 'bjKartCek' || e.data.type === 'bjKal' || e.data.type === 'bjKatla' || e.data.type === 'bjBol') {
