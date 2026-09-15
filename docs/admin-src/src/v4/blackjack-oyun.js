@@ -670,6 +670,18 @@ function bahisSuresiDolunca() {
 // "1 anda tüm kartlar+kazandın yazısı geliyor, gerçekçi değil" bildirimiyle
 // aynı kök neden: eski kod krupiyerElOyna()'yı TEK transaction içinde 17'ye
 // kadar döndürüp sonucu da AYNI yazımda basıyordu.
+//
+// ÖNEMLİ: Bu adımlama YENİ bir Firebase alanı EKLEMEDEN yapılıyor -- ilk
+// denemede krupiyerAdimBitis/krupiyerTamamMi/krupiyerDesteTukendiMi diye üç
+// yeni alan eklemiştim, masa şemasındaki ".validate"/"$other":false kuralı
+// (yerel-notlar/firebase-database-rules.json) tanımsız her alanı reddediyor
+// -- bu da transaction'ı sürekli reddedip TÜM masayı kilitledi (kullanıcı
+// bildirimi: "krupiyer ilk kartları dağıttıktan sonra oyun donuyor").
+// Bunun yerine 'oyunculuk' fazında zaten kullanılan, kurpiyer_sirasi'nda
+// BOŞTA duran `aksiyonSuresiBitis` alanı zamanlayıcı olarak yeniden
+// kullanılıyor; "eldeki durum tamamlandı mı" bilgisi de saklanmıyor, HER
+// adımda kartlardan yeniden hesaplanıyor -- kurallara yeni alan eklemeye
+// hiç gerek kalmıyor.
 const KRUPIYER_ADIM_MS = 1100;
 
 function krupiyerEliBattiMi(mevcut) {
@@ -680,8 +692,7 @@ function krupiyerEliBattiMi(mevcut) {
   });
 }
 
-function krupiyerSonuclandir(mevcut) {
-  const desteTukendiMi = mevcut.krupiyerDesteTukendiMi === true;
+function krupiyerSonuclandir(mevcut, desteTukendiMi) {
   const krupiyerDegerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
   const koltuklar = Object.assign({}, mevcut.koltuklar);
   Object.keys(koltuklar).forEach((i) => {
@@ -700,9 +711,7 @@ function krupiyerSonuclandir(mevcut) {
   });
   mevcut.koltuklar = koltuklar;
   mevcut.durum = 'el_sonucu';
-  mevcut.krupiyerTamamMi = null;
-  mevcut.krupiyerAdimBitis = null;
-  mevcut.krupiyerDesteTukendiMi = null;
+  mevcut.aksiyonSuresiBitis = null;
   mevcut.guncellemeTs = Date.now();
   odemeGecmisiniEkle(mevcut, koltuklar);
   return mevcut;
@@ -711,48 +720,29 @@ function krupiyerSonuclandir(mevcut) {
 function krupiyerAdimiOynat() {
   return masaIslemi((mevcut) => {
     if (!mevcut || mevcut.durum !== 'kurpiyer_sirasi') { return; }
-    if (mevcut.krupiyerAdimBitis && Date.now() < mevcut.krupiyerAdimBitis) { return; }
+    if (mevcut.aksiyonSuresiBitis && Date.now() < mevcut.aksiyonSuresiBitis) { return; }
 
-    // Son kart gösterildikten bir adım sonra asıl sonuç (kazandın/kaybettin) yazılır.
-    if (mevcut.krupiyerTamamMi) { return krupiyerSonuclandir(mevcut); }
-
-    // 1) Kapalı kartı aç (henüz yeni kart çekilmez).
+    // 1) Kapalı kartı aç (henüz yeni kart çekilmez) -- her zaman ayrı bir adım.
     if (!mevcut.kurpiyerEli.acikMi) {
       mevcut.kurpiyerEli = Object.assign({}, mevcut.kurpiyerEli, { acikMi: true });
-      const degerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
-      mevcut.krupiyerTamamMi = krupiyerEliBattiMi(mevcut) || degerlendirme.toplam >= 17;
-      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
+      mevcut.aksiyonSuresiBitis = Date.now() + KRUPIYER_ADIM_MS;
       mevcut.guncellemeTs = Date.now();
       return mevcut;
     }
 
-    // 2) Herkes battıysa krupiyer daha fazla kart çekmez, sadece bekleyip sonuçlanır.
-    if (krupiyerEliBattiMi(mevcut)) {
-      mevcut.krupiyerTamamMi = true;
-      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
-      return mevcut;
-    }
-
-    const mevcutDegerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
-    if (mevcutDegerlendirme.toplam >= 17) {
-      mevcut.krupiyerTamamMi = true;
-      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
-      return mevcut;
-    }
+    // 2) Kart açıldıktan sonraki her adımda "artık tamam mı" YENİDEN hesaplanır
+    // (saklanmaz). Tamamsa bu adımda hiçbir kart değişmeden -- bir önceki
+    // adımda yazılan son kart/açılış zaten KRUPIYER_ADIM_MS boyunca görünmüş
+    // oluyor -- doğrudan sonuç yazılır.
+    const tamamMi = krupiyerEliBattiMi(mevcut) || elDegerlendir(mevcut.kurpiyerEli.kartlar).toplam >= 17;
+    if (tamamMi) { return krupiyerSonuclandir(mevcut, false); }
 
     // 3) Tek kart çek.
     const yeniKart = mevcut.deste[mevcut.desteIndex];
-    if (!yeniKart) {
-      mevcut.krupiyerDesteTukendiMi = true;
-      mevcut.krupiyerTamamMi = true;
-      mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
-      return mevcut;
-    }
+    if (!yeniKart) { return krupiyerSonuclandir(mevcut, true); }
     mevcut.kurpiyerEli = Object.assign({}, mevcut.kurpiyerEli, { kartlar: mevcut.kurpiyerEli.kartlar.concat([yeniKart]) });
     mevcut.desteIndex = mevcut.desteIndex + 1;
-    const yeniDegerlendirme = elDegerlendir(mevcut.kurpiyerEli.kartlar);
-    mevcut.krupiyerTamamMi = yeniDegerlendirme.toplam >= 17;
-    mevcut.krupiyerAdimBitis = Date.now() + KRUPIYER_ADIM_MS;
+    mevcut.aksiyonSuresiBitis = Date.now() + KRUPIYER_ADIM_MS;
     mevcut.guncellemeTs = Date.now();
     return mevcut;
   });
@@ -777,7 +767,7 @@ function belkiSonrakiFazaGec(table) {
   if (!table || !canPlay || !modeReady || isReadOnly() || pendingTableOperation || playerActionPending || tableError || activeDistribution) { return; }
   const terkEdilmisMi = Boolean(table.guncellemeTs) && Date.now() - table.guncellemeTs > TERK_EDILME_MS;
   if (table.durum !== 'bahis_bekleniyor' && benimKoltukIndex(table) === null && !terkEdilmisMi) { return; }
-  if (table.durum === 'kurpiyer_sirasi' && (!table.krupiyerAdimBitis || Date.now() >= table.krupiyerAdimBitis)) { krupiyerAdimiOynat(); return; }
+  if (table.durum === 'kurpiyer_sirasi' && (!table.aksiyonSuresiBitis || Date.now() >= table.aksiyonSuresiBitis)) { krupiyerAdimiOynat(); return; }
   if (table.durum === 'el_sonucu' && table.guncellemeTs && Date.now() - table.guncellemeTs > EL_SONUCU_BEKLEME_MS) { bahisPenceresiniBaslat(); return; }
   if (table.durum === 'bahis_bekleniyor' && table.bahisSuresiBitis && Date.now() >= table.bahisSuresiBitis) { bahisSuresiDolunca(); return; }
   if (table.durum === 'oyunculuk' && ((eldekiOyuncuSayisi(table) > 1 && table.aksiyonSuresiBitis && Date.now() >= table.aksiyonSuresiBitis) || terkEdilmisMi)) { aksiyonSuresiDolunca(); }

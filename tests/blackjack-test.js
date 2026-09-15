@@ -133,10 +133,14 @@ function serve() {
 	// + phaseWatchdog'un ~1sn'lik yoklama payı) ilerliyor -- kaç kart çekeceği
 	// deste sırasına bağlı olduğundan sabit bir bekleme yerine sonuç görünene
 	// kadar (ya da makul bir üst sınıra kadar) yokla.
+	// NOT: "Battı" metni oyuncunun kendi eli battığı anda (krupiyer sırası
+	// başlamadan ÇOK önce) elin toplam etiketinde görünür -- bu yüzden asıl
+	// sonuç banner'ı olan .bj-el-sonuc'u beklemek gerekiyor, yoksa krupiyer
+	// hâlâ kart çekerken erken çıkılıp aşağıdaki sonuç metni boş okunuyordu.
 	let durumMetni = false;
 	for (let i = 0; i < 20 && !durumMetni; i++) {
 		await page.waitForTimeout(1000);
-		durumMetni = await page.evaluate(() => document.body.innerHTML.includes('Battı') || document.querySelectorAll('.bj-el-sonuc').length > 0);
+		durumMetni = await page.evaluate(() => document.querySelectorAll('.bj-el-sonuc').length > 0);
 	}
 	results.elSonucuGoruldu = durumMetni;
 
