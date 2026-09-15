@@ -10,7 +10,9 @@ export const DESTE_SAYISI = 4;
 export const TEK_DESTE_KART_SAYISI = RUTBELER.length * TAKIMLAR.length; // 52
 export const TOPLAM_KART_SAYISI = DESTE_SAYISI * TEK_DESTE_KART_SAYISI; // 208
 export const MAX_KOLTUK = 5;
-export const BAHIS_SURESI_MS = 6000;
+// Bahis turu, kart karar süresinden ayrıdır: oyuncular masaya girdikten
+// sonra çiplerini seçebilsin diye daha uzun tutulur.
+export const BAHIS_SURESI_MS = 30000;
 export const BASLANGIC_BAKIYESI = 1000;
 // Masadaki bahisler ve bakiyeler HER ZAMAN tam sayı çiplerden oluşmalı --
 // kullanıcı bildirimi: "0,5 li çipler geliyor ... sayı hep tam sayı olmalı".

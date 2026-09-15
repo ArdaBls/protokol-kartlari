@@ -254,7 +254,7 @@ function oyunuBaslat() {
     // (kullanıcı isteği: her el sonrası tekrar "hazır mısın" sorulsun) gelen
     // 'oyuncu_bekleniyor' ise mevcut.dagitici zaten BİR SONRAKİ dağıtıcıya
     // döndürülmüş durumda (bkz. elSonunuIsle) -- rotasyon burada BOZULMASIN.
-    const dagitici = mevcut.dagitici != null && oturanIndeksler.includes(mevcut.dagitici) ? mevcut.dagitici : oturanIndeksler[0];
+    const dagitici = mevcut.dagitici !== null && mevcut.dagitici !== undefined && oturanIndeksler.includes(mevcut.dagitici) ? mevcut.dagitici : oturanIndeksler[0];
     return yeniElBaslatSifirdan(mevcut, oturanIndeksler, dagitici);
   }).then((res) => { if (!res.committed) { showToast('Oyunu başlatmak için en az ' + MIN_OYUNCU + ' oyuncu oturmalı.', { variant: 'error' }); } });
 }

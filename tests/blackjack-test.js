@@ -47,6 +47,16 @@ function serve() {
 	});
 
 	await page.goto('http://localhost:' + PORT + '/oyun-blackjack.html', { waitUntil: 'networkidle' });
+	// DOM masası artık VARSAYILAN olarak gizli (Godot varsayılan oyun deneyimi
+	// oldu, bkz. oyun-blackjack.html) -- bu test hâlâ DOM/masaIslemi kod
+	// yolunun (Godot bozulursa geri dönülecek yedek) doğru çalıştığını
+	// doğruluyor, bu yüzden gizli kutuyu açıp Godot kutusunu kapatıyoruz.
+	await page.evaluate(() => {
+		const domUi = document.querySelector('[data-bj-dom-ui]');
+		if (domUi) { domUi.hidden = false; }
+		const godotSarici = document.getElementById('bj-godot-sarici');
+		if (godotSarici) { godotSarici.hidden = true; }
+	});
 	await page.waitForSelector('[data-bj-otur]', { timeout: 5000 });
 	results.lobiPageErrors = pageErrors.length;
 	results.tamBesKoltukVar = await page.locator('[data-bj-koltuklar] > *').count() === 5;
@@ -93,9 +103,9 @@ function serve() {
 	// kapanması/çoklu sekme yüzünden ücretsiz bahis oluşmaz.
 	results.bahisAnindaRezerveEdildi = bakiyeBahisRezervSonrasi === 800;
 
-	// 3) 6 saniyelik bahis süresini bekle -- otomatik dağıtım tetiklenmeli.
+	// 3) BAHIS_SURESI_MS (30sn) bahis süresini bekle -- otomatik dağıtım tetiklenmeli.
 	// + kademeli dağıtım animasyonu (~7 adım * 300ms ≈ 2.1sn) bitene kadar bekle.
-	await page.waitForTimeout(6500 + 2500);
+	await page.waitForTimeout(30500 + 2500);
 	const kartSayisi = await page.locator('[data-bj-koltuklar] .bj-kart').count();
 	results.dagitimdanSonraKartGorunur = kartSayisi >= 2;
 	const krupiyerKartSayisi = await page.locator('[data-bj-krupiyer] .bj-kart').count();

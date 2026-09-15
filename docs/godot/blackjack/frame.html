@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Blackjack</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0b3d24; overflow: hidden; height: 100%; }
+  #canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #durum { position: fixed; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: #fff; font-family: sans-serif; }
+</style>
+</head>
+<body>
+<canvas id="canvas">Tarayıcınız canvas'ı desteklemiyor.</canvas>
+<div id="durum"></div>
+<script src="index.js"></script>
+<script>
+(function () {
+  // NOT: Bu sayfa BİLEREK site'ın (oyun-blackjack.html) DOM/CSS/CSP'sinden
+  // TAMAMEN İZOLE. Site ile konuşma SADECE postMessage üzerinden -- bkz.
+  // Pişti'nin AYNI izole frame.html'i, birebir aynı mimari.
+  var canvasEl = document.getElementById('canvas');
+  var durumEl = document.getElementById('durum');
+
+  // ── Kendi boyutlandırmamız (canvasResizePolicy: 0 = "Hiçbiri") -- bkz.
+  // Pişti'nin frame.html'inde bulunan Windows DPI ölçekleme hatası notu
+  // (godotengine/godot#93106). Canvas'ın GERÇEK width/height ATTRIBUTE'larını
+  // (DPI çarpanı OLMADAN) kendimiz ayarlıyoruz.
+  function boyutlandir() {
+    var w = Math.max(1, Math.round(document.body.clientWidth));
+    var h = Math.max(1, Math.round(document.body.clientHeight));
+    if (canvasEl.width !== w || canvasEl.height !== h) {
+      canvasEl.width = w;
+      canvasEl.height = h;
+    }
+  }
+  boyutlandir();
+  window.addEventListener('resize', boyutlandir);
+  window.addEventListener('orientationchange', function () { setTimeout(boyutlandir, 50); });
+  if (window.ResizeObserver) {
+    new ResizeObserver(boyutlandir).observe(document.body);
+  }
+
+  var GODOT_CONFIG = { "args": [], "canvasResizePolicy": 0, "executable": "index", "experimentalVK": false, "fileSizes": { "index.pck": 4262732, "index.wasm": 39514754 }, "focusCanvas": true, "gdextensionLibs": [] };
+  var engine = new Engine(GODOT_CONFIG);
+  var eksikler = Engine.getMissingFeatures({ threads: false });
+  if (eksikler.length !== 0) {
+    durumEl.textContent = 'Tarayıcınız bu oyunu desteklemiyor: ' + eksikler.join(', ');
+  } else {
+    durumEl.textContent = 'Yükleniyor…';
+    engine.startGame({
+      'canvas': canvasEl,
+      'onProgress': function (guncel, toplam) {
+        if (guncel > 0 && toplam > 0) { durumEl.textContent = 'Yükleniyor… ' + Math.round((guncel / toplam) * 100) + '%'; }
+      }
+    }).then(function () {
+      durumEl.remove();
+      boyutlandir(); // motor başladıktan sonra bir kez daha -- ilk kare doğru boyutta gelsin
+      if (parent !== window) { parent.postMessage({ type: 'bjHazir' }, location.origin); }
+    }, function (hata) {
+      console.error('Blackjack (Godot) yüklenemedi:', hata);
+      durumEl.textContent = 'Oyun yüklenemedi, sayfayı yenileyin.';
+    });
+  }
+
+  // Parent (blackjack-oyun.js) -> buraya: kimlik + masa güncellemeleri.
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || e.source !== parent || !e.data) { return; }
+    if (e.data.type === 'bjKimlik' && window.bjGodotKimlik) {
+      window.bjGodotKimlik(e.data.uid || '');
+    } else if (e.data.type === 'bjMasaGuncelle' && window.bjGodotMasaGuncelle) {
+      window.bjGodotMasaGuncelle(JSON.stringify(e.data.table), Number(e.data.benimBakiye));
+    }
+  });
+
+  // Godot (Masa.gd _js_pencere.bjXxx(...)) BU window'daki fonksiyonları
+  // çağırıyor -- biz de parent'a postMessage ile iletiyoruz.
+  window.bjOtur = function (koltukIndex) { parent.postMessage({ type: 'bjOtur', koltukIndex: koltukIndex }, location.origin); };
+  window.bjKalk = function (koltukIndex) { parent.postMessage({ type: 'bjKalk', koltukIndex: koltukIndex }, location.origin); };
+  window.bjBahis = function (koltukIndex, miktar) { parent.postMessage({ type: 'bjBahis', koltukIndex: koltukIndex, miktar: miktar }, location.origin); };
+  window.bjBahisIade = function (koltukIndex) { parent.postMessage({ type: 'bjBahisIade', koltukIndex: koltukIndex }, location.origin); };
+  window.bjKartCek = function () { parent.postMessage({ type: 'bjKartCek' }, location.origin); };
+  window.bjKal = function () { parent.postMessage({ type: 'bjKal' }, location.origin); };
+  window.bjKatla = function () { parent.postMessage({ type: 'bjKatla' }, location.origin); };
+  window.bjBol = function () { parent.postMessage({ type: 'bjBol' }, location.origin); };
+}());
+</script>
+</body>
+</html>

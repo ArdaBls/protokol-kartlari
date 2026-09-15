@@ -20,7 +20,7 @@
 import { dbPath, isReadOnly, initDbMode, renderDbModeBanner, onDbModeChange } from './db-mode.js';
 import { showToast } from './toast.js';
 import { showModal } from './modal.js';
-import { subscribeStaffProfiles, renderStaffAvatar } from './staff-profiles.js';
+import { subscribeStaffProfiles, renderStaffAvatar, findStaffProfile, isSafeAvatarUrl } from './staff-profiles.js';
 import {
   MAX_KOLTUK, BAHIS_SURESI_MS, BASLANGIC_BAKIYESI, TOPLAM_KART_SAYISI,
   tazeDesteOlustur, desteyiKaris, elDegerlendir, bolunebilirMi,
@@ -378,6 +378,7 @@ function subscribeMyBalance() {
     if (currentTable && !activeDistribution) {
       renderBahisPaneli(currentTable, benimKoltukIndex(currentTable));
       renderIslemDurumu();
+      bjGodotIlet();
     }
     if (cuzdan.legacyMi) { bootstrapCuzdan(currentUserUid).catch((err) => console.error('Çip bakiyesi dönüştürülemedi:', err)); }
   };
@@ -1249,6 +1250,69 @@ function eventleriBagla() {
   });
 }
 
+// ── Godot köprüsü -- Pişti'deki AYNI mimari (bkz. pisti-oyun.js): Godot ayrı
+// bir iframe'de (/godot/blackjack/frame.html) çalışıyor, sitenin CSS/CSP'siyle
+// çakışmasın diye izole. window.bjXxx doğrudan çağrı YOK -- iframe sınırını
+// postMessage ile aşıyoruz. Gerçek kural/yazma mantığı HEP burada
+// (masaIslemi/transaction) kalır. Kart Çek/Kal/Katla/Böl DOM'daki click
+// handler'la AYNI şekilde kendi koltuğunu/aktif elini burada çözer -- iframe
+// kendi koltuk/el indeksini bilmek zorunda değil.
+let bjGodotFrame = null;
+// Pişti'de bulunan yarış durumuyla AYNI koruma: Godot (38MB) henüz
+// yüklenmemiş/callback'lerini kaydetmemişken postMessage gönderilirse mesaj
+// tamponlanmadan kaybolur -- her iki taraf da hazır olana kadar (Godot
+// 'bjHazir' demiş VE currentTable dolmuş) her ilgili olayda tekrar denenir.
+let bjGodotHazirMi = false;
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !e.data) { return; }
+  if (!bjGodotFrame) { bjGodotFrame = document.getElementById('bj-godot-iframe'); }
+  if (!bjGodotFrame || e.source !== bjGodotFrame.contentWindow) { return; }
+  if (e.data.type === 'bjHazir') { bjGodotHazirMi = true; bjGodotIlet(); return; }
+  if (e.data.type === 'bjOtur') { oyuncuIslemi(() => otur(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'bjKalk') { oyuncuIslemi(() => kalk(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'bjBahis') { oyuncuIslemi(() => bahisYap(Number(e.data.koltukIndex), Number(e.data.miktar))); return; }
+  if (e.data.type === 'bjBahisIade') { oyuncuIslemi(() => bahsiGeriAl(Number(e.data.koltukIndex))); return; }
+  if (e.data.type === 'bjKartCek' || e.data.type === 'bjKal' || e.data.type === 'bjKatla' || e.data.type === 'bjBol') {
+    const benim = benimKoltukIndex(currentTable);
+    if (benim === null || !currentTable) { return; }
+    const elIndex = activeElIndex(currentTable.koltuklar[benim]);
+    if (e.data.type === 'bjKartCek') { oyuncuIslemi(() => kartCek(benim, elIndex)); return; }
+    if (e.data.type === 'bjKal') { oyuncuIslemi(() => kal(benim, elIndex)); return; }
+    if (e.data.type === 'bjKatla') { oyuncuIslemi(() => katla(benim, elIndex)); return; }
+    if (e.data.type === 'bjBol') { oyuncuIslemi(() => bol(benim, elIndex)); return; }
+  }
+});
+function bjKoltuklarAvatarliKopya(koltuklar) {
+  // Godot'a gönderilen tabloya, koltuk sahibinin staffProfiles/{uid}'deki
+  // profil fotoğrafını (data:/https: -- bkz. isSafeAvatarUrl) ekliyoruz --
+  // masa verisinin kendisinde avatar YOK, ayrı bir koleksiyondan geliyor.
+  if (!koltuklar) { return koltuklar; }
+  const kopya = {};
+  Object.keys(koltuklar).forEach((i) => {
+    const koltuk = koltuklar[i];
+    const profile = koltuk && koltuk.uid ? findStaffProfile(koltuk.uid, koltuk.isim) : null;
+    const avatarUrl = profile && isSafeAvatarUrl(profile.avatarUrl) ? profile.avatarUrl : null;
+    kopya[i] = avatarUrl ? Object.assign({}, koltuk, { avatarUrl }) : koltuk;
+  });
+  return kopya;
+}
+function bjGodotIlet() {
+  if (!bjGodotHazirMi) { return; } // Godot henüz yüklenip callback'lerini kaydetmedi
+  if (!bjGodotFrame) { bjGodotFrame = document.getElementById('bj-godot-iframe'); }
+  if (!bjGodotFrame || !bjGodotFrame.contentWindow || !currentTable) { return; }
+  // NOT: table.deste'yi (dağıtılmamış 208 kartlık deste) ASLA postMessage'a
+  // koyma -- Godot render için ona hiç ihtiyaç duymuyor, sadece boşuna yük
+  // (JSON.stringify + iframe sınırı) taşırdı. Kalan kart sayacı için sadece
+  // desteIndex + destenin TOPLAM uzunluğu yeterli.
+  const { deste, ...masaDestesiz } = currentTable;
+  const gonderilecekMasa = Object.assign({}, masaDestesiz, {
+    koltuklar: bjKoltuklarAvatarliKopya(currentTable.koltuklar),
+    desteUzunluk: deste ? deste.length : TOPLAM_KART_SAYISI
+  });
+  bjGodotFrame.contentWindow.postMessage({ type: 'bjKimlik', uid: currentUserUid }, location.origin);
+  bjGodotFrame.contentWindow.postMessage({ type: 'bjMasaGuncelle', table: gonderilecekMasa, benimBakiye: myChipBalance }, location.origin);
+}
+
 function attachTableListener(force = false) {
   if (!modeReady || !canPlay) { return; }
   const yeniYol = dbPath(MASA_YOLU);
@@ -1275,6 +1339,7 @@ function attachTableListener(force = false) {
     renderMasa(table);
     belkiSonrakiFazaGec(table);
     islemBakiyeYansit(table);
+    bjGodotIlet();
   };
   tableRef.on('value', tableListener, masaHatasi);
   // Veri DEĞİŞMESE bile (örn. kimse kart çekmiyor, sadece süre doluyor) zaman

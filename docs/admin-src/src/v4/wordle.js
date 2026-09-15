@@ -288,10 +288,10 @@ function kisiselIstatistikYukle(kutuId) {
       const sayi = dagitim[String(deneme)] || 0;
       const yuzde = Math.max(6, Math.round((sayi / enYuksek) * 100));
       const buguntuMu = s.sonTarih === bugunTarih && s.sonKazandi && tahminler.length === deneme;
-      return `<div class="wordle-dagitim-satir">` +
+      return '<div class="wordle-dagitim-satir">' +
         `<span class="wordle-dagitim-no">${deneme}</span>` +
         `<div class="wordle-dagitim-bar-yuva"><div class="wordle-dagitim-bar${buguntuMu ? ' wordle-dagitim-bar--bugun' : ''}" style="width:${yuzde}%">${sayi}</div></div>` +
-      `</div>`;
+      '</div>';
     }).join('');
     box.innerHTML = `<div class="wordle-dagitim-ozet">Oynanan: ${s.oynanan} · Kazanılan: ${s.kazanilan} · Güncel seri: ${s.seri} 🔥 · En uzun seri: ${s.enUzunSeri}</div>` +
       `<div class="wordle-dagitim">${cubuklar}</div>`;
