@@ -1,52 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Page not found | Protokol</title>
-<link rel="icon" href="/icons/icon-192.png" type="image/png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#1ABB9C" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1a2332" media="(prefers-color-scheme: dark)">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="/icons/icon-180.png">
-<meta name="description" content="OMÜ Protokol Kartları admin paneli.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Page not found">
-<meta property="og:description" content="OMÜ Protokol Kartları admin paneli.">
-<meta property="og:image" content="/icons/icon-512.png">
-<meta property="og:site_name" content="Protokol">
-<meta name="twitter:card" content="summary_large_image">
-<script>(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=t||(d?'dark':'light');document.documentElement.setAttribute('data-theme',theme);var dir=localStorage.getItem('dir');if(dir==='rtl'||dir==='ltr'){document.documentElement.setAttribute('dir',dir);}}catch(e){}})();</script>
-  <script type="module" crossorigin src="/js/toast-C9dk_WzR.js"></script>
-  <script type="module" crossorigin src="/js/db-mode-F_jprkvV.js"></script>
-  <script type="module" crossorigin src="/js/main-v4-BGl9BFB5.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-v4-Ba6gl62N.css">
-</head>
-<body>
-
-<div class="error-page">
-  <div class="error-content">
-    <div class="error-code">404</div>
-    <div class="error-title">Page not found</div>
-    <div class="error-message">
-      The page you're looking for doesn't exist or has been moved.
-      Try heading back to the dashboard or use the search to find what you need.
-    </div>
-    <div class="error-actions">
-      <a href="index.html" class="btn btn-primary">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L2 7v7h12V7L8 2z"/><path d="M6 14V9h4v5"/></svg>
-        Back to dashboard
-      </a>
-      <a href="javascript:history.back()" class="btn btn-outline">← Go back</a>
-    </div>
-  </div>
-</div>
-
-</body>
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0b15" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Protokol" />
+    <script>
+      // Tema ilk boyamadan önce uygulanır: giriş ekranı dahil her sayfa doğru temayla ve beyaz yanıp sönme olmadan açılır.
+      (function () {
+        var theme = 'dark'
+        try {
+          var stored = localStorage.getItem('protokol-theme')
+          if (stored === 'light' || stored === 'dark') theme = stored
+        } catch (e) {}
+        document.documentElement.classList.toggle('dark', theme === 'dark')
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
+    <title>Operasyonlar | Protokol</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/assets/index-BIJ9sD4H.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/jsx-runtime-D3jfb0Ew.js">
+    <link rel="modulepreload" crossorigin href="/assets/compose-ysKqgY0-.js">
+    <link rel="modulepreload" crossorigin href="/assets/useHover-C68jF08b.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-dom-BLfE8rC8.js">
+    <link rel="modulepreload" crossorigin href="/assets/dbMode-Ct_khFaT.js">
+    <link rel="stylesheet" crossorigin href="/assets/index--H365g0g.css">
+  <link rel="manifest" href="/manifest.webmanifest"></head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
