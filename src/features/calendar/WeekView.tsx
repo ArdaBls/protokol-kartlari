@@ -43,6 +43,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
   const gridRef = useRef<HTMLDivElement>(null)
   const barRowRef = useRef<HTMLDivElement>(null)
   const didDragRef = useRef(false)
+  const suppressClickUntilRef = useRef(0)
 
   const [movePreview, setMovePreview] = useState<MovePreview | null>(null)
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null)
@@ -78,7 +79,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
   )
 
   const handleGridClick = (event: React.MouseEvent<HTMLDivElement>, dayIdx: number) => {
-    if (didDragRef.current) { didDragRef.current = false; return }
+    if (didDragRef.current || Date.now() < suppressClickUntilRef.current) { didDragRef.current = false; return }
     if (!canWrite || (event.target as HTMLElement).closest('button')) return
     // Web ve mobilde tek tıklama doğrudan modal açmamalı. Önce seçilen saati
     // 1 saatlik geçici alan olarak göster; kullanıcı onaylarsa formu aç.
@@ -97,7 +98,9 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
     const startClientY = event.clientY
     const startRect = column.getBoundingClientRect()
     const startMin = snapTo(clampMin(((startClientY - startRect.top) / HOUR_H) * 60), CREATE_SNAP)
+    const touchLike = event.pointerType !== 'mouse'
     let dragging = false
+    let cancelled = false
     let longPressTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
       // Basılı tutma kopyalama/metin seçimi olarak yorumlanmasın; bu jest doğrudan
       // 1 saatlik yeni etkinlik ghost'u başlatır.
@@ -106,6 +109,9 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
       const longPressStart = snapTo(startMin, 30)
       setCreatePreview({ dayIdx, startMin: longPressStart, endMin: Math.min(24 * 60, longPressStart + 60) })
       longPressTimer = null
+      if (touchLike && !column.hasPointerCapture(event.pointerId)) {
+        try { column.setPointerCapture(event.pointerId) } catch { /* Dokunma iptal edilmiş olabilir. */ }
+      }
     }, 350)
 
     const clearLongPress = () => {
@@ -115,10 +121,37 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
       }
     }
 
-    column.setPointerCapture(event.pointerId)
+    // Mouse sürüklemesinde pointer'ı sütunda tut. Dokunmatik cihazda pointer'ı
+    // baştan yakalamamak, dikey sayfa/grid kaydırmasının tarayıcıya kalmasını sağlar.
+    if (!touchLike) column.setPointerCapture(event.pointerId)
+
+    const removeListeners = () => {
+      column.removeEventListener('pointermove', onMove)
+      column.removeEventListener('pointerup', onUp)
+      column.removeEventListener('pointercancel', onCancel)
+    }
+
+    const releasePointer = () => {
+      if (column.hasPointerCapture(event.pointerId)) column.releasePointerCapture(event.pointerId)
+    }
+
+    const cancelForScroll = () => {
+      cancelled = true
+      clearLongPress()
+      dragging = false
+      didDragRef.current = true
+      suppressClickUntilRef.current = Date.now() + 500
+      removeListeners()
+      releasePointer()
+    }
 
     const onMove = (moveEvent: PointerEvent) => {
       const dy = moveEvent.clientY - startClientY
+      const dx = moveEvent.clientX - event.clientX
+      if (touchLike && Math.abs(dy) >= MOVE_THRESHOLD && Math.abs(dy) > Math.abs(dx)) {
+        cancelForScroll()
+        return
+      }
       if (!dragging && Math.abs(dy) < MOVE_THRESHOLD) return
       clearLongPress()
       dragging = true
@@ -131,10 +164,9 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
     }
     const onUp = () => {
       clearLongPress()
-      column.removeEventListener('pointermove', onMove)
-      column.removeEventListener('pointerup', onUp)
-      column.removeEventListener('pointercancel', onCancel)
-      if (dragging) {
+      removeListeners()
+      releasePointer()
+      if (!cancelled && dragging) {
         setCreatePreview((current) => {
           if (!current) return null
           // Sürükleyerek oluşturma da tıklama ile aynı güvenli onay adımından geçer.
@@ -144,13 +176,59 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
     }
     const onCancel = () => {
       clearLongPress()
-      column.removeEventListener('pointermove', onMove)
-      column.removeEventListener('pointerup', onUp)
-      column.removeEventListener('pointercancel', onCancel)
+      cancelled = true
+      removeListeners()
+      releasePointer()
     }
     column.addEventListener('pointermove', onMove)
     column.addEventListener('pointerup', onUp)
     column.addEventListener('pointercancel', onCancel)
+  }
+
+  // --- Yeni etkinlik ghost'unun başlangıç/bitiş saatini ayarlama ---
+  const beginCreateResize = (event: React.PointerEvent<HTMLElement>, edge: 'start' | 'end') => {
+    if (!createPreview) return
+    event.preventDefault()
+    event.stopPropagation()
+    const target = event.currentTarget
+    const column = target.closest('[data-cal-column]') as HTMLElement | null
+    if (!column) return
+    const initial = createPreview
+    const startClientY = event.clientY
+    let dragging = false
+    target.setPointerCapture(event.pointerId)
+
+    const toMinute = (clientY: number) => {
+      const rect = column.getBoundingClientRect()
+      return Math.max(0, Math.min(24 * 60, snapTo(((clientY - rect.top) / HOUR_H) * 60, RESIZE_SNAP)))
+    }
+    const onMove = (moveEvent: PointerEvent) => {
+      const dy = moveEvent.clientY - startClientY
+      if (!dragging && Math.abs(dy) < MOVE_THRESHOLD) return
+      dragging = true
+      didDragRef.current = true
+      const currentMin = toMinute(moveEvent.clientY)
+      if (edge === 'start') {
+        setCreatePreview({ dayIdx: initial.dayIdx, startMin: Math.min(currentMin, initial.endMin - RESIZE_SNAP), endMin: initial.endMin })
+      } else {
+        setCreatePreview({ dayIdx: initial.dayIdx, startMin: initial.startMin, endMin: Math.max(initial.startMin + RESIZE_SNAP, currentMin) })
+      }
+    }
+    const onUp = () => {
+      target.removeEventListener('pointermove', onMove)
+      target.removeEventListener('pointerup', onUp)
+      target.removeEventListener('pointercancel', onCancel)
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
+    }
+    const onCancel = () => {
+      target.removeEventListener('pointermove', onMove)
+      target.removeEventListener('pointerup', onUp)
+      target.removeEventListener('pointercancel', onCancel)
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
+    }
+    target.addEventListener('pointermove', onMove)
+    target.addEventListener('pointerup', onUp)
+    target.addEventListener('pointercancel', onCancel)
   }
 
   // --- Etkinliği sürükleyerek taşıma (gün/saat değiştirme) ---
@@ -368,9 +446,24 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
               {createPreview && createPreview.dayIdx === dayIdx && (
                 <div
                   style={{ top: (createPreview.startMin / 60) * HOUR_H, height: Math.max(18, ((createPreview.endMin - createPreview.startMin) / 60) * HOUR_H) }}
-                  className="pointer-events-none absolute inset-x-0.5 z-10 rounded-md border-2 border-dashed border-accent bg-accent-soft/70 px-1.5 py-0.5 text-[11px] font-medium text-accent"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  className="pointer-events-auto absolute inset-x-0.5 z-10 rounded-md border-2 border-dashed border-accent bg-accent-soft/70 px-1.5 py-0.5 text-[11px] font-medium text-accent"
                 >
+                  <span
+                    onPointerDown={(event) => beginCreateResize(event, 'start')}
+                    className="absolute inset-x-0 top-0 z-20 h-3 cursor-ns-resize"
+                    aria-label="Ghost başlangıç saatini ayarla"
+                  >
+                    <span className="pointer-events-none absolute inset-x-2 top-0.5 h-0.5 rounded-full bg-accent" />
+                  </span>
                   {minToHm(createPreview.startMin)}–{minToHm(createPreview.endMin)}
+                  <span
+                    onPointerDown={(event) => beginCreateResize(event, 'end')}
+                    className="absolute inset-x-0 bottom-0 z-20 h-3 cursor-ns-resize"
+                    aria-label="Ghost bitiş saatini ayarla"
+                  >
+                    <span className="pointer-events-none absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-accent" />
+                  </span>
                 </div>
               )}
               {movePreview && movePreview.dayIdx === dayIdx && (

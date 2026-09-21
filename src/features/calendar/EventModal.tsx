@@ -248,7 +248,7 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
           )}
           <fieldset disabled={readOnly || isLocked} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <FormSection title="Temel Bilgiler" icon={Info} className="lg:col-span-2">
-              <TextInputField label="Etkinlik Adı" value={ad} onChange={setAd} isRequired autoFocus />
+              <TextInputField label="Etkinlik Adı" value={ad} onChange={setAd} isRequired />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <SelectField label="Tür" value={tur} onChange={setTur} options={EVENT_TYPES.map((t) => ({ value: t.key, label: t.ad }))} />
                 <SelectField label="Durum" value={durum} onChange={setDurum} options={EVENT_STATUS.map((s) => ({ value: s.key, label: s.ad }))} />
@@ -328,13 +328,13 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
             <NewsPanel attendees={attendees} defaultLocation={yer} defaultTitle={ad} onClose={() => setShowNewsPanel(false)} />
           )}
         </ModalScrollBody>
-        <Modal.Footer className="flex-wrap justify-between gap-2">
-          <div className="flex gap-2">
-            {id && writer.canWrite && (
+        <Modal.Footer className="flex-col items-stretch gap-2">
+          {id && writer.canWrite && (
+            <div className="flex">
               <Button type="button" variant="ghost" className="text-danger" onPress={() => setIsConfirmingDelete(true)}>Sil</Button>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
+            </div>
+          )}
+          <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="tertiary" slot="close">Vazgeç</Button>
             {writer.canWrite && <Button type="button" variant="secondary" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
             {writer.canWrite && <Button type="submit" variant="primary" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}

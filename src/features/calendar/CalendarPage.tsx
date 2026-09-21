@@ -132,30 +132,34 @@ export function CalendarPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-separator bg-surface p-2">
-        <Button isIconOnly size="sm" variant="ghost" aria-label="Önceki" onPress={() => shift(-1)}>
-          <ChevronLeft size={16} />
-        </Button>
-        <Button isIconOnly size="sm" variant="ghost" aria-label="Sonraki" onPress={() => shift(1)}>
-          <ChevronRight size={16} />
-        </Button>
-        <Button size="sm" variant="ghost" onPress={goToday}>Bugün</Button>
-        <strong className="px-1 text-sm">{monthLabel}</strong>
-        <div className="ml-auto flex gap-1 rounded-xl bg-default p-1">
-          {VIEW_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setView(tab.key)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${view === tab.key ? 'bg-surface shadow-[var(--field-shadow)]' : 'text-muted hover:text-foreground'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="flex flex-col gap-2 rounded-2xl border border-separator bg-surface p-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button isIconOnly size="sm" variant="ghost" aria-label="Önceki" onPress={() => shift(-1)}>
+            <ChevronLeft size={16} />
+          </Button>
+          <Button isIconOnly size="sm" variant="ghost" aria-label="Sonraki" onPress={() => shift(1)}>
+            <ChevronRight size={16} />
+          </Button>
+          <Button size="sm" variant="ghost" onPress={goToday}>Bugün</Button>
+          <strong className="min-w-0 truncate px-1 text-sm">{monthLabel}</strong>
         </div>
-        {canWrite && (
-          <Button size="sm" variant="primary" onPress={() => openCreate(dateKey(anchor))}>Yeni Etkinlik</Button>
-        )}
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-0.5">
+          <div className="flex shrink-0 gap-1 rounded-xl bg-default p-1">
+            {VIEW_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setView(tab.key)}
+                className={`whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-medium transition-colors sm:px-3 sm:text-xs ${view === tab.key ? 'bg-surface shadow-[var(--field-shadow)]' : 'text-muted hover:text-foreground'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {canWrite && (
+            <Button size="sm" variant="primary" className="shrink-0 sm:ml-auto" onPress={() => openCreate(dateKey(anchor))}>Yeni Etkinlik</Button>
+          )}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-separator bg-surface" onPointerDown={onSwipeDown} onPointerUp={onSwipeUp}>
