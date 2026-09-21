@@ -485,7 +485,10 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                   style={{ top: (movePreview.startMin / 60) * HOUR_H, height: Math.max(18, (movePreview.durationMin / 60) * HOUR_H) }}
                   className="pointer-events-none absolute inset-x-0.5 z-10 overflow-hidden rounded-md border-2 border-dashed border-accent bg-accent-soft/70 px-1.5 py-0.5 text-[11px] font-medium text-accent"
                 >
-                  <span className="block truncate">{minToHm(movePreview.startMin)}–{minToHm(movePreview.startMin + movePreview.durationMin)} · {movePreview.ev.ad || '(adsız)'}</span>
+                  <span className="block truncate">
+                    {minToHm(movePreview.startMin)}–{minToHm(movePreview.startMin + movePreview.durationMin)}
+                    {movePreview.durationMin > 30 && ` · ${movePreview.ev.ad || '(adsız)'}`}
+                  </span>
                 </div>
               )}
               {resizePreview && resizePreview.ev.tarih === key && (
@@ -496,13 +499,17 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                   }}
                   className="pointer-events-none absolute inset-x-0.5 z-10 overflow-hidden rounded-md border-2 border-dashed border-accent bg-accent-soft/70 px-1.5 py-0.5 text-[11px] font-medium text-accent"
                 >
-                  <span className="block truncate">{minToHm(resizePreview.edge === 'start' ? resizePreview.min : resizePreview.otherMin)}–{minToHm(resizePreview.edge === 'end' ? resizePreview.min : resizePreview.otherMin)} · {resizePreview.ev.ad || '(adsız)'}</span>
+                  <span className="block truncate">
+                    {minToHm(resizePreview.edge === 'start' ? resizePreview.min : resizePreview.otherMin)}–{minToHm(resizePreview.edge === 'end' ? resizePreview.min : resizePreview.otherMin)}
+                    {Math.abs(resizePreview.min - resizePreview.otherMin) > 30 && ` · ${resizePreview.ev.ad || '(adsız)'}`}
+                  </span>
                 </div>
               )}
               {items.map((item) => {
                 const ty = evType(item.ev.tur)
                 const isMoving = movePreview?.id === item.ev._id
                 const isResizing = resizePreview?.id === item.ev._id
+                const isCompact = item.e - item.s <= 30
                 const top = (item.s / 60) * HOUR_H
                 const height = Math.max(18, ((item.e - item.s) / 60) * HOUR_H)
                 const widthPct = 100 / item.total
@@ -519,14 +526,20 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                         type="button"
                         onClick={(event) => { event.stopPropagation(); if (didDragRef.current) { didDragRef.current = false; return } onEdit(item.ev._id) }}
                         onPointerDown={(pe) => { if (item.ev.locked) { handleLockedClick(item.ev.ad); return } beginMove(pe, item.ev, item.s, item.e - item.s) }}
-                        style={{ background: `${ty.renk}d9`, cursor: item.ev.locked ? 'not-allowed' : 'grab' }}
+                      style={{ background: `${ty.renk}d9`, cursor: item.ev.locked ? 'not-allowed' : 'grab' }}
                         className={`group relative block size-full touch-none overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.locked ? 'opacity-60' : ''} ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
                       >
-                        <span className="flex items-center gap-1 font-medium">
-                          {item.ev.locked && <Lock size={9} />}
-                          {minToHm(item.s)}–{minToHm(item.e)}
-                        </span>
-                        <span className="block truncate">{item.ev.ad || '(adsız)'}</span>
+                        {isCompact ? (
+                          <span className="block truncate font-medium">{minToHm(item.s)}–{minToHm(item.e)}</span>
+                        ) : (
+                          <>
+                            <span className="flex items-center gap-1 font-medium">
+                              {item.ev.locked && <Lock size={9} />}
+                              {minToHm(item.s)}–{minToHm(item.e)}
+                            </span>
+                            <span className="block truncate">{item.ev.ad || '(adsız)'}</span>
+                          </>
+                        )}
                         {!item.ev.locked && (
                           <>
                             <span onPointerDown={(pe) => beginResize(pe, item.ev, 'start', item.s, item.e)} className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100" />

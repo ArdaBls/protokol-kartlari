@@ -1,7 +1,7 @@
 {
   "name": "protokol",
   "private": true,
-  "version": "5.0.22",
+  "version": "5.0.23",
   "type": "module",
   "scripts": {
     "dev": "vite",
