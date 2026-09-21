@@ -70,16 +70,26 @@ export function AccountStatusPage({ kind }: { kind: keyof typeof CONTENT }) {
   if (state.status === 'guest') return <Navigate to="/giris" replace />
   if (state.status !== kind) return <Navigate to="/" replace />
 
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
-      {kind === 'blocked' && (
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-35">
-          <div className="access-tv-wrap">
+  if (kind === 'blocked') {
+    return (
+      <div className="flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-8">
+        <div className="flex w-full max-w-md flex-col items-center text-center">
+          <div className="access-tv-wrap opacity-35">
             <AccessTv />
           </div>
+          <h1 className="text-xl font-semibold">{CONTENT.blocked.title}</h1>
+          <p className="mt-2 text-sm text-muted">{CONTENT.blocked.description}</p>
+          <Button className="mt-6" variant="tertiary" onPress={() => signOutUser()}>
+            Çıkış yap
+          </Button>
         </div>
-      )}
-      <Card className="relative z-10 w-full max-w-md text-center">
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-md text-center">
         <Card.Header className="items-center">
           <Card.Title className="text-xl">{CONTENT[kind].title}</Card.Title>
           <Card.Description>{CONTENT[kind].description}</Card.Description>
