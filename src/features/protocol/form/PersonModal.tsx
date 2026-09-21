@@ -207,7 +207,7 @@ function PersonForm({ onOpenChange, listKey, person, people, onRequestTrash, onR
     <FormSection title="Kimlik" icon={UserRound}>
       <div className="grid gap-3 sm:grid-cols-[9.5rem_1fr]">
         <SelectField label="Unvan ön eki" value={draft.prefix} onChange={set('prefix')} options={PREFIX_SELECT} />
-        <TextInputField label="İsim soyisim" value={draft.name} onChange={set('name')} isRequired autoFocus={!isEditing} />
+        <TextInputField label="İsim soyisim" value={draft.name} onChange={set('name')} isRequired />
       </div>
       <TextInputField label="Görev unvanı" value={draft.title} onChange={set('title')} isRequired list={titleListId} placeholder="Örn. Rektör" />
       <TextInputField label="Birim / kurum" value={draft.unit} onChange={set('unit')} list={unitListId} />
@@ -277,7 +277,7 @@ function PersonForm({ onOpenChange, listKey, person, people, onRequestTrash, onR
 
   return (
     <>
-      <form onSubmit={(event) => { event.preventDefault(); save() }} className="flex min-h-0 flex-1 flex-col">
+      <form onSubmit={(event) => { event.preventDefault(); save() }} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ModalTitle
           title={isEditing ? 'Kaydı düzenle' : 'Yeni kişi ekle'}
           description={isEditing ? 'Değişiklikler kaydedince yayına alınır.' : 'Bilgileri doldurun; fotoğraf otomatik sığdırılır.'}

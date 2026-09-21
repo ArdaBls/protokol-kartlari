@@ -9,7 +9,7 @@ interface ModalShellProps {
   children: ReactNode
 }
 
-const WIDE_DIALOG = 'w-[calc(100vw-2rem)] max-w-5xl sm:max-w-5xl xl:max-w-6xl'
+const WIDE_DIALOG = 'min-w-0 w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-5xl xl:max-w-6xl'
 
 /**
  * Tetikleyicisiz, dışarıdan kontrol edilen modal iskeleti. İçerik yalnızca açıkken bağlanır;
@@ -19,7 +19,7 @@ export function ModalShell({ isOpen, onOpenChange, size = 'md', children }: Moda
   return (
     <Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
       <Modal.Container placement="top" size={size === 'xl' ? 'lg' : size} className="modal-safe-container">
-        <Modal.Dialog className={`modal-safe-dialog flex flex-col ${size === 'xl' ? WIDE_DIALOG : ''}`}>
+        <Modal.Dialog className={`modal-safe-dialog min-w-0 flex flex-col ${size === 'xl' ? WIDE_DIALOG : ''}`}>
           <Modal.CloseTrigger />
           {children}
         </Modal.Dialog>
@@ -38,5 +38,5 @@ export function ModalTitle({ title, description }: { title: string; description?
 }
 
 export function ModalScrollBody({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <Modal.Body className={`flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain ${className}`}>{children}</Modal.Body>
+  return <Modal.Body className={`flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain ${className}`}>{children}</Modal.Body>
 }

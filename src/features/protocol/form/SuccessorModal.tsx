@@ -88,7 +88,7 @@ function SuccessorForm({ onOpenChange, listKey, source, people, kind, sourceEnd,
       <ModalScrollBody>
         <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
           <SelectField label="Unvan ön eki" value={draft.prefix} onChange={set('prefix')} options={PREFIX_SELECT} />
-          <TextInputField label="İsim soyisim" value={draft.name} onChange={set('name')} isRequired autoFocus />
+          <TextInputField label="İsim soyisim" value={draft.name} onChange={set('name')} isRequired />
         </div>
         <TextInputField label="Görev unvanı" value={draft.title} onChange={set('title')} isRequired />
         <TextInputField label="Birim / kurum" value={draft.unit} onChange={set('unit')} />
