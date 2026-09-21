@@ -34,6 +34,18 @@ CLAUDE.md
 # Uygulamaya kopyalanmaz; gerekli parça src/ altına elle aktarılır. Tailwind de gitignore'daki klasörleri taramaz.
 ui-kits/
 
+# Proje dokümantasyonu ve oyun kapak klasörlerindeki yerel açıklama dosyaları.
+# Kaynak kodun ve production build'in çalışması için gerekli değiller.
+README*
+
+# Yerel test/rapor ve TypeScript derleme artıkları.
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+tmp/
+temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
