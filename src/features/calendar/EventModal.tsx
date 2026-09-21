@@ -335,7 +335,15 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
             <NewsPanel attendees={attendees} defaultLocation={yer} defaultTitle={ad} onClose={() => setShowNewsPanel(false)} />
           )}
         </ModalScrollBody>
-        <Modal.Footer className="flex items-center gap-2 border-t border-separator/60 px-3 py-3 sm:gap-3 sm:px-6">
+        <Modal.Footer
+          className={`items-center gap-2 border-t border-separator/60 px-3 py-3 sm:flex sm:justify-end sm:gap-3 sm:px-6 ${
+            writer.canWrite
+              ? id
+                ? 'grid grid-cols-[3rem_minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1fr)]'
+                : 'grid grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1fr)]'
+              : 'flex justify-end'
+          }`}
+        >
           {id && writer.canWrite && (
             <Button
               type="button"
@@ -343,15 +351,15 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
               size="md"
               variant="ghost"
               aria-label="Etkinliği sil"
-              className="size-11 min-w-11 shrink-0 text-danger"
+              className="size-12 min-w-12 shrink-0 text-danger"
               onPress={() => setIsConfirmingDelete(true)}
             >
               <Trash2 size={16} />
             </Button>
           )}
-          <Button type="button" variant="tertiary" className="h-11 min-w-0 flex-1 rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm" slot="close">Vazgeç</Button>
-          {writer.canWrite && <Button type="button" variant="secondary" className="h-11 min-w-0 flex-[1.35] rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
-          {writer.canWrite && <Button type="submit" variant="primary" className="h-11 min-w-0 flex-1 rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
+          <Button type="button" variant="tertiary" className="h-12 min-w-0 whitespace-nowrap rounded-xl px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" slot="close">Vazgeç</Button>
+          {writer.canWrite && <Button type="button" variant="secondary" className="h-12 min-w-0 whitespace-nowrap rounded-xl px-2 text-[11px] font-semibold leading-none sm:min-w-40 sm:flex-none sm:px-4 sm:text-sm" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
+          {writer.canWrite && <Button type="submit" variant="primary" className="h-12 min-w-0 whitespace-nowrap rounded-xl px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
         </Modal.Footer>
       </form>
 
