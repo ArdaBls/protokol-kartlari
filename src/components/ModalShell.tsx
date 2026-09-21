@@ -18,8 +18,8 @@ const WIDE_DIALOG = 'w-[calc(100vw-2rem)] max-w-5xl sm:max-w-5xl xl:max-w-6xl'
 export function ModalShell({ isOpen, onOpenChange, size = 'md', children }: ModalShellProps) {
   return (
     <Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-      <Modal.Container size={size === 'xl' ? 'lg' : size}>
-        <Modal.Dialog className={`flex max-h-[92dvh] flex-col ${size === 'xl' ? WIDE_DIALOG : ''}`}>
+      <Modal.Container placement="top" size={size === 'xl' ? 'lg' : size} className="modal-safe-container">
+        <Modal.Dialog className={`modal-safe-dialog flex flex-col ${size === 'xl' ? WIDE_DIALOG : ''}`}>
           <Modal.CloseTrigger />
           {children}
         </Modal.Dialog>
@@ -38,5 +38,5 @@ export function ModalTitle({ title, description }: { title: string; description?
 }
 
 export function ModalScrollBody({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <Modal.Body className={`flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto ${className}`}>{children}</Modal.Body>
+  return <Modal.Body className={`flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain ${className}`}>{children}</Modal.Body>
 }

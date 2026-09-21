@@ -242,6 +242,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
     const origDayIdx = days.findIndex((d) => dateKey(d) === ev.tarih)
     const gridEl = gridRef.current
     let dragging = false
+    let latestPreview: MovePreview | null = null
     target.setPointerCapture(event.pointerId)
 
     const onMove = (moveEvent: PointerEvent) => {
@@ -250,25 +251,37 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
       if (!dragging && Math.abs(dx) < MOVE_THRESHOLD && Math.abs(dy) < MOVE_THRESHOLD) return
       dragging = true
       didDragRef.current = true
+      moveEvent.preventDefault()
       const colWidth = gridEl ? gridEl.getBoundingClientRect().width / days.length : 0
       const dayDelta = colWidth ? Math.round(dx / colWidth) : 0
       const newDayIdx = Math.max(0, Math.min(days.length - 1, origDayIdx + dayDelta))
       const minDelta = Math.round((dy / HOUR_H) * 60)
       const newStartMin = snapTo(clampMin(startMinOfItem + minDelta), MOVE_SNAP)
-      setMovePreview({ id: ev._id, ev, dayIdx: newDayIdx, startMin: newStartMin, durationMin })
+      latestPreview = { id: ev._id, ev, dayIdx: newDayIdx, startMin: newStartMin, durationMin }
+      setMovePreview(latestPreview)
     }
     const onUp = () => {
       target.removeEventListener('pointermove', onMove)
       target.removeEventListener('pointerup', onUp)
-      if (dragging) {
-        setMovePreview((current) => {
-          if (current) void writer.moveEvent(ev._id, ev, dateKey(days[current.dayIdx]), current.startMin)
-          return null
-        })
+      target.removeEventListener('pointercancel', onCancel)
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
+      const current = latestPreview
+      setMovePreview(null)
+      if (dragging && current) {
+        void writer.moveEvent(ev._id, ev, dateKey(days[current.dayIdx]), current.startMin)
       }
+    }
+    const onCancel = () => {
+      target.removeEventListener('pointermove', onMove)
+      target.removeEventListener('pointerup', onUp)
+      target.removeEventListener('pointercancel', onCancel)
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
+      didDragRef.current = true
+      setMovePreview(null)
     }
     target.addEventListener('pointermove', onMove)
     target.addEventListener('pointerup', onUp)
+    target.addEventListener('pointercancel', onCancel)
   }
 
   // --- Üst/alt kenar tutamağından sürükleyerek saat ayarlama ---
@@ -507,7 +520,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                         onClick={(event) => { event.stopPropagation(); if (didDragRef.current) { didDragRef.current = false; return } onEdit(item.ev._id) }}
                         onPointerDown={(pe) => { if (item.ev.locked) { handleLockedClick(item.ev.ad); return } beginMove(pe, item.ev, item.s, item.e - item.s) }}
                         style={{ background: `${ty.renk}d9`, cursor: item.ev.locked ? 'not-allowed' : 'grab' }}
-                        className={`group relative block size-full overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
+                        className={`group relative block size-full touch-none overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
                       >
                         <span className="flex items-center gap-1 font-medium">
                           {item.ev.locked && <Lock size={9} />}

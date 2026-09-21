@@ -34,6 +34,16 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* iPhone Dynamic Island/klavye açıldığında modal güvenli alanın üstüne taşmasın. */
+.modal-safe-container {
+  padding-top: calc(env(safe-area-inset-top) + 1rem);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+}
+
+.modal-safe-dialog {
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem) !important;
+}
+
 /* Wordle: geçersiz kelime girişinde satırın titremesi, gönderilen tahminde harf harf çevrilmesi. */
 @keyframes shake {
   10%, 90% { transform: translateX(-2px); }

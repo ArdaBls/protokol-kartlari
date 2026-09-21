@@ -328,26 +328,23 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
             <NewsPanel attendees={attendees} defaultLocation={yer} defaultTitle={ad} onClose={() => setShowNewsPanel(false)} />
           )}
         </ModalScrollBody>
-        <Modal.Footer className="flex-nowrap justify-end gap-2 overflow-x-auto">
+        <Modal.Footer className="flex-nowrap justify-between gap-1 overflow-hidden">
           {id && writer.canWrite && (
-            <>
-              <Button
-                type="button"
-                isIconOnly
-                size="sm"
-                variant="ghost"
-                aria-label="Etkinliği sil"
-                className="shrink-0 text-danger sm:hidden"
-                onPress={() => setIsConfirmingDelete(true)}
-              >
-                <Trash2 size={16} />
-              </Button>
-              <Button type="button" variant="ghost" className="hidden shrink-0 text-danger sm:inline-flex" onPress={() => setIsConfirmingDelete(true)}>Sil</Button>
-            </>
+            <Button
+              type="button"
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              aria-label="Etkinliği sil"
+              className="size-9 min-w-0 shrink-0 text-danger"
+              onPress={() => setIsConfirmingDelete(true)}
+            >
+              <Trash2 size={16} />
+            </Button>
           )}
-          <Button type="button" variant="tertiary" className="shrink-0" slot="close">Vazgeç</Button>
-          {writer.canWrite && <Button type="button" variant="secondary" className="shrink-0 whitespace-nowrap" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
-          {writer.canWrite && <Button type="submit" variant="primary" className="shrink-0" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
+          <Button type="button" variant="tertiary" className="min-w-0 shrink px-2 text-[11px] sm:px-3 sm:text-sm" slot="close">Vazgeç</Button>
+          {writer.canWrite && <Button type="button" variant="secondary" className="min-w-0 shrink whitespace-nowrap px-2 text-[11px] sm:px-3 sm:text-sm" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
+          {writer.canWrite && <Button type="submit" variant="primary" className="min-w-0 shrink px-2 text-[11px] sm:px-3 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
         </Modal.Footer>
       </form>
 

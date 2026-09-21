@@ -22,8 +22,8 @@ export function FormModal({ isOpen, onOpenChange, title, submitLabel, isDanger, 
   // isOpen'ı yok sayar; tetikleyicisiz kontrollü kullanımda Backdrop tek başına kullanılır.
   return (
     <Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-        <Modal.Container size="sm">
-          <Modal.Dialog>
+        <Modal.Container placement="top" size="sm" className="modal-safe-container">
+          <Modal.Dialog className="modal-safe-dialog">
             <form onSubmit={handleSubmit}>
               <Modal.Header>
                 <Modal.Heading>{title}</Modal.Heading>

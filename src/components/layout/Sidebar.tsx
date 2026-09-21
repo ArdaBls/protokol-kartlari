@@ -1,5 +1,5 @@
 import { Avatar, Button } from '@heroui/react'
-import { LogOut, X } from 'lucide-react'
+import { LogOut, Menu, X } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { NAV } from '../../config/nav'
@@ -9,9 +9,10 @@ interface SidebarProps {
   isMobileOpen: boolean
   isCollapsed: boolean
   onClose: () => void
+  onToggleCollapse: () => void
 }
 
-export function Sidebar({ isMobileOpen, isCollapsed, onClose }: SidebarProps) {
+export function Sidebar({ isMobileOpen, isCollapsed, onClose, onToggleCollapse }: SidebarProps) {
   const { state, signOutUser } = useAuth()
   if (state.status !== 'ready') return null
 
@@ -28,11 +29,21 @@ export function Sidebar({ isMobileOpen, isCollapsed, onClose }: SidebarProps) {
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className={`flex h-16 items-center justify-between px-5 ${isCollapsed ? 'lg:justify-center lg:px-3' : ''}`}>
+        <div className={`flex h-16 items-center justify-between px-5 ${isCollapsed ? 'lg:px-2' : ''}`}>
           <NavLink to="/" className="flex items-center gap-2.5" onClick={onClose}>
-            <span className="flex size-8 items-center justify-center rounded-xl bg-accent text-sm font-bold text-accent-foreground">P</span>
+            <img src="/icons/icon-192.png" alt="" className="size-8 rounded-xl object-cover" />
             <span className={isCollapsed ? 'lg:hidden' : 'text-base font-semibold'}>Protokol</span>
           </NavLink>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            className="hidden lg:inline-flex"
+            aria-label={isCollapsed ? 'Yan menüyü genişlet' : 'Yan menüyü daralt'}
+            onPress={onToggleCollapse}
+          >
+            <Menu size={18} />
+          </Button>
           <Button isIconOnly size="sm" variant="ghost" className="lg:hidden" aria-label="Menüyü kapat" onPress={onClose}>
             <X size={18} />
           </Button>

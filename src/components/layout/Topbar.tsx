@@ -1,28 +1,18 @@
 import { Avatar, Button } from '@heroui/react'
-import { Bell, ChevronRight, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Bell, Menu, Moon, Sun } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
-import { findNavItem } from '../../config/nav'
 import { useNotificationBadge } from '../../features/notifications/useNotificationBadge'
-import { GAMES } from '../../features/games/gamesList'
 import { useTheme } from '../../hooks/useTheme'
 import { initials, isSafeAvatarUrl } from '../../lib/roles'
 
 interface TopbarProps {
   onOpenMenu: () => void
-  isSidebarCollapsed: boolean
-  onToggleSidebar: () => void
 }
 
-export function Topbar({ onOpenMenu, isSidebarCollapsed, onToggleSidebar }: TopbarProps) {
-  const { pathname } = useLocation()
+export function Topbar({ onOpenMenu }: TopbarProps) {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
-  // Oyun alt sayfaları (/oyunlar/wordle vb.) NAV_ITEMS'ta yok -- breadcrumb'ta jenerik
-  // "Sayfa" yerine oyunun kendi adı görünsün diye ayrıca GAMES listesinden aranıyor.
-  const navItem = findNavItem(pathname)
-  const game = !navItem && pathname.startsWith('/oyunlar/') ? GAMES.find((g) => g.path === pathname) : undefined
-  const breadcrumbLabel = navItem?.text ?? game?.title ?? 'Sayfa'
   const { state } = useAuth()
   const displayName = state.status === 'ready' ? state.displayName : ''
   const avatarUrl = state.status === 'ready' ? state.profile.avatarUrl : undefined
@@ -30,34 +20,14 @@ export function Topbar({ onOpenMenu, isSidebarCollapsed, onToggleSidebar }: Topb
 
   return (
     <header style={{ top: 'env(safe-area-inset-top)' }} className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-separator bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
-      <Button
-        isIconOnly
-        variant="ghost"
-        className="hidden lg:inline-flex"
-        aria-label={isSidebarCollapsed ? 'Yan menüyü genişlet' : 'Yan menüyü daralt'}
-        onPress={onToggleSidebar}
-      >
-        {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-      </Button>
-
       <Button isIconOnly variant="ghost" className="lg:hidden" aria-label="Menüyü aç" onPress={onOpenMenu}>
         <Menu size={20} />
       </Button>
 
       <Link to="/" className="flex shrink-0 items-center gap-2 lg:hidden" aria-label="Protokol ana sayfa">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-foreground">P</span>
+        <img src="/icons/icon-192.png" alt="" className="size-7 rounded-lg object-cover" />
         <span className="text-sm font-semibold">Protokol</span>
       </Link>
-
-      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
-        <Link to="/" className="text-muted hover:text-foreground">
-          Anasayfa
-        </Link>
-        <ChevronRight size={14} className="shrink-0 text-muted" aria-hidden="true" />
-        <span aria-current="page" className="truncate font-medium">
-          {breadcrumbLabel}
-        </span>
-      </nav>
 
       <div className="ml-auto flex items-center gap-1">
         <Button
