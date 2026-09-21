@@ -31,7 +31,7 @@ function AccessTv() {
               <div className="screen_out">
                 <div className="screen_out1">
                   <div className="screen">
-                    <span className="notfound_text">NO SIGNAL</span>
+                    <span className="access-denied-text">Erişiminiz kısıtlandı</span>
                   </div>
                 </div>
               </div>
