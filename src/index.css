@@ -33,6 +33,17 @@ html {
   content: '';
 }
 
+/* Sayfa başlıkları sticky topbar'ın altında kalsa bile Dynamic Island alanına taşmasın. */
+body::before {
+  position: fixed;
+  z-index: 60;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top);
+  background: var(--background);
+  content: '';
+  pointer-events: none;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--background);

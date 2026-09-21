@@ -20,7 +20,7 @@ export function Topbar({ onOpenMenu, onToggleSidebar }: TopbarProps) {
   const badgeCount = useNotificationBadge()
 
   return (
-    <header style={{ top: 'env(safe-area-inset-top)' }} className="topbar-safe sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-separator bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+    <header style={{ top: 'env(safe-area-inset-top)' }} className="topbar-safe sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-separator bg-background px-4 backdrop-blur sm:px-6 lg:px-8">
       <Button isIconOnly variant="ghost" className="hidden lg:inline-flex" aria-label="Yan menüyü aç veya daralt" onPress={onToggleSidebar}>
         <Menu size={20} />
       </Button>

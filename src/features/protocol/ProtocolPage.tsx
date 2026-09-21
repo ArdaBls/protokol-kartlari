@@ -26,6 +26,7 @@ const SKELETON_CARDS = 10
 const NEWS_SELECTION_KEY = 'omuProtokolNewsSelection'
 const COLUMNS_KEY = 'protokol-mobil-sutun'
 const MOBILE_COLUMN_CLASS = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' } as const
+const MOBILE_COLUMN_LABEL = { 2: '2li', 3: '3lü', 4: '4lü' } as const
 type MobileColumns = keyof typeof MOBILE_COLUMN_CLASS
 
 function readStorage<T>(key: string, fallback: T, parse: (raw: string) => T | null): T {
@@ -297,7 +298,7 @@ export function ProtocolPage() {
                     onClick={() => { setColumns(count); writeStorage(COLUMNS_KEY, String(count)) }}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${columns === count ? 'bg-surface text-foreground shadow-sm' : ''}`}
                   >
-                    {count}'li
+                    {MOBILE_COLUMN_LABEL[count]}
                   </button>
                 ))}
               </div>
@@ -326,6 +327,7 @@ export function ProtocolPage() {
                     person={person}
                     isSelectable={isSelecting}
                     isSelected={mode === 'bulk' ? bulkSelection.has(person._id) : newsSelection.includes(person._id)}
+                    mobileColumns={columns}
                     onToggleSelect={toggleSelect}
                     onEdit={canWrite && statusView !== 'silindi' ? openEdit : undefined}
                     onRestore={canWrite && statusView === 'silindi' ? actions.restore : undefined}
