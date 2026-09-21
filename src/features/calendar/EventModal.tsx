@@ -351,15 +351,15 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
               size="md"
               variant="ghost"
               aria-label="Etkinliği sil"
-              className="size-12 min-w-12 shrink-0 text-danger"
+              className="size-11 min-w-11 shrink-0 rounded-full text-danger"
               onPress={() => setIsConfirmingDelete(true)}
             >
               <Trash2 size={16} />
             </Button>
           )}
-          <Button type="button" variant="tertiary" className="h-12 min-w-0 whitespace-nowrap rounded-xl px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" slot="close">Vazgeç</Button>
-          {writer.canWrite && <Button type="button" variant="secondary" className="h-12 min-w-0 whitespace-nowrap rounded-xl px-2 text-[11px] font-semibold leading-none sm:min-w-40 sm:flex-none sm:px-4 sm:text-sm" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
-          {writer.canWrite && <Button type="submit" variant="primary" className="h-12 min-w-0 whitespace-nowrap rounded-xl px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
+          <Button type="button" variant="tertiary" className="h-11 min-w-0 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" slot="close">Vazgeç</Button>
+          {writer.canWrite && <Button type="button" variant="secondary" className="h-11 min-w-0 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-[11px] font-semibold leading-none sm:min-w-40 sm:flex-none sm:px-4 sm:text-sm" onPress={applyProtocolOrder}>Sırayı Kopyala</Button>}
+          {writer.canWrite && <Button type="submit" variant="primary" className="h-11 min-w-0 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
         </Modal.Footer>
       </form>
 
