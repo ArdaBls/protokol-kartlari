@@ -1,0 +1,98 @@
+/* Onay bekleme animasyonu (AccountStatusPage 'pending') -- eski sitedeki .wait-dots ile birebir aynı. */
+.wait-dots {
+  width: 90px;
+  height: 40px;
+  position: relative;
+  margin: 0 auto 8px;
+}
+.wait-dots .circle {
+  width: 14px;
+  height: 14px;
+  position: absolute;
+  border-radius: 50%;
+  background-color: var(--accent);
+  left: 15%;
+  transform-origin: 50%;
+  animation: wait-dots-bounce 0.5s alternate infinite ease;
+}
+@keyframes wait-dots-bounce {
+  0% { top: 40px; height: 4px; border-radius: 50px 50px 25px 25px; transform: scaleX(1.7); }
+  40% { height: 14px; border-radius: 50%; transform: scaleX(1); }
+  100% { top: 0; }
+}
+.wait-dots .circle:nth-child(2) { left: 45%; animation-delay: 0.2s; }
+.wait-dots .circle:nth-child(3) { left: auto; right: 15%; animation-delay: 0.3s; }
+.wait-dots .shadow {
+  width: 14px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 41px;
+  transform-origin: 50%;
+  z-index: -1;
+  left: 15%;
+  filter: blur(1px);
+  animation: wait-dots-shadow 0.5s alternate infinite ease;
+}
+@keyframes wait-dots-shadow {
+  0% { transform: scaleX(1.5); }
+  40% { transform: scaleX(1); opacity: 0.7; }
+  100% { transform: scaleX(0.2); opacity: 0.4; }
+}
+.wait-dots .shadow:nth-child(4) { left: 45%; animation-delay: 0.2s; }
+.wait-dots .shadow:nth-child(5) { left: auto; right: 15%; animation-delay: 0.3s; }
+@media (prefers-reduced-motion: reduce) {
+  .wait-dots .circle, .wait-dots .shadow { animation: none; }
+  .wait-dots .circle { top: 13px; height: 14px; border-radius: 50%; transform: none; }
+  .wait-dots .shadow { top: 41px; opacity: 0.5; transform: none; }
+}
+
+/* Erişim kısıtlandı (AccountStatusPage 'blocked') -- eski sitedeki retro TV illüstrasyonu,
+   kendi turuncu/ahşap paleti bilerek AYNEN korunuyor (siteden bağımsız, kendi kutusu). */
+.access-tv-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
+.access-tv .main_wrapper { position: relative; display: flex; align-items: center; justify-content: center; width: 22em; height: 22em; }
+.access-tv .tv-main { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 3.5em; }
+.access-tv .antenna { width: 5em; height: 5em; border-radius: 50%; border: 2px solid black; background-color: #f27405; margin-bottom: -6em; margin-left: 0; }
+.access-tv .antenna_shadow { position: absolute; background-color: transparent; width: 50px; height: 56px; margin-left: 1.68em; border-radius: 45%; transform: rotate(140deg); border: 4px solid transparent; box-shadow: inset 0 16px #a85103, inset 0 16px 1px 1px #a85103; }
+.access-tv .antenna::after { content: ""; position: absolute; margin-top: -9.4em; margin-left: 0.4em; transform: rotate(-25deg); width: 1em; height: 0.5em; border-radius: 50%; background-color: #f69e50; }
+.access-tv .antenna::before { content: ""; position: absolute; margin-top: 0.2em; margin-left: 1.25em; transform: rotate(-20deg); width: 1.5em; height: 0.8em; border-radius: 50%; background-color: #f69e50; }
+.access-tv .a1 { position: relative; top: -102%; left: -130%; width: 12em; height: 5.5em; border-radius: 50px; background-image: linear-gradient(#171717, #171717, #353535, #353535, #171717); transform: rotate(-29deg); clip-path: polygon(50% 0%, 49% 100%, 52% 100%); }
+.access-tv .a1d { position: relative; top: -211%; left: -35%; transform: rotate(45deg); width: 0.5em; height: 0.5em; border-radius: 50%; border: 2px solid black; background-color: #979797; z-index: 99; }
+.access-tv .a2 { position: relative; top: -210%; left: -10%; width: 12em; height: 4em; border-radius: 50px; background-color: #171717; background-image: linear-gradient(#171717, #171717, #353535, #353535, #171717); margin-right: 5em; clip-path: polygon(47% 0, 47% 0, 34% 34%, 54% 25%, 32% 100%, 29% 96%, 49% 32%, 30% 38%); transform: rotate(-8deg); }
+.access-tv .a2d { position: relative; top: -294%; left: 94%; width: 0.5em; height: 0.5em; border-radius: 50%; border: 2px solid black; background-color: #979797; z-index: 99; }
+.access-tv .notfound_text { background-color: black; padding-left: 0.3em; padding-right: 0.3em; font-size: 0.75em; color: white; letter-spacing: 0; border-radius: 5px; z-index: 10; }
+.access-tv .tv { width: 17em; height: 9em; margin-top: 3em; border-radius: 15px; background-color: #d36604; display: flex; justify-content: center; border: 2px solid #1d0e01; box-shadow: inset 0.2em 0.2em #e69635; position: relative; }
+.access-tv .tv::after { content: ""; position: absolute; width: 17em; height: 9em; border-radius: 15px; background: repeating-radial-gradient(#d36604 0 0.0001%, #00000070 0 0.0002%) 50% 0/2500px 2500px, repeating-conic-gradient(#d36604 0 0.0001%, #00000070 0 0.0002%) 60% 60%/2500px 2500px; background-blend-mode: difference; opacity: 0.09; }
+.access-tv .curve_svg { position: absolute; margin-top: 0.25em; margin-left: -0.25em; height: 12px; width: 12px; }
+.access-tv .display_div { display: flex; align-items: center; align-self: center; justify-content: center; border-radius: 15px; box-shadow: 3.5px 3.5px 0 #e69635; }
+.access-tv .screen_out { width: auto; height: auto; border-radius: 10px; }
+.access-tv .screen_out1 { width: 11em; height: 7.75em; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+.access-tv .screen { width: 13em; height: 7.85em; border: 2px solid #1d0e01; background: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%) 50% 0/2500px 2500px, repeating-conic-gradient(#000 0 0.0001%, #fff 0 0.0002%) 60% 60%/2500px 2500px; background-blend-mode: difference; animation: accessTvStatic 0.2s infinite alternate; border-radius: 10px; z-index: 99; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #252525; letter-spacing: 0.15em; text-align: center; }
+@keyframes accessTvStatic { 100% { background-position: 50% 0, 60% 50%; } }
+.access-tv .lines { display: flex; column-gap: 0.1em; align-self: flex-end; }
+.access-tv .line1, .access-tv .line3 { width: 2px; height: 0.5em; background-color: black; border-radius: 25px 25px 0 0; margin-top: 0.5em; }
+.access-tv .line2 { flex-grow: 1; width: 2px; height: 1em; background-color: black; border-radius: 25px 25px 0 0; }
+.access-tv .buttons_div { width: 4.25em; align-self: center; height: 8em; background-color: #e69635; border: 2px solid #1d0e01; padding: 0.6em; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column; row-gap: 0.75em; box-shadow: 3px 3px 0 #e69635; }
+.access-tv .b1, .access-tv .b2 { width: 1.65em; height: 1.65em; border-radius: 50%; background-color: #7f5934; border: 2px solid black; box-shadow: inset 2px 2px 1px #b49577, -2px 0 #513721, -2px 0 0 1px black; position: relative; }
+.access-tv .b1::before { content: ""; position: absolute; margin-top: 1em; margin-left: 0.5em; transform: rotate(47deg); border-radius: 5px; width: 0.1em; height: 0.4em; background-color: black; }
+.access-tv .b1::after { content: ""; position: absolute; margin-top: 0.9em; margin-left: 0.8em; transform: rotate(47deg); border-radius: 5px; width: 0.1em; height: 0.55em; background-color: black; }
+.access-tv .b1 div { content: ""; position: absolute; margin-top: -0.1em; margin-left: 0.65em; transform: rotate(45deg); width: 0.15em; height: 1.5em; background-color: black; }
+.access-tv .b2::before { content: ""; position: absolute; margin-top: 1.05em; margin-left: 0.8em; transform: rotate(-45deg); border-radius: 5px; width: 0.15em; height: 0.4em; background-color: black; }
+.access-tv .b2::after { content: ""; position: absolute; margin-top: -0.1em; margin-left: 0.65em; transform: rotate(-45deg); width: 0.15em; height: 1.5em; background-color: black; }
+.access-tv .speakers { display: flex; flex-direction: column; row-gap: 0.5em; }
+.access-tv .speakers .g1 { display: flex; column-gap: 0.25em; }
+.access-tv .speakers .g1 .g11, .access-tv .g12, .access-tv .g13 { width: 0.65em; height: 0.65em; border-radius: 50%; background-color: #7f5934; border: 2px solid black; box-shadow: inset 1.25px 1.25px 1px #b49577; }
+.access-tv .speakers .g { width: auto; height: 2px; background-color: #171717; }
+.access-tv .bottom { width: 100%; height: auto; display: flex; align-items: center; justify-content: center; column-gap: 8.7em; }
+.access-tv .base1, .access-tv .base2 { height: 1em; width: 2em; border: 2px solid #171717; background-color: #4d4d4d; margin-top: -0.15em; z-index: -1; }
+.access-tv .base3 { position: absolute; height: 0.15em; width: 17.5em; background-color: #171717; margin-top: 0.8em; }
+.access-tv .text_404 { position: absolute; display: flex; flex-direction: row; column-gap: 6em; z-index: 1; margin-bottom: 2em; align-items: center; justify-content: center; opacity: 0.5; color: var(--foreground); }
+.access-tv .text_4041, .access-tv .text_4042, .access-tv .text_4043 { transform: scaleY(24.5) scaleX(9); }
+@media only screen and (max-width: 495px) { .access-tv .text_404 { column-gap: 6em; } }
+@media only screen and (max-width: 395px) {
+  .access-tv .text_404 { column-gap: 4em; }
+  .access-tv .text_4041, .access-tv .text_4042, .access-tv .text_4043 { transform: scaleY(25) scaleX(8); }
+}
+@media (max-width: 480px) { .access-tv { transform: scale(0.62); margin: -4.2em 0; } }
+@media (min-width: 481px) and (max-width: 700px) { .access-tv { transform: scale(0.82); margin: -2em 0; } }

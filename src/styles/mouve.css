@@ -1,0 +1,88 @@
+/*
+ * Mouve teması — sitenin tasarım tokenları.
+ * Temel stil değişkenleri @layer base içinde tanımlı; buradaki katmansız kurallar onları ezer.
+ * Koyu tema Mouve'nin birebir karşılığıdır; açık tema aynı mor accent ve köşe ölçülerini paylaşır.
+ */
+
+:root {
+  --radius: 0.54rem;
+  --field-radius: 1.5rem;
+
+  --accent: oklch(62% 0.17 300);
+  --accent-foreground: oklch(0.9911 0 0);
+  --focus: oklch(62% 0.17 300);
+}
+
+:root.dark,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(16% 0.02 300);
+  --background-secondary: color-mix(in oklab, oklch(16% 0.02 300) 96%, oklch(0.9911 0 0) 4%);
+  --background-tertiary: color-mix(in oklab, oklch(16% 0.02 300) 92%, oklch(0.9911 0 0) 8%);
+  --background-inverse: oklch(0.9911 0 0);
+  --foreground: oklch(0.9911 0 0);
+  --muted: oklch(65% 0.02 300);
+
+  --accent: oklch(70% 0.16 300);
+  --accent-foreground: oklch(15% 0.02 300);
+  --accent-hover: color-mix(in oklab, oklch(70% 0.16 300) 90%, oklch(15% 0.02 300) 10%);
+  --accent-soft: color-mix(in oklab, oklch(70% 0.16 300) 12%, transparent);
+  --accent-soft-foreground: color-mix(in oklab, oklch(70% 0.16 300) 80%, oklch(0.9911 0 0) 30%);
+  --accent-soft-hover: color-mix(in oklab, oklch(70% 0.16 300) 16%, transparent);
+  --focus: oklch(70% 0.16 300);
+
+  --default: oklch(26% 0.02 300);
+  --default-foreground: oklch(0.9911 0 0);
+  --default-hover: color-mix(in oklab, oklch(26% 0.02 300) 96%, oklch(0.9911 0 0) 4%);
+  --default-soft: color-mix(in oklab, oklch(26% 0.02 300) 50%, transparent);
+  --default-soft-foreground: oklch(0.9911 0 0);
+  --default-soft-hover: color-mix(in oklab, oklch(26% 0.02 300) 60%, transparent);
+
+  --surface: oklch(20% 0.02 300);
+  --surface-foreground: oklch(0.9911 0 0);
+  --surface-hover: color-mix(in oklab, oklch(20% 0.02 300) 92%, oklch(0.9911 0 0) 8%);
+  --surface-secondary: oklch(24% 0.02 300);
+  --surface-secondary-foreground: oklch(0.9911 0 0);
+  --surface-tertiary: oklch(27% 0.02 300);
+  --surface-tertiary-foreground: oklch(0.9911 0 0);
+  --surface-shadow:
+    inset 0 1px 0 0 #ffffff0a, inset 0 0 0 1px #ffffff0a, 0 0 0 1px #00000029, 0 1px 1px -0.5px #0000002e,
+    0 3px 3px -1.5px #0000002e, 0 6px 6px -3px #0000002e, 0 12px 12px -6px #0000002e;
+
+  --overlay: oklch(20% 0.02 300);
+  --overlay-foreground: oklch(0.9911 0 0);
+  --overlay-shadow:
+    0 1px 3px rgba(255, 255, 255, 0.04) inset, 0 0.5px 0.5px rgba(255, 255, 255, 0.04) inset,
+    0 16px 56px rgba(0, 0, 0, 0.24), 0 4px 16px rgba(0, 0, 0, 0.24), 0 1px 2px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+
+  --border: oklch(30% 0.02 300);
+  --separator: oklch(28% 0.018 300);
+  --segment: oklch(28% 0.025 300);
+  --segment-foreground: oklch(0.9911 0 0);
+  --scrollbar: oklch(35% 0.02 300);
+
+  --field-background: oklch(22% 0.018 300);
+  --field-foreground: oklch(0.9911 0 0);
+  --field-placeholder: oklch(65% 0.02 300);
+  --field-border: oklch(32% 0.025 300);
+  --field-border-hover: color-mix(in oklab, oklch(32% 0.025 300) 88%, oklch(0.9911 0 0) 10%);
+  --field-border-focus: color-mix(in oklab, oklch(32% 0.025 300) 74%, oklch(0.9911 0 0) 22%);
+  --field-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.02), inset 0 -0.5px 1px 0 rgba(255, 255, 255, 0.06),
+    inset 1px 1.5px 4px 0 rgba(0, 0, 0, 0.06), inset 1px 1.5px 4px 0 rgba(0, 0, 0, 0.08);
+
+  --success: oklch(0.7329 0.1935 150.81);
+  --success-foreground: oklch(20% 0.02 300);
+  --success-soft: color-mix(in oklab, oklch(0.7329 0.1935 150.81) 12%, transparent);
+  --success-soft-foreground: color-mix(in oklab, oklch(0.7329 0.1935 150.81) 80%, oklch(0.9911 0 0) 30%);
+  --warning: oklch(0.8203 0.1388 76.34);
+  --warning-foreground: oklch(20% 0.02 300);
+  --warning-soft: color-mix(in oklab, oklch(0.8203 0.1388 76.34) 12%, transparent);
+  --warning-soft-foreground: color-mix(in oklab, oklch(0.8203 0.1388 76.34) 80%, oklch(0.9911 0 0) 30%);
+  --danger: oklch(0.594 0.1967 24.63);
+  --danger-foreground: oklch(0.9911 0 0);
+  --danger-soft: color-mix(in oklab, oklch(0.594 0.1967 24.63) 15%, transparent);
+  --danger-soft-foreground: color-mix(in oklab, oklch(0.594 0.1967 24.63) 80%, oklch(0.9911 0 0) 30%);
+}

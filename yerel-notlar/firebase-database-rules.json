@@ -1,0 +1,1263 @@
+{
+  "rules": {
+    "presence": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['cevrimici','isim','sonGorulme'])",
+        "cevrimici": { ".validate": "newData.isBoolean()" },
+        "isim": { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "sonGorulme": { ".validate": "newData.isNumber()" }
+      }
+    },
+    "oyunBasarimlari": {
+      "$oyunAdi": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".indexOn": ["score"],
+        "oyunlar": {
+          "$oyunId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && ((!data.exists() && newData.child('oyuncu1Uid').val() === auth.uid) || (data.exists() && (data.child('oyuncu1Uid').val() === auth.uid || data.child('oyuncu2Uid').val() === auth.uid)))",
+            ".validate": "newData.hasChildren(['oyuncu1Uid','durum'])",
+            "oyuncu1Uid": { ".validate": "newData.isString()" },
+            "oyuncu1Ad": { ".validate": "!newData.exists() || newData.isString()" },
+            "oyuncu2Uid": { ".validate": "!newData.exists() || newData.isString()" },
+            "oyuncu2Ad": { ".validate": "!newData.exists() || newData.isString()" },
+            "durum": { ".validate": "newData.val() === 'davet_edildi' || newData.val() === 'yerlestirme' || newData.val() === 'oynaniyor' || newData.val() === 'bitti' || newData.val() === 'iptal'" },
+            "sira": { ".validate": "!newData.exists() || newData.isString()" },
+            "hazir1": { ".validate": "!newData.exists() || newData.isBoolean()" },
+            "hazir2": { ".validate": "!newData.exists() || newData.isBoolean()" },
+            "atislar1": {
+              "$hucre": { ".validate": "newData.val() === 'bekliyor' || newData.val() === 'kacti' || newData.val() === 'isabet' || newData.val() === 'batti'" }
+            },
+            "atislar2": {
+              "$hucre": { ".validate": "newData.val() === 'bekliyor' || newData.val() === 'kacti' || newData.val() === 'isabet' || newData.val() === 'batti'" }
+            },
+            "sonuc": { ".validate": "!newData.exists() || newData.isString()" },
+            "sonNot": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
+            "guncellemeTs": { ".validate": "newData.isNumber()" }
+          }
+        },
+        "masalar": {
+          "$masaId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && $masaId === 'ana-masa' && (!data.exists() || data.child('durum').val() === 'bahis_bekleniyor' || data.child('koltuklar/0/uid').val() === auth.uid || data.child('koltuklar/1/uid').val() === auth.uid || data.child('koltuklar/2/uid').val() === auth.uid || data.child('koltuklar/3/uid').val() === auth.uid || data.child('koltuklar/4/uid').val() === auth.uid || (data.child('guncellemeTs').exists() && now > data.child('guncellemeTs').val() + 120000))",
+            ".validate": "$masaId === 'ana-masa' && newData.hasChildren(['durum','guncellemeTs','elNo'])",
+            "durum": { ".validate": "(newData.val() === 'bahis_bekleniyor' || newData.val() === 'dagitiliyor' || newData.val() === 'oyunculuk' || newData.val() === 'kurpiyer_sirasi' || newData.val() === 'el_sonucu') && (!data.exists() ? newData.val() === 'bahis_bekleniyor' : (newData.val() === data.val() || (data.val() === 'bahis_bekleniyor' && (newData.val() === 'dagitiliyor' || newData.val() === 'oyunculuk' || newData.val() === 'kurpiyer_sirasi')) || (data.val() === 'dagitiliyor' && (newData.val() === 'oyunculuk' || newData.val() === 'kurpiyer_sirasi')) || (data.val() === 'oyunculuk' && newData.val() === 'kurpiyer_sirasi') || (data.val() === 'kurpiyer_sirasi' && newData.val() === 'el_sonucu') || (data.val() === 'el_sonucu' && newData.val() === 'bahis_bekleniyor')))" },
+            "aktifKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 4)" },
+            "bahisSuresiBitis": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)" },
+            "aksiyonSuresiBitis": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)" },
+            "desteIndex": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 208)" },
+            "elNo": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 1000000000" },
+            "deste": {
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^(0|[1-9][0-9]?|1[0-9]{2}|20[0-7])$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "bonusJokerGorseli": { ".validate": "newData.isString() && newData.parent().child('r').val() === 'joker' && newData.val().matches(/^Jokers([1-9]|[1-9][0-9]|1[0-5][0-9])[.]png$/)" },
+                "$other": { ".validate": false }
+              }
+            },
+            "kurpiyerEli": {
+              ".validate": "newData.hasChildren(['kartlar','acikMi'])",
+              "acikMi": { ".validate": "newData.isBoolean()" },
+              "kartlar": {
+                "$kartIndex": {
+                  ".validate": "$kartIndex.matches(/^(0|[1-9]|1[0-9]|20)$/) && newData.hasChildren(['r','s'])",
+                  "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                  "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                  "bonusJokerGorseli": { ".validate": "newData.isString() && newData.parent().child('r').val() === 'joker' && newData.val().matches(/^Jokers([1-9]|[1-9][0-9]|1[0-5][0-9])[.]png$/)" },
+                  "$other": { ".validate": false }
+                }
+              },
+              "$other": { ".validate": false }
+            },
+            "koltuklar": {
+              "$koltukIndex": {
+                ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3' || $koltukIndex === '4') && newData.hasChildren(['uid','isim','katilimDurumu'])",
+                "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (!data.exists() ? newData.val() === auth.uid : newData.val() === data.val())" },
+                "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200 && (!data.exists() || newData.val() === data.val())" },
+                "bahis": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && (newData.val() * 2) % 1 === 0 && (data.parent().child('uid').val() === auth.uid || newData.val() === data.val()))" },
+                "katilimDurumu": { ".validate": "newData.val() === 'hazir' || newData.val() === 'sonraki-elde'" },
+                "eller": {
+                  "$elIndex": {
+                    ".validate": "($elIndex === '0' || $elIndex === '1') && newData.hasChildren(['kartlar','durum','bahisMiktari'])",
+                    "durum": { ".validate": "newData.val() === 'oynuyor' || newData.val() === 'kaldi' || newData.val() === 'batti' || newData.val() === 'blackjack' || newData.val() === 'katladi' || newData.val() === 'bekliyor'" },
+                    "bahisMiktari": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && (newData.val() * 2) % 1 === 0" },
+                    "katlandi": { ".validate": "newData.isBoolean()" },
+                    "splittenGeldiMi": { ".validate": "newData.isBoolean()" },
+                    "splittenGeldi": { ".validate": "newData.isBoolean()" },
+                    "sonuc": { ".validate": "newData.val() === 'kazandi' || newData.val() === 'kaybetti' || newData.val() === 'berabere' || newData.val() === 'blackjack'" },
+                    "odeme": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2500000 && (newData.val() * 2) % 1 === 0" },
+                    "kartlar": {
+                      "$kartIndex": {
+                        ".validate": "$kartIndex.matches(/^(0|[1-9]|1[0-9]|20)$/) && newData.hasChildren(['r','s'])",
+                        "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                        "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                        "bonusJokerGorseli": { ".validate": "newData.isString() && newData.parent().child('r').val() === 'joker' && newData.val().matches(/^Jokers([1-9]|[1-9][0-9]|1[0-5][0-9])[.]png$/)" },
+                        "$other": { ".validate": false }
+                      }
+                    },
+                    "$other": { ".validate": false }
+                  }
+                },
+                "$other": { ".validate": false }
+              }
+            },
+            "odemeGecmisi": {
+              "$elNo": {
+                ".validate": "$elNo.matches(/^(0|[1-9][0-9]{0,8})$/) && newData.hasChild('koltuklar')",
+                "koltuklar": {
+                  "$koltukIndex": {
+                    ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3' || $koltukIndex === '4') && newData.hasChildren(['uid','odeme'])",
+                    "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128" },
+                    "odeme": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2500000 && (newData.val() * 2) % 1 === 0" },
+                    "$other": { ".validate": false }
+                  }
+                },
+                "$other": { ".validate": false }
+              }
+            },
+            "sonNot": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+            "guncellemeTs": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": false }
+          }
+        },
+        "ayarlar": {
+          "$masaId": {
+            ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+            ".write": "auth != null && $oyunAdi === 'holdem' && $masaId === 'ana-masa' && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+            ".validate": "$oyunAdi === 'holdem' && newData.hasChildren(['girisBedeli','kucukKor','buyukKor','aksiyonSuresiMs','cikisAksiyonSuresiMs','masaKapasitesi'])",
+            "girisBedeli": { ".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 100000" },
+            "kucukKor": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000" },
+            "buyukKor": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 20000" },
+            "aksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 15000 && newData.val() <= 120000" },
+            "cikisAksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 1000 && newData.val() <= 60000" },
+            "masaKapasitesi": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 9" },
+            "guncellemeTs": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+        "$scoreUid": {
+          ".write": "auth != null && auth.uid === $scoreUid && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
+          ".validate": "$oyunAdi === 'wordle' ? newData.hasChildren(['oynanan','kazanilan','seri','enUzunSeri','sonTarih','isim']) : ($oyunAdi === 'amiralBatti' ? newData.hasChildren(['isim','oynanan','kazanilan']) : (newData.hasChildren(['name','score','ts']) && (!data.exists() || newData.child('score').val() >= data.child('score').val())))",
+          "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999" },
+          "ts": { ".validate": "newData.isNumber()" },
+          "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "oynanan": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "kazanilan": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "seri": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "enUzunSeri": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "sonTarih": { ".validate": "newData.isString() && newData.val().length === 10" },
+          "sonKazandi": { ".validate": "newData.isBoolean()" },
+          "dagitim": {
+            "$deneme": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+          }
+        }
+      },
+      "holdem": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "ayarlar": {
+          "ana-masa": {
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+            ".validate": "newData.hasChildren(['girisBedeli','kucukKor','buyukKor','aksiyonSuresiMs','cikisAksiyonSuresiMs','masaKapasitesi','guncellemeTs'])",
+            "girisBedeli": { ".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 100000" },
+            "kucukKor": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000" },
+            "buyukKor": { ".validate": "newData.isNumber() && newData.val() >= newData.parent().child('kucukKor').val() && newData.val() <= 20000" },
+            "aksiyonSuresiMs": { ".validate": "newData.val() === 60000" },
+            "cikisAksiyonSuresiMs": { ".validate": "newData.val() === 10000" },
+            "masaKapasitesi": { ".validate": "newData.val() === 5" },
+            "guncellemeTs": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    },
+    "ilProtokolVerileri": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) && root.child('users').child(auth.uid).child('blocked').val() !== true"
+    },
+    "universiteProtokolVerileri": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) && newData.exists() && root.child('users').child(auth.uid).child('blocked').val() !== true"
+    },
+    "etkinlikler": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$eventId": {
+        "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
+        "durum": { ".validate": "newData.isString() && (newData.val() === 'planlandi' || newData.val() === 'yaziliyor' || newData.val() === 'incelemede' || newData.val() === 'tamamlandi' || newData.val() === 'iptal' || newData.val() === 'cekildi' || newData.val() === 'haber' || newData.val() === 'yayinlandi')" },
+        "tarih": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "haberMetni": { ".validate": "newData.isString() && newData.val().length <= 200000" },
+        "guncellemeTs": { ".validate": "newData.isNumber()" }
+      }
+    },
+    "basinRehberi": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$contactId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".validate": "newData.hasChildren(['ad'])",
+        "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "kurum": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "telefon": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 40)" },
+        "eposta": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "yildizli": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "guncellemeTs": { ".validate": "newData.isNumber()" }
+      }
+    },
+    "telefonRehberi": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$contactId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".validate": "newData.hasChildren(['ad'])",
+        "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "kurum": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "telefon": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 40)" },
+        "yildizli": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "guncellemeTs": { ".validate": "newData.isNumber()" }
+      }
+    },
+    "pisti": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "masalar": {
+        "$masaId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && $masaId === 'ana-masa' && (!data.exists() || data.child('durum').val() === 'oyuncu_bekleniyor' || data.child('koltuklar/0/uid').val() === auth.uid || data.child('koltuklar/1/uid').val() === auth.uid || data.child('koltuklar/2/uid').val() === auth.uid || data.child('koltuklar/3/uid').val() === auth.uid || (data.child('guncellemeTs').exists() && now > data.child('guncellemeTs').val() + 120000))",
+          ".validate": "$masaId === 'ana-masa' && newData.hasChildren(['durum','guncellemeTs','elNo'])",
+          "durum": { ".validate": "(newData.val() === 'oyuncu_bekleniyor' || newData.val() === 'oynaniyor' || newData.val() === 'el_bitti' || newData.val() === 'oyun_bitti') && (!data.exists() ? newData.val() === 'oyuncu_bekleniyor' : (newData.val() === data.val() || (data.val() === 'oyuncu_bekleniyor' && (newData.val() === 'oynaniyor' || newData.val() === 'oyun_bitti')) || (data.val() === 'oynaniyor' && (newData.val() === 'el_bitti' || newData.val() === 'oyun_bitti')) || (data.val() === 'el_bitti' && (newData.val() === 'oynaniyor' || newData.val() === 'oyuncu_bekleniyor')) || (data.val() === 'oyun_bitti' && newData.val() === 'oyuncu_bekleniyor')))" },
+          "elNo": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 1000000000" },
+          "guncellemeTs": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "aktifKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+          "dagitici": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+          "sonAlanKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+          "kazananKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+          "aksiyonBitis": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)" },
+          "desteIndex": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 52)" },
+          "deste": {
+            "$kartIndex": {
+              ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+              "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+              "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+              "$other": { ".validate": false }
+            }
+          },
+          "masaKartlari": {
+            "$kartIndex": {
+              ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+              "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+              "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+              "$other": { ".validate": false }
+            }
+          },
+          "koltuklar": {
+            "$koltukIndex": {
+              ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.hasChildren(['uid','isim','katilimDurumu'])",
+              "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (!data.exists() ? newData.val() === auth.uid : newData.val() === data.val())" },
+              "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200 && (!data.exists() || newData.val() === data.val())" },
+              "katilimDurumu": { ".validate": "newData.val() === 'hazir'" },
+              "hazir": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "$other": { ".validate": false }
+            }
+          },
+          "eller": {
+            "$koltukIndex": {
+              ".validate": "$koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3'",
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^[0-3]$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            }
+          },
+          "topladiklarim": {
+            "$koltukIndex": {
+              ".validate": "$koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3'",
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            }
+          },
+          "pistiSayilari": {
+            "$koltukIndex": { ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 26" }
+          },
+          "skorlar": {
+            "$koltukIndex": { ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+          },
+          "sonElPuanlari": {
+            "$koltukIndex": { ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+          },
+          "bitirmeTeklifi": {
+            ".validate": "!newData.exists() || newData.val() === null || newData.hasChildren(['oneren','kabulEdenler','ts'])",
+            "oneren": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+            "kabulEdenler": { "$i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" } },
+            "ts": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "sonNot": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "holdem": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "masalar": {
+        "$masaId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && $masaId === 'ana-masa' && (!data.exists() || data.child('durum').val() === 'lobi' || !data.child('koltuklar').exists() || data.child('koltuklar/0/uid').val() === auth.uid || data.child('koltuklar/1/uid').val() === auth.uid || data.child('koltuklar/2/uid').val() === auth.uid || data.child('koltuklar/3/uid').val() === auth.uid || data.child('koltuklar/4/uid').val() === auth.uid || (data.child('guncellemeTs').exists() && now > data.child('guncellemeTs').val() + 120000))",
+          ".validate": "$masaId === 'ana-masa' && newData.hasChildren(['durum','guncellemeTs','elNo'])",
+          "masaId": { ".validate": "!newData.exists() || newData.isString()" },
+          "surum": { ".validate": "!newData.exists() || newData.isNumber()" },
+          "durum": { ".validate": "(newData.val() === 'lobi' || newData.val() === 'preflop' || newData.val() === 'flop' || newData.val() === 'turn' || newData.val() === 'river' || newData.val() === 'el_sonucu') && (!data.exists() ? newData.val() === 'lobi' : true)" },
+          "elNo": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000" },
+          "guncellemeTs": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "dagitici": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= -1 && newData.val() <= 4)" },
+          "aktifKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= -1 && newData.val() <= 4)" },
+          "smallBlind": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 4)" },
+          "bigBlind": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 4)" },
+          "mevcutBahis": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+          "minArtirma": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+          "pot": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+          "desteId": { ".validate": "!newData.exists() || newData.isString()" },
+          "desteIndex": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 52)" },
+          "aksiyonBitis": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)" },
+          "ayarlar": {
+            ".validate": "!newData.exists() || newData.hasChildren(['girisBedeli','kucukKor','buyukKor','aksiyonSuresiMs','cikisAksiyonSuresiMs','masaKapasitesi'])",
+            "girisBedeli": { ".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 100000" },
+            "kucukKor": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000" },
+            "buyukKor": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 20000" },
+            "aksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 15000 && newData.val() <= 120000" },
+            "cikisAksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 1000 && newData.val() <= 60000" },
+            "masaKapasitesi": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 5" }
+          },
+          "deste": {
+            "$kartIndex": {
+              ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+              "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+              "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+              "$other": { ".validate": false }
+            }
+          },
+          "yakilanKartlar": {
+            "$kartIndex": {
+              ".validate": "$kartIndex.matches(/^[0-3]$/) && newData.hasChildren(['r','s'])",
+              "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+              "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+              "$other": { ".validate": false }
+            }
+          },
+          "communityCards": {
+            "$kartIndex": {
+              ".validate": "$kartIndex.matches(/^[0-4]$/) && newData.hasChildren(['r','s'])",
+              "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+              "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+              "$other": { ".validate": false }
+            }
+          },
+          "bekleyen": { "$i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" } },
+          "artirmaKapali": { "$i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" } },
+          "koltuklar": {
+            "$koltukIndex": {
+              ".validate": "$koltukIndex.matches(/^[0-4]$/) && newData.hasChildren(['uid','isim','masaBakiyesi'])",
+              "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (!data.exists() ? newData.val() === auth.uid : newData.val() === data.val())" },
+              "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200 && (!data.exists() || newData.val() === data.val())" },
+              "bot": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "zorluk": { ".validate": "!newData.exists() || newData.val() === 'kolay' || newData.val() === 'normal' || newData.val() === 'zor'" },
+              "skin": { ".validate": "!newData.exists() || newData.hasChildren()" },
+              "masaBakiyesi": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000" },
+              "bagli": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "ayrilacak": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "pas": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "allIn": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "oynuyor": { ".validate": "!newData.exists() || newData.isBoolean()" },
+              "toplamYatirim": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+              "sokakYatirimi": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+              "sonAksiyon": { ".validate": "!newData.exists() || newData.isString()" },
+              "kartlar": {
+                "$kartIndex": {
+                  ".validate": "$kartIndex.matches(/^[01]$/) && newData.hasChildren(['r','s'])",
+                  "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                  "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                  "$other": { ".validate": false }
+                }
+              },
+              "$other": { ".validate": false }
+            }
+          },
+          "kuyruk": {
+            "$i": {
+              ".validate": "newData.hasChildren(['uid','isim'])",
+              "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128" },
+              "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+              "skin": { ".validate": "!newData.exists() || newData.hasChildren()" },
+              "masaBakiyesi": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+              "istekTs": { ".validate": "!newData.exists() || newData.isNumber()" },
+              "$other": { ".validate": false }
+            }
+          },
+          "sonuclar": {
+            ".validate": "!newData.exists() || newData.hasChildren(['odemeler','potlar','ts'])",
+            "odemeler": { "$i": { ".validate": "newData.isNumber()" } },
+            "potlar": { "$i": { ".validate": "newData.hasChild('miktar')", "miktar": { ".validate": "newData.isNumber()" }, "kazananlar": { "$i": { ".validate": "newData.isNumber()" } }, "el": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" } } },
+            "ts": { ".validate": "newData.isNumber()" }
+          },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "satranc": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$oyunId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && ((!data.exists() && newData.child('beyazUid').val() === auth.uid) || (data.exists() && (data.child('beyazUid').val() === auth.uid || data.child('siyahUid').val() === auth.uid)))",
+        ".validate": "newData.hasChildren(['beyazUid','fen','sira','durum'])",
+        "beyazUid": { ".validate": "newData.isString()" },
+        "beyazAd": { ".validate": "!newData.exists() || newData.isString()" },
+        "siyahUid": { ".validate": "!newData.exists() || newData.isString()" },
+        "siyahAd": { ".validate": "!newData.exists() || newData.isString()" },
+        "fen": { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "sira": { ".validate": "newData.val() === 'w' || newData.val() === 'b'" },
+        "durum": { ".validate": "newData.val() === 'davet_edildi' || newData.val() === 'oynaniyor' || newData.val() === 'bitti' || newData.val() === 'iptal'" },
+        "sonuc": { ".validate": "!newData.exists() || newData.val() === 'beyaz' || newData.val() === 'siyah' || newData.val() === 'beraberlik'" },
+        "sonNot": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
+        "beraberlikTeklifEden": { ".validate": "!newData.exists() || newData.val() === 'w' || newData.val() === 'b'" },
+        "geriAlmaTeklifEden": { ".validate": "!newData.exists() || newData.val() === 'w' || newData.val() === 'b'" },
+        "oncekiFen": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
+        "oncekiSira": { ".validate": "!newData.exists() || newData.val() === 'w' || newData.val() === 'b'" },
+        "hamleler": {
+          "$hamleIndex": {
+            ".validate": "newData.hasChildren(['from','to'])",
+            "from": { ".validate": "newData.isString() && newData.val().length <= 5" },
+            "to": { ".validate": "newData.isString() && newData.val().length <= 5" },
+            "promotion": { ".validate": "!newData.exists() || newData.val() === null || (newData.isString() && newData.val().length <= 1)" }
+          }
+        },
+        "yenidenOynaBeyaz": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "yenidenOynaSiyah": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "yeniOyunId": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)" },
+        "guncellemeTs": { ".validate": "newData.isNumber()" }
+      }
+    },
+    "amiralBattiGizli": {
+      "$oyunId": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".validate": "newData.hasChild('gemiler')",
+          "gemiler": {
+            "$gemiIndex": {
+              ".validate": "newData.hasChildren(['hucreler'])",
+              "hucreler": {
+                "$hIndex": {
+                  ".validate": "newData.hasChildren(['r','c'])",
+                  "r": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9" },
+                  "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cipBakiyeleri": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.exists() && ((!data.exists() && newData.child('bakiye').val() === 1000 && newData.child('sonIslemId').val() === 'blackjack:bootstrap:' + auth.uid && newData.child('islemler').child('blackjack:bootstrap:' + auth.uid).child('delta').val() === 1000 && newData.child('islemler').child('blackjack:bootstrap:' + auth.uid).child('kaynak').val() === 'baslangic') || (data.isNumber() && newData.child('bakiye').val() === data.val() && newData.child('sonIslemId').val() === 'blackjack:migrasyon:' + auth.uid && newData.child('islemler').child('blackjack:migrasyon:' + auth.uid).child('delta').val() === data.val() && newData.child('islemler').child('blackjack:migrasyon:' + auth.uid).child('kaynak').val() === 'migrasyon') || (data.hasChildren(['bakiye','sonIslemId','islemler']) && newData.child('sonIslemId').val() !== data.child('sonIslemId').val() && !data.child('islemler').child(newData.child('sonIslemId').val()).exists() && newData.child('islemler').child(data.child('sonIslemId').val()).exists() && newData.child('bakiye').val() === data.child('bakiye').val() + newData.child('islemler').child(newData.child('sonIslemId').val()).child('delta').val()))",
+        ".validate": "newData.hasChildren(['bakiye','sonIslemId','islemler'])",
+        "bakiye": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000 && (newData.val() * 2) % 1 === 0 && (!data.parent().exists() ? (newData.val() === 1000 && newData.parent().child('sonIslemId').val() === 'blackjack:bootstrap:' + auth.uid) : (data.parent().isNumber() ? newData.val() === data.parent().val() : (newData.parent().child('sonIslemId').val() !== data.parent().child('sonIslemId').val() && newData.val() === data.val() + newData.parent().child('islemler').child(newData.parent().child('sonIslemId').val()).child('delta').val())))"
+        },
+        "sonIslemId": {
+          ".validate": "newData.isString() && newData.val().matches(/^(blackjack:((bootstrap|migrasyon):[A-Za-z0-9_-]{1,128}|[0-9]{1,12}:koltuk:[0-4](:[A-Za-z0-9_-]{1,48}){1,5})|holdem:[A-Za-z0-9_-]{1,128}:el:[A-Za-z0-9_-]{1,128}:net)$/) && newData.parent().child('islemler').child(newData.val()).exists() && (!data.parent().exists() ? newData.val() === 'blackjack:bootstrap:' + auth.uid : (data.parent().isNumber() ? newData.val() === 'blackjack:migrasyon:' + auth.uid : newData.val() !== data.val()))"
+        },
+        "islemler": {
+          "$opId": {
+            ".validate": "$opId.matches(/^(blackjack:((bootstrap|migrasyon):[A-Za-z0-9_-]{1,128}|[0-9]{1,12}:koltuk:[0-4](:[A-Za-z0-9_-]{1,48}){1,5})|holdem:[A-Za-z0-9_-]{1,128}:el:[A-Za-z0-9_-]{1,128}:net)$/) && newData.hasChildren(['delta','kaynak','ts']) && (!data.exists() ? $opId === newData.parent().parent().child('sonIslemId').val() : (newData.child('delta').val() === data.child('delta').val() && newData.child('kaynak').val() === data.child('kaynak').val() && newData.child('ts').val() === data.child('ts').val()))",
+            "delta": { ".validate": "newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 1000000 && (newData.val() * 2) % 1 === 0" },
+            "kaynak": { ".validate": "newData.val() === 'baslangic' || newData.val() === 'migrasyon' || newData.val() === 'bahis' || newData.val() === 'katla' || newData.val() === 'bol' || newData.val() === 'iade' || newData.val() === 'odeme' || newData.val() === 'holdem-el-sonucu'" },
+            "ts": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": false }
+          }
+        },
+        "$other": { ".validate": false }
+      }
+    },
+    "blackjackAyarlari": {
+      "$uid": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".validate": "newData.hasChildren(['desteStili','yuzKartiTemasi','desteArkasi'])",
+        "desteStili": { ".validate": "newData.val() === 'temel' || newData.val() === 'altin' || newData.val() === 'celik'" },
+        "yuzKartiTemasi": { ".validate": "newData.val() === 'varsayilan' || (newData.isString() && newData.val().matches(/^(ac|au|bug|c7|cl|cr|cyp|d2|dbd|ds|dtd|eg|fo|pc|r|sk|stp|sts|sv|tboi|tw|vs|wf|xr)-(1|2)$/))" },
+        "desteArkasi": { ".validate": "newData.isString() && newData.val().matches(/^(0[1-9]|1[0-8])$/)" },
+        "$other": { ".validate": false }
+      }
+    },
+    "haberProjeleri": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$projectId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".validate": "newData.hasChildren(['ad','tur','durum','baslangicTarihi','bitisTarihi','ilerleme','guncellemeTs'])",
+        "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 180" },
+        "tur": { ".validate": "newData.val() === 'normal' || newData.val() === 'ozel'" },
+        "durum": { ".validate": "newData.val() === 'fikir' || newData.val() === 'arastirma' || newData.val() === 'hazirlik' || newData.val() === 'cekim' || newData.val() === 'kurgu' || newData.val() === 'onay' || newData.val() === 'yayinlandi' || newData.val() === 'iptal'" },
+        "baslangicTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "bitisTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() >= newData.parent().child('baslangicTarihi').val()" },
+        "ilerleme": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+        "sorumlu": { ".validate": "newData.isString() && newData.val().length <= 120" },
+        "notlar": { ".validate": "newData.isString() && newData.val().length <= 4000" },
+        "renk": { ".validate": "newData.val() === 'mavi' || newData.val() === 'indigo' || newData.val() === 'mor' || newData.val() === 'camgobegi' || newData.val() === 'turkuaz' || newData.val() === 'zumrut' || newData.val() === 'amber' || newData.val() === 'turuncu' || newData.val() === 'kirmizi' || newData.val() === 'pembe' || newData.val() === ''" },
+        "guncellemeTs": { ".validate": "newData.isNumber()" },
+        "adimlar": {
+          "$stepId": {
+            ".validate": "newData.hasChildren(['ad','durum','baslangicTarihi','bitisTarihi','ilerleme','sira'])",
+            "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 140" },
+            "durum": { ".validate": "newData.val() === 'yapilacak' || newData.val() === 'yapiliyor' || newData.val() === 'incelemede' || newData.val() === 'tamamlandi' || newData.val() === 'iptal'" },
+            "baslangicTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+            "bitisTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() >= newData.parent().child('baslangicTarihi').val()" },
+            "ilerleme": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+            "sira": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "sorumlu": { ".validate": "newData.isString() && newData.val().length <= 120" }
+          }
+        }
+      }
+    },
+    "basinGorevlileri": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+    },
+    "staffProfiles": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$staffUid": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((auth.uid === $staffUid && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner'))",
+        "displayName": { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "avatarUrl": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 300000 && (newData.val().matches(/^data:image\\/.*/) || newData.val().matches(/^https:\\/\\/.*/)))" },
+        "role": { ".validate": "!newData.exists() || (newData.isString() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner'))" },
+        "email": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200 && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner'))" }
+      }
+    },
+    "attendanceRequests": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      ".indexOn": ["status"],
+      "$requestId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('requestedByUid').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('reviewedByUid').val() === null) || (data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && data.child('requestedByUid').val() === newData.child('requestedByUid').val() && data.child('eventId').val() === newData.child('eventId').val()))",
+        ".validate": "newData.hasChildren(['eventId','eventName','eventDate','attendeeName','role','requestedByUid','requestedByName','requestedAt','status'])",
+        "eventId": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "eventName": { ".validate": "newData.isString() && newData.val().length <= 300" },
+        "eventDate": { ".validate": "newData.isString()" },
+        "attendeeUid": { ".validate": "!newData.exists() || newData.isString()" },
+        "attendeeName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "role": { ".validate": "newData.val() === 'gorevli' || newData.val() === 'haberYazanlari'" },
+        "requestedByUid": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "requestedByName": { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "requestedAt": { ".validate": "newData.isNumber()" },
+        "status": { ".validate": "newData.val() === 'pending' || newData.val() === 'approved' || newData.val() === 'rejected'" },
+        "reviewedByUid": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" },
+        "reviewedByName": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" },
+        "reviewedAt": { ".validate": "!newData.exists() || newData.val() === null || newData.isNumber()" },
+        "rejectReason": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" }
+      }
+    },
+    "notifications": {
+      "$notifUid": {
+        ".read": "auth != null && auth.uid === $notifUid",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (auth.uid === $notifUid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
+        "$notificationId": {
+          ".validate": "newData.hasChildren(['type','title','message','createdAt','read'])",
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && (newData.child('type').val() === 'chess_invite' || newData.child('type').val() === 'amiral_batti_invite')",
+          "type": { ".validate": "newData.isString()" },
+          "title": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "message": { ".validate": "newData.isString() && newData.val().length <= 1000" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "read": { ".validate": "newData.isBoolean()" },
+          "relatedEventId": { ".validate": "!newData.exists() || newData.isString()" },
+          "relatedRequestId": { ".validate": "!newData.exists() || newData.isString()" },
+          "relatedGameId": { ".validate": "!newData.exists() || newData.isString()" }
+        }
+      }
+    },
+    "ayarlar": {
+      "testModuAcik": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      },
+      "saltOkunur": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      },
+      "sayac": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      }
+    },
+    "oneriler": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$listKey": {
+        "$kind": {
+          "$oneriId": {
+            ".write": "auth != null && ((newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner'))) || (!newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner'))) && root.child('users').child(auth.uid).child('blocked').val() !== true"
+          }
+        }
+      }
+    },
+    "test": {
+      "oyunBasarimlari": {
+        "blackjack": {
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          "masalar": {
+            "$masaId": {
+              ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && $masaId === 'ana-masa' && (!data.exists() || data.child('durum').val() === 'bahis_bekleniyor' || data.child('koltuklar/0/uid').val() === auth.uid || data.child('koltuklar/1/uid').val() === auth.uid || data.child('koltuklar/2/uid').val() === auth.uid || data.child('koltuklar/3/uid').val() === auth.uid || data.child('koltuklar/4/uid').val() === auth.uid || (data.child('guncellemeTs').exists() && now > data.child('guncellemeTs').val() + 120000))",
+              ".validate": "$masaId === 'ana-masa' && newData.hasChildren(['durum','guncellemeTs','elNo'])",
+              "durum": {
+                ".validate": "(newData.val() === 'bahis_bekleniyor' || newData.val() === 'dagitiliyor' || newData.val() === 'oyunculuk' || newData.val() === 'kurpiyer_sirasi' || newData.val() === 'el_sonucu') && (!data.exists() ? newData.val() === 'bahis_bekleniyor' : (newData.val() === data.val() || (data.val() === 'bahis_bekleniyor' && (newData.val() === 'dagitiliyor' || newData.val() === 'oyunculuk' || newData.val() === 'kurpiyer_sirasi')) || (data.val() === 'dagitiliyor' && (newData.val() === 'oyunculuk' || newData.val() === 'kurpiyer_sirasi')) || (data.val() === 'oyunculuk' && newData.val() === 'kurpiyer_sirasi') || (data.val() === 'kurpiyer_sirasi' && newData.val() === 'el_sonucu') || (data.val() === 'el_sonucu' && newData.val() === 'bahis_bekleniyor')))"
+              },
+              "aktifKoltuk": {
+                ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 4)"
+              },
+              "bahisSuresiBitis": {
+                ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)"
+              },
+              "aksiyonSuresiBitis": {
+                ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)"
+              },
+              "desteIndex": {
+                ".validate": "!newData.exists() || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 208)"
+              },
+              "elNo": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 1000000000"
+              },
+              "deste": {
+                "$kartIndex": {
+                  ".validate": "$kartIndex.matches(/^(0|[1-9][0-9]?|1[0-9]{2}|20[0-7])$/) && newData.hasChildren(['r','s'])",
+                  "r": {
+                    ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'"
+                  },
+                  "s": {
+                    ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'"
+                  },
+                  "bonusJokerGorseli": {
+                    ".validate": "newData.isString() && newData.parent().child('r').val() === 'joker' && newData.val().matches(/^Jokers([1-9]|[1-9][0-9]|1[0-5][0-9])[.]png$/)"
+                  },
+                  "$other": {
+                    ".validate": false
+                  }
+                }
+              },
+              "kurpiyerEli": {
+                ".validate": "newData.hasChildren(['kartlar','acikMi'])",
+                "acikMi": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "kartlar": {
+                  "$kartIndex": {
+                    ".validate": "$kartIndex.matches(/^(0|[1-9]|1[0-9]|20)$/) && newData.hasChildren(['r','s'])",
+                    "r": {
+                      ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'"
+                    },
+                    "s": {
+                      ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'"
+                    },
+                    "bonusJokerGorseli": {
+                      ".validate": "newData.isString() && newData.parent().child('r').val() === 'joker' && newData.val().matches(/^Jokers([1-9]|[1-9][0-9]|1[0-5][0-9])[.]png$/)"
+                    },
+                    "$other": {
+                      ".validate": false
+                    }
+                  }
+                },
+                "$other": {
+                  ".validate": false
+                }
+              },
+              "koltuklar": {
+                "$koltukIndex": {
+                  ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3' || $koltukIndex === '4') && newData.hasChildren(['uid','isim','katilimDurumu'])",
+                  "uid": {
+                    ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (!data.exists() ? newData.val() === auth.uid : newData.val() === data.val())"
+                  },
+                  "isim": {
+                    ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200 && (!data.exists() || newData.val() === data.val())"
+                  },
+                  "bahis": {
+                    ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && (newData.val() * 2) % 1 === 0 && (data.parent().child('uid').val() === auth.uid || newData.val() === data.val()))"
+                  },
+                  "katilimDurumu": {
+                    ".validate": "newData.val() === 'hazir' || newData.val() === 'sonraki-elde'"
+                  },
+                  "eller": {
+                    "$elIndex": {
+                      ".validate": "($elIndex === '0' || $elIndex === '1') && newData.hasChildren(['kartlar','durum','bahisMiktari'])",
+                      "durum": {
+                        ".validate": "newData.val() === 'oynuyor' || newData.val() === 'kaldi' || newData.val() === 'batti' || newData.val() === 'blackjack' || newData.val() === 'katladi' || newData.val() === 'bekliyor'"
+                      },
+                      "bahisMiktari": {
+                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && (newData.val() * 2) % 1 === 0"
+                      },
+                      "katlandi": {
+                        ".validate": "newData.isBoolean()"
+                      },
+                      "splittenGeldiMi": {
+                        ".validate": "newData.isBoolean()"
+                      },
+                      "splittenGeldi": {
+                        ".validate": "newData.isBoolean()"
+                      },
+                      "sonuc": {
+                        ".validate": "newData.val() === 'kazandi' || newData.val() === 'kaybetti' || newData.val() === 'berabere' || newData.val() === 'blackjack'"
+                      },
+                      "odeme": {
+                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2500000 && (newData.val() * 2) % 1 === 0"
+                      },
+                      "kartlar": {
+                        "$kartIndex": {
+                          ".validate": "$kartIndex.matches(/^(0|[1-9]|1[0-9]|20)$/) && newData.hasChildren(['r','s'])",
+                          "r": {
+                            ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'"
+                          },
+                          "s": {
+                            ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'"
+                          },
+                          "bonusJokerGorseli": {
+                            ".validate": "newData.isString() && newData.parent().child('r').val() === 'joker' && newData.val().matches(/^Jokers([1-9]|[1-9][0-9]|1[0-5][0-9])[.]png$/)"
+                          },
+                          "$other": {
+                            ".validate": false
+                          }
+                        }
+                      },
+                      "$other": {
+                        ".validate": false
+                      }
+                    }
+                  },
+                  "$other": {
+                    ".validate": false
+                  }
+                }
+              },
+              "odemeGecmisi": {
+                "$elNo": {
+                  ".validate": "$elNo.matches(/^(0|[1-9][0-9]{0,8})$/) && newData.hasChild('koltuklar')",
+                  "koltuklar": {
+                    "$koltukIndex": {
+                      ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3' || $koltukIndex === '4') && newData.hasChildren(['uid','odeme'])",
+                      "uid": {
+                        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128"
+                      },
+                      "odeme": {
+                        ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2500000 && (newData.val() * 2) % 1 === 0"
+                      },
+                      "$other": {
+                        ".validate": false
+                      }
+                    }
+                  },
+                  "$other": {
+                    ".validate": false
+                  }
+                }
+              },
+              "sonNot": {
+                ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)"
+              },
+              "guncellemeTs": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "holdem": {
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          "ayarlar": {
+            "$masaId": {
+              ".write": "auth != null && $masaId === 'ana-masa' && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+              ".validate": "newData.hasChildren(['girisBedeli','kucukKor','buyukKor','aksiyonSuresiMs','cikisAksiyonSuresiMs','masaKapasitesi'])",
+              "girisBedeli": { ".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 100000" },
+              "kucukKor": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000" },
+              "buyukKor": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 20000" },
+              "aksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 15000 && newData.val() <= 120000" },
+              "cikisAksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 1000 && newData.val() <= 60000" },
+              "masaKapasitesi": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 9" },
+              "guncellemeTs": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      },
+      "cipBakiyeleri": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.exists() && ((!data.exists() && newData.child('bakiye').val() === 1000 && newData.child('sonIslemId').val() === 'blackjack:bootstrap:' + auth.uid && newData.child('islemler').child('blackjack:bootstrap:' + auth.uid).child('delta').val() === 1000 && newData.child('islemler').child('blackjack:bootstrap:' + auth.uid).child('kaynak').val() === 'baslangic') || (data.isNumber() && newData.child('bakiye').val() === data.val() && newData.child('sonIslemId').val() === 'blackjack:migrasyon:' + auth.uid && newData.child('islemler').child('blackjack:migrasyon:' + auth.uid).child('delta').val() === data.val() && newData.child('islemler').child('blackjack:migrasyon:' + auth.uid).child('kaynak').val() === 'migrasyon') || (data.hasChildren(['bakiye','sonIslemId','islemler']) && newData.child('sonIslemId').val() !== data.child('sonIslemId').val() && !data.child('islemler').child(newData.child('sonIslemId').val()).exists() && newData.child('islemler').child(data.child('sonIslemId').val()).exists() && newData.child('bakiye').val() === data.child('bakiye').val() + newData.child('islemler').child(newData.child('sonIslemId').val()).child('delta').val()))",
+          ".validate": "newData.hasChildren(['bakiye','sonIslemId','islemler'])",
+          "bakiye": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000 && (newData.val() * 2) % 1 === 0 && (!data.parent().exists() ? (newData.val() === 1000 && newData.parent().child('sonIslemId').val() === 'blackjack:bootstrap:' + auth.uid) : (data.parent().isNumber() ? newData.val() === data.parent().val() : (newData.parent().child('sonIslemId').val() !== data.parent().child('sonIslemId').val() && newData.val() === data.val() + newData.parent().child('islemler').child(newData.parent().child('sonIslemId').val()).child('delta').val())))"
+          },
+          "sonIslemId": {
+            ".validate": "newData.isString() && newData.val().matches(/^(blackjack:((bootstrap|migrasyon):[A-Za-z0-9_-]{1,128}|[0-9]{1,12}:koltuk:[0-4](:[A-Za-z0-9_-]{1,48}){1,5})|holdem:[A-Za-z0-9_-]{1,128}:el:[A-Za-z0-9_-]{1,128}:net)$/) && newData.parent().child('islemler').child(newData.val()).exists() && (!data.parent().exists() ? newData.val() === 'blackjack:bootstrap:' + auth.uid : (data.parent().isNumber() ? newData.val() === 'blackjack:migrasyon:' + auth.uid : newData.val() !== data.val()))"
+          },
+          "islemler": {
+            "$opId": {
+              ".validate": "$opId.matches(/^(blackjack:((bootstrap|migrasyon):[A-Za-z0-9_-]{1,128}|[0-9]{1,12}:koltuk:[0-4](:[A-Za-z0-9_-]{1,48}){1,5})|holdem:[A-Za-z0-9_-]{1,128}:el:[A-Za-z0-9_-]{1,128}:net)$/) && newData.hasChildren(['delta','kaynak','ts']) && (!data.exists() ? $opId === newData.parent().parent().child('sonIslemId').val() : (newData.child('delta').val() === data.child('delta').val() && newData.child('kaynak').val() === data.child('kaynak').val() && newData.child('ts').val() === data.child('ts').val()))",
+              "delta": {
+                ".validate": "newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 1000000 && (newData.val() * 2) % 1 === 0"
+              },
+              "kaynak": {
+                ".validate": "newData.val() === 'baslangic' || newData.val() === 'migrasyon' || newData.val() === 'bahis' || newData.val() === 'katla' || newData.val() === 'bol' || newData.val() === 'iade' || newData.val() === 'odeme' || newData.val() === 'holdem-el-sonucu'"
+              },
+              "ts": {
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "blackjackAyarlari": {
+        "$uid": {
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".validate": "newData.hasChildren(['desteStili','yuzKartiTemasi','desteArkasi'])",
+          "desteStili": {
+            ".validate": "newData.val() === 'temel' || newData.val() === 'altin' || newData.val() === 'celik'"
+          },
+          "yuzKartiTemasi": {
+            ".validate": "newData.val() === 'varsayilan' || (newData.isString() && newData.val().matches(/^(ac|au|bug|c7|cl|cr|cyp|d2|dbd|ds|dtd|eg|fo|pc|r|sk|stp|sts|sv|tboi|tw|vs|wf|xr)-(1|2)$/))"
+          },
+          "desteArkasi": {
+            ".validate": "newData.isString() && newData.val().matches(/^(0[1-9]|1[0-8])$/)"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "ilProtokolVerileri": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      },
+      "universiteProtokolVerileri": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      },
+      "etkinlikler": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$eventId": {
+          "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
+          "durum": { ".validate": "newData.isString() && (newData.val() === 'planlandi' || newData.val() === 'yaziliyor' || newData.val() === 'incelemede' || newData.val() === 'tamamlandi' || newData.val() === 'iptal' || newData.val() === 'cekildi' || newData.val() === 'haber' || newData.val() === 'yayinlandi')" },
+          "tarih": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+          "haberMetni": { ".validate": "newData.isString() && newData.val().length <= 200000" },
+          "guncellemeTs": { ".validate": "newData.isNumber()" }
+        }
+      },
+      "basinRehberi": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$contactId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".validate": "newData.hasChildren(['ad'])",
+          "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "kurum": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+          "telefon": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 40)" },
+          "eposta": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+          "yildizli": { ".validate": "!newData.exists() || newData.isBoolean()" },
+          "guncellemeTs": { ".validate": "newData.isNumber()" }
+        }
+      },
+      "telefonRehberi": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$contactId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".validate": "newData.hasChildren(['ad'])",
+          "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "kurum": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+          "telefon": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 40)" },
+          "yildizli": { ".validate": "!newData.exists() || newData.isBoolean()" },
+          "guncellemeTs": { ".validate": "newData.isNumber()" }
+        }
+      },
+      "pisti": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "masalar": {
+          "$masaId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && $masaId === 'ana-masa' && (!data.exists() || data.child('durum').val() === 'oyuncu_bekleniyor' || data.child('koltuklar/0/uid').val() === auth.uid || data.child('koltuklar/1/uid').val() === auth.uid || data.child('koltuklar/2/uid').val() === auth.uid || data.child('koltuklar/3/uid').val() === auth.uid || (data.child('guncellemeTs').exists() && now > data.child('guncellemeTs').val() + 120000))",
+            ".validate": "$masaId === 'ana-masa' && newData.hasChildren(['durum','guncellemeTs','elNo'])",
+            "durum": { ".validate": "(newData.val() === 'oyuncu_bekleniyor' || newData.val() === 'oynaniyor' || newData.val() === 'el_bitti' || newData.val() === 'oyun_bitti') && (!data.exists() ? newData.val() === 'oyuncu_bekleniyor' : (newData.val() === data.val() || (data.val() === 'oyuncu_bekleniyor' && (newData.val() === 'oynaniyor' || newData.val() === 'oyun_bitti')) || (data.val() === 'oynaniyor' && (newData.val() === 'el_bitti' || newData.val() === 'oyun_bitti')) || (data.val() === 'el_bitti' && (newData.val() === 'oynaniyor' || newData.val() === 'oyuncu_bekleniyor')) || (data.val() === 'oyun_bitti' && newData.val() === 'oyuncu_bekleniyor')))" },
+            "elNo": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 1000000000" },
+            "guncellemeTs": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "aktifKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+            "dagitici": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+            "sonAlanKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+            "kazananKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 3)" },
+            "aksiyonBitis": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)" },
+            "desteIndex": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 52)" },
+            "deste": {
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            },
+            "masaKartlari": {
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            },
+            "koltuklar": {
+              "$koltukIndex": {
+                ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.hasChildren(['uid','isim','katilimDurumu'])",
+                "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (!data.exists() ? newData.val() === auth.uid : newData.val() === data.val())" },
+                "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200 && (!data.exists() || newData.val() === data.val())" },
+                "katilimDurumu": { ".validate": "newData.val() === 'hazir'" },
+                "hazir": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "$other": { ".validate": false }
+              }
+            },
+            "eller": {
+              "$koltukIndex": {
+                ".validate": "$koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3'",
+                "$kartIndex": {
+                  ".validate": "$kartIndex.matches(/^[0-3]$/) && newData.hasChildren(['r','s'])",
+                  "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                  "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                  "$other": { ".validate": false }
+                }
+              }
+            },
+            "topladiklarim": {
+              "$koltukIndex": {
+                ".validate": "$koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3'",
+                "$kartIndex": {
+                  ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+                  "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                  "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                  "$other": { ".validate": false }
+                }
+              }
+            },
+            "pistiSayilari": {
+              "$koltukIndex": { ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 26" }
+            },
+            "skorlar": {
+              "$koltukIndex": { ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+            },
+            "sonElPuanlari": {
+              "$koltukIndex": { ".validate": "($koltukIndex === '0' || $koltukIndex === '1' || $koltukIndex === '2' || $koltukIndex === '3') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+            },
+            "bitirmeTeklifi": {
+              ".validate": "!newData.exists() || newData.val() === null || newData.hasChildren(['oneren','kabulEdenler','ts'])",
+              "oneren": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+              "kabulEdenler": { "$i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" } },
+              "ts": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            },
+            "sonNot": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+            "$other": { ".validate": false }
+          }
+        }
+      },
+      "holdem": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "masalar": {
+          "$masaId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && $masaId === 'ana-masa' && (!data.exists() || data.child('durum').val() === 'lobi' || !data.child('koltuklar').exists() || data.child('koltuklar/0/uid').val() === auth.uid || data.child('koltuklar/1/uid').val() === auth.uid || data.child('koltuklar/2/uid').val() === auth.uid || data.child('koltuklar/3/uid').val() === auth.uid || data.child('koltuklar/4/uid').val() === auth.uid || (data.child('guncellemeTs').exists() && now > data.child('guncellemeTs').val() + 120000))",
+            ".validate": "$masaId === 'ana-masa' && newData.hasChildren(['durum','guncellemeTs','elNo'])",
+            "masaId": { ".validate": "!newData.exists() || newData.isString()" },
+            "surum": { ".validate": "!newData.exists() || newData.isNumber()" },
+            "durum": { ".validate": "(newData.val() === 'lobi' || newData.val() === 'preflop' || newData.val() === 'flop' || newData.val() === 'turn' || newData.val() === 'river' || newData.val() === 'el_sonucu') && (!data.exists() ? newData.val() === 'lobi' : true)" },
+            "elNo": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000" },
+            "guncellemeTs": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "dagitici": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= -1 && newData.val() <= 4)" },
+            "aktifKoltuk": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= -1 && newData.val() <= 4)" },
+            "smallBlind": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 4)" },
+            "bigBlind": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 4)" },
+            "mevcutBahis": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+            "minArtirma": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+            "pot": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+            "desteId": { ".validate": "!newData.exists() || newData.isString()" },
+            "desteIndex": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 52)" },
+            "aksiyonBitis": { ".validate": "!newData.exists() || newData.val() === null || (newData.isNumber() && newData.val() >= 0)" },
+            "ayarlar": {
+              ".validate": "!newData.exists() || newData.hasChildren(['girisBedeli','kucukKor','buyukKor','aksiyonSuresiMs','cikisAksiyonSuresiMs','masaKapasitesi'])",
+              "girisBedeli": { ".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 100000" },
+              "kucukKor": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000" },
+              "buyukKor": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 20000" },
+              "aksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 15000 && newData.val() <= 120000" },
+              "cikisAksiyonSuresiMs": { ".validate": "newData.isNumber() && newData.val() >= 1000 && newData.val() <= 60000" },
+              "masaKapasitesi": { ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 5" }
+            },
+            "deste": {
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^([0-9]|[1-4][0-9]|5[01])$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            },
+            "yakilanKartlar": {
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^[0-3]$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            },
+            "communityCards": {
+              "$kartIndex": {
+                ".validate": "$kartIndex.matches(/^[0-4]$/) && newData.hasChildren(['r','s'])",
+                "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                "$other": { ".validate": false }
+              }
+            },
+            "bekleyen": { "$i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" } },
+            "artirmaKapali": { "$i": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" } },
+            "koltuklar": {
+              "$koltukIndex": {
+                ".validate": "$koltukIndex.matches(/^[0-4]$/) && newData.hasChildren(['uid','isim','masaBakiyesi'])",
+                "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128 && (!data.exists() ? newData.val() === auth.uid : newData.val() === data.val())" },
+                "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200 && (!data.exists() || newData.val() === data.val())" },
+                "bot": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "zorluk": { ".validate": "!newData.exists() || newData.val() === 'kolay' || newData.val() === 'normal' || newData.val() === 'zor'" },
+                "skin": { ".validate": "!newData.exists() || newData.hasChildren()" },
+                "masaBakiyesi": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000" },
+                "bagli": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "ayrilacak": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "pas": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "allIn": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "oynuyor": { ".validate": "!newData.exists() || newData.isBoolean()" },
+                "toplamYatirim": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+                "sokakYatirimi": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+                "sonAksiyon": { ".validate": "!newData.exists() || newData.isString()" },
+                "kartlar": {
+                  "$kartIndex": {
+                    ".validate": "$kartIndex.matches(/^[01]$/) && newData.hasChildren(['r','s'])",
+                    "r": { ".validate": "newData.val() === 'as' || newData.val() === '2' || newData.val() === '3' || newData.val() === '4' || newData.val() === '5' || newData.val() === '6' || newData.val() === '7' || newData.val() === '8' || newData.val() === '9' || newData.val() === '10' || newData.val() === 'joker' || newData.val() === 'kiz' || newData.val() === 'papaz'" },
+                    "s": { ".validate": "newData.val() === 'kupa' || newData.val() === 'sinek' || newData.val() === 'karo' || newData.val() === 'maca'" },
+                    "$other": { ".validate": false }
+                  }
+                },
+                "$other": { ".validate": false }
+              }
+            },
+            "kuyruk": {
+              "$i": {
+                ".validate": "newData.hasChildren(['uid','isim'])",
+                "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128" },
+                "isim": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+                "skin": { ".validate": "!newData.exists() || newData.hasChildren()" },
+                "masaBakiyesi": { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)" },
+                "istekTs": { ".validate": "!newData.exists() || newData.isNumber()" },
+                "$other": { ".validate": false }
+              }
+            },
+            "sonuclar": {
+              ".validate": "!newData.exists() || newData.hasChildren(['odemeler','potlar','ts'])",
+              "odemeler": { "$i": { ".validate": "newData.isNumber()" } },
+              "potlar": { "$i": { ".validate": "newData.hasChild('miktar')", "miktar": { ".validate": "newData.isNumber()" }, "kazananlar": { "$i": { ".validate": "newData.isNumber()" } }, "el": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" } } },
+              "ts": { ".validate": "newData.isNumber()" }
+            },
+            "$other": { ".validate": false }
+          }
+        }
+      },
+      "satranc": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$oyunId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && ((!data.exists() && newData.child('beyazUid').val() === auth.uid) || (data.exists() && (data.child('beyazUid').val() === auth.uid || data.child('siyahUid').val() === auth.uid)))",
+          ".validate": "newData.hasChildren(['beyazUid','fen','sira','durum'])",
+          "beyazUid": { ".validate": "newData.isString()" },
+          "beyazAd": { ".validate": "!newData.exists() || newData.isString()" },
+          "siyahUid": { ".validate": "!newData.exists() || newData.isString()" },
+          "siyahAd": { ".validate": "!newData.exists() || newData.isString()" },
+          "fen": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "sira": { ".validate": "newData.val() === 'w' || newData.val() === 'b'" },
+          "durum": { ".validate": "newData.val() === 'davet_edildi' || newData.val() === 'oynaniyor' || newData.val() === 'bitti' || newData.val() === 'iptal'" },
+          "sonuc": { ".validate": "!newData.exists() || newData.val() === 'beyaz' || newData.val() === 'siyah' || newData.val() === 'beraberlik'" },
+          "sonNot": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
+          "beraberlikTeklifEden": { ".validate": "!newData.exists() || newData.val() === 'w' || newData.val() === 'b'" },
+          "geriAlmaTeklifEden": { ".validate": "!newData.exists() || newData.val() === 'w' || newData.val() === 'b'" },
+          "oncekiFen": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
+          "oncekiSira": { ".validate": "!newData.exists() || newData.val() === 'w' || newData.val() === 'b'" },
+          "hamleler": {
+            "$hamleIndex": {
+              ".validate": "newData.hasChildren(['from','to'])",
+              "from": { ".validate": "newData.isString() && newData.val().length <= 5" },
+              "to": { ".validate": "newData.isString() && newData.val().length <= 5" },
+              "promotion": { ".validate": "!newData.exists() || newData.val() === null || (newData.isString() && newData.val().length <= 1)" }
+            }
+          },
+          "yenidenOynaBeyaz": { ".validate": "!newData.exists() || newData.isBoolean()" },
+          "yenidenOynaSiyah": { ".validate": "!newData.exists() || newData.isBoolean()" },
+          "yeniOyunId": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)" },
+          "guncellemeTs": { ".validate": "newData.isNumber()" }
+        }
+      },
+      "amiralBattiGizli": {
+        "$oyunId": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('blocked').val() !== true",
+            ".validate": "newData.hasChild('gemiler')",
+            "gemiler": {
+              "$gemiIndex": {
+                ".validate": "newData.hasChildren(['hucreler'])",
+                "hucreler": {
+                  "$hIndex": {
+                    ".validate": "newData.hasChildren(['r','c'])",
+                    "r": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9" },
+                    "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "haberProjeleri": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$projectId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".validate": "newData.hasChildren(['ad','tur','durum','baslangicTarihi','bitisTarihi','ilerleme','guncellemeTs'])",
+          "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 180" },
+          "tur": { ".validate": "newData.val() === 'normal' || newData.val() === 'ozel'" },
+          "durum": { ".validate": "newData.val() === 'fikir' || newData.val() === 'arastirma' || newData.val() === 'hazirlik' || newData.val() === 'cekim' || newData.val() === 'kurgu' || newData.val() === 'onay' || newData.val() === 'yayinlandi' || newData.val() === 'iptal'" },
+          "baslangicTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+          "bitisTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() >= newData.parent().child('baslangicTarihi').val()" },
+          "ilerleme": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+          "sorumlu": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "notlar": { ".validate": "newData.isString() && newData.val().length <= 4000" },
+        "renk": { ".validate": "newData.val() === 'mavi' || newData.val() === 'indigo' || newData.val() === 'mor' || newData.val() === 'camgobegi' || newData.val() === 'turkuaz' || newData.val() === 'zumrut' || newData.val() === 'amber' || newData.val() === 'turuncu' || newData.val() === 'kirmizi' || newData.val() === 'pembe' || newData.val() === ''" },
+          "guncellemeTs": { ".validate": "newData.isNumber()" },
+          "adimlar": {
+            "$stepId": {
+              ".validate": "newData.hasChildren(['ad','durum','baslangicTarihi','bitisTarihi','ilerleme','sira'])",
+              "ad": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 140" },
+              "durum": { ".validate": "newData.val() === 'yapilacak' || newData.val() === 'yapiliyor' || newData.val() === 'incelemede' || newData.val() === 'tamamlandi' || newData.val() === 'iptal'" },
+              "baslangicTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+              "bitisTarihi": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() >= newData.parent().child('baslangicTarihi').val()" },
+              "ilerleme": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+              "sira": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+              "sorumlu": { ".validate": "newData.isString() && newData.val().length <= 120" }
+            }
+          }
+        }
+      },
+      "basinGorevlileri": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      },
+      "attendanceRequests": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        ".indexOn": ["status"],
+        "$requestId": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('requestedByUid').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('reviewedByUid').val() === null) || (data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && data.child('requestedByUid').val() === newData.child('requestedByUid').val() && data.child('eventId').val() === newData.child('eventId').val()))",
+          ".validate": "newData.hasChildren(['eventId','eventName','eventDate','attendeeName','role','requestedByUid','requestedByName','requestedAt','status'])",
+          "eventId": { ".validate": "newData.isString() && newData.val().length > 0" },
+          "eventName": { ".validate": "newData.isString() && newData.val().length <= 300" },
+          "eventDate": { ".validate": "newData.isString()" },
+          "attendeeUid": { ".validate": "!newData.exists() || newData.isString()" },
+          "attendeeName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "role": { ".validate": "newData.val() === 'gorevli' || newData.val() === 'haberYazanlari'" },
+          "requestedByUid": { ".validate": "newData.isString() && newData.val().length > 0" },
+          "requestedByName": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "requestedAt": { ".validate": "newData.isNumber()" },
+          "status": { ".validate": "newData.val() === 'pending' || newData.val() === 'approved' || newData.val() === 'rejected'" },
+          "reviewedByUid": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" },
+          "reviewedByName": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" },
+          "reviewedAt": { ".validate": "!newData.exists() || newData.val() === null || newData.isNumber()" },
+          "rejectReason": { ".validate": "!newData.exists() || newData.val() === null || newData.isString()" }
+        }
+      },
+      "notifications": {
+        "$notifUid": {
+          ".read": "auth != null && auth.uid === $notifUid",
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (auth.uid === $notifUid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
+          "$notificationId": {
+            ".validate": "newData.hasChildren(['type','title','message','createdAt','read'])",
+            ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && (newData.child('type').val() === 'chess_invite' || newData.child('type').val() === 'amiral_batti_invite')",
+            "type": { ".validate": "newData.isString()" },
+            "title": { ".validate": "newData.isString() && newData.val().length <= 200" },
+            "message": { ".validate": "newData.isString() && newData.val().length <= 1000" },
+            "createdAt": { ".validate": "newData.isNumber()" },
+            "read": { ".validate": "newData.isBoolean()" },
+            "relatedEventId": { ".validate": "!newData.exists() || newData.isString()" },
+            "relatedRequestId": { ".validate": "!newData.exists() || newData.isString()" },
+            "relatedGameId": { ".validate": "!newData.exists() || newData.isString()" }
+          }
+        }
+      },
+      "oneriler": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$listKey": {
+          "$kind": {
+            "$oneriId": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) && newData.exists() && root.child('users').child(auth.uid).child('blocked').val() !== true"
+            }
+          }
+        }
+      },
+      "logs": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$listKey": {
+          "$logId": {
+            ".write": "auth != null && !data.exists() && newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+            ".validate": "newData.hasChildren(['by','email','action','timestamp']) && newData.child('by').isString() && newData.child('by').val().length <= 200 && newData.child('email').isString() && newData.child('email').val() === auth.token.email && newData.child('action').isString() && newData.child('action').val().length > 0 && newData.child('action').val().length <= 2000 && newData.child('timestamp').isNumber()"
+          }
+        }
+      },
+      "gorevler": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+        "$gorevId": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+        }
+      },
+      "ayarlar": {
+        "sayac": {
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+        }
+      }
+    },
+    "users": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && ((auth.uid === $uid && data.child('blocked').val() !== true && newData.exists()) || ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true && (newData.exists() || data.child('role').val() !== 'owner')))",
+        ".validate": "newData.hasChildren(['firstName','lastName','email','role'])",
+        "role": {
+          ".validate": "(newData.val() === 'pending' || newData.val() === 'editor' || newData.val() === 'admin' || newData.val() === 'owner') && ((auth.uid === $uid && !data.exists() && newData.val() === 'pending') || (auth.uid !== $uid && newData.val() !== 'owner' && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true) || (auth.uid !== $uid && newData.val() === 'owner' && root.child('users').child(auth.uid).child('role').val() === 'owner' && root.child('users').child(auth.uid).child('blocked').val() !== true))"
+        },
+        "blocked": {
+          ".validate": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true && root.child('users').child($uid).child('role').val() !== 'owner'"
+        }
+      }
+    },
+    "logs": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$listKey": {
+        "$logId": {
+          ".write": "auth != null && !data.exists() && newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".validate": "newData.hasChildren(['by','email','action','timestamp']) && newData.child('by').isString() && newData.child('by').val().length <= 200 && newData.child('email').isString() && newData.child('email').val() === auth.token.email && newData.child('action').isString() && newData.child('action').val().length > 0 && newData.child('action').val().length <= 2000 && newData.child('timestamp').isNumber()"
+        }
+      }
+    },
+    "gorevler": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+      "$gorevId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true"
+      }
+    }
+  }
+}

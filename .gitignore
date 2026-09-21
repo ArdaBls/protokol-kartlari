@@ -1,0 +1,46 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# *.local yukarıda zaten .env.local ve .env.*.local'i kapsıyor (Vite'ın standart deseni), ama
+# Firebase anahtarları burada olduğu için (protokol-kartlari'nda yaşanan PII/secret sızıntısından
+# sonra) açıkça da yazılıyor -- okunurluk ve gelecekte biri "*.local" satırını silerse güvenlik ağı.
+.env
+.env.local
+.env.*.local
+
+# Claude Code çalışma dosyaları (varsa) -- yerelde kalır, hiçbiri GitHub'a gitmez.
+.claude/
+CLAUDE.md
+
+# Impeccable (tasarım denetim skill'i) çalışma çıktıları -- ekran görüntülerinde gerçek kişisel
+# veri (protokol kartlarındaki isim/fotoğraf) olabileceği için tüm klasör yok sayılıyor.
+.impeccable/
+
+# Visual Studio'nun kendiliğinden ürettiği yerel IDE dosyaları -- proje kaynağı değil.
+.vs/
+
+# Başvuru amaçlı klonlanmış UI kitleri (beUI, Fluid Functionalism, Watermelon UI, BoardUI, ThreeUI).
+# Uygulamaya kopyalanmaz; gerekli parça src/ altına elle aktarılır. Tailwind de gitignore'daki klasörleri taramaz.
+ui-kits/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
