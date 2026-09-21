@@ -36,6 +36,8 @@ body {
 
 /* iPhone Dynamic Island/klavye açıldığında modal güvenli alanın üstüne taşmasın. */
 .modal-safe-container {
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
   padding-top: calc(env(safe-area-inset-top) + 1rem);
   padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
 }

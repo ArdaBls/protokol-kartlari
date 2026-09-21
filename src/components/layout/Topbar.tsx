@@ -8,9 +8,10 @@ import { initials, isSafeAvatarUrl } from '../../lib/roles'
 
 interface TopbarProps {
   onOpenMenu: () => void
+  onToggleSidebar: () => void
 }
 
-export function Topbar({ onOpenMenu }: TopbarProps) {
+export function Topbar({ onOpenMenu, onToggleSidebar }: TopbarProps) {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
   const { state } = useAuth()
@@ -20,12 +21,16 @@ export function Topbar({ onOpenMenu }: TopbarProps) {
 
   return (
     <header style={{ top: 'env(safe-area-inset-top)' }} className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-separator bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+      <Button isIconOnly variant="ghost" className="hidden lg:inline-flex" aria-label="Yan menüyü aç veya daralt" onPress={onToggleSidebar}>
+        <Menu size={20} />
+      </Button>
+
       <Button isIconOnly variant="ghost" className="lg:hidden" aria-label="Menüyü aç" onPress={onOpenMenu}>
         <Menu size={20} />
       </Button>
 
       <Link to="/" className="flex shrink-0 items-center gap-2 lg:hidden" aria-label="Protokol ana sayfa">
-        <img src="/icons/icon-192.png" alt="" className="size-7 rounded-lg object-cover" />
+        <img src="/icons/icon-192.png" alt="" className="size-7" />
         <span className="text-sm font-semibold">Protokol</span>
       </Link>
 
