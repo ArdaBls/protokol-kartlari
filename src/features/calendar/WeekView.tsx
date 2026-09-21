@@ -207,6 +207,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
       if (!dragging && Math.abs(dy) < MOVE_THRESHOLD) return
       dragging = true
       didDragRef.current = true
+      moveEvent.preventDefault()
       const currentMin = toMinute(moveEvent.clientY)
       if (edge === 'start') {
         setCreatePreview({ dayIdx: initial.dayIdx, startMin: Math.min(currentMin, initial.endMin - RESIZE_SNAP), endMin: initial.endMin })
@@ -451,7 +452,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                 >
                   <span
                     onPointerDown={(event) => beginCreateResize(event, 'start')}
-                    className="absolute inset-x-0 top-0 z-20 h-3 cursor-ns-resize"
+                    className="absolute inset-x-0 top-0 z-20 h-4 cursor-ns-resize touch-none"
                     aria-label="Ghost başlangıç saatini ayarla"
                   >
                     <span className="pointer-events-none absolute inset-x-2 top-0.5 h-0.5 rounded-full bg-accent" />
@@ -459,7 +460,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                   {minToHm(createPreview.startMin)}–{minToHm(createPreview.endMin)}
                   <span
                     onPointerDown={(event) => beginCreateResize(event, 'end')}
-                    className="absolute inset-x-0 bottom-0 z-20 h-3 cursor-ns-resize"
+                    className="absolute inset-x-0 bottom-0 z-20 h-4 cursor-ns-resize touch-none"
                     aria-label="Ghost bitiş saatini ayarla"
                   >
                     <span className="pointer-events-none absolute inset-x-2 bottom-0.5 h-0.5 rounded-full bg-accent" />

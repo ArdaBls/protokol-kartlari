@@ -7,10 +7,11 @@ import { ROLE_LABEL, canSeeNavItem, initials, isSafeAvatarUrl } from '../../lib/
 
 interface SidebarProps {
   isMobileOpen: boolean
+  isCollapsed: boolean
   onClose: () => void
 }
 
-export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
+export function Sidebar({ isMobileOpen, isCollapsed, onClose }: SidebarProps) {
   const { state, signOutUser } = useAuth()
   if (state.status !== 'ready') return null
 
@@ -22,14 +23,15 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
       {isMobileOpen && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside
         aria-label="Ana menü"
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-separator bg-surface transition-transform lg:translate-x-0 ${
+        style={{ top: 'env(safe-area-inset-top)', bottom: 'env(safe-area-inset-bottom)' }}
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-separator bg-surface transition-[width,transform] duration-200 lg:translate-x-0 ${isCollapsed ? 'w-64 lg:w-20' : 'w-64'} ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-16 items-center justify-between px-5">
+        <div className={`flex h-16 items-center justify-between px-5 ${isCollapsed ? 'lg:justify-center lg:px-3' : ''}`}>
           <NavLink to="/" className="flex items-center gap-2.5" onClick={onClose}>
             <span className="flex size-8 items-center justify-center rounded-xl bg-accent text-sm font-bold text-accent-foreground">P</span>
-            <span className="text-base font-semibold">Protokol</span>
+            <span className={isCollapsed ? 'lg:hidden' : 'text-base font-semibold'}>Protokol</span>
           </NavLink>
           <Button isIconOnly size="sm" variant="ghost" className="lg:hidden" aria-label="Menüyü kapat" onPress={onClose}>
             <X size={18} />
@@ -39,21 +41,22 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
           {groups.map((group) => (
             <div key={group.label} className="mt-4 first:mt-1">
-              <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{group.label}</div>
+              <div className={`px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted ${isCollapsed ? 'lg:hidden' : ''}`}>{group.label}</div>
               {group.items.map(({ key, path, text, icon: Icon }) => (
                 <NavLink
                   key={key}
                   to={path}
                   end
                   onClick={onClose}
+                  title={isCollapsed ? text : undefined}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
+                    `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${isCollapsed ? 'lg:justify-center' : ''} ${
                       isActive ? 'bg-accent-soft font-medium text-accent' : 'text-foreground/80 hover:bg-default hover:text-foreground'
                     }`
                   }
                 >
                   <Icon size={18} strokeWidth={1.75} />
-                  <span className="truncate">{text}</span>
+                  <span className={`truncate ${isCollapsed ? 'lg:hidden' : ''}`}>{text}</span>
                 </NavLink>
               ))}
             </div>
@@ -61,12 +64,12 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-separator p-3">
-          <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+          <div className={`flex items-center gap-3 rounded-xl px-2 py-2 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
             <Avatar size="sm" color="accent">
               {isSafeAvatarUrl(state.profile.avatarUrl) && <Avatar.Image src={state.profile.avatarUrl} alt="" draggable={false} />}
               <Avatar.Fallback>{initials(state.displayName)}</Avatar.Fallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
+            <div className={`min-w-0 flex-1 ${isCollapsed ? 'lg:hidden' : ''}`}>
               <div className="truncate text-sm font-medium">{state.displayName}</div>
               <div className="text-xs text-muted">{ROLE_LABEL[state.role]}</div>
             </div>

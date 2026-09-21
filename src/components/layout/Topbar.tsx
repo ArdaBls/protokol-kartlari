@@ -1,5 +1,5 @@
 import { Avatar, Button } from '@heroui/react'
-import { Bell, ChevronRight, Menu, Moon, Sun } from 'lucide-react'
+import { Bell, ChevronRight, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { findNavItem } from '../../config/nav'
@@ -10,9 +10,11 @@ import { initials, isSafeAvatarUrl } from '../../lib/roles'
 
 interface TopbarProps {
   onOpenMenu: () => void
+  isSidebarCollapsed: boolean
+  onToggleSidebar: () => void
 }
 
-export function Topbar({ onOpenMenu }: TopbarProps) {
+export function Topbar({ onOpenMenu, isSidebarCollapsed, onToggleSidebar }: TopbarProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
@@ -27,10 +29,25 @@ export function Topbar({ onOpenMenu }: TopbarProps) {
   const badgeCount = useNotificationBadge()
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-separator bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+    <header style={{ top: 'env(safe-area-inset-top)' }} className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-separator bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+      <Button
+        isIconOnly
+        variant="ghost"
+        className="hidden lg:inline-flex"
+        aria-label={isSidebarCollapsed ? 'Yan menüyü genişlet' : 'Yan menüyü daralt'}
+        onPress={onToggleSidebar}
+      >
+        {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+      </Button>
+
       <Button isIconOnly variant="ghost" className="lg:hidden" aria-label="Menüyü aç" onPress={onOpenMenu}>
         <Menu size={20} />
       </Button>
+
+      <Link to="/" className="flex shrink-0 items-center gap-2 lg:hidden" aria-label="Protokol ana sayfa">
+        <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-foreground">P</span>
+        <span className="text-sm font-semibold">Protokol</span>
+      </Link>
 
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
         <Link to="/" className="text-muted hover:text-foreground">

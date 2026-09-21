@@ -1,5 +1,5 @@
 import { Button, Modal, toast } from '@heroui/react'
-import { Building2, CalendarClock, Info, Newspaper, StickyNote, Users } from 'lucide-react'
+import { Building2, CalendarClock, Info, Newspaper, StickyNote, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { FormModal } from '../../components/FormModal'
@@ -328,17 +328,26 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
             <NewsPanel attendees={attendees} defaultLocation={yer} defaultTitle={ad} onClose={() => setShowNewsPanel(false)} />
           )}
         </ModalScrollBody>
-        <Modal.Footer className="flex-col items-stretch gap-2">
+        <Modal.Footer className="flex-nowrap justify-end gap-2 overflow-x-auto">
           {id && writer.canWrite && (
-            <div className="flex">
-              <Button type="button" variant="ghost" className="text-danger" onPress={() => setIsConfirmingDelete(true)}>Sil</Button>
-            </div>
+            <>
+              <Button
+                type="button"
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                aria-label="Etkinliği sil"
+                className="shrink-0 text-danger sm:hidden"
+                onPress={() => setIsConfirmingDelete(true)}
+              >
+                <Trash2 size={16} />
+              </Button>
+              <Button type="button" variant="ghost" className="hidden shrink-0 text-danger sm:inline-flex" onPress={() => setIsConfirmingDelete(true)}>Sil</Button>
+            </>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="tertiary" slot="close">Vazgeç</Button>
-            {writer.canWrite && <Button type="button" variant="secondary" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
-            {writer.canWrite && <Button type="submit" variant="primary" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
-          </div>
+          <Button type="button" variant="tertiary" className="shrink-0" slot="close">Vazgeç</Button>
+          {writer.canWrite && <Button type="button" variant="secondary" className="shrink-0 whitespace-nowrap" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
+          {writer.canWrite && <Button type="submit" variant="primary" className="shrink-0" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
         </Modal.Footer>
       </form>
 
