@@ -52,7 +52,6 @@ export function DashboardPage() {
           iconClass="bg-success/15 text-success"
           label="Tahmini çekilen fotoğraf"
           value={events.isLoading || photos <= 0 ? '—' : <NumberTicker value={photos} suffix="+" format={formatTr} />}
-          sub="Basın görevlisi olarak gidilen etkinliklere göre"
         />
       </div>
 

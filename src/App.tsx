@@ -11,7 +11,6 @@ import { LoginPage } from './pages/LoginPage'
 // Sayfalar ayrı parçalar hâlinde yüklenir: ilk açılış hızlanır, grafik/sürükle-bırak kodu yalnızca gerekince iner.
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const ProtocolPage = lazy(() => import('./features/protocol/ProtocolPage').then((m) => ({ default: m.ProtocolPage })))
-const HelpCenterPage = lazy(() => import('./features/help/HelpCenterPage').then((m) => ({ default: m.HelpCenterPage })))
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UserManagementPage = lazy(() => import('./features/users/UserManagementPage').then((m) => ({ default: m.UserManagementPage })))
 const PressDirectoryPage = lazy(() => import('./features/press/PressDirectoryPage').then((m) => ({ default: m.PressDirectoryPage })))
@@ -32,7 +31,7 @@ const AmiralBattiPage = lazy(() => import('./features/games/amiralbatti/AmiralBa
 const BlackjackPage = lazy(() => import('./features/games/blackjack/BlackjackPage').then((m) => ({ default: m.BlackjackPage })))
 const CalendarPage = lazy(() => import('./features/calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 
-const IMPLEMENTED_PATHS = new Set(['/', '/protokol', '/yardim-merkezi', '/ayarlar', '/kullanici-yonetimi', '/basin-rehberi', '/kisiler', '/gantt', '/profil', '/bildirimler', '/yapilacaklar', '/harita', '/oyunlar', '/takvim'])
+const IMPLEMENTED_PATHS = new Set(['/', '/protokol', '/ayarlar', '/kullanici-yonetimi', '/basin-rehberi', '/kisiler', '/gantt', '/profil', '/bildirimler', '/yapilacaklar', '/harita', '/oyunlar', '/takvim'])
 
 function PageFallback() {
   return (
@@ -52,7 +51,6 @@ function App() {
         <Route element={<AppShell />}>
           <Route index element={<Suspense fallback={<PageFallback />}><DashboardPage /></Suspense>} />
           <Route path="/protokol" element={<Suspense fallback={<PageFallback />}><ProtocolPage /></Suspense>} />
-          <Route path="/yardim-merkezi" element={<Suspense fallback={<PageFallback />}><HelpCenterPage /></Suspense>} />
           <Route path="/ayarlar" element={<Suspense fallback={<PageFallback />}><SettingsPage /></Suspense>} />
           <Route path="/kullanici-yonetimi" element={<Suspense fallback={<PageFallback />}><UserManagementPage /></Suspense>} />
           <Route path="/basin-rehberi" element={<Suspense fallback={<PageFallback />}><PressDirectoryPage /></Suspense>} />

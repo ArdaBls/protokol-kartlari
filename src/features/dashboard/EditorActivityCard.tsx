@@ -23,7 +23,15 @@ const DAY_WINDOW = 7
 
 const LEGEND = {
   type: 'scroll', bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 16,
-  textStyle: { color: MUTED, fontSize: 11 }, pageTextStyle: { color: MUTED },
+  textStyle: { color: MUTED, fontSize: 11 }, pageTextStyle: { color: MUTED }, inactiveColor: '#5f596a',
+}
+
+const CHART_TOOLTIP = {
+  backgroundColor: 'var(--surface)',
+  borderColor: 'var(--border)',
+  borderWidth: 1,
+  textStyle: { color: 'var(--surface-foreground)' },
+  extraCssText: 'border-radius: 12px; box-shadow: var(--surface-shadow);',
 }
 
 function emptyOption(message: string) {
@@ -45,7 +53,7 @@ function mobileZoom(center: number, size: number, count: number) {
 function lineOption(names: string[], labels: string[], rows: number[][], dataZoom: unknown) {
   return {
     textStyle: { fontFamily: FONT },
-    tooltip: { trigger: 'axis' },
+    tooltip: { ...CHART_TOOLTIP, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: 'var(--accent)', width: 1 } } },
     dataZoom,
     legend: LEGEND,
     grid: { top: 24, left: 8, right: 16, bottom: 40, containLabel: true },
@@ -65,6 +73,11 @@ function lineOption(names: string[], labels: string[], rows: number[][], dataZoo
       data: rows[i],
       lineStyle: { width: 1.5, color: seriesColor(i) },
       itemStyle: { color: seriesColor(i) },
+      emphasis: {
+        focus: 'series',
+        lineStyle: { width: 2, color: seriesColor(i) },
+        itemStyle: { color: seriesColor(i) },
+      },
       areaStyle: {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
@@ -92,12 +105,16 @@ function buildOption(view: ActivityView, names: string[], events: CalendarEvent[
   if (!share.length) return emptyOption('Henüz görevli atanmış etkinlik yok.')
   return {
     textStyle: { fontFamily: FONT },
-    tooltip: { trigger: 'item', formatter: '{b}: {c} (%{d})' },
+    tooltip: { ...CHART_TOOLTIP, trigger: 'item', formatter: '{b}: {c} (%{d})' },
     legend: LEGEND,
     series: [{
       type: 'pie', radius: ['52%', '76%'], center: ['50%', '45%'], label: { show: false },
       itemStyle: { borderRadius: 6 },
-      data: share.map((item, i) => ({ ...item, itemStyle: { color: seriesColor(i) } })),
+      data: share.map((item, i) => ({
+        ...item,
+        itemStyle: { color: seriesColor(i) },
+        emphasis: { itemStyle: { color: seriesColor(i) } },
+      })),
     }],
   }
 }
@@ -120,7 +137,7 @@ export function EditorActivityCard({ names, events, isLoading, now }: EditorActi
       <Card.Header className="flex flex-row items-start justify-between gap-4">
         <div className="min-w-0">
           <Card.Title>Editör Aktivitesi</Card.Title>
-          <Card.Description>{subtitles[view]}</Card.Description>
+          <Card.Description className="hidden sm:block">{subtitles[view]}</Card.Description>
         </div>
         <Tabs selectedKey={view} onSelectionChange={(key) => setView(key as ActivityView)} className="shrink-0">
           <Tabs.ListContainer>

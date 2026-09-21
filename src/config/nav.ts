@@ -3,7 +3,6 @@ import {
   Bell,
   CalendarDays,
   CalendarRange,
-  CircleHelp,
   Columns3,
   FolderOpen,
   Gamepad2,
@@ -61,7 +60,6 @@ export const NAV: NavGroup[] = [
       { key: 'user_management', path: '/kullanici-yonetimi', text: 'Kullanıcı yönetimi', icon: UserCog },
       { key: 'profile', path: '/profil', text: 'Profiliniz', icon: UserRound },
       { key: 'settings', path: '/ayarlar', text: 'Ayarlar', icon: Settings },
-      { key: 'faq', path: '/yardim-merkezi', text: 'Yardım merkezi', icon: CircleHelp },
     ],
   },
 ]

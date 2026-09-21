@@ -124,14 +124,14 @@ export function TasksCard() {
       .catch(writer.reportError('Görev silinemedi.'))
   }
 
-  const subtitle = isLoading ? 'Yükleniyor…' : tasks.length ? `${remaining} / ${tasks.length} tamamlanmadı` : 'Görev yok'
+  const subtitle = isLoading ? 'Yükleniyor…' : tasks.length ? `${remaining} / ${tasks.length} tamamlanmadı` : ''
 
   return (
     <Card className="h-[402px]">
       <Card.Header className="flex flex-row items-start justify-between gap-4">
         <div>
           <Card.Title>Görevler</Card.Title>
-          <Card.Description>{subtitle}</Card.Description>
+          {subtitle && <Card.Description>{subtitle}</Card.Description>}
         </div>
         {writer.canWrite && (
           <div className="flex shrink-0 gap-1.5">
@@ -146,7 +146,6 @@ export function TasksCard() {
       </Card.Header>
       <Card.Content className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         {error && <p className="py-3 text-sm text-danger">Görevler yüklenemedi.</p>}
-        {!isLoading && !error && tasks.length === 0 && <p className="py-3 text-sm text-muted">Henüz görev yok.</p>}
         <ul className="flex flex-col">
           {tasks.map((task) => {
             const chip = task.durum ? STATUS_CHIPS[task.durum] : undefined

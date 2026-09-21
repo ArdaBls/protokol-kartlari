@@ -79,7 +79,6 @@ export function EventOverviewCard({ events, isLoading, hasError, now }: EventOve
     <Card className="flex flex-col">
       <Card.Header>
         <Card.Title>Etkinlik Özeti</Card.Title>
-        <Card.Description>Bugün, bu hafta ve yaklaşan etkinlikler</Card.Description>
       </Card.Header>
       <Card.Content className="flex-1 overflow-y-auto">
         {hasError && <p className="text-sm text-danger">Etkinlikler yüklenemedi.</p>}
