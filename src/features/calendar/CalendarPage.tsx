@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { dateKey } from '../../lib/dates'
 import { useDbValue } from '../../hooks/useDbValue'
 import { useDbMode } from '../../lib/dbMode'
@@ -12,7 +13,7 @@ import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
 import { YearView } from './YearView'
 import type { CalendarEvent, CalendarEventWithId } from './calendarTypes'
-import { CAL_MONTHS, addDays, calVisibleWeekDays, toEventListWithId, todayDate } from './calendarTypes'
+import { CAL_MONTHS, addDays, calVisibleWeekDays, parseKey, toEventListWithId, todayDate } from './calendarTypes'
 
 type CalView = 'day' | 'week' | 'month' | 'year' | 'list'
 
@@ -43,6 +44,7 @@ function useDayCount(view: CalView): number {
 export function CalendarPage() {
   const { state } = useAuth()
   const { isReadOnly } = useDbMode()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [view, setView] = useState<CalView>('week')
   const [anchor, setAnchor] = useState(() => todayDate())
   const [editing, setEditing] = useState<{ id: string | null; presetDate?: string; presetTime?: string; presetEndTime?: string } | null>(null)
@@ -66,6 +68,21 @@ export function CalendarPage() {
     })
     return list
   }, [events.data])
+
+  // Etkinlik Özeti'ndeki kalem, etkinlik kimliğiyle buraya gelir. Veriler yüklendiğinde
+  // doğrudan etkinliğin başlangıç gününü açıp düzenleme modalını gösterir.
+  useEffect(() => {
+    const eventId = searchParams.get('duzenle')
+    if (!eventId || events.isLoading || events.error || !events.data) return
+    const event = events.data[eventId]
+    const eventDate = parseKey(event?.tarih)
+    if (event && eventDate) {
+      setAnchor(eventDate)
+      setView('day')
+      setEditing({ id: eventId })
+    }
+    setSearchParams({}, { replace: true })
+  }, [events.data, events.error, events.isLoading, searchParams, setSearchParams])
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEventWithId[]>()
