@@ -1,14 +1,16 @@
 import { Avatar, Button, Card, Input, TextField, toast } from '@heroui/react'
 import { ref, update } from 'firebase/database'
-import { Download, Search, ShieldCheck, UserCheck, Users } from 'lucide-react'
+import { Download, Search, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
+import { FormModal } from '../../components/FormModal'
 import { SelectField } from '../../components/formControls'
 import { SwitchButton } from '../../components/SwitchButton'
 import { downloadJson } from '../../lib/browserFiles'
 import { dbPathFor, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
+import { collectLogDeleteUpdates } from '../../lib/logCleanup'
 import type { Role, UserProfile } from '../../lib/roles'
 import { ROLE_LABEL, initials, isSafeAvatarUrl } from '../../lib/roles'
 import { useDbValue } from '../../hooks/useDbValue'
@@ -57,6 +59,8 @@ export function UserManagementPage() {
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState(() => searchParams.get('filtre') ?? '')
   const [busyUid, setBusyUid] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ uid: string; user: UserRecord } | null>(null)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
 
   const users = useDbValue<Record<string, UserRecord | null>>('users', { shadow: false })
   const pressOfficers = useDbValue<Record<string, string | null>>('basinGorevlileri')
@@ -153,6 +157,40 @@ export function UserManagementPage() {
     }
   }
 
+  const deleteUser = async () => {
+    if (!deleteTarget || state.status !== 'ready') return
+    const { uid, user } = deleteTarget
+    const role = user.role ?? 'pending'
+    if (uid === currentUid) return toast.danger('Kendi hesabınızı silemezsiniz.')
+    if (role === 'owner') return toast.danger('Kurucu hesabı silinemez.')
+    if (role === 'admin' && stats.admins <= 1) return toast.danger('Son yönetici hesabı silinemez.')
+    setBusyUid(uid)
+    try {
+      const email = (user.email ?? '').trim().toLocaleLowerCase('tr')
+      const name = fullNameOf(user).trim()
+      const logDeletes = await collectLogDeleteUpdates(isTestMode, (entry) => {
+        const matchesEmail = !!email && entry.email?.trim().toLocaleLowerCase('tr') === email
+        const matchesName = !!name && entry.by?.trim() === name
+        return matchesEmail || matchesName
+      })
+      await update(ref(db), {
+        [`users/${uid}`]: null,
+        [`staffProfiles/${uid}`]: null,
+        [dbPathFor(`basinGorevlileri/${uid}`, isTestMode)]: null,
+        [`presence/${uid}`]: null,
+        [dbPathFor(`notifications/${uid}`, isTestMode)]: null,
+        ...logDeletes,
+      })
+      toast.warning(`${fullNameOf(user)} kullanıcısı ve kullanıcı logları silindi. Etkinlik ve protokol kartları korundu.`)
+      setDeleteTarget(null)
+    } catch (err) {
+      console.error('Kullanıcı silinemedi:', err)
+      toast.danger('Kullanıcı silinemedi. Firebase kurallarını kontrol edin.')
+    } finally {
+      setBusyUid(null)
+    }
+  }
+
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -195,7 +233,7 @@ export function UserManagementPage() {
             const isPressOfficer = !!pressOfficers.data?.[uid]
 
             return (
-              <div key={uid} className="grid grid-cols-1 items-center gap-3 rounded-2xl border border-separator bg-surface-secondary/40 p-3 sm:grid-cols-[1fr_11rem_9rem_6rem]">
+              <div key={uid} className="grid grid-cols-1 items-center gap-3 rounded-2xl border border-separator bg-surface-secondary/40 p-3 sm:grid-cols-[1fr_11rem_9rem_6rem_7rem]">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="relative shrink-0">
                     <Avatar size="sm" color="accent" className="size-10">
@@ -249,11 +287,38 @@ export function UserManagementPage() {
                     onToggle={() => toggleBlocked(uid, !user.blocked)}
                   />
                 </div>
+
+                <div className="flex items-center gap-2 sm:justify-end">
+                  <span className="text-xs text-muted sm:hidden">Kullanıcı</span>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="danger-soft"
+                    aria-label={`${name} kullanıcısını sil`}
+                    isDisabled={isSelf || role === 'owner' || (role === 'admin' && stats.admins <= 1) || busyUid === uid}
+                    onPress={() => { setDeleteTarget({ uid, user }); setIsDeleteOpen(true) }}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
               </div>
             )
           })}
         </Card.Content>
       </Card>
+
+      <FormModal
+        isOpen={isDeleteOpen}
+        onOpenChange={(isOpen) => { setIsDeleteOpen(isOpen); if (!isOpen) setDeleteTarget(null) }}
+        title="Kullanıcıyı sil"
+        submitLabel="Evet, sil"
+        isDanger
+        onSubmit={() => { void deleteUser() }}
+      >
+        <p className="text-sm text-muted">
+          {deleteTarget ? `${fullNameOf(deleteTarget.user)} kullanıcısı ile bu kullanıcıya ait loglar kalıcı olarak silinecek. Etkinlik ve protokol kartları korunacak.` : 'Bu kullanıcı kaydı ve logları kalıcı olarak silinecek.'}
+        </p>
+      </FormModal>
     </div>
   )
 }

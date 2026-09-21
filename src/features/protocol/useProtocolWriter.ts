@@ -55,6 +55,7 @@ export function useProtocolWriter(listKey: ListKey) {
   return {
     actor: writer.actor,
     canWrite: writer.canWrite,
+    ensureWritable: writer.ensureWritable,
     commit,
     saveSuggestion,
     suggestionsPath,

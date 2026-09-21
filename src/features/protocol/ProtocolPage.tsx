@@ -60,6 +60,7 @@ export function ProtocolPage() {
   useCopyGuard()
   const { state } = useAuth()
   const canBackup = state.status === 'ready' && (state.role === 'admin' || state.role === 'owner')
+  const canDeleteForever = canBackup
 
   const [listKey, setListKey] = useState<ListKey>('universite')
   const [statusView, setStatusView] = useState<StatusView>('aktif')
@@ -331,7 +332,7 @@ export function ProtocolPage() {
                     onToggleSelect={toggleSelect}
                     onEdit={canWrite && statusView !== 'silindi' ? openEdit : undefined}
                     onRestore={canWrite && statusView === 'silindi' ? actions.restore : undefined}
-                    onDeleteForever={canWrite && statusView === 'silindi' ? requestDeleteForever : undefined}
+                    onDeleteForever={canDeleteForever && statusView === 'silindi' ? requestDeleteForever : undefined}
                   />
                 ))}
             </div>

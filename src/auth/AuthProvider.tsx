@@ -13,8 +13,9 @@ import type { StreakResult } from '../lib/streak'
 import { AuthContext } from './AuthContext'
 import type { AuthContextValue, AuthState } from './AuthContext'
 
-// Auth hesabı olup users/{uid} kaydı olmayan "yetim" hesap onay listesinde hiç görünmüyordu;
-// eski shell.js'teki gibi pending olarak yeniden yazılır (kurallar buna izin veriyor).
+// Auth hesabı olup users/{uid} kaydı olmayan hesapları pending olarak yeniden oluştur.
+// Kullanıcı yönetiminden silinen hesaplar, aynı Auth hesabıyla yeniden giriş yaptığında
+// tekrar onay bekleyen kullanıcı olarak oluşturulabilir.
 function repairOrphanAccount(user: User) {
   const name = (user.displayName ?? '').trim()
   const split = name.lastIndexOf(' ')
@@ -40,7 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return onValue(
       ref(db, `users/${user.uid}`),
       (snap) => {
-        if (!snap.exists()) repairOrphanAccount(user)
+        if (!snap.exists()) {
+          repairOrphanAccount(user)
+        }
         setProfile({ uid: user.uid, value: snap.val() as UserProfile | null })
       },
       (err) => {

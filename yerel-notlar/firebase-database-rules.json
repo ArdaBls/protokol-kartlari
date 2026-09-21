@@ -3,7 +3,7 @@
     "presence": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true",
       "$uid": {
-        ".write": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || (!newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true))",
         ".validate": "newData.hasChildren(['cevrimici','isim','sonGorulme'])",
         "cevrimici": { ".validate": "newData.isBoolean()" },
         "isim": { ".validate": "newData.isString() && newData.val().length <= 200" },
@@ -539,7 +539,7 @@
       ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
       ".indexOn": ["status"],
       "$requestId": {
-        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('requestedByUid').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('reviewedByUid').val() === null) || (data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && data.child('requestedByUid').val() === newData.child('requestedByUid').val() && data.child('eventId').val() === newData.child('eventId').val()))",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('requestedByUid').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('reviewedByUid').val() === null) || (data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && data.child('requestedByUid').val() === newData.child('requestedByUid').val() && data.child('eventId').val() === newData.child('eventId').val())) || (!newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')))",
         ".validate": "newData.hasChildren(['eventId','eventName','eventDate','attendeeName','role','requestedByUid','requestedByName','requestedAt','status'])",
         "eventId": { ".validate": "newData.isString() && newData.val().length > 0" },
         "eventName": { ".validate": "newData.isString() && newData.val().length <= 300" },
@@ -1162,7 +1162,7 @@
         ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
         ".indexOn": ["status"],
         "$requestId": {
-          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('requestedByUid').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('reviewedByUid').val() === null) || (data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && data.child('requestedByUid').val() === newData.child('requestedByUid').val() && data.child('eventId').val() === newData.child('eventId').val()))",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('requestedByUid').val() === auth.uid && newData.child('status').val() === 'pending' && newData.child('reviewedByUid').val() === null) || (data.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && data.child('requestedByUid').val() === newData.child('requestedByUid').val() && data.child('eventId').val() === newData.child('eventId').val()) || (!newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')))",
           ".validate": "newData.hasChildren(['eventId','eventName','eventDate','attendeeName','role','requestedByUid','requestedByName','requestedAt','status'])",
           "eventId": { ".validate": "newData.isString() && newData.val().length > 0" },
           "eventName": { ".validate": "newData.isString() && newData.val().length <= 300" },
@@ -1212,7 +1212,7 @@
         ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
         "$listKey": {
           "$logId": {
-            ".write": "auth != null && !data.exists() && newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+            ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (((!data.exists() && newData.exists()) && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) || (!newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')))",
             ".validate": "newData.hasChildren(['by','email','action','timestamp']) && newData.child('by').isString() && newData.child('by').val().length <= 200 && newData.child('email').isString() && newData.child('email').val() === auth.token.email && newData.child('action').isString() && newData.child('action').val().length > 0 && newData.child('action').val().length <= 2000 && newData.child('timestamp').isNumber()"
           }
         }
@@ -1248,7 +1248,7 @@
       ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
       "$listKey": {
         "$logId": {
-          ".write": "auth != null && !data.exists() && newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
+          ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (((!data.exists() && newData.exists()) && (root.child('users').child(auth.uid).child('role').val() === 'editor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')) || (!newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')))",
           ".validate": "newData.hasChildren(['by','email','action','timestamp']) && newData.child('by').isString() && newData.child('by').val().length <= 200 && newData.child('email').isString() && newData.child('email').val() === auth.token.email && newData.child('action').isString() && newData.child('action').val().length > 0 && newData.child('action').val().length <= 2000 && newData.child('timestamp').isNumber()"
         }
       }

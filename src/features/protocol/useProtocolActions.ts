@@ -1,9 +1,11 @@
 import { toast } from '@heroui/react'
-import { get, ref, serverTimestamp } from 'firebase/database'
+import { get, ref, serverTimestamp, update } from 'firebase/database'
+import { useAuth } from '../../auth/useAuth'
 import { dateKey } from '../../lib/dates'
 import { db } from '../../lib/firebase'
 import { downloadJson } from '../../lib/browserFiles'
 import { useDbMode, dbPathFor } from '../../lib/dbMode'
+import { collectLogDeleteUpdates } from '../../lib/logCleanup'
 import type { ListKey, Person } from './protocolRules'
 import { LIST_PATHS, hierarchyWeight, institutionWeight } from './protocolRules'
 import { useProtocolWriter } from './useProtocolWriter'
@@ -12,6 +14,7 @@ const nameOf = (person: Person) => person.name || 'İsimsiz kayıt'
 
 /** Protokol listesi üzerindeki toplu/tekil işlemler; her biri yalnızca dokunduğu yolları atomik yazar. */
 export function useProtocolActions(listKey: ListKey) {
+  const { state } = useAuth()
   const writer = useProtocolWriter(listKey)
   const { isTestMode } = useDbMode()
   const field = (id: string, key: string) => `${writer.personPath(id)}/${key}`
@@ -43,9 +46,24 @@ export function useProtocolActions(listKey: ListKey) {
   }
 
   const deleteForever = async (person: Person) => {
-    const ok = await writer.commit({ [writer.personPath(person._id)]: null }, [{ action: `${nameOf(person)} kişisi kalıcı olarak silindi`, target: person.name }])
-    if (ok) toast.warning('Kayıt kalıcı olarak silindi.')
-    return ok
+    const canDeleteLogs = state.status === 'ready' && (state.role === 'admin' || state.role === 'owner')
+    if (!canDeleteLogs) {
+      toast.danger('Kişiyi ve bağlı loglarını yalnızca admin veya kurucu silebilir.')
+      return false
+    }
+    const actor = writer.ensureWritable()
+    if (!actor) return false
+    try {
+      const targetName = (person.name ?? '').trim()
+      const logDeletes = await collectLogDeleteUpdates(isTestMode, (entry) => !!targetName && entry.target?.trim() === targetName)
+      await update(ref(db), { [writer.personPath(person._id)]: null, ...logDeletes })
+      toast.warning('Kayıt ve bağlı logları kalıcı olarak silindi.')
+      return true
+    } catch (err) {
+      console.error('Kayıt ve bağlı loglar silinemedi:', err)
+      toast.danger('Kayıt silinemedi. Firebase kurallarını kontrol edin.')
+      return false
+    }
   }
 
   /** Yalnızca ekranda görünen silinmiş kayıtlar silinir; arama/filtre dışında kalanlara dokunulmaz. */

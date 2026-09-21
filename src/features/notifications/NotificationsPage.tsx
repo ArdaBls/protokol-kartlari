@@ -1,8 +1,10 @@
 import { Button, Card, toast } from '@heroui/react'
 import { ref, update } from 'firebase/database'
+import { Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
+import { FormModal } from '../../components/FormModal'
 import { useDbValue } from '../../hooks/useDbValue'
 import { dbPathFor, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
@@ -70,6 +72,9 @@ export function NotificationsPage() {
   const { isTestMode } = useDbMode()
   const [tab, setTab] = useState<TabKey>('all')
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null)
+  const [clearTarget, setClearTarget] = useState<TabKey | null>(null)
+  const [isClearOpen, setIsClearOpen] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
   const isAdmin = state.status === 'ready' && (state.role === 'admin' || state.role === 'owner')
   const isEditor = state.status === 'ready' && state.role === 'editor'
@@ -160,6 +165,44 @@ export function NotificationsPage() {
     }
   }
 
+  const clearTabData = async (target: TabKey) => {
+    if (!isAdmin || state.status !== 'ready' || isClearing) return
+    const updates: Record<string, unknown> = {}
+    const addChildren = (basePath: string, values: Record<string, unknown> | null) => {
+      Object.keys(values ?? {}).forEach((id) => {
+        updates[dbPathFor(`${basePath}/${id}`, isTestMode)] = null
+      })
+    }
+    const addLogList = (list: LogList) => addChildren(`logs/${list}`, logBuckets[list].data as Record<string, unknown> | null)
+
+    if (target === 'all') {
+      LOG_LISTS.forEach(addLogList)
+      addChildren('attendanceRequests', attendanceRaw.data as Record<string, unknown> | null)
+      if (uid) updates[dbPathFor(`notifications/${uid}`, isTestMode)] = null
+    } else if (target === 'katilim') {
+      addChildren('attendanceRequests', attendanceRaw.data as Record<string, unknown> | null)
+    } else if (target === 'kisisel') {
+      if (uid) updates[dbPathFor(`notifications/${uid}`, isTestMode)] = null
+    } else {
+      addLogList(target)
+    }
+
+    if (!Object.keys(updates).length) {
+      toast.info('Bu sekmede silinecek kayıt yok.')
+      return
+    }
+    setIsClearing(true)
+    try {
+      await update(ref(db), updates)
+      toast.success(target === 'all' ? 'Tüm bildirim ve loglar temizlendi.' : 'Sekmedeki kayıtlar temizlendi.')
+    } catch (err) {
+      console.error('Bildirim kayıtları silinemedi:', err)
+      toast.danger('Kayıtlar silinemedi. Firebase kurallarını kontrol edin.')
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
   if (state.status !== 'ready') return null
   if (state.role === 'pending') {
     return (
@@ -202,21 +245,35 @@ export function NotificationsPage() {
         <h1 className="mt-1 text-2xl font-semibold">Bildirimler</h1>
       </div>
 
-      <div role="tablist" aria-label="Bildirim filtresi" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            onClick={() => setTab(key)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              tab === key ? 'bg-accent text-accent-foreground' : 'bg-default text-muted hover:bg-default-hover hover:text-foreground'
-            }`}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div role="tablist" aria-label="Bildirim filtresi" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0">
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                tab === key ? 'bg-accent text-accent-foreground' : 'bg-default text-muted hover:bg-default-hover hover:text-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {isAdmin && (
+          <Button
+            size="sm"
+            variant="danger-soft"
+            className="self-end shrink-0"
+            isDisabled={isClearing}
+            onPress={() => { setClearTarget(tab); setIsClearOpen(true) }}
           >
-            {label}
-          </button>
-        ))}
+            <Trash2 size={15} />
+            {tab === 'all' ? 'Tümünü temizle' : tab === 'katilim' ? 'Talepleri temizle' : tab === 'kisisel' ? 'Bildirimleri temizle' : 'Logları temizle'}
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -242,6 +299,25 @@ export function NotificationsPage() {
           )}
         </Card.Content>
       </Card>
+
+      <FormModal
+        isOpen={isClearOpen}
+        onOpenChange={(isOpen) => { setIsClearOpen(isOpen); if (!isOpen) setClearTarget(null) }}
+        title={clearTarget === 'all' ? 'Tüm bildirim ve logları temizle' : 'Sekmeyi temizle'}
+        submitLabel="Evet, temizle"
+        isDanger
+        onSubmit={() => { if (clearTarget) void clearTabData(clearTarget) }}
+      >
+        <p className="text-sm text-muted">
+          {clearTarget === 'all'
+            ? 'Tüm loglar, katılım talepleri ve kendi bildirimleriniz Firebase’den kalıcı olarak silinecek.'
+            : clearTarget === 'katilim'
+              ? 'Bu sekmedeki katılım talepleri Firebase’den kalıcı olarak silinecek.'
+              : clearTarget === 'kisisel'
+                ? 'Kişisel bildirimleriniz Firebase’den kalıcı olarak silinecek.'
+                : `${clearTarget ? LOG_LIST_LABEL[clearTarget] : 'Bu sekmedeki'} logları Firebase’den kalıcı olarak silinecek.`}
+        </p>
+      </FormModal>
     </div>
   )
 }
