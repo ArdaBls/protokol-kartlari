@@ -1,5 +1,5 @@
 import { Button, Modal, toast } from '@heroui/react'
-import { Building2, CalendarClock, Info, Newspaper, StickyNote, Trash2, Users } from 'lucide-react'
+import { Building2, CalendarClock, Info, Lock, Newspaper, StickyNote, Trash2, Unlock, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { FormModal } from '../../components/FormModal'
@@ -227,9 +227,11 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
     onOpenChange(false)
   }
 
-  const unlock = async () => {
+  const toggleEventLock = async () => {
     if (!id || !ev) return
-    await writer.toggleLock(id, ev)
+    const changed = await writer.toggleLock(id, ev)
+    if (!changed) return
+    toast.success(isLocked ? 'Etkinlik kilidi açıldı.' : 'Etkinlik kilitlendi.')
     onOpenChange(false)
   }
 
@@ -240,10 +242,15 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
       <form onSubmit={(event) => { event.preventDefault(); void save() }} className="flex min-h-0 flex-1 flex-col">
         <ModalTitle title={id ? 'Etkinliği Düzenle' : 'Yeni Etkinlik'} description={isLocked ? '🔒 Bu etkinlik kilitli — düzenlemek için önce kilidi açın.' : undefined} />
         <ModalScrollBody>
-          {isLocked && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning">
-              <span>🔒 Bu etkinlik kilitli. Düzenlemek için önce kilidi açmanız gerekir.</span>
-              {writer.canWrite && <Button type="button" variant="secondary" onPress={unlock}>Kilidi Aç</Button>}
+          {id && writer.canWrite && (
+            <div className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${isLocked ? 'border-warning/40 bg-warning-soft text-warning' : 'border-separator bg-default/50'}`}>
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                {isLocked ? <Lock size={17} className="shrink-0" /> : <Unlock size={17} className="shrink-0 text-muted" />}
+                <span>{isLocked ? 'Bu etkinlik kilitli. Düzenlemek için kilidi açın.' : 'Etkinlik tarih ve saatini sabitlemek için kilitleyin.'}</span>
+              </div>
+              <Button type="button" size="sm" variant={isLocked ? 'secondary' : 'tertiary'} onPress={toggleEventLock} className="shrink-0 font-semibold">
+                {isLocked ? 'Kilidi Aç' : 'Etkinliği Kilitle'}
+              </Button>
             </div>
           )}
           <fieldset disabled={readOnly || isLocked} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -328,23 +335,23 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
             <NewsPanel attendees={attendees} defaultLocation={yer} defaultTitle={ad} onClose={() => setShowNewsPanel(false)} />
           )}
         </ModalScrollBody>
-        <Modal.Footer className="flex-nowrap justify-between gap-1 overflow-hidden">
+        <Modal.Footer className="flex items-center gap-2 border-t border-separator/60 px-3 py-3 sm:gap-3 sm:px-6">
           {id && writer.canWrite && (
             <Button
               type="button"
               isIconOnly
-              size="sm"
+              size="md"
               variant="ghost"
               aria-label="Etkinliği sil"
-              className="size-9 min-w-0 shrink-0 text-danger"
+              className="size-11 min-w-11 shrink-0 text-danger"
               onPress={() => setIsConfirmingDelete(true)}
             >
               <Trash2 size={16} />
             </Button>
           )}
-          <Button type="button" variant="tertiary" className="min-w-0 shrink px-2 text-[11px] font-semibold sm:px-3 sm:text-sm" slot="close">Vazgeç</Button>
-          {writer.canWrite && <Button type="button" variant="secondary" className="min-w-0 shrink whitespace-nowrap px-2 text-[11px] font-semibold sm:px-3 sm:text-sm" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
-          {writer.canWrite && <Button type="submit" variant="primary" className="min-w-0 shrink px-2 text-[11px] font-semibold sm:px-3 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
+          <Button type="button" variant="tertiary" className="h-11 min-w-0 flex-1 rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm" slot="close">Vazgeç</Button>
+          {writer.canWrite && <Button type="button" variant="secondary" className="h-11 min-w-0 flex-[1.35] rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm" onPress={applyProtocolOrder}>Protokol Sırası Al</Button>}
+          {writer.canWrite && <Button type="submit" variant="primary" className="h-11 min-w-0 flex-1 rounded-xl px-3 text-xs font-semibold sm:px-4 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
         </Modal.Footer>
       </form>
 

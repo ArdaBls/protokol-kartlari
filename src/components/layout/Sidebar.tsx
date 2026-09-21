@@ -28,8 +28,8 @@ export function Sidebar({ isMobileOpen, isCollapsed, onClose }: SidebarProps) {
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className={`flex h-16 items-center justify-between px-5 ${isCollapsed ? 'lg:px-2' : ''}`}>
-          <NavLink to="/" className="flex items-center gap-2.5" onClick={onClose}>
+        <div className={`flex h-16 items-center justify-between px-5 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+          <NavLink to="/" className={`flex items-center gap-2.5 ${isCollapsed ? 'lg:justify-center' : ''}`} onClick={onClose}>
             <img src="/icons/icon-192.png" alt="" className="size-8" />
             <span className={isCollapsed ? 'lg:hidden' : 'text-base font-semibold'}>Protokol</span>
           </NavLink>
