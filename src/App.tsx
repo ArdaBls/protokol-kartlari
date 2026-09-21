@@ -7,10 +7,12 @@ import { PlaceholderPage } from './components/PlaceholderPage'
 import { NAV_ITEMS } from './config/nav'
 import { AccountStatusPage } from './pages/AccountStatusPage'
 import { LoginPage } from './pages/LoginPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 // Sayfalar ayrı parçalar hâlinde yüklenir: ilk açılış hızlanır, grafik/sürükle-bırak kodu yalnızca gerekince iner.
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const ProtocolPage = lazy(() => import('./features/protocol/ProtocolPage').then((m) => ({ default: m.ProtocolPage })))
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UserManagementPage = lazy(() => import('./features/users/UserManagementPage').then((m) => ({ default: m.UserManagementPage })))
 const PressDirectoryPage = lazy(() => import('./features/press/PressDirectoryPage').then((m) => ({ default: m.PressDirectoryPage })))
@@ -45,8 +47,10 @@ function App() {
   return (
     <Routes>
       <Route path="/giris" element={<LoginPage />} />
+      <Route path="/kayit" element={<Suspense fallback={<PageFallback />}><RegisterPage /></Suspense>} />
       <Route path="/onay-bekliyor" element={<AccountStatusPage kind="pending" />} />
       <Route path="/erisim-kisitlandi" element={<AccountStatusPage kind="blocked" />} />
+      <Route path="*" element={<NotFoundPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<Suspense fallback={<PageFallback />}><DashboardPage /></Suspense>} />
@@ -73,7 +77,6 @@ function App() {
           {NAV_ITEMS.filter((item) => !IMPLEMENTED_PATHS.has(item.path)).map((item) => (
             <Route key={item.key} path={item.path} element={<PlaceholderPage title={item.text} />} />
           ))}
-          <Route path="*" element={<PlaceholderPage title="Sayfa bulunamadı" />} />
         </Route>
       </Route>
     </Routes>

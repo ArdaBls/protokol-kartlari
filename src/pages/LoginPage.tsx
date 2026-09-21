@@ -3,7 +3,7 @@ import { FirebaseError } from 'firebase/app'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import type { FormEvent } from 'react'
 import { useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { FullScreenSpinner } from '../auth/RequireAuth'
 import { useAuth } from '../auth/useAuth'
 import { auth } from '../lib/firebase'
@@ -54,9 +54,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <Card.Header className="items-center text-center">
-          <span className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-accent text-lg font-bold text-accent-foreground">
-            P
-          </span>
+          <img src="/icons/icon-192.png" alt="Protokol" className="mb-2 size-11 object-contain" />
           <Card.Title className="text-xl">Protokol'e giriş yap</Card.Title>
           <Card.Description>OMÜ Basın ve Halkla İlişkiler paneli</Card.Description>
         </Card.Header>
@@ -80,6 +78,9 @@ export function LoginPage() {
             </Button>
           </form>
         </Card.Content>
+        <Card.Footer className="justify-center pt-0 text-sm text-muted">
+          Hesabın yok mu? <Link to="/kayit" className="font-semibold text-accent hover:underline">Kayıt ol</Link>
+        </Card.Footer>
       </Card>
     </div>
   )
