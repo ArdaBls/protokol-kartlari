@@ -39,12 +39,12 @@ export function PhotoField({ value, onChange }: PhotoFieldProps) {
   }
 
   return (
-    <div className="flex gap-4">
-      <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-secondary text-muted">
+    <div className="flex min-w-0 flex-col gap-4 sm:flex-row">
+      <div className="flex size-24 shrink-0 self-center items-center justify-center overflow-hidden rounded-2xl bg-surface-secondary text-muted sm:self-start">
         {preview ? <img src={preview} alt="Fotoğraf önizlemesi" className="size-full object-cover" /> : <ImageIcon size={28} strokeWidth={1.5} />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <TextInputField label="Fotoğraf bağlantısı (URL)" type="url" value={url} onChange={handleUrl} placeholder="https://… (önerilen)" />
+        <TextInputField label="Fotoğraf bağlantısı (URL)" type="url" value={url} onChange={handleUrl} placeholder="https://… (önerilen)" className="w-full" />
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" isPending={isCompressing} onPress={() => fileRef.current?.click()}>
             <Upload size={14} />

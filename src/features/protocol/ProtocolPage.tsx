@@ -374,7 +374,6 @@ export function ProtocolPage() {
         person={editing.person}
         people={people}
         onRequestTrash={fromModal('trash')}
-        onRequestDeleteForever={fromModal('deleteForever')}
       />
 
       <NewsModal isOpen={isNewsOpen} onOpenChange={setIsNewsOpen} people={newsPeople} />

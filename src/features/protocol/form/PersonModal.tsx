@@ -25,7 +25,6 @@ export interface PersonModalProps {
   person: Person | null
   people: Person[]
   onRequestTrash: (person: Person) => void
-  onRequestDeleteForever: (person: Person) => void
 }
 
 interface PersonDraft {
@@ -58,7 +57,7 @@ function draftFor(person: Person | null, listKey: ListKey): PersonDraft {
   }
 }
 
-function PersonForm({ onOpenChange, listKey, person, people, onRequestTrash, onRequestDeleteForever }: Omit<PersonModalProps, 'isOpen'>) {
+function PersonForm({ onOpenChange, listKey, person, people, onRequestTrash }: Omit<PersonModalProps, 'isOpen'>) {
   const writer = useProtocolWriter(listKey)
   const isEditing = person !== null
   const isUniversity = listKey === 'universite'
@@ -323,22 +322,15 @@ function PersonForm({ onOpenChange, listKey, person, people, onRequestTrash, onR
           )}
         </ModalScrollBody>
 
-        <Modal.Footer className="flex flex-col-reverse gap-2 border-t border-separator pt-4 sm:flex-row sm:items-center sm:justify-between">
-          {isEditing && person ? (
-            <div className="flex gap-2">
-              <Button variant="danger-soft" size="sm" onPress={() => onRequestTrash(person)}>
-                <Trash2 size={14} />
-                Çöpe at
-              </Button>
-              <Button variant="ghost" size="sm" className="text-danger" onPress={() => onRequestDeleteForever(person)}>
-                Kalıcı sil
-              </Button>
-            </div>
-          ) : <span />}
-          <div className="flex justify-end gap-2">
-            <Button variant="tertiary" slot="close">Vazgeç</Button>
-            <Button type="submit" variant="primary" isPending={isSaving} isDisabled={isSaveLocked}>Kaydet</Button>
-          </div>
+        <Modal.Footer className="flex items-center gap-2 border-t border-separator px-3 py-3 sm:justify-end sm:gap-3 sm:px-6">
+          {isEditing && person && (
+            <Button variant="danger-soft" size="sm" onPress={() => onRequestTrash(person)} className="min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-sm font-semibold sm:min-w-28 sm:flex-none sm:px-4">
+              <Trash2 size={14} />
+              Çöpe at
+            </Button>
+          )}
+          <Button variant="tertiary" slot="close" className="min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-sm font-semibold sm:min-w-24 sm:flex-none sm:px-4">Vazgeç</Button>
+          <Button type="submit" variant="primary" isPending={isSaving} isDisabled={isSaveLocked} className="min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-sm font-semibold sm:min-w-24 sm:flex-none sm:px-4">Kaydet</Button>
         </Modal.Footer>
       </form>
 

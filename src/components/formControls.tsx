@@ -27,7 +27,7 @@ interface FormSectionProps {
 /** Formlarda başlıklı, ikonlu bölüm kartı: ilgili alanları görsel olarak gruplar. */
 export function FormSection({ title, icon: Icon, description, action, children, className = '' }: FormSectionProps) {
   return (
-    <section className={`flex flex-col gap-4 rounded-2xl border border-separator bg-surface-secondary/40 p-4 ${className}`}>
+    <section className={`flex min-w-0 flex-col gap-4 rounded-2xl border border-separator bg-surface-secondary/40 p-4 ${className}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
           {Icon && (
@@ -64,7 +64,7 @@ interface TextInputFieldProps {
 
 export function TextInputField({ label, value, onChange, type = 'text', placeholder, isRequired, isDisabled, autoFocus, list, inputMode, maxLength, className }: TextInputFieldProps) {
   return (
-    <TextField type={type} value={value} onChange={onChange} isRequired={isRequired} isDisabled={isDisabled} autoFocus={autoFocus} maxLength={maxLength} className={className}>
+    <TextField type={type} value={value} onChange={onChange} isRequired={isRequired} isDisabled={isDisabled} autoFocus={autoFocus} maxLength={maxLength} className={`min-w-0 ${className}`}>
       <Label>{label}</Label>
       <Input placeholder={placeholder} list={list} inputMode={inputMode} autoComplete="off" />
     </TextField>
@@ -82,7 +82,7 @@ interface SelectFieldProps {
 export function SelectField({ label, value, onChange, options, className = '' }: SelectFieldProps) {
   const id = useId()
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <div className="relative">
         <select id={id} value={value} onChange={(event) => onChange(event.target.value)} className={`${CONTROL} h-10 appearance-none rounded-[var(--field-radius)] pl-4 pr-10`}>
@@ -111,7 +111,7 @@ interface TextAreaFieldProps {
 export function TextAreaField({ label, value, onChange, rows = 3, placeholder, readOnly, className = '' }: TextAreaFieldProps) {
   const id = useId()
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <textarea
         id={id}

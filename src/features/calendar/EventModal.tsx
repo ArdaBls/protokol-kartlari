@@ -351,9 +351,9 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
               <Trash2 size={16} />
             </Button>
           )}
-          <Button type="button" variant="tertiary" className="h-11 min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" slot="close">Vazgeç</Button>
-          {writer.canWrite && <Button type="button" variant="secondary" className="h-11 min-w-0 flex-[1.8] whitespace-nowrap rounded-[var(--field-radius)] px-2 text-[11px] font-semibold leading-none sm:min-w-40 sm:flex-none sm:px-4 sm:text-sm" onPress={applyProtocolOrder}>Sırayı Kopyala</Button>}
-          {writer.canWrite && <Button type="submit" variant="primary" className="h-11 min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-[11px] font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4 sm:text-sm" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
+          <Button type="button" variant="tertiary" className="h-11 min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-sm font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4" slot="close">Vazgeç</Button>
+          {writer.canWrite && <Button type="button" variant="secondary" className="h-11 min-w-0 flex-[1.8] whitespace-nowrap rounded-[var(--field-radius)] px-2 text-sm font-semibold leading-none sm:min-w-40 sm:flex-none sm:px-4" onPress={applyProtocolOrder}>Sırayı Kopyala</Button>}
+          {writer.canWrite && <Button type="submit" variant="primary" className="h-11 min-w-0 flex-1 whitespace-nowrap rounded-[var(--field-radius)] px-2 text-sm font-semibold leading-none sm:min-w-24 sm:flex-none sm:px-4" isPending={isSaving}>{id ? 'Kaydet' : 'Oluştur'}</Button>}
         </Modal.Footer>
       </form>
 
