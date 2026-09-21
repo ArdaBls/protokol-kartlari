@@ -33,7 +33,7 @@ export function ListView({ events, onEdit }: ListViewProps) {
                 <span className="text-xs font-normal text-muted">{date && CAL_DOW[(date.getDay() + 6) % 7]}{isToday && ' · BUGÜN'}</span>
               </div>
             )}
-            <button type="button" onClick={() => onEdit(ev._id)} className="flex w-full items-center gap-3 border-b border-separator px-3 py-2.5 text-left hover:bg-default/50">
+            <button type="button" onClick={() => onEdit(ev._id)} className={`flex w-full items-center gap-3 border-b border-separator px-3 py-2.5 text-left hover:bg-default/50 ${ev.locked ? 'opacity-60' : ''}`}>
               <span className="size-2.5 shrink-0 rounded-full" style={{ background: ty.renk }} />
               <span className="w-20 shrink-0 text-xs tabular-nums text-muted">{isMultiDay ? fmtMultiDayRange(ev.tarih, ev.bitisTarihi ?? undefined) : ev.saat || '—'}</span>
               <span className="min-w-0 flex-1">

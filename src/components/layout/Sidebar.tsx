@@ -23,7 +23,7 @@ export function Sidebar({ isMobileOpen, isCollapsed, onClose }: SidebarProps) {
       {isMobileOpen && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside
         aria-label="Ana menü"
-        style={{ top: 'env(safe-area-inset-top)', bottom: 'env(safe-area-inset-bottom)' }}
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
         className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-separator bg-surface transition-[width,transform] duration-200 lg:translate-x-0 ${isCollapsed ? 'w-64 lg:w-20' : 'w-64'} ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}

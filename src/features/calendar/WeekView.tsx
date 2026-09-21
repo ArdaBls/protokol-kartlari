@@ -407,7 +407,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                       onClick={() => { if (didDragRef.current) { didDragRef.current = false; return } onEdit(bar.ev._id) }}
                       onPointerDown={(pe) => (bar.ev.locked ? handleLockedClick(bar.ev.ad) : beginBarDrag(pe, bar, 'move'))}
                       style={{ background: `${ty.renk}d9`, cursor: bar.ev.locked ? 'not-allowed' : 'grab' }}
-                      className={`relative flex size-full items-center truncate rounded-md px-2 text-left text-[11px] leading-6 text-white ${isDraggingBar ? 'opacity-40' : ''}`}
+                      className={`relative flex size-full items-center truncate rounded-md px-2 text-left text-[11px] leading-6 text-white ${bar.ev.locked ? 'opacity-60' : ''} ${isDraggingBar ? 'opacity-40' : ''}`}
                     >
                       {!bar.ev.locked && (
                         <span onPointerDown={(pe) => beginBarDrag(pe, bar, 'resize-start')} className="absolute inset-y-0 left-0 w-2 cursor-ew-resize" />
@@ -520,7 +520,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                         onClick={(event) => { event.stopPropagation(); if (didDragRef.current) { didDragRef.current = false; return } onEdit(item.ev._id) }}
                         onPointerDown={(pe) => { if (item.ev.locked) { handleLockedClick(item.ev.ad); return } beginMove(pe, item.ev, item.s, item.e - item.s) }}
                         style={{ background: `${ty.renk}d9`, cursor: item.ev.locked ? 'not-allowed' : 'grab' }}
-                        className={`group relative block size-full touch-none overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
+                        className={`group relative block size-full touch-none overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.locked ? 'opacity-60' : ''} ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
                       >
                         <span className="flex items-center gap-1 font-medium">
                           {item.ev.locked && <Lock size={9} />}

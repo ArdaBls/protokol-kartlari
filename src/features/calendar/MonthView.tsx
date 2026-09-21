@@ -60,7 +60,7 @@ export function MonthView({ anchor, eventsByDate, canWrite, onEdit, onCreate, on
                           type="button"
                           onClick={() => onEdit(ev._id)}
                           style={{ background: `${ty.renk}d9` }}
-                          className={`flex w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${ev.taslak ? 'cal-taslak' : ''}`}
+                          className={`flex w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${ev.locked ? 'opacity-60' : ''} ${ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${ev.taslak ? 'cal-taslak' : ''}`}
                         >
                           {ev.locked && <Lock size={9} className="shrink-0" />}
                           <span className="min-w-0 truncate">
