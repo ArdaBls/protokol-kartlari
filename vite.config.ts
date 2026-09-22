@@ -51,7 +51,7 @@ export default defineConfig({
       workbox: {
         // Eski sitedeki elle yazılmış "CACHE_NAME = protokol-vX.Y.Z" deseninin karşılığı --
         // Workbox önbellek adlarının önüne eklenir, sürüm değişince tarayıcı eski önbelleği atar.
-        cacheId: 'protokol-v5.0.31',
+        cacheId: 'protokol-v5.0.32',
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
         // SPA: doğrudan açılan /protokol gibi adresler çevrimdışıyken de uygulamayı yükler.
