@@ -3,7 +3,7 @@ import type { User } from 'firebase/auth'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { get, onDisconnect, onValue, ref, remove, serverTimestamp, set } from 'firebase/database'
 import type { ReactNode } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { startDbMode } from '../lib/dbMode'
 import { auth, db } from '../lib/firebase'
 import { fullName, isApprovedRole } from '../lib/roles'
@@ -28,16 +28,17 @@ function repairOrphanAccount(user: User) {
   }).catch((err) => console.error('Yetim hesap onarımı başarısız:', err))
 }
 
+function lastSignInAt(user: User): number {
+  const value = user.metadata.lastSignInTime ? Date.parse(user.metadata.lastSignInTime) : NaN
+  return Number.isFinite(value) ? value : 0
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined)
   const [profile, setProfile] = useState<{ uid: string; value: UserProfile | null } | null>(null)
   const [streak, setStreak] = useState<StreakResult | null>(null)
-  const authSessionStartedAt = useRef(0)
 
-  useEffect(() => onAuthStateChanged(auth, (nextUser) => {
-    if (nextUser) authSessionStartedAt.current = Date.now()
-    setUser(nextUser)
-  }), [])
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
 
   // Canlı dinleme: oturum sırasında rol değişirse veya hesap engellenirse anında yansır.
   useEffect(() => {
@@ -53,8 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const deletedSnap = await get(deletedRef)
             const deletedAt = deletedSnap.child('deletedAt').val()
-            const deletedDuringThisSession = typeof deletedAt === 'number' && deletedAt > authSessionStartedAt.current
-            if (deletedDuringThisSession) {
+            const signedInAt = lastSignInAt(user)
+            const canRecreateAfterNewLogin = typeof deletedAt === 'number' && signedInAt > deletedAt
+            if (deletedSnap.exists() && !canRecreateAfterNewLogin) {
               setProfile({ uid: user.uid, value: null })
               return
             }
