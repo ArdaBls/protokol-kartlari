@@ -14,16 +14,34 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="./css/main-v4-Ba6gl62N.css">
 <style>
-  html, body { background: #0f0b15 !important; min-height: 100%; }
+  html, body { width: 100%; height: 100%; min-height: 100%; background: #0f0b15 !important; }
   body { overflow-x: hidden; }
   .sidebar, .topbar, .footer { display: none !important; }
-  .bj-main { min-height: 100dvh !important; margin-inline-start: 0 !important; padding-top: 0 !important; }
-  .bj-main .page-wrapper { width: 100%; max-width: none; padding: 12px 16px 16px; }
+  .bj-main {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    margin-inline-start: 0 !important;
+    padding-top: 0 !important;
+    overflow: hidden;
+  }
+  .bj-main .page-wrapper {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    padding: 8px 12px 12px;
+  }
   .bj-main .page-header { margin-bottom: 6px; }
   .bj-main .page-header-row > div:first-child { display: none; }
   .bj-main .page-header-row { justify-content: flex-end; }
-  .bj-masa-viewport { flex: 1 1 auto; align-items: center; }
-  .bj-masa { min-height: min(760px, calc(100dvh - 36px)); }
+  .bj-masa-viewport { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  .bj-masa {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    align-self: stretch;
+  }
 </style>
 </head>
 <body data-page="games">

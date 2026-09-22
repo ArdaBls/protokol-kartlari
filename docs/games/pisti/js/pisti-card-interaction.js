@@ -102,6 +102,16 @@ function finishDrag(event, cancelled = false) {
   const play = !cancelled && isCenterDrop(drag);
   const moved = drag.distance >= DRAG_INTENT_DISTANCE;
 
+  // pointerdown'da tarayıcının varsayılan click'i engellendiği için, hareket
+  // eşiğinin altında kalan normal bir dokunuşu burada kendimiz çalıştırırız.
+  // Böylece kartın alt/üst kısmına basmak aynı sonucu verir.
+  if (!cancelled && !moved) {
+    armTrustedClickSuppression(button);
+    resetDrag(button);
+    button.click();
+    return;
+  }
+
   if (play) {
     animateCardToCenter(button);
     armTrustedClickSuppression(button);

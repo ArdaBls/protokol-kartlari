@@ -14,23 +14,43 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="./css/main-v4-Cp8P4lJI.css">
 <style>
-  html, body { background: #0f0b15 !important; min-height: 100%; }
+  html, body { width: 100%; height: 100%; min-height: 100%; background: #0f0b15 !important; }
   body { overflow-x: hidden; }
   .sidebar, .topbar, .footer, .page-header { display: none !important; }
-  .main { min-height: 100dvh !important; margin-inline-start: 0 !important; padding-top: 0 !important; }
-  .main .page-wrapper { width: 100%; max-width: none; padding: 12px 16px 16px; }
-  .pisti-masa-viewport { flex: 1 1 auto; align-items: center; }
-  .pisti-masa { min-height: min(760px, calc(100dvh - 36px)); }
+  .main {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    margin-inline-start: 0 !important;
+    padding-top: 0 !important;
+    overflow: hidden;
+  }
+  .main .page-wrapper {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    padding: 8px 12px 12px;
+  }
+  .pisti-masa-viewport {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .pisti-masa {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+  }
 
-  /* Pişti kartları: üst üste gelen görseller komşu kartın tıklamasını çalmasın. */
+  /* Kartın görünür yüzeyi ile dokunma alanı birebir aynıdır. */
   .pisti-el-kart-btn {
-    width: 56px;
-    margin-left: -28px;
+    width: 96px;
+    margin-left: -48px;
     touch-action: none;
   }
   .pisti-el-kart-btn .pisti-kart {
-    width: 96px;
-    margin-left: -20px;
+    width: 100%;
+    margin-left: 0;
     pointer-events: none;
   }
   .pisti-el-kart-btn.pisti-el-kart-suruklenen,
@@ -42,9 +62,11 @@
     cursor: grabbing;
     z-index: 999 !important;
   }
+  /* Dokunmatik tarayıcılar :hover durumunu kalıcı bırakabilir. Kartların
+     bir kısmını pasifleştirmek seçimin rastgele görünmesine yol açıyordu. */
   .pisti-elim:has(.pisti-el-kart-suruklenen) .pisti-el-kart-btn:not(.pisti-el-kart-suruklenen),
   .pisti-elim:has(.pisti-el-kart-btn:hover) .pisti-el-kart-btn:not(:hover) {
-    pointer-events: none;
+    pointer-events: auto;
   }
   .pisti-el-kart-btn:not(:disabled):hover,
   .pisti-el-kart-btn:not(:disabled):focus-visible {
@@ -81,17 +103,17 @@
   .pisti-koltuk-topladigi::before { left: 0; transform: rotate(-9deg); }
   .pisti-koltuk-topladigi::after { right: 0; transform: rotate(9deg); }
   @media (max-width: 720px) {
-    .pisti-el-kart-btn { width: 58px; margin-left: -29px; }
+    .pisti-el-kart-btn { width: 72px; margin-left: -36px; }
   }
 
   /* Dört koltuk masanın çevresinde sabit kalır: üstte, altta, sağda ve solda. */
   .pisti-masa-viewport { overflow: visible; }
   .pisti-masa {
     display: block;
-    height: clamp(630px, calc(100dvh - 72px), 800px);
-    min-height: 630px;
+    height: 100%;
+    min-height: 0;
     padding: 0;
-    overflow: visible;
+    overflow: hidden;
   }
   .pisti-koltuklar {
     position: absolute;
@@ -177,7 +199,7 @@
   }
   .pisti-masa-kartlari-alani {
     position: absolute;
-    top: 48%;
+    top: 50%;
     left: 50%;
     z-index: 4;
     display: block;
@@ -192,6 +214,13 @@
     width: 190px;
     height: 210px;
     pointer-events: none;
+  }
+  .pisti-masa-bos {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
   }
   .pisti-masa-sabit-kart {
     position: absolute;
@@ -233,7 +262,7 @@
   @media (max-width: 720px) {
     .main .page-wrapper { padding: 8px; }
     .pisti-masa {
-      height: max(640px, calc(100dvh - 16px));
+      height: 100%;
       min-height: 640px;
       border-width: 5px;
       border-radius: 26px;
@@ -251,7 +280,7 @@
     .pisti-koltuk-topladigi::after { width: 21px; }
     .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] .pisti-koltuk-topladigi { left: calc(100% + 4px); }
     .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] .pisti-koltuk-topladigi { right: calc(100% + 4px); }
-    .pisti-masa-kartlari-alani { top: 47%; width: 142px; min-height: 164px; }
+    .pisti-masa-kartlari-alani { top: 50%; width: 142px; min-height: 164px; }
     .pisti-masa-kartlari { width: 142px; height: 164px; }
     .pisti-masa-sabit-kart { width: 62px !important; }
     .pisti-elim { width: 94%; height: 118px; }

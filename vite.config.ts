@@ -6,9 +6,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 const THEME_COLOR = '#0f0b15'
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365
 const MAX_PRECACHE_BYTES = 4 * 1024 * 1024
+const APP_VERSION = process.env.npm_package_version ?? '0.0.0'
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   build: {
     // GitHub Pages bu depoda docs/ klasörünü yayınlıyor; build çıktısı doğrudan buraya gider.
     outDir: 'docs',
@@ -51,7 +55,7 @@ export default defineConfig({
       workbox: {
         // Eski sitedeki elle yazılmış "CACHE_NAME = protokol-vX.Y.Z" deseninin karşılığı --
         // Workbox önbellek adlarının önüne eklenir, sürüm değişince tarayıcı eski önbelleği atar.
-        cacheId: 'protokol-v5.0.35',
+        cacheId: 'protokol-v5.0.36',
         // Kullanıcı "Yenile" dediğinde yeni worker mevcut sekmeyi de hemen
         // devralır; aksi durumda iframe eski önbelleği taşımaya devam edebilir.
         clientsClaim: true,
