@@ -16,7 +16,6 @@ const COVERS: Record<string, { icon: LucideIcon; from: string; to: string }> = {
   geoguesser: { icon: Globe2, from: '#06b6d4', to: '#155e75' },
   'amiral-batti': { icon: Ship, from: '#0ea5e9', to: '#0c4a6e' },
   blackjack: { icon: Spade, from: '#171717', to: '#404040' },
-  holdem: { icon: Spade, from: '#dc2626', to: '#450a0a' },
   pisti: { icon: Users, from: '#f43f5e', to: '#881337' },
 }
 

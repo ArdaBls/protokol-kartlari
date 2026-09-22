@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{t}from"./GameIframePage-CrlOCRfR.js";var n=e();function r(){return(0,n.jsx)(t,{title:`Kour.io`,src:`https://kour.io/`,externalUrl:`https://kour.io/`,allow:`fullscreen; gamepad; autoplay; pointer-lock`})}export{r as KourPage};

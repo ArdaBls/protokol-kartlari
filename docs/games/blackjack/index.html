@@ -1,34 +1,70 @@
-<!doctype html>
-<html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | Blackjack</title>
-    <link rel="stylesheet" href="TemplateData/style.css">
-    <link rel="shortcut icon" href="TemplateData/favicon.ico" />
-    <script src="TemplateData/UnityProgress.js"></script>
-  </head>
-  <body class="template">
-    <p class="header"><span>Unity WebGL Player | </span>Blackjack</p>
-    <div class="template-wrap clear">
-      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" height="768px" width="1024px"></canvas>
-      <br>
-      <div class="logo"></div>
-      <div class="fullscreen"><img src="TemplateData/fullscreen.png" width="38" height="38" alt="Fullscreen" title="Fullscreen" onclick="SetFullscreen(1);" /></div>
-      <div class="title">Blackjack</div>
-    </div>
-    <p class="footer">&laquo; created with <a href="http://unity3d.com/" title="Go to unity3d.com">Unity</a> &raquo;</p>
-    <script type='text/javascript'>
-  var Module = {
-    TOTAL_MEMORY: 268435456,
-    errorhandler: null,			// arguments: err, url, line. This function must return 'true' if the error is handled, otherwise 'false'
-    compatibilitycheck: null,
-    dataUrl: "Release/index.html.datagz",
-    codeUrl: "Release/index.html.jsgz",
-    memUrl: "Release/index.html.memgz",
-  };
-</script>
-<script src="Release/UnityLoader.js"></script>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Blackjack | Protokol</title>
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Ana sitedeki (protokol.sbs) omu-protokol Firebase projesiyle aynı config -- bkz. blackjack-oyun.js. -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="./css/main-v4-Ba6gl62N.css">
+</head>
+<body data-page="games">
 
-  </body>
+<!-- Dikey telefonda masa hiç açılmaz; cihaz yönü tarayıcı tarafından kilitlenemediği için yönlendirme kullanılır (Hold'em ile aynı desen). -->
+<div class="bj-rotate-overlay" data-bj-rotate-overlay role="alert" aria-live="assertive">
+  <div class="bj-rotate-icon" aria-hidden="true">↻</div>
+  <strong>Telefonunu yatay çevir</strong>
+  <span>Blackjack masasındaki tüm koltukları ve kartları görebilmek için yatay görünüm gerekir.</span>
+</div>
+
+<main class="main bj-main">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <div class="page-pretitle">Oyunlar</div>
+        <h1 class="page-title">Blackjack (21)</h1>
+      </div>
+      <div class="card-options">
+        <span class="bj-bakiye" data-bj-bakiye>… çip</span>
+        <button type="button" class="btn btn-outline bj-skin-carki-btn" data-bj-skin-carki title="Kart skinleri">⚙</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bj-islem-durumu">
+    <span data-bj-durum role="status" aria-live="polite"></span>
+    <button type="button" class="btn btn-outline" data-bj-yeniden-dene hidden>Tekrar dene</button>
+  </div>
+  <div class="bj-masa-viewport">
+    <div class="bj-masa" data-bj-root>
+      <div class="bj-krupiyer-satiri">
+        <div class="bj-deste-yigini" data-bj-deste-yigini></div>
+        <div class="bj-krupiyer-alani">
+          <div class="bj-krupiyer" data-bj-krupiyer></div>
+          <div class="bj-sayac" data-bj-sayac></div>
+        </div>
+      </div>
+      <div class="bj-koltuklar" data-bj-koltuklar></div>
+      <aside class="bj-bahis-panel" data-bj-bahis-panel aria-live="polite"></aside>
+      <div class="bj-aksiyonlar-satiri">
+        <div class="bj-aksiyon-sayac" data-bj-aksiyon-sayac></div>
+        <div class="bj-aksiyonlar" data-bj-aksiyonlar></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script type="module" src="./js/oyun-blackjack-C9UgCUdt.js"></script>
+
+</body>
 </html>

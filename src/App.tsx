@@ -6,6 +6,7 @@ import { AppShell } from './components/layout/AppShell'
 import { PlaceholderPage } from './components/PlaceholderPage'
 import { NAV_ITEMS } from './config/nav'
 import { AccountStatusPage } from './pages/AccountStatusPage'
+import { GameIframePage } from './features/games/GameIframePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -30,7 +31,6 @@ const GeoguesserPage = lazy(() => import('./features/games/GeoguesserPage').then
 const TetrisPage = lazy(() => import('./features/games/TetrisPage').then((m) => ({ default: m.TetrisPage })))
 const ChessPage = lazy(() => import('./features/games/chess/ChessPage').then((m) => ({ default: m.ChessPage })))
 const AmiralBattiPage = lazy(() => import('./features/games/amiralbatti/AmiralBattiPage').then((m) => ({ default: m.AmiralBattiPage })))
-const BlackjackPage = lazy(() => import('./features/games/blackjack/BlackjackPage').then((m) => ({ default: m.BlackjackPage })))
 const CalendarPage = lazy(() => import('./features/calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 
 const IMPLEMENTED_PATHS = new Set(['/', '/protokol', '/ayarlar', '/kullanici-yonetimi', '/basin-rehberi', '/kisiler', '/gantt', '/profil', '/bildirimler', '/yapilacaklar', '/harita', '/oyunlar', '/takvim'])
@@ -72,7 +72,8 @@ function App() {
           <Route path="/oyunlar/tetris" element={<Suspense fallback={<PageFallback />}><TetrisPage /></Suspense>} />
           <Route path="/oyunlar/satranc" element={<Suspense fallback={<PageFallback />}><ChessPage /></Suspense>} />
           <Route path="/oyunlar/amiral-batti" element={<Suspense fallback={<PageFallback />}><AmiralBattiPage /></Suspense>} />
-          <Route path="/oyunlar/blackjack" element={<Suspense fallback={<PageFallback />}><BlackjackPage /></Suspense>} />
+          <Route path="/oyunlar/blackjack" element={<GameIframePage title="Blackjack (21)" src="/games/blackjack/index.html" allow="autoplay; fullscreen" />} />
+          <Route path="/oyunlar/pisti" element={<GameIframePage title="Pişti" src="/games/pisti/index.html" allow="autoplay; fullscreen" />} />
           <Route path="/takvim" element={<Suspense fallback={<PageFallback />}><CalendarPage /></Suspense>} />
           {NAV_ITEMS.filter((item) => !IMPLEMENTED_PATHS.has(item.path)).map((item) => (
             <Route key={item.key} path={item.path} element={<PlaceholderPage title={item.text} />} />

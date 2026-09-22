@@ -15,7 +15,6 @@ export const GAMES: GameDef[] = [
   { key: 'tetris', path: '/oyunlar/tetris', title: 'Tetris', description: 'Klasik blok düşürme oyunu.', implemented: true },
   { key: 'geoguesser', path: '/oyunlar/geoguesser', title: 'WorldGuessr', description: "Street View'dan konum tahmin et.", implemented: true },
   { key: 'amiral-batti', path: '/oyunlar/amiral-batti', title: 'Amiral Battı', description: 'Arkadaşınla siteden davet gönder, filoları batır.', implemented: true },
-  { key: 'blackjack', path: '/oyunlar/blackjack', title: 'Blackjack (21)', description: 'Tek paylaşılan masa, 3 koltuk, çip ile oyna.', implemented: true },
-  { key: 'holdem', path: '/oyunlar/holdem', title: "Texas Hold'em", description: 'Botlarla veya masadaki diğer oyuncularla poker oyna.', implemented: false },
-  { key: 'pisti', path: '/oyunlar/pisti', title: 'Pişti', description: 'Gerçek zamanlı paylaşılan masa, 101 puana kadar.', implemented: false },
+  { key: 'blackjack', path: '/oyunlar/blackjack', title: 'Blackjack (21)', description: 'Tek paylaşılan masa, 5 koltuk, çip ile oyna.', implemented: true },
+  { key: 'pisti', path: '/oyunlar/pisti', title: 'Pişti', description: 'Gerçek zamanlı paylaşılan masa, 101 puana kadar.', implemented: true },
 ]
