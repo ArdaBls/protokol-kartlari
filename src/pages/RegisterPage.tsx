@@ -28,10 +28,9 @@ export function RegisterPage() {
   const [passwordAgain, setPasswordAgain] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasRegistered, setHasRegistered] = useState(false)
 
   if (state.status === 'loading') return <FullScreenSpinner />
-  if (hasRegistered && state.status === 'pending') return <Navigate to="/onay-bekliyor" replace />
+  if (state.status === 'pending') return <Navigate to="/onay-bekliyor" replace />
   if (state.status !== 'guest') return <Navigate to="/" replace />
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -56,7 +55,6 @@ export function RegisterPage() {
         role: 'pending',
         createdAt: serverTimestamp(),
       })
-      setHasRegistered(true)
     } catch (err) {
       console.error('Kayıt başarısız:', err)
       await signOut(auth).catch(() => undefined)
