@@ -1233,15 +1233,15 @@
     "deletedAccounts": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
-        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
-        ".validate": "newData.hasChildren(['deletedAt','deletedByUid']) && newData.child('deletedAt').isNumber() && newData.child('deletedByUid').isString()"
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && ((!newData.exists() && auth.uid === $uid) || (newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && newData.child('deletedByUid').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['deletedAt','deletedByUid']) && newData.child('deletedAt').isNumber() && newData.child('deletedByUid').isString() && newData.child('deletedByUid').val() === auth.uid"
       }
     },
     "users": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && ((auth.uid === $uid && data.child('blocked').val() !== true && newData.exists()) || ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true && (newData.exists() || data.child('role').val() !== 'owner')))",
+        ".write": "auth != null && ((auth.uid === $uid && data.child('blocked').val() !== true && newData.exists()) || ((root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && auth.uid !== $uid && root.child('users').child(auth.uid).child('blocked').val() !== true && (newData.exists() || data.child('role').val() !== 'owner')))",
         ".validate": "newData.hasChildren(['firstName','lastName','email','role'])",
         "role": {
           ".validate": "(newData.val() === 'pending' || newData.val() === 'editor' || newData.val() === 'admin' || newData.val() === 'owner') && ((auth.uid === $uid && !data.exists() && newData.val() === 'pending') || (auth.uid !== $uid && newData.val() !== 'owner' && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true) || (auth.uid !== $uid && newData.val() === 'owner' && root.child('users').child(auth.uid).child('role').val() === 'owner' && root.child('users').child(auth.uid).child('blocked').val() !== true))"

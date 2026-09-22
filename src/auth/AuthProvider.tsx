@@ -1,7 +1,7 @@
 import { toast } from '@heroui/react'
 import type { User } from 'firebase/auth'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { get, onDisconnect, onValue, ref, remove, serverTimestamp, set } from 'firebase/database'
+import { onDisconnect, onValue, ref, serverTimestamp, set } from 'firebase/database'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { startDbMode } from '../lib/dbMode'
@@ -12,26 +12,6 @@ import { initStreak } from '../lib/streak'
 import type { StreakResult } from '../lib/streak'
 import { AuthContext } from './AuthContext'
 import type { AuthContextValue, AuthState } from './AuthContext'
-
-// Auth hesabı olup users/{uid} kaydı olmayan hesapları pending olarak yeniden oluştur.
-// Kullanıcı yönetiminden silinen hesaplar, aynı Auth hesabıyla yeniden giriş yaptığında
-// tekrar onay bekleyen kullanıcı olarak oluşturulabilir.
-function repairOrphanAccount(user: User) {
-  const name = (user.displayName ?? '').trim()
-  const split = name.lastIndexOf(' ')
-  set(ref(db, `users/${user.uid}`), {
-    firstName: split === -1 ? name : name.slice(0, split),
-    lastName: split === -1 ? '' : name.slice(split + 1),
-    email: user.email ?? '',
-    role: 'pending',
-    createdAt: serverTimestamp(),
-  }).catch((err) => console.error('Yetim hesap onarımı başarısız:', err))
-}
-
-function lastSignInAt(user: User): number {
-  const value = user.metadata.lastSignInTime ? Date.parse(user.metadata.lastSignInTime) : NaN
-  return Number.isFinite(value) ? value : 0
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined)
@@ -45,28 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return
     return onValue(
       ref(db, `users/${user.uid}`),
-      async (snap) => {
+      (snap) => {
         if (!snap.exists()) {
-          // Admin/owner silme işleminde users/{uid} ile birlikte bu işaret de yazılır.
-          // Silinen hesabın açık oturumda anında yeniden oluşturulmasını engelleriz;
-          // kullanıcı sonraki girişinde (yeni auth oturumunda) tekrar pending olabilir.
-          const deletedRef = ref(db, `deletedAccounts/${user.uid}`)
-          try {
-            const deletedSnap = await get(deletedRef)
-            const deletedAt = deletedSnap.child('deletedAt').val()
-            const signedInAt = lastSignInAt(user)
-            const canRecreateAfterNewLogin = typeof deletedAt === 'number' && signedInAt > deletedAt
-            if (deletedSnap.exists() && !canRecreateAfterNewLogin) {
-              setProfile({ uid: user.uid, value: null })
-              return
-            }
-            if (deletedSnap.exists()) await remove(deletedRef)
-          } catch (err) {
-            console.error('Silinen hesap işareti okunamadı:', err)
-            setProfile({ uid: user.uid, value: null })
-            return
-          }
-          repairOrphanAccount(user)
+          // Profilin silinmesi açık oturumun kendi kendine yeni pending kullanıcı
+          // oluşturacağı anlamına gelmez. Yeniden oluşturma yalnızca başarılı yeni
+          // girişten sonra LoginPage tarafından açıkça yapılır.
+          setProfile({ uid: user.uid, value: null })
+          return
         }
         setProfile({ uid: user.uid, value: snap.val() as UserProfile | null })
       },

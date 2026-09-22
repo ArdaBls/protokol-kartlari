@@ -5,6 +5,7 @@ import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { FullScreenSpinner } from '../auth/RequireAuth'
+import { restoreMissingAccount } from '../auth/restoreMissingAccount'
 import { useAuth } from '../auth/useAuth'
 import { auth } from '../lib/firebase'
 
@@ -41,7 +42,8 @@ export function LoginPage() {
     setError(null)
     setIsSubmitting(true)
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password)
+      const credential = await signInWithEmailAndPassword(auth, email.trim(), password)
+      await restoreMissingAccount(credential.user)
     } catch (err) {
       console.error('Giriş başarısız:', err)
       setError(loginErrorMessage(err))

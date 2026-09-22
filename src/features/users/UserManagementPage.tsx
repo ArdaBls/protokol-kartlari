@@ -1,5 +1,5 @@
 import { Avatar, Button, Card, Input, TextField, toast } from '@heroui/react'
-import { ref, serverTimestamp, update } from 'firebase/database'
+import { ref, remove, set, update } from 'firebase/database'
 import { Download, Search, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -173,15 +173,23 @@ export function UserManagementPage() {
         const matchesName = !!name && entry.by?.trim() === name
         return matchesEmail || matchesName
       })
-      await update(ref(db), {
-        [`users/${uid}`]: null,
-        [`deletedAccounts/${uid}`]: { deletedAt: serverTimestamp(), deletedByUid: currentUid },
-        [`staffProfiles/${uid}`]: null,
-        [dbPathFor(`basinGorevlileri/${uid}`, isTestMode)]: null,
-        [`presence/${uid}`]: null,
-        [dbPathFor(`notifications/${uid}`, isTestMode)]: null,
-        ...logDeletes,
-      })
+      const deletedAccountRef = ref(db, `deletedAccounts/${uid}`)
+      // Önce tombstone yazılır. Kural yayınlanmamışsa işlem burada durur ve
+      // kullanıcı kaydı yarım silinip yeniden oluşturulamaz.
+      await set(deletedAccountRef, { deletedAt: Date.now(), deletedByUid: currentUid })
+      try {
+        await update(ref(db), {
+          [`users/${uid}`]: null,
+          [`staffProfiles/${uid}`]: null,
+          [dbPathFor(`basinGorevlileri/${uid}`, isTestMode)]: null,
+          [`presence/${uid}`]: null,
+          [dbPathFor(`notifications/${uid}`, isTestMode)]: null,
+          ...logDeletes,
+        })
+      } catch (err) {
+        await remove(deletedAccountRef).catch(() => undefined)
+        throw err
+      }
       toast.warning(`${fullNameOf(user)} kullanıcısı ve kullanıcı logları silindi. Etkinlik ve protokol kartları korundu.`)
       setDeleteTarget(null)
     } catch (err) {
