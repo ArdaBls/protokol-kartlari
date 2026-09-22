@@ -221,10 +221,11 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
   }
 
   const remove = async () => {
-    if (!id || !ev) return
-    if (isLocked) { toast.danger('Bu etkinlik kilitli. Silmek için önce kilidi açın.'); return }
-    await writer.deleteEvent(id, ev)
-    onOpenChange(false)
+    if (!id || !ev) return false
+    if (isLocked) { toast.danger('Bu etkinlik kilitli. Silmek için önce kilidi açın.'); return false }
+    const deleted = await writer.deleteEvent(id, ev)
+    if (deleted) onOpenChange(false)
+    return deleted
   }
 
   const toggleEventLock = async () => {
@@ -357,7 +358,7 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
         </Modal.Footer>
       </form>
 
-      <FormModal isOpen={isConfirmingDelete} onOpenChange={setIsConfirmingDelete} title="Etkinliği sil?" submitLabel="Sil" isDanger onSubmit={() => { void remove() }}>
+      <FormModal isOpen={isConfirmingDelete} onOpenChange={setIsConfirmingDelete} title="Etkinliği sil?" submitLabel="Sil" isDanger onSubmit={() => { void remove(); return false }}>
         <p className="text-sm text-muted">"{ev?.ad}" kalıcı olarak silinecek. Bu işlem geri alınamaz.</p>
       </FormModal>
     </>

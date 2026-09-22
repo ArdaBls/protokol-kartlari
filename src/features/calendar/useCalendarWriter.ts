@@ -1,5 +1,5 @@
 import { toast } from '@heroui/react'
-import { get, push, ref, serverTimestamp, update } from 'firebase/database'
+import { get, push, ref, remove, serverTimestamp, update } from 'firebase/database'
 import { useWriter } from '../../hooks/useWriter'
 import { db } from '../../lib/firebase'
 import type { CalendarEvent, CalendarEventWithId } from './calendarTypes'
@@ -96,11 +96,27 @@ export function useCalendarWriter() {
     if (!actor) return false
     const logPath = writer.path('logs/etkinlik')
     const logKey = push(ref(db, logPath)).key
+    if (!logKey) {
+      toast.danger('Etkinlik silinemedi. Log kimliği oluşturulamadı.')
+      return false
+    }
     try {
-      await update(ref(db), {
-        [writer.path(`etkinlikler/${id}`)]: null,
-        [`${logPath}/${logKey}`]: { by: actor.name || actor.email, email: actor.email, action: `${ev.ad || 'Etkinlik'} etkinliği takvimden silindi`, target: ev.ad ?? '', timestamp: serverTimestamp() },
-      })
+      // Silme ile loglamayı aynı çok-yollu güncellemeye bağlama: log kuralları
+      // değişse bile etkinlik silme işlemi geri alınmamalı.
+      await remove(ref(db, writer.path(`etkinlikler/${id}`)))
+      try {
+        await update(ref(db), {
+          [`${logPath}/${logKey}`]: {
+            by: actor.name || actor.email,
+            email: actor.email,
+            action: `${ev.ad || 'Etkinlik'} etkinliği takvimden silindi`,
+            target: ev.ad ?? '',
+            timestamp: Date.now(),
+          },
+        })
+      } catch (logError) {
+        console.error('Etkinlik silme logu yazılamadı:', logError)
+      }
       toast.success('Etkinlik silindi.')
       return true
     } catch (err) {

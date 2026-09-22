@@ -49,7 +49,7 @@ export function ConcertTicketPopup({ event, userName, isOpen, onClose }: Concert
       onKeyDown={(event) => event.key === 'Escape' && onClose()}
     >
       <div className="concert-ticket-overlay-inner">
-        <div className="card" aria-label={`${event.ad || 'Konser'} bileti`}>
+        <div className="concert-ticket-card" aria-label={`${event.ad || 'Konser'} bileti`}>
           <div className="notes">♪♪♪♪♪</div>
           <div className="notes">♪♪♪♪</div>
           <div className="notes">♪♪♪♪♪</div>

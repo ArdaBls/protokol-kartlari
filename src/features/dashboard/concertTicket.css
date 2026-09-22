@@ -1,4 +1,4 @@
-.card {
+.concert-ticket-card {
   --width: 180px;
   --height: 320px;
   --perforation-size: 12px;
@@ -37,13 +37,13 @@
   }
 }
 
-.filter {
+.concert-ticket-card .filter {
   position: absolute;
   width: 0;
   height: 0;
 }
 
-.bg {
+.concert-ticket-card .bg {
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -91,7 +91,7 @@
   -webkit-mask-composite: source-in, xor, source-over, source-over;
 }
 
-.holographic {
+.concert-ticket-card .holographic {
   background-image: linear-gradient(to bottom, #fe58, 90%, #0002),
     conic-gradient(
       at 60% 50%,
@@ -111,21 +111,21 @@
     );
 }
 
-.holographic::before,
-.holographic::after {
+.concert-ticket-card .holographic::before,
+.concert-ticket-card .holographic::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
 }
 
-.holographic::before {
+.concert-ticket-card .holographic::before {
   background: radial-gradient(circle at 70% 20%, #f0f, #0000),
     repeating-radial-gradient(circle at 30% 80%, #fff, #f4a 48px, #eeeeee 150px);
   mix-blend-mode: color-burn;
 }
 
-.holographic::after {
+.concert-ticket-card .holographic::after {
   background: linear-gradient(to bottom, #f205, #f00, #0f0, #f205);
   mix-blend-mode: difference;
   animation: ticket-bg-pos 3s ease-in-out infinite alternate;
@@ -138,7 +138,7 @@
   to { background-position: 0 500px; }
 }
 
-.header {
+.concert-ticket-card .header {
   position: relative;
   grid-area: header;
   z-index: 1;
@@ -153,7 +153,7 @@
   letter-spacing: 2px;
 }
 
-.body {
+.concert-ticket-card .body {
   grid-area: body;
   z-index: 1;
   margin: 0 1em;
@@ -166,13 +166,13 @@
   font-weight: 200;
 }
 
-.footer {
+.concert-ticket-card .footer {
   grid-area: footer;
   z-index: 1;
   margin: 0 1em 1em;
 }
 
-.number {
+.concert-ticket-card .number {
   margin-bottom: 0.75rem;
   color: #ffffff9f;
   text-align: center;
@@ -182,11 +182,11 @@
   font-weight: 200;
 }
 
-.number .bold {
+.concert-ticket-card .number .bold {
   font-weight: 600;
 }
 
-.barcode {
+.concert-ticket-card .barcode {
   width: 0;
   height: 32px;
   transform: translateX(37px);
@@ -201,7 +201,7 @@
     74px 0 0 1px #000;
 }
 
-.symbol {
+.concert-ticket-card .symbol {
   position: absolute;
   top: 1.3em;
   right: 0;
@@ -212,7 +212,7 @@
   rotate: 185deg;
 }
 
-.notes {
+.concert-ticket-card .notes {
   position: absolute;
   z-index: 1;
   inset: 0;
@@ -223,8 +223,8 @@
   transform: translateY(20%);
 }
 
-.notes:nth-child(2) { transform: translateY(40%); }
-.notes:nth-child(3) { transform: translateY(60%); }
+.concert-ticket-card .notes:nth-child(2) { transform: translateY(40%); }
+.concert-ticket-card .notes:nth-child(3) { transform: translateY(60%); }
 
 .concert-ticket-overlay {
   position: fixed;
@@ -261,9 +261,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card, .concert-ticket-chip, .holographic::after { animation: none; }
+  .concert-ticket-card, .concert-ticket-chip, .concert-ticket-card .holographic::after { animation: none; }
 }
 
 @media (max-width: 480px) {
-  .card { transform: scale(0.9); }
+  .concert-ticket-card { transform: scale(0.9); }
 }
