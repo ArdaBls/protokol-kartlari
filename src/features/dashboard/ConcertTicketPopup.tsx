@@ -65,7 +65,7 @@ export function ConcertTicketPopup({ event, userName, isOpen, onClose }: Concert
             <span>{event.yer || 'Etkinlik alanı'}</span>
           </div>
           <div className="footer">
-            <div className="number">Guest <span className="bold">{userName || 'Misafir'}</span></div>
+            <div className="number"><span className="bold">{userName || 'Misafir'}</span></div>
             <div className="barcode" aria-hidden="true" />
           </div>
           <div className="bg holographic" />

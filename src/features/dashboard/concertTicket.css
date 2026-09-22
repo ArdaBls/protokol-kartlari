@@ -143,6 +143,9 @@
   grid-area: header;
   z-index: 1;
   margin: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #ffffff9f;
   text-align: center;
   text-shadow: 0 0 0 #000;
@@ -173,6 +176,10 @@
 }
 
 .concert-ticket-card .number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   margin-bottom: 0.75rem;
   color: #ffffff9f;
   text-align: center;
