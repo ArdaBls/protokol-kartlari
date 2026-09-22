@@ -122,14 +122,16 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 6;
+    /* Alt ortadaki boş koltuk, el kartlarının katmanı altında kalmasın. */
+    z-index: 12;
   }
   .pisti-koltuk-slot {
     position: absolute;
     display: block;
     width: clamp(104px, 14vw, 164px);
     min-width: 0;
-    pointer-events: auto;
+    pointer-events: auto !important;
+    z-index: 13;
   }
   .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] {
     top: 22px;
@@ -142,7 +144,7 @@
     transform: translateY(-50%);
   }
   .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] {
-    bottom: 158px;
+    bottom: clamp(178px, 20%, 220px);
     left: 50%;
     transform: translateX(-50%);
   }
@@ -272,7 +274,7 @@
     .pisti-koltuk-slot { width: 78px; }
     .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] { top: 14px; }
     .pisti-koltuk-slot[data-pisti-koltuk-slot="1"] { left: 5px; }
-    .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] { bottom: 124px; }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] { bottom: 168px; }
     .pisti-koltuk-slot[data-pisti-koltuk-slot="3"] { right: 5px; }
     .pisti-koltuk strong { max-width: 78px; font-size: 10px; }
     .pisti-koltuk-skor,
@@ -287,6 +289,12 @@
     .pisti-masa-sabit-kart { width: 62px !important; }
     .pisti-elim { width: 94%; height: 118px; }
     .pisti-el-kart-btn { bottom: 0; }
+  }
+  .pisti-otur-btn,
+  .pisti-koltuk-slot [data-pisti-otur] {
+    position: relative;
+    z-index: 14;
+    pointer-events: auto !important;
   }
 </style>
 </head>

@@ -23,7 +23,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // Yeni sürüm sessizce devreye girmez; kullanıcı "Yenile" deyince geçilir (açık formdaki veri kaybolmasın).
+      // Yeni sürüm açık çalışma sırasında ekranı değiştirmez; tam sayfa yenilemede devreye girer.
       registerType: 'prompt',
       includeAssets: ['icons/icon-16.png', 'icons/icon-32.png', 'icons/icon-180.png'],
       manifest: {
@@ -55,9 +55,9 @@ export default defineConfig({
       workbox: {
         // Eski sitedeki elle yazılmış "CACHE_NAME = protokol-vX.Y.Z" deseninin karşılığı --
         // Workbox önbellek adlarının önüne eklenir, sürüm değişince tarayıcı eski önbelleği atar.
-        cacheId: 'protokol-v5.0.37',
-        // Kullanıcı "Yenile" dediğinde yeni worker mevcut sekmeyi de hemen
-        // devralır; aksi durumda iframe eski önbelleği taşımaya devam edebilir.
+        cacheId: 'protokol-v5.0.38',
+        // Yenileme sonrasında yeni worker mevcut sekmeyi de hemen devralır;
+        // aksi durumda iframe eski önbelleği taşımaya devam edebilir.
         clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,

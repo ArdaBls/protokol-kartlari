@@ -1,14 +1,15 @@
 import { Camera, Flame } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { NumberTicker } from '../../components/motion/NumberTicker'
 import { useDbValue } from '../../hooks/useDbValue'
 import { useNow } from '../../hooks/useNow'
 import { eligibleForStats, photoEstimate, rosterNames } from '../../lib/activityStats'
-import { toEventList } from '../../lib/eventOverview'
+import { getEventEndDate, toEventList } from '../../lib/eventOverview'
 import type { CalendarEventRecord } from '../../lib/eventOverview'
 import type { UserProfile } from '../../lib/roles'
 import { CountdownCard } from './CountdownCard'
+import { ConcertTicketPopup } from './ConcertTicketPopup'
 import { EditorActivityCard } from './EditorActivityCard'
 import { EventOverviewCard } from './EventOverviewCard'
 import { StatCard } from './StatCard'
@@ -19,8 +20,10 @@ const RECLASSIFY_MS = 60_000
 
 const formatTr = (n: number) => n.toLocaleString('tr-TR')
 
+const localDayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
 export function DashboardPage() {
-  const { streak } = useAuth()
+  const { streak, state } = useAuth()
   const now = useNow(RECLASSIFY_MS)
   const events = useDbValue<Record<string, CalendarEventRecord | null>>('etkinlikler')
   // users/ yalnızca admin/kurucuya açık; editörde hata döner ve isimler etkinliklerden türetilir.
@@ -30,6 +33,33 @@ export function DashboardPage() {
   const statsEvents = useMemo(() => eligibleForStats(eventList, now), [eventList, now])
   const names = useMemo(() => rosterNames(users.data, statsEvents), [users.data, statsEvents])
   const photos = useMemo(() => photoEstimate(statsEvents), [statsEvents])
+  const activeConcert = useMemo(() => {
+    const today = localDayKey(now)
+    return eventList.find((event) => {
+      if (event.tur !== 'konser' || event.durum === 'iptal' || event.tarih !== today) return false
+      const end = getEventEndDate(event)
+      return !!end && end.getTime() > now.getTime()
+    }) ?? null
+  }, [eventList, now])
+  const ticketUserId = state.status === 'ready' ? state.user.uid : 'anon'
+  const ticketUserName = state.status === 'ready' ? state.displayName : ''
+  const ticketStorageKey = activeConcert ? `concertTicketShown:${ticketUserId}:${activeConcert._id}:${localDayKey(now)}` : ''
+  const [isTicketOpen, setIsTicketOpen] = useState(false)
+
+  useEffect(() => {
+    if (!activeConcert || !ticketStorageKey) {
+      setIsTicketOpen(false)
+      return
+    }
+    try {
+      if (window.localStorage.getItem(ticketStorageKey) !== '1') {
+        window.localStorage.setItem(ticketStorageKey, '1')
+        setIsTicketOpen(true)
+      }
+    } catch {
+      setIsTicketOpen(true)
+    }
+  }, [activeConcert, ticketStorageKey])
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
@@ -58,12 +88,20 @@ export function DashboardPage() {
       <div className="grid min-w-0 gap-6 lg:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
           <EditorActivityCard names={names} events={statsEvents} isLoading={events.isLoading || users.isLoading} now={now} />
-          <TasksCard />
+          <TasksCard hasConcertTicket={!!activeConcert} onOpenConcertTicket={() => setIsTicketOpen(true)} />
         </div>
         <div className="min-w-0">
           <EventOverviewCard events={eventList} isLoading={events.isLoading} hasError={!!events.error} now={now} />
         </div>
       </div>
+      {activeConcert && (
+        <ConcertTicketPopup
+          event={activeConcert}
+          userName={ticketUserName}
+          isOpen={isTicketOpen}
+          onClose={() => setIsTicketOpen(false)}
+        />
+      )}
     </div>
   )
 }

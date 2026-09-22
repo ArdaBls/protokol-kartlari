@@ -1,0 +1,84 @@
+.cal-ticket {
+  --width: 180px;
+  --height: 320px;
+  --perforation-size: 12px;
+  --cutouts-adjust: 70px;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas: 'header' 'body' 'footer';
+  gap: 1rem;
+  width: var(--width);
+  height: var(--height);
+  padding: var(--perforation-size) 0;
+  color: #000;
+  font-family: Inter, sans-serif;
+  font-size: 1rem;
+  user-select: none;
+  overflow: hidden;
+  filter: drop-shadow(0 2px 1px #00000025) drop-shadow(0 4px 3px #00000025) drop-shadow(0 10px 9px #00000025) drop-shadow(0 20px 20px #00000025) drop-shadow(0 40px 40px #00000025);
+  animation: cal-ticket-hover 3s ease infinite;
+  will-change: transform, filter;
+}
+
+@keyframes cal-ticket-hover {
+  50% {
+    filter: drop-shadow(0 4px 3px #00000015) drop-shadow(0 6px 6px #00000015) drop-shadow(0 16px 14px #00000015) drop-shadow(0 30px 28px #00000015) drop-shadow(0 60px 60px #00000015);
+    transform: translateY(-7px) scale(1.02);
+  }
+}
+
+.cal-ticket-filter-svg { position: absolute; width: 0; height: 0; }
+
+.cal-ticket-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: #fff;
+  filter: url('#cal-ticket-bump');
+  mask: radial-gradient(circle at 50% 0, #fff0 calc(var(--perforation-size) - 5px), #000 calc(var(--perforation-size) - 4px)), radial-gradient(circle at 50% 100%, #fff0 calc(var(--perforation-size) - 5px), #000 calc(var(--perforation-size) - 4px)), radial-gradient(circle 8px at left center, #000 98%, #0000 100%), radial-gradient(circle 8px at right center, #000 98%, #0000 100%), repeating-linear-gradient(90deg, #000 10px, #000 15px, #0000 16px, #0000 24px);
+  mask-repeat: repeat-x, repeat-x, no-repeat, no-repeat, repeat-x;
+  mask-size: calc(var(--perforation-size) * 2) 100%, calc(var(--perforation-size) * 2) 100%, 16px 16px, 16px 16px, 10px 2px;
+  mask-position: calc(0.5 * var(--perforation-size)) top, calc(0.5 * var(--perforation-size)) bottom, left var(--cutouts-adjust), right var(--cutouts-adjust), 0 calc(var(--cutouts-adjust) + 7px);
+  mask-composite: intersect, exclude, add, add;
+  -webkit-mask-image: radial-gradient(circle at 50% 0, #fff0 calc(var(--perforation-size) - 5px), #000 calc(var(--perforation-size) - 4px)), radial-gradient(circle at 50% 100%, #fff0 calc(var(--perforation-size) - 5px), #000 calc(var(--perforation-size) - 4px)), radial-gradient(circle 8px at left center, #000 98%, #0000 100%), radial-gradient(circle 8px at right center, #000 98%, #0000 100%), repeating-linear-gradient(90deg, #000 10px, #000 15px, #0000 16px, #0000 24px);
+  -webkit-mask-repeat: repeat-x, repeat-x, no-repeat, no-repeat, repeat-x;
+  -webkit-mask-size: calc(var(--perforation-size) * 2) 100%, calc(var(--perforation-size) * 2) 100%, 16px 16px, 16px 16px, 10px 2px;
+  -webkit-mask-position: calc(0.5 * var(--perforation-size)) top, calc(0.5 * var(--perforation-size)) bottom, left var(--cutouts-adjust), right var(--cutouts-adjust), 0 calc(var(--cutouts-adjust) + 7px);
+  -webkit-mask-composite: source-in, xor, source-over, source-over;
+}
+
+.cal-ticket-holographic {
+  background-image: linear-gradient(to bottom, #fe58, 90%, #0002), conic-gradient(at 60% 50%, #ccc, #ff6bfe, #00f9f8, #ddd, #0081fd, #eef0bc, #0081fd, #ff6bfe, #0002, #0081fd, #ddd, #01fefb, #ccc);
+}
+.cal-ticket-holographic::before,
+.cal-ticket-holographic::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.cal-ticket-holographic::before { background: radial-gradient(circle at 70% 20%, #f0f, #0000), repeating-radial-gradient(circle at 30% 80%, #fff, #f4a 48px, #eee 150px); mix-blend-mode: color-burn; }
+.cal-ticket-holographic::after { background: linear-gradient(to bottom, #f205, #f00, #0f0, #f205); mix-blend-mode: difference; animation: cal-ticket-bg-pos 3s ease-in-out infinite alternate; background-position: 0 0; background-size: 100% 300%; background-repeat: repeat; }
+@keyframes cal-ticket-bg-pos { to { background-position: 0 500px; } }
+
+.cal-ticket-header { position: relative; z-index: 1; grid-area: header; margin: 0 8px; color: #000; text-align: center; font-family: Impact, sans-serif; font-size: 2.75rem; letter-spacing: 2px; }
+.cal-ticket-symbol { position: absolute; top: 1.3em; right: 0; color: #fff; font-size: 1.1em; line-height: 0.5; opacity: 0.2; rotate: 185deg; }
+.cal-ticket-body { z-index: 1; grid-area: body; margin: 0 1em; padding: 0.5em; overflow-wrap: break-word; font-weight: 200; }
+.cal-ticket-footer { z-index: 1; grid-area: footer; margin: 0 1em 1em; }
+.cal-ticket-number { margin-bottom: 0.75rem; overflow-wrap: break-word; color: #000; text-align: center; font-weight: 200; }
+.cal-ticket-number span { font-weight: 600; }
+.cal-ticket-barcode { width: 0; height: 32px; transform: translateX(37px); box-shadow: 0 0 0 1px #000, 5px 0 0 1px #000, 7px 0 0 1px #000, 11px 0 0 1px #000, 15px 0 0 1px #000, 16px 0 0 1px #000, 22px 0 0 1px #000, 27px 0 0 1px #000, 30px 0 0 1px #000, 35px 0 0 1px #000, 36px 0 0 1px #000, 39px 0 0 1px #000, 43px 0 0 1px #000, 47px 0 0 1px #000, 50px 0 0 1px #000, 55px 0 0 1px #000, 59px 0 0 1px #000, 60px 0 0 1px #000, 64px 0 0 1px #000, 69px 0 0 1px #000, 70px 0 0 1px #000, 74px 0 0 1px #000; }
+.cal-ticket-notes { position: absolute; z-index: 1; inset: 0; overflow: hidden; color: #e7e7e7; font-size: 5rem; mix-blend-mode: color-burn; transform: translateY(20%); }
+.cal-ticket-notes:nth-child(2) { transform: translateY(40%); }
+.cal-ticket-notes:nth-child(3) { transform: translateY(60%); }
+
+.concert-ticket-overlay { position: fixed; inset: 0; z-index: 1500; display: flex; align-items: center; justify-content: center; background: rgb(15 23 42 / 55%); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); opacity: 0; cursor: pointer; animation: concert-ticket-overlay-in 200ms ease forwards; }
+.concert-ticket-overlay-inner { transform: scale(0.85) translateY(12px); opacity: 0; animation: concert-ticket-inner-in 260ms cubic-bezier(0.2, 0, 0, 1) forwards; }
+@keyframes concert-ticket-overlay-in { to { opacity: 1; } }
+@keyframes concert-ticket-inner-in { to { transform: scale(1) translateY(0); opacity: 1; } }
+.concert-ticket-chip { color: var(--warning); animation: concert-ticket-chip-pulse 1.8s ease-in-out infinite; }
+@keyframes concert-ticket-chip-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-ticket, .concert-ticket-chip, .cal-ticket-holographic::after { animation: none; }
+}
+@media (max-width: 480px) {
+  .cal-ticket { transform: scale(0.9); }
+}

@@ -1,6 +1,6 @@
 import { Avatar, Button, Card, Checkbox, Chip, Input, Label, TextField, toast } from '@heroui/react'
 import { push, ref, remove, serverTimestamp, set, update } from 'firebase/database'
-import { MapPinned, Plus, X } from 'lucide-react'
+import { MapPinned, Plus, Ticket, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { FormModal } from '../../components/FormModal'
 import { EventModal } from '../calendar/EventModal'
@@ -34,7 +34,7 @@ const STATUS_CHIPS: Partial<Record<TaskStatus, { label: string; color: 'accent' 
   tamamlandi: { label: 'Tamamlandı', color: 'success' },
 }
 
-export function TasksCard() {
+export function TasksCard({ hasConcertTicket = false, onOpenConcertTicket }: { hasConcertTicket?: boolean; onOpenConcertTicket?: () => void }) {
   const { data, isLoading, error } = useDbValue<Record<string, TaskRecord | null>>('gorevler')
   const writer = useWriter()
   const calendarWriter = useCalendarWriter()
@@ -133,16 +133,23 @@ export function TasksCard() {
           <Card.Title>Görevler</Card.Title>
           {subtitle && <Card.Description>{subtitle}</Card.Description>}
         </div>
-        {writer.canWrite && (
-          <div className="flex shrink-0 gap-1.5">
+        <div className="flex shrink-0 gap-1.5">
+          {hasConcertTicket && onOpenConcertTicket && (
+            <Button isIconOnly size="sm" variant="secondary" aria-label="Bugünün konser biletini aç" className="concert-ticket-chip size-8 min-w-8" onPress={onOpenConcertTicket}>
+              <Ticket size={16} />
+            </Button>
+          )}
+          {writer.canWrite && (
             <Button isIconOnly size="sm" variant="secondary" aria-label="Bir Etkinliğe Gidiyorum" isPending={isCreatingQuick} onPress={createQuickEvent}>
               <MapPinned size={16} />
             </Button>
+          )}
+          {writer.canWrite && (
             <Button isIconOnly size="sm" variant="primary" aria-label="Yeni görev ekle" onPress={openAdd}>
               <Plus size={16} />
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </Card.Header>
       <Card.Content className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         {error && <p className="py-3 text-sm text-danger">Görevler yüklenemedi.</p>}
