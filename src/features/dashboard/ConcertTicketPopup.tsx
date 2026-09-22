@@ -49,28 +49,28 @@ export function ConcertTicketPopup({ event, userName, isOpen, onClose }: Concert
       onKeyDown={(event) => event.key === 'Escape' && onClose()}
     >
       <div className="concert-ticket-overlay-inner">
-        <div className="cal-ticket" aria-label={`${event.ad || 'Konser'} bileti`}>
-          <div className="cal-ticket-notes">♪♪♪♪♪</div>
-          <div className="cal-ticket-notes">♪♪♪♪</div>
-          <div className="cal-ticket-notes">♪♪♪♪♪</div>
-          <div className="cal-ticket-header">
-            BİLET
-            <div className="cal-ticket-symbol">✁</div>
+        <div className="card" aria-label={`${event.ad || 'Konser'} bileti`}>
+          <div className="notes">♪♪♪♪♪</div>
+          <div className="notes">♪♪♪♪</div>
+          <div className="notes">♪♪♪♪♪</div>
+          <div className="header">
+            TICKET
+            <div className="symbol">✁</div>
           </div>
-          <div className="cal-ticket-body">
+          <div className="body">
             <em>{event.ad || 'Konser Adı'}</em>
             <br />
             <span>{formatTicketDate(event)}</span>
             <br />
-            <span>{event.yer || ''}</span>
+            <span>{event.yer || 'Etkinlik alanı'}</span>
           </div>
-          <div className="cal-ticket-footer">
-            <div className="cal-ticket-number"><span>{userName}</span></div>
-            <div className="cal-ticket-barcode" aria-hidden="true" />
+          <div className="footer">
+            <div className="number">Guest <span className="bold">{userName || 'Misafir'}</span></div>
+            <div className="barcode" aria-hidden="true" />
           </div>
-          <div className="cal-ticket-bg cal-ticket-holographic" />
-          <svg className="cal-ticket-filter-svg" aria-hidden="true">
-            <filter id="cal-ticket-bump">
+          <div className="bg holographic" />
+          <svg className="filter" aria-hidden="true">
+            <filter id="bump">
               <feTurbulence result="noise" numOctaves="3" baseFrequency="0.7" type="fractalNoise" />
               <feSpecularLighting in="noise" result="specular" lightingColor="#fffffc" specularExponent="25" specularConstant="0.8" surfaceScale="0.15">
                 <fePointLight z="210" y="100" x="100" />
