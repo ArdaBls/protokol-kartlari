@@ -12,6 +12,8 @@ export default defineConfig({
   build: {
     // GitHub Pages bu depoda docs/ klasörünü yayınlıyor; build çıktısı doğrudan buraya gider.
     outDir: 'docs',
+    // İlk HTML'de kullanılmayacak lazy chunk'lar için tarayıcı preload uyarısı üretme.
+    modulePreload: false,
   },
   plugins: [
     react(),
@@ -49,7 +51,7 @@ export default defineConfig({
       workbox: {
         // Eski sitedeki elle yazılmış "CACHE_NAME = protokol-vX.Y.Z" deseninin karşılığı --
         // Workbox önbellek adlarının önüne eklenir, sürüm değişince tarayıcı eski önbelleği atar.
-        cacheId: 'protokol-v5.0.27',
+        cacheId: 'protokol-v5.0.28',
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
         // SPA: doğrudan açılan /protokol gibi adresler çevrimdışıyken de uygulamayı yükler.

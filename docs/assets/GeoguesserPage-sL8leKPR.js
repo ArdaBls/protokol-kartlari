@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{at as t}from"./index-DbvfiW3u.js";var n=e();function r(){return(0,n.jsx)(t,{title:`WorldGuessr`,src:`https://www.worldguessr.com/`,externalUrl:`https://www.worldguessr.com/`,allow:`fullscreen; gamepad; autoplay; pointer-lock`})}export{r as GeoguesserPage};

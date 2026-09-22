@@ -1,5 +1,5 @@
 import { Avatar, Button, Card, Input, TextField, toast } from '@heroui/react'
-import { ref, update } from 'firebase/database'
+import { ref, serverTimestamp, update } from 'firebase/database'
 import { Download, Search, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -175,6 +175,7 @@ export function UserManagementPage() {
       })
       await update(ref(db), {
         [`users/${uid}`]: null,
+        [`deletedAccounts/${uid}`]: { deletedAt: serverTimestamp(), deletedByUid: currentUid },
         [`staffProfiles/${uid}`]: null,
         [dbPathFor(`basinGorevlileri/${uid}`, isTestMode)]: null,
         [`presence/${uid}`]: null,

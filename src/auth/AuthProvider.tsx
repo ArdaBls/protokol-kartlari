@@ -1,9 +1,9 @@
 import { toast } from '@heroui/react'
 import type { User } from 'firebase/auth'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { onDisconnect, onValue, ref, serverTimestamp, set } from 'firebase/database'
+import { get, onDisconnect, onValue, ref, remove, serverTimestamp, set } from 'firebase/database'
 import type { ReactNode } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { startDbMode } from '../lib/dbMode'
 import { auth, db } from '../lib/firebase'
 import { fullName, isApprovedRole } from '../lib/roles'
@@ -32,16 +32,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined)
   const [profile, setProfile] = useState<{ uid: string; value: UserProfile | null } | null>(null)
   const [streak, setStreak] = useState<StreakResult | null>(null)
+  const authSessionStartedAt = useRef(0)
 
-  useEffect(() => onAuthStateChanged(auth, setUser), [])
+  useEffect(() => onAuthStateChanged(auth, (nextUser) => {
+    if (nextUser) authSessionStartedAt.current = Date.now()
+    setUser(nextUser)
+  }), [])
 
   // Canlı dinleme: oturum sırasında rol değişirse veya hesap engellenirse anında yansır.
   useEffect(() => {
     if (!user) return
     return onValue(
       ref(db, `users/${user.uid}`),
-      (snap) => {
+      async (snap) => {
         if (!snap.exists()) {
+          // Admin/owner silme işleminde users/{uid} ile birlikte bu işaret de yazılır.
+          // Silinen hesabın açık oturumda anında yeniden oluşturulmasını engelleriz;
+          // kullanıcı sonraki girişinde (yeni auth oturumunda) tekrar pending olabilir.
+          const deletedRef = ref(db, `deletedAccounts/${user.uid}`)
+          try {
+            const deletedSnap = await get(deletedRef)
+            const deletedAt = deletedSnap.child('deletedAt').val()
+            const deletedDuringThisSession = typeof deletedAt === 'number' && deletedAt > authSessionStartedAt.current
+            if (deletedDuringThisSession) {
+              setProfile({ uid: user.uid, value: null })
+              return
+            }
+            if (deletedSnap.exists()) await remove(deletedRef)
+          } catch (err) {
+            console.error('Silinen hesap işareti okunamadı:', err)
+            setProfile({ uid: user.uid, value: null })
+            return
+          }
           repairOrphanAccount(user)
         }
         setProfile({ uid: user.uid, value: snap.val() as UserProfile | null })

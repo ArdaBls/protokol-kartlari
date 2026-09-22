@@ -1230,6 +1230,13 @@
         }
       }
     },
+    "deletedAccounts": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('blocked').val() !== true && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner')",
+        ".validate": "newData.hasChildren(['deletedAt','deletedByUid']) && newData.child('deletedAt').isNumber() && newData.child('deletedByUid').isString()"
+      }
+    },
     "users": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'owner') && root.child('users').child(auth.uid).child('blocked').val() !== true",
       "$uid": {
