@@ -242,7 +242,9 @@
   }
   .pisti-elim {
     position: absolute;
-    bottom: 0;
+    /* Kartlar masa kenarının altında kalmasın; dışarı taşan eski -34px
+       konumunu da açıkça geçersiz kıl. */
+    bottom: clamp(36px, 5vh, 52px);
     left: 50%;
     z-index: 8;
     width: min(86%, 640px);
@@ -251,7 +253,7 @@
     transform: translateX(-50%);
   }
   .pisti-el-kart-btn {
-    bottom: 0;
+    bottom: 0 !important;
     user-select: none;
     -webkit-user-select: none;
   }
