@@ -51,11 +51,17 @@ export default defineConfig({
       workbox: {
         // Eski sitedeki elle yazılmış "CACHE_NAME = protokol-vX.Y.Z" deseninin karşılığı --
         // Workbox önbellek adlarının önüne eklenir, sürüm değişince tarayıcı eski önbelleği atar.
-        cacheId: 'protokol-v5.0.33',
+        cacheId: 'protokol-v5.0.34',
+        // Kullanıcı "Yenile" dediğinde yeni worker mevcut sekmeyi de hemen
+        // devralır; aksi durumda iframe eski önbelleği taşımaya devam edebilir.
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: MAX_PRECACHE_BYTES,
         // SPA: doğrudan açılan /protokol gibi adresler çevrimdışıyken de uygulamayı yükler.
         navigateFallback: '/index.html',
+        // Bunlar React rotası değil, doğrudan yayınlanan oyun belgeleri.
+        // Navigation fallback onları 404 ekranına çevirmemeli.
+        navigateFallbackDenylist: [/^\/games\//],
         cleanupOutdatedCaches: true,
         // Firebase (veritabanı/kimlik) istekleri bilerek eşleşmez: veri her zaman canlı ağdan gelir, önbelleğe alınmaz.
         runtimeCaching: [
