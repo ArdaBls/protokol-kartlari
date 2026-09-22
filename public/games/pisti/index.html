@@ -83,6 +83,180 @@
   @media (max-width: 720px) {
     .pisti-el-kart-btn { width: 58px; margin-left: -29px; }
   }
+
+  /* Dört koltuk masanın çevresinde sabit kalır: üstte, altta, sağda ve solda. */
+  .pisti-masa-viewport { overflow: visible; }
+  .pisti-masa {
+    display: block;
+    height: clamp(630px, calc(100dvh - 72px), 800px);
+    min-height: 630px;
+    padding: 0;
+    overflow: visible;
+  }
+  .pisti-koltuklar {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .pisti-koltuk-slot {
+    position: absolute;
+    display: block;
+    width: clamp(104px, 14vw, 164px);
+    min-width: 0;
+    pointer-events: auto;
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] {
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="1"] {
+    top: 49%;
+    left: 3%;
+    transform: translateY(-50%);
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] {
+    bottom: 158px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="3"] {
+    top: 49%;
+    right: 3%;
+    transform: translateY(-50%);
+  }
+  .pisti-koltuk,
+  .pisti-koltuk-ben {
+    position: relative;
+    visibility: visible;
+    width: 100%;
+    min-height: 0;
+  }
+  .pisti-koltuk-topladigi {
+    position: absolute;
+    display: block;
+    width: 32px;
+    height: 46px;
+    min-height: 0;
+    padding: 0;
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+  }
+  .pisti-koltuk-topladigi::before,
+  .pisti-koltuk-topladigi::after {
+    top: 0;
+    width: 27px;
+    border-radius: 3px;
+    background: #7b2632 url('/assets/blackjack/deste-arkalari/deste-arkasi-01.png') center / cover;
+  }
+  .pisti-koltuk-topladigi::before { left: 0; transform: rotate(-7deg); }
+  .pisti-koltuk-topladigi::after { right: 0; transform: rotate(8deg); }
+  /* Her oyuncunun kendi soluna bakan kart yığını. */
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] .pisti-koltuk-topladigi {
+    top: 50%;
+    left: calc(100% + 12px);
+    transform: translateY(-50%);
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="1"] .pisti-koltuk-topladigi {
+    right: 50%;
+    bottom: calc(100% + 10px);
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] .pisti-koltuk-topladigi {
+    top: 50%;
+    right: calc(100% + 12px);
+    transform: translateY(-50%);
+  }
+  .pisti-koltuk-slot[data-pisti-koltuk-slot="3"] .pisti-koltuk-topladigi {
+    top: calc(100% + 10px);
+    left: 50%;
+  }
+  .pisti-masa-kartlari-alani {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    z-index: 4;
+    display: block;
+    width: 190px;
+    min-height: 210px;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .pisti-masa-kartlari {
+    position: relative;
+    width: 190px;
+    height: 210px;
+    pointer-events: none;
+  }
+  .pisti-masa-sabit-kart {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: clamp(68px, 7vw, 94px) !important;
+    height: auto;
+    margin: 0;
+    transform: translate(-50%, -50%) translate(var(--pisti-stack-x), var(--pisti-stack-y)) rotate(var(--pisti-stack-rot));
+    transform-origin: center;
+    transition: none !important;
+    animation: none !important;
+    box-shadow: 0 3px 9px rgba(0, 0, 0, .34);
+  }
+  .pisti-masa-kartlari > .pisti-yigin-alt-kart,
+  .pisti-masa-kartlari > .pisti-ust-kart {
+    animation: none !important;
+    transition: none !important;
+  }
+  .pisti-elim {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    z-index: 8;
+    width: min(86%, 640px);
+    height: 148px;
+    margin: 0;
+    transform: translateX(-50%);
+  }
+  .pisti-el-kart-btn {
+    bottom: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .pisti-el-kart-btn.pisti-el-kart-suruklenen,
+  .pisti-el-kart-btn.pisti-el-kart-suruklenen:hover {
+    transform: translate3d(calc(var(--pisti-x) + var(--pisti-drag-x, 0px)), calc(var(--pisti-y) + var(--pisti-drag-y, 0px)), 0) rotate(var(--pisti-rot)) !important;
+  }
+  @media (max-width: 720px) {
+    .main .page-wrapper { padding: 8px; }
+    .pisti-masa {
+      height: max(640px, calc(100dvh - 16px));
+      min-height: 640px;
+      border-width: 5px;
+      border-radius: 26px;
+    }
+    .pisti-koltuk-slot { width: 78px; }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] { top: 14px; }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="1"] { left: 5px; }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] { bottom: 124px; }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="3"] { right: 5px; }
+    .pisti-koltuk strong { max-width: 78px; font-size: 10px; }
+    .pisti-koltuk-skor,
+    .pisti-sira-isareti { font-size: 9px; }
+    .pisti-koltuk-topladigi { width: 25px; height: 36px; }
+    .pisti-koltuk-topladigi::before,
+    .pisti-koltuk-topladigi::after { width: 21px; }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="0"] .pisti-koltuk-topladigi { left: calc(100% + 4px); }
+    .pisti-koltuk-slot[data-pisti-koltuk-slot="2"] .pisti-koltuk-topladigi { right: calc(100% + 4px); }
+    .pisti-masa-kartlari-alani { top: 47%; width: 142px; min-height: 164px; }
+    .pisti-masa-kartlari { width: 142px; height: 164px; }
+    .pisti-masa-sabit-kart { width: 62px !important; }
+    .pisti-elim { width: 94%; height: 118px; }
+    .pisti-el-kart-btn { bottom: 0; }
+  }
 </style>
 </head>
 <body data-page="games">
@@ -133,6 +307,7 @@
 
 <script type="module" src="./js/oyun-pisti-pnMqftMH.js"></script>
 <script type="module" src="./js/pisti-card-interaction.js"></script>
+<script type="module" src="./js/pisti-table-layout.js"></script>
 
 </body>
 </html>
