@@ -12,6 +12,20 @@ export function PwaUpdater() {
   const registrationRef = useRef<ServiceWorkerRegistration | undefined>(undefined)
   const fallbackReloadRef = useRef<number | undefined>(undefined)
   const [isUpdating, setIsUpdating] = useState(false)
+  // GitHub Pages /sw.js için kısa bir HTTP önbelleği gönderir. Kayıt güncellemesini
+  // bu önbelleği atlayarak yapmak, "Yeni sürüm hazır" uyarısının eski worker'a
+  // takılı kalmasını önler.
+  const registerWithoutHttpCache = useCallback(async () => {
+    if (!('serviceWorker' in navigator)) return undefined
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      type: 'classic',
+      updateViaCache: 'none',
+    })
+    registrationRef.current = registration
+    await registration.update()
+    return registration
+  }, [])
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
@@ -19,7 +33,7 @@ export function PwaUpdater() {
   } = useRegisterSW({
     onRegisteredSW(_url, registration) {
       registrationRef.current = registration
-      registration?.update().catch((err) => console.error('İlk sürüm kontrolü başarısız:', err))
+      void registerWithoutHttpCache().catch((err) => console.error('İlk sürüm kontrolü başarısız:', err))
     },
     onRegisterError(error) {
       console.error('Service worker kaydedilemedi:', error)
@@ -27,7 +41,14 @@ export function PwaUpdater() {
   })
 
   useEffect(() => {
-    const checkForUpdate = () => registrationRef.current?.update().catch((err) => console.error('Sürüm kontrolü başarısız:', err))
+    const checkForUpdate = () => {
+      const registration = registrationRef.current
+      if (registration) {
+        registration.update().catch((err) => console.error('Sürüm kontrolü başarısız:', err))
+        return
+      }
+      void registerWithoutHttpCache().catch((err) => console.error('Sürüm kontrolü başarısız:', err))
+    }
     const interval = window.setInterval(checkForUpdate, UPDATE_CHECK_MS)
     window.addEventListener('focus', checkForUpdate)
     document.addEventListener('visibilitychange', checkForUpdate)
@@ -37,12 +58,13 @@ export function PwaUpdater() {
       document.removeEventListener('visibilitychange', checkForUpdate)
       if (fallbackReloadRef.current !== undefined) window.clearTimeout(fallbackReloadRef.current)
     }
-  }, [])
+  }, [registerWithoutHttpCache])
 
   const refreshToLatest = useCallback(async () => {
     if (isUpdating) return
     setIsUpdating(true)
     try {
+      await registerWithoutHttpCache()
       await updateServiceWorker(true)
       // Bazı iOS/PWA sürümlerinde waiting worker mesajı alır fakat sayfayı
       // otomatik yenilemez. Bu geri dönüş, butonun gerçekten etkili olmasını sağlar.
@@ -51,7 +73,7 @@ export function PwaUpdater() {
       console.error('Yeni sürüm etkinleştirilemedi:', err)
       window.location.reload()
     }
-  }, [isUpdating, updateServiceWorker])
+  }, [isUpdating, registerWithoutHttpCache, updateServiceWorker])
 
   useEffect(() => {
     if (!offlineReady) return

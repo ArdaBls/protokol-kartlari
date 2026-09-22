@@ -51,7 +51,7 @@ export default defineConfig({
       workbox: {
         // Eski sitedeki elle yazılmış "CACHE_NAME = protokol-vX.Y.Z" deseninin karşılığı --
         // Workbox önbellek adlarının önüne eklenir, sürüm değişince tarayıcı eski önbelleği atar.
-        cacheId: 'protokol-v5.0.34',
+        cacheId: 'protokol-v5.0.35',
         // Kullanıcı "Yenile" dediğinde yeni worker mevcut sekmeyi de hemen
         // devralır; aksi durumda iframe eski önbelleği taşımaya devam edebilir.
         clientsClaim: true,
