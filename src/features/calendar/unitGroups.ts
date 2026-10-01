@@ -3,6 +3,12 @@
 // listedeki protokol sırasını izler, alfabetik DEĞİL (dizi sırası korunur, sıralanmaz).
 import { FACULTY_GROUPS } from '../protocol/protocolRules'
 
+/** Etkinlik formunda kullanılabilen OMÜ birimleri. Kişi kartlarındaki fakülte filtresinden bağımsızdır. */
+export const EVENT_ORGANIZER_UNIT_GROUPS: ReadonlyArray<{ title: string; items: readonly string[] }> = [
+  ...FACULTY_GROUPS,
+  { title: 'İdari Birimler', items: ['Kurumsal İletişim Birimi'] },
+]
+
 export const IL_PROTOCOL_UNIT_GROUPS: ReadonlyArray<{ title: string; items: readonly string[] }> = [
   { title: 'Mülki İdare ve Yerel Yönetim', items: ['Samsun Valiliği', 'Samsun Büyükşehir Belediyesi'] },
   {
@@ -54,7 +60,7 @@ export const IL_PROTOCOL_UNIT_GROUPS: ReadonlyArray<{ title: string; items: read
 ]
 
 const IL_PROTOCOL_UNIT_SET = new Set(IL_PROTOCOL_UNIT_GROUPS.flatMap((g) => g.items))
-const FACULTY_UNIT_SET = new Set(FACULTY_GROUPS.flatMap((g) => g.items))
+const EVENT_ORGANIZER_UNIT_SET = new Set(EVENT_ORGANIZER_UNIT_GROUPS.flatMap((g) => g.items))
 
 export const isIlProtocolUnit = (name: string) => IL_PROTOCOL_UNIT_SET.has(name)
-export const isFacultyUnit = (name: string) => FACULTY_UNIT_SET.has(name)
+export const isEventOrganizerUnit = (name: string) => EVENT_ORGANIZER_UNIT_SET.has(name)

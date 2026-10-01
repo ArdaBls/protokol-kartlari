@@ -22,6 +22,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'wikipedia-yazari', ad: 'Wikipedia Yazarı', aciklama: '20 haber yaz.', icon: '/basarimlar/wikipedia-yazari.svg', kosul: (ctx) => ctx.haberSayisi >= 20 },
   { id: 'onur-sen-sag-kolu', ad: "Onur Şen'in Sağ Kolu", aciklama: '50 haber yaz.', icon: '/basarimlar/onur-sen-sag-kolu.svg', kosul: (ctx) => ctx.haberSayisi >= 50 },
   { id: 'gazete', ad: 'Gazete', aciklama: '100 haber yaz.', icon: '/basarimlar/gazete.svg', kosul: (ctx) => ctx.haberSayisi >= 100 },
+  { id: 'gpt-bukucu', ad: 'GPT Bükücü', aciklama: '100 haber yaz.', icon: '/basarimlar/gpt-bukucu.svg', kosul: (ctx) => ctx.haberSayisi >= 100 },
   { id: 'koordinator', ad: 'Koordinatör', aciklama: '30 etkinliğe git.', icon: '/basarimlar/koordinator.svg', kosul: (ctx) => ctx.etkinlikSayisi >= 30 },
   { id: 'genel-sekreter', ad: 'Genel Sekreter', aciklama: '50 etkinliğe git.', icon: '/basarimlar/genel-sekreter.svg', kosul: (ctx) => ctx.etkinlikSayisi >= 50 },
   { id: 'rektor-yardimcisi', ad: 'Rektör Yardımcısı', aciklama: '150 etkinliğe git.', icon: '/basarimlar/rektor-yardimcisi.svg', kosul: (ctx) => ctx.etkinlikSayisi >= 150 },

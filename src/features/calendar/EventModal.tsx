@@ -6,14 +6,14 @@ import { FormModal } from '../../components/FormModal'
 import { ModalScrollBody, ModalShell, ModalTitle } from '../../components/ModalShell'
 import { FieldLabel, FormSection, SelectField, TextAreaField, TextInputField } from '../../components/formControls'
 import { useDbMode } from '../../lib/dbMode'
-import { FACULTY_GROUPS, hierarchyWeight, institutionWeight } from '../protocol/protocolRules'
+import { hierarchyWeight, institutionWeight } from '../protocol/protocolRules'
 import { createAttendanceRequest } from '../notifications/attendance'
 import { AttendeePicker } from './AttendeePicker'
 import { NewsPanel } from './NewsPanel'
 import { PressRolePicker } from './PressRolePicker'
 import type { Attendee, CalendarEventWithId } from './calendarTypes'
 import { EVENT_BADGES, EVENT_STATUS, EVENT_TYPES, QUICK_DRAFT_NAME, calHasEventEnded, hmToMin, parseGorevliString, parseKey } from './calendarTypes'
-import { IL_PROTOCOL_UNIT_GROUPS, isFacultyUnit, isIlProtocolUnit } from './unitGroups'
+import { EVENT_ORGANIZER_UNIT_GROUPS, IL_PROTOCOL_UNIT_GROUPS, isEventOrganizerUnit, isIlProtocolUnit } from './unitGroups'
 import { useCalendarWriter, describeChanges, evLogName } from './useCalendarWriter'
 
 interface EventModalProps {
@@ -29,7 +29,7 @@ const DIGER = '__diger__'
 const HABER_KAYNAKLARI = ['İHA', 'AA', 'DHA', 'ANKA']
 
 function GroupedUnitSelect({ ilMode, value, onChange, otherActive }: { ilMode: boolean; value: string; onChange: (value: string) => void; otherActive: boolean }) {
-  const groups = ilMode ? IL_PROTOCOL_UNIT_GROUPS : FACULTY_GROUPS
+  const groups = ilMode ? IL_PROTOCOL_UNIT_GROUPS : EVENT_ORGANIZER_UNIT_GROUPS
   return (
     <select
       value={otherActive ? DIGER : value}
@@ -85,7 +85,7 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
   const initialTarih = ev?.tarih || presetDate || ''
   const initialBirim = ev?.birim ?? ''
   const initialBirimIl = !!initialBirim && isIlProtocolUnit(initialBirim)
-  const initialBirimOther = !!initialBirim && !initialBirimIl && !isFacultyUnit(initialBirim)
+  const initialBirimOther = !!initialBirim && !initialBirimIl && !isEventOrganizerUnit(initialBirim)
 
   const [ad, setAd] = useState(ev?.ad ?? '')
   const [tur, setTur] = useState(ev?.tur ?? 'diger')
