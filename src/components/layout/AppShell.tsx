@@ -4,10 +4,12 @@ import { DbModeBanner } from '../DbModeBanner'
 import { OfflineBanner } from '../pwa/OfflineBanner'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { usePastEventAutoLock } from '../../features/calendar/usePastEventAutoLock'
 
 export function AppShell() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  usePastEventAutoLock()
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">

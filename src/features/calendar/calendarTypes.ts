@@ -29,6 +29,9 @@ export interface CalendarEvent {
   haberKaynagi?: string
   not?: string
   locked?: boolean
+  /** Etkinliğin hangi bitiş tarihi için otomatik kilitlendiği. Manuel kilit açma işleminden sonra
+   * aynı etkinlik tekrar otomatik kilitlenmesin diye saklanır. */
+  autoLockedForDate?: string | null
   katilimcilar?: Attendee[]
   taslak?: boolean | null
   olusturan?: string
@@ -144,6 +147,22 @@ export function fmtMultiDayRange(tarih?: string, bitisTarihi?: string): string {
   const em = CAL_MONTHS[e.getMonth()].slice(0, 3)
   if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) return `${s.getDate()}–${e.getDate()} ${sm}`
   return `${s.getDate()} ${sm}–${e.getDate()} ${em}`
+}
+
+/** Etkinlik, gün tamamen geçtikten sonra otomatik kilitlenir. Çok günlü etkinliklerde son gün
+ * esas alınır; hatalı/erken bir bitiş tarihi başlangıç gününü geçersiz kılamaz. */
+export function eventAutoLockDateKey(ev: CalendarEvent): string | null {
+  const start = parseKey(ev.tarih)
+  if (!start || !ev.tarih) return null
+  const end = parseKey(ev.bitisTarihi ?? undefined)
+  return end && end.getTime() >= start.getTime() ? ev.bitisTarihi! : ev.tarih
+}
+
+/** Gün anahtarı yarın olduğunda dünkü etkinlik burada uygun hale gelir. Aynı tarih için
+ * kullanıcı kilidi elle açarsa `autoLockedForDate` işareti nedeniyle tekrar kilitlenmez. */
+export function shouldAutoLockPastEvent(ev: CalendarEvent, todayKey = dateKey(todayDate())): boolean {
+  const lockDate = eventAutoLockDateKey(ev)
+  return !!lockDate && lockDate < todayKey && ev.autoLockedForDate !== lockDate
 }
 
 /** charts.js'teki hasEventEnded ile aynı kural: geçmiş sayılan etkinlikte editörün basın görevlisi/

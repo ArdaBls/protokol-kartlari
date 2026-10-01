@@ -3,7 +3,7 @@ import { get, push, ref, remove, serverTimestamp, update } from 'firebase/databa
 import { useWriter } from '../../hooks/useWriter'
 import { db } from '../../lib/firebase'
 import type { CalendarEvent, CalendarEventWithId } from './calendarTypes'
-import { CAL_MONTHS, evStatus, evType, minToHm, parseKey } from './calendarTypes'
+import { CAL_MONTHS, eventAutoLockDateKey, evStatus, evType, minToHm, parseKey, shouldAutoLockPastEvent } from './calendarTypes'
 
 const FIELD_LABELS: Record<string, string> = {
   ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati',
@@ -71,7 +71,12 @@ export function useCalendarWriter() {
     const finalId = id ?? push(ref(db, writer.path('etkinlikler'))).key
     if (!finalId) { toast.danger('Etkinlik kimliği oluşturulamadı.'); return null }
 
-    const toWrite: Record<string, unknown> = { ...current, ...patch, guncellemeTs: serverTimestamp() }
+    const nextEvent: CalendarEvent = { ...current, ...patch }
+    const autoLockDateChanged = !!id && eventAutoLockDateKey(current) !== eventAutoLockDateKey(nextEvent)
+    const toWrite: Record<string, unknown> = { ...nextEvent, guncellemeTs: serverTimestamp() }
+    // Etkinlik gelecekteki başka bir güne taşınırsa, o yeni tarih geçtiğinde yeniden bir kez
+    // otomatik kilitlenebilmelidir. Sadece tarih/bitiş tarihi değişince işareti sıfırla.
+    if (autoLockDateChanged) toWrite.autoLockedForDate = null
     if (!id) {
       toWrite.olusturmaTs = serverTimestamp()
       toWrite.olusturan = actor.name || actor.email
@@ -132,6 +137,34 @@ export function useCalendarWriter() {
     return !!result
   }
 
+  /** Geçmiş takvim günlerinin etkinliklerini toplu ve sessiz biçimde bir kez kilitler.
+   * Kilidi kullanıcı sonradan açarsa `autoLockedForDate` aynı kaldığından bu işlem yeniden
+   * kilit uygulamaz. */
+  const autoLockPastEvents = async (events: CalendarEventWithId[], todayKey: string): Promise<number> => {
+    if (!writer.ensureWritable()) return 0
+    const dueEvents = events.filter((event) => shouldAutoLockPastEvent(event, todayKey))
+    if (!dueEvents.length) return 0
+
+    const updates: Record<string, unknown> = {}
+    dueEvents.forEach((event) => {
+      const lockDate = eventAutoLockDateKey(event)
+      if (!lockDate) return
+      const eventPath = writer.path(`etkinlikler/${event._id}`)
+      updates[`${eventPath}/locked`] = true
+      updates[`${eventPath}/autoLockedForDate`] = lockDate
+      updates[`${eventPath}/guncellemeTs`] = serverTimestamp()
+    })
+    if (!Object.keys(updates).length) return 0
+
+    try {
+      await update(ref(db), updates)
+      return dueEvents.length
+    } catch (err) {
+      writer.reportError('Geçmiş etkinlikler otomatik kilitlenemedi.')(err)
+      return 0
+    }
+  }
+
   /** Etkinliği (saat korunarak) başka bir güne, veya aynı gün içinde başka bir başlangıç saatine sürükleyerek taşır. */
   const moveEvent = async (id: string, ev: CalendarEventWithId, newDateKey: string, newStartMin: number): Promise<boolean> => {
     const oldStart = ev.saat ? Number(ev.saat.split(':')[0]) * 60 + Number(ev.saat.split(':')[1]) : 0
@@ -159,5 +192,5 @@ export function useCalendarWriter() {
     return !!result
   }
 
-  return { canWrite: writer.canWrite, persistEvent, deleteEvent, toggleLock, moveEvent, resizeEvent, moveMultiDayEvent }
+  return { canWrite: writer.canWrite, persistEvent, deleteEvent, toggleLock, autoLockPastEvents, moveEvent, resizeEvent, moveMultiDayEvent }
 }
