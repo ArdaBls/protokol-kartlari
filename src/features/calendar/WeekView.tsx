@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react'
+import { GripVertical, Lock } from 'lucide-react'
 import { Tooltip, toast } from '@heroui/react'
 import { useMemo, useRef, useState } from 'react'
 import { dateKey } from '../../lib/dates'
@@ -233,6 +233,8 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
   }
 
   // --- Etkinliği sürükleyerek taşıma (gün/saat değiştirme) ---
+  // Masaüstünde kartın gövdesiyle, dokunmatik cihazlarda ise yalnızca görünür tutma koluyla başlar.
+  // Böylece kartın üstünde dikey kaydırma yapmak takvimi kaydırır, etkinliği yanlışlıkla taşımaz.
   const beginMove = (event: React.PointerEvent<HTMLElement>, ev: CalendarEventWithId, startMinOfItem: number, durationMin: number) => {
     if (ev.locked) return
     event.stopPropagation()
@@ -525,9 +527,13 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                       <button
                         type="button"
                         onClick={(event) => { event.stopPropagation(); if (didDragRef.current) { didDragRef.current = false; return } onEdit(item.ev._id) }}
-                        onPointerDown={(pe) => { if (item.ev.locked) { handleLockedClick(item.ev.ad); return } beginMove(pe, item.ev, item.s, item.e - item.s) }}
+                        onPointerDown={(pe) => {
+                          if (item.ev.locked) { handleLockedClick(item.ev.ad); return }
+                          if (pe.pointerType === 'mouse') beginMove(pe, item.ev, item.s, item.e - item.s)
+                          else pe.stopPropagation()
+                        }}
                       style={{ background: `${ty.renk}d9`, cursor: item.ev.locked ? 'not-allowed' : 'grab' }}
-                        className={`group relative block size-full touch-none overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.locked ? 'opacity-60' : ''} ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
+                        className={`cal-event-touch-safe group relative block size-full overflow-hidden rounded-md px-1.5 py-0.5 text-left text-[11px] leading-tight text-white ${item.ev.locked ? 'opacity-60' : ''} ${item.ev.durum === 'tamamlandi' ? 'opacity-70' : ''} ${item.ev.durum === 'iptal' ? 'line-through opacity-60' : ''} ${isMoving || isResizing ? 'opacity-40' : ''} ${item.ev.taslak ? 'cal-taslak' : ''}`}
                       >
                         {isCompact ? (
                           <span className="block truncate font-medium">{minToHm(item.s)}–{minToHm(item.e)}</span>
@@ -542,8 +548,16 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
                         )}
                         {!item.ev.locked && (
                           <>
-                            <span onPointerDown={(pe) => beginResize(pe, item.ev, 'start', item.s, item.e)} className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100" />
-                            <span onPointerDown={(pe) => beginResize(pe, item.ev, 'end', item.s, item.e)} className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100" />
+                            <span
+                              onPointerDown={(pe) => beginMove(pe, item.ev, item.s, item.e - item.s)}
+                              onClick={(pe) => pe.stopPropagation()}
+                              className="cal-event-move-handle absolute right-0.5 top-0.5 z-20 size-4 items-center justify-center rounded bg-black/20 text-white/90"
+                              title="Etkinliği taşı"
+                            >
+                              <GripVertical size={12} aria-hidden="true" />
+                            </span>
+                            <span onPointerDown={(pe) => beginResize(pe, item.ev, 'start', item.s, item.e)} className="cal-event-resize-handle absolute inset-x-0 top-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100" />
+                            <span onPointerDown={(pe) => beginResize(pe, item.ev, 'end', item.s, item.e)} className="cal-event-resize-handle absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100" />
                           </>
                         )}
                       </button>

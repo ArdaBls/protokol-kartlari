@@ -90,6 +90,26 @@ body {
   outline-offset: -1px;
   animation: cal-taslak-pulse 1.6s ease-in-out infinite;
 }
+
+/* Telefonda olay kartının gövdesi, takvimin dikey kaydırmasını devralır. Taşıma yalnızca
+   kartın sağ üstündeki küçük tutma kolundan başlatılır; kenar boyutlandırma tutamaçları
+   parmağın yanlışlıkla değmesine karşı dokunmatik cihazlarda gizlidir. */
+.cal-event-move-handle {
+  display: none;
+}
+@media (pointer: coarse) {
+  .cal-event-touch-safe {
+    touch-action: pan-y;
+  }
+  .cal-event-move-handle {
+    display: flex;
+    touch-action: none;
+  }
+  .cal-event-resize-handle {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cal-taslak { animation: none; box-shadow: 0 0 0 2px #f59e0b; }
 }

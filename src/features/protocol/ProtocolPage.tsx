@@ -23,27 +23,68 @@ type ConfirmState = { kind: 'trash' | 'deleteForever'; person: Person } | { kind
 
 const STATUS_VIEWS: StatusView[] = ['aktif', 'pasif', 'silindi']
 const SKELETON_CARDS = 10
-const NEWS_SELECTION_KEY = 'omuProtokolNewsSelection'
+const NEWS_DRAFT_STORAGE_PREFIX = 'omuProtokolNewsSelection:v2'
 const COLUMNS_KEY = 'protokol-mobil-sutun'
 const MOBILE_COLUMN_CLASS = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' } as const
 const MOBILE_COLUMN_LABEL = { 2: '2li', 3: '3lü', 4: '4lü' } as const
 type MobileColumns = keyof typeof MOBILE_COLUMN_CLASS
+type NewsSelectionDraft = { listKey: ListKey; ids: string[] }
 
 function readStorage<T>(key: string, fallback: T, parse: (raw: string) => T | null): T {
+  let raw: string | null = null
   try {
-    const raw = localStorage.getItem(key)
-    return (raw === null ? null : parse(raw)) ?? fallback
+    raw = localStorage.getItem(key)
   } catch {
-    return fallback
+    // iOS gizli gezintide localStorage engellenirse etkin tarayıcı oturumuna düş.
   }
+  if (raw === null) {
+    try {
+      raw = sessionStorage.getItem(key)
+    } catch {
+      // Depolama kapalı olsa da ekranın geçici React durumu çalışmaya devam eder.
+    }
+  }
+  return (raw === null ? null : parse(raw)) ?? fallback
 }
 
 function writeStorage(key: string, value: string) {
   try {
     localStorage.setItem(key, value)
+    return
   } catch {
-    // Tercih kaydedilemese de sayfa çalışmaya devam eder (gizli pencere vb.).
+    // iOS gizli gezintide kalıcı alan kapalı olabilir; aynı oturumu yine koru.
   }
+  try {
+    sessionStorage.setItem(key, value)
+  } catch {
+    // Tercih kaydedilemese de sayfa çalışmaya devam eder.
+  }
+}
+
+function removeStorage(key: string) {
+  try { localStorage.removeItem(key) } catch { /* noop */ }
+  try { sessionStorage.removeItem(key) } catch { /* noop */ }
+}
+
+function newsDraftStorageKey(userId: string) {
+  return `${NEWS_DRAFT_STORAGE_PREFIX}:${userId}`
+}
+
+function parseNewsDraft(raw: string): NewsSelectionDraft | null {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+    const value = parsed as { listKey?: unknown; ids?: unknown }
+    if ((value.listKey !== 'il' && value.listKey !== 'universite') || !Array.isArray(value.ids)) return null
+    const ids = [...new Set(value.ids.filter((id): id is string => typeof id === 'string' && id.length > 0))]
+    return ids.length ? { listKey: value.listKey, ids } : null
+  } catch {
+    return null
+  }
+}
+
+function readNewsDraft(userId: string): NewsSelectionDraft | null {
+  return readStorage<NewsSelectionDraft | null>(newsDraftStorageKey(userId), null, parseNewsDraft)
 }
 
 const pickPeople = (byId: ReadonlyMap<string, Person>, ids: Iterable<string>) =>
@@ -61,16 +102,20 @@ export function ProtocolPage() {
   const { state } = useAuth()
   const canBackup = state.status === 'ready' && (state.role === 'admin' || state.role === 'owner')
   const canDeleteForever = canBackup
+  // Uygulama iOS/Android'de arka planda sonlandırılsa bile seçili haber taslağı geri yüklenir.
+  // UID ile ayırmak, aynı telefonda farklı hesapların seçimlerinin birbirine karışmasını önler.
+  const userId = state.status === 'ready' ? state.user.uid : ''
+  const [initialNewsDraft] = useState<NewsSelectionDraft | null>(() => (userId ? readNewsDraft(userId) : null))
 
-  const [listKey, setListKey] = useState<ListKey>('universite')
+  const [listKey, setListKey] = useState<ListKey>(() => initialNewsDraft?.listKey ?? 'universite')
   const [statusView, setStatusView] = useState<StatusView>('aktif')
   const [query, setQuery] = useState('')
   const [selectedFaculties, setSelectedFaculties] = useState<ReadonlySet<string>>(new Set())
   const [selectedCentral, setSelectedCentral] = useState<ReadonlySet<string>>(new Set())
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
-  const [mode, setMode] = useState<PageMode>('normal')
+  const [mode, setMode] = useState<PageMode>(() => (initialNewsDraft ? 'news' : 'normal'))
   const [bulkSelection, setBulkSelection] = useState<ReadonlySet<string>>(new Set())
-  const [newsSelection, setNewsSelection] = useState<string[]>([])
+  const [newsSelection, setNewsSelection] = useState<string[]>(() => initialNewsDraft?.ids ?? [])
   const [editing, setEditing] = useState<{ isOpen: boolean; person: Person | null }>({ isOpen: false, person: null })
   const [isNewsOpen, setIsNewsOpen] = useState(false)
   // Onay içeriği kapanış animasyonu boyunca korunur; yalnızca görünürlük ayrı tutulur.
@@ -116,8 +161,24 @@ export function ProtocolPage() {
     [people],
   )
   const bulkPeople = useMemo(() => pickPeople(peopleById, bulkSelection), [bulkSelection, peopleById])
-  const newsPeople = useMemo(() => pickPeople(peopleById, newsSelection), [newsSelection, peopleById])
+  // Veri geri gelirken eski/silinmiş bir kimlik seçili görünmesin. Taslağın kendisi veri
+  // hazır olana kadar korunur; kullanıcı sonraki seçiminde bu kimlikler de temizlenir.
+  const activeNewsSelection = useMemo(
+    () => (mode === 'news' && !isLoading && !error ? newsSelection.filter((id) => peopleById.has(id)) : newsSelection),
+    [error, isLoading, mode, newsSelection, peopleById],
+  )
+  const newsPeople = useMemo(() => pickPeople(peopleById, activeNewsSelection), [activeNewsSelection, peopleById])
   const statusViews = canWrite ? STATUS_VIEWS : STATUS_VIEWS.filter((view) => view !== 'silindi')
+
+  const saveNewsDraft = useCallback((ids: string[], draftListKey = listKey) => {
+    if (!userId) return
+    const key = newsDraftStorageKey(userId)
+    if (!ids.length) {
+      removeStorage(key)
+      return
+    }
+    writeStorage(key, JSON.stringify({ listKey: draftListKey, ids }))
+  }, [listKey, userId])
 
   const clearFilters = () => {
     setSelectedFaculties(new Set())
@@ -126,7 +187,7 @@ export function ProtocolPage() {
 
   const leaveMode = () => {
     // Haber seçimi yalnızca mod açıkken hatırlanır; moddan çıkınca sonraki alakasız etkinliğe taşınmasın diye silinir.
-    if (mode === 'news') writeStorage(NEWS_SELECTION_KEY, '[]')
+    if (mode === 'news') saveNewsDraft([])
     setMode('normal')
     setBulkSelection(new Set())
     setNewsSelection([])
@@ -138,11 +199,13 @@ export function ProtocolPage() {
     setStatusView('aktif')
     if (next === 'reorder') setQuery('')
     if (next === 'news') {
-      const stored = readStorage<string[]>(NEWS_SELECTION_KEY, [], (raw) => {
-        const parsed: unknown = JSON.parse(raw)
-        return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string' && peopleById.has(id)) : null
-      })
+      const draft = userId ? readNewsDraft(userId) : null
+      const canRestoreDraft = draft?.listKey === listKey
+      // Telefonda Firebase listesinin gelmesi masaüstüne göre daha geç olabilir. O anda
+      // peopleById boş olduğu için taslağı silmek yerine, kartların görünür seçimini veri gelince türet.
+      const stored = canRestoreDraft ? (isLoading || error ? draft.ids : draft.ids.filter((id) => peopleById.has(id))) : []
       setNewsSelection(stored)
+      if (canRestoreDraft && !isLoading && !error) saveNewsDraft(stored)
       toast.info(stored.length ? `Önceki seçiminiz hatırlandı (${stored.length} kişi).` : 'Metinde geçecek kişileri seçin.')
     }
     if (next === 'bulk') toast.info('Çöpe atmak istediğiniz kişileri seçin.')
@@ -163,16 +226,17 @@ export function ProtocolPage() {
       return
     }
     setNewsSelection((current) => {
-      const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
-      writeStorage(NEWS_SELECTION_KEY, JSON.stringify(next))
+      const available = isLoading || error ? current : current.filter((value) => peopleById.has(value))
+      const next = available.includes(id) ? available.filter((value) => value !== id) : [...available, id]
+      saveNewsDraft(next)
       return next
     })
-  }, [mode])
+  }, [error, isLoading, mode, peopleById, saveNewsDraft])
 
   const clearSelection = () => {
     setBulkSelection(new Set())
     setNewsSelection([])
-    if (mode === 'news') writeStorage(NEWS_SELECTION_KEY, '[]')
+    if (mode === 'news') saveNewsDraft([])
   }
 
   const openConfirm = useCallback((next: NonNullable<ConfirmState>) => {
@@ -327,7 +391,7 @@ export function ProtocolPage() {
                     key={person._id}
                     person={person}
                     isSelectable={isSelecting}
-                    isSelected={mode === 'bulk' ? bulkSelection.has(person._id) : newsSelection.includes(person._id)}
+                    isSelected={mode === 'bulk' ? bulkSelection.has(person._id) : activeNewsSelection.includes(person._id)}
                     mobileColumns={columns}
                     onToggleSelect={toggleSelect}
                     onEdit={canWrite && statusView !== 'silindi' ? openEdit : undefined}
