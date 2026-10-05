@@ -8,6 +8,7 @@ import { useDbMode } from '../../lib/dbMode'
 import { useAuth } from '../../auth/useAuth'
 import { isApprovedRole } from '../../lib/roles'
 import { EventModal } from './EventModal'
+import { CalendarSearch } from './CalendarSearch'
 import { ListView } from './ListView'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
@@ -160,8 +161,8 @@ export function CalendarPage() {
           <Button size="sm" variant="ghost" onPress={goToday}>Bugün</Button>
           <strong className="min-w-0 truncate px-1 text-sm">{monthLabel}</strong>
         </div>
-        <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-0.5">
-          <div className="flex shrink-0 gap-1 rounded-xl bg-default p-1">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 gap-1 overflow-x-auto rounded-xl bg-default p-1">
             {VIEW_TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -173,9 +174,12 @@ export function CalendarPage() {
               </button>
             ))}
           </div>
-          {canWrite && (
-            <Button size="sm" variant="primary" className="shrink-0 sm:ml-auto" onPress={() => openCreate(dateKey(anchor))}>Yeni Etkinlik</Button>
-          )}
+          <div className="flex min-w-0 items-center gap-2 sm:ml-auto">
+            <CalendarSearch events={allEvents} onGoToDate={goToDayExact} />
+            {canWrite && (
+              <Button size="sm" variant="primary" className="shrink-0" onPress={() => openCreate(dateKey(anchor))}>Yeni Etkinlik</Button>
+            )}
+          </div>
         </div>
       </div>
 

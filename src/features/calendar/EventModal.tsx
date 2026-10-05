@@ -1,6 +1,6 @@
 import { Button, Modal, toast } from '@heroui/react'
 import { Building2, CalendarClock, Info, Lock, Newspaper, StickyNote, Trash2, Unlock, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { FormModal } from '../../components/FormModal'
 import { ModalScrollBody, ModalShell, ModalTitle } from '../../components/ModalShell'
@@ -74,6 +74,7 @@ function TimeField({ label, value, onChange }: { label: string; value: string; o
 }
 
 function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime }: Omit<EventModalProps, 'isOpen'>) {
+  const titleId = useId()
   const { state } = useAuth()
   const { isTestMode } = useDbMode()
   const writer = useCalendarWriter()
@@ -256,7 +257,20 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
           )}
           <fieldset disabled={readOnly || isLocked} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <FormSection title="Temel Bilgiler" icon={Info} className="lg:col-span-2">
-              <TextInputField label="Etkinlik Adı" value={ad} onChange={setAd} isRequired />
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <FieldLabel htmlFor={titleId}>Etkinlik Adı <span className="text-danger">*</span></FieldLabel>
+                <textarea
+                  id={titleId}
+                  rows={1}
+                  wrap="off"
+                  required
+                  value={ad}
+                  onChange={(event) => setAd(event.target.value.replace(/[\r\n]+/g, ' '))}
+                  onKeyDown={(event) => { if (event.key === 'Enter') event.preventDefault() }}
+                  className="cal-event-title-field h-11 w-full min-w-0 rounded-[var(--field-radius)] border border-[var(--field-border)] bg-[var(--field-background)] px-4 py-2.5 text-base text-[var(--field-foreground)] shadow-[var(--field-shadow)] outline-none placeholder:text-[var(--field-placeholder)] focus:border-[var(--field-border-focus)] sm:text-sm"
+                  data-copy-allowed
+                />
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <SelectField label="Tür" value={tur} onChange={setTur} options={EVENT_TYPES.map((t) => ({ value: t.key, label: t.ad }))} />
                 <SelectField label="Durum" value={durum} onChange={setDurum} options={EVENT_STATUS.map((s) => ({ value: s.key, label: s.ad }))} />

@@ -66,6 +66,20 @@ body {
   max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem) !important;
 }
 
+/* Uzun etkinlik adları iOS'ta parmakla yatay kaydırılıp metnin herhangi bir
+   noktasından seçilebilsin; modalın kendi kaydırması metin alanını kapmasın. */
+.cal-event-title-field {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: pre;
+  resize: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* Wordle: geçersiz kelime girişinde satırın titremesi, gönderilen tahminde harf harf çevrilmesi. */
 @keyframes shake {
   10%, 90% { transform: translateX(-2px); }
