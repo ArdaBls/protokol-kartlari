@@ -7,6 +7,9 @@ import { FieldLabel, SelectField, TextInputField } from '../../components/formCo
 import { useWriter } from '../../hooks/useWriter'
 import { db } from '../../lib/firebase'
 import { dateKey } from '../../lib/dates'
+import { firebaseRecordStore } from '../calendar/firebaseRecordStore'
+import { mutateExistingRecord } from '../calendar/recordTransactions'
+import { assertEventRevision } from '../calendar/eventMutations'
 import type { CalendarEventRef, GanttProject } from './ganttTypes'
 import { PALETTE, PALETTE_ORDER, STATUSES, addDays, eventDatesWouldChange, linkedEventDatePatch, parseDateKey, stepProgress } from './ganttTypes'
 import { OwnerPicker } from './OwnerPicker'
@@ -58,6 +61,8 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (value: str
 function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectModalProps, 'isOpen'>) {
   const writer = useWriter()
   const project = entry?.[1] ?? null
+  const [original] = useState(project)
+  const [openedInTestMode] = useState(writer.isTestMode)
   const projectId = entry?.[0] ?? ''
   const today = dateKey(new Date())
 
@@ -86,7 +91,8 @@ function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectMod
     .sort(([, a], [, b]) => String(a.tarih ?? '').localeCompare(String(b.tarih ?? '')))
 
   const save = async () => {
-    if (!writer.canWrite) { setError('Bu işlem için düzenleme yetkiniz yok.'); return false }
+    if (isSaving || !writer.ensureWritable()) return false
+    if (openedInTestMode !== writer.isTestMode) { setError('Veritabanı modu değişti. Pencereyi yeniden açın.'); return false }
     const title = ad.trim()
     if (!title) { setError('Proje adı zorunludur.'); return false }
     if (!parseDateKey(baslangicTarihi) || !parseDateKey(bitisTarihi)) { setError('Geçerli başlangıç ve bitiş tarihleri girin.'); return false }
@@ -101,12 +107,10 @@ function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectMod
     setIsSaving(true)
     setError('')
     try {
-      if (projectId && project) {
-        const fresh = await get(ref(db, writer.path(`haberProjeleri/${projectId}/guncellemeTs`)))
-        if ((fresh.val() ?? null) !== (project.guncellemeTs ?? null)) {
-          setError('Bu proje başka biri tarafından değiştirildi. Pencereyi kapatıp yeniden açın.')
-          return false
-        }
+      if (projectId && original) {
+        const fresh = (await get(ref(db, writer.path(`haberProjeleri/${projectId}`)))).val() as GanttProject | null
+        if (!fresh) throw new Error('Proje artık mevcut değil.')
+        assertEventRevision(fresh, original.guncellemeTs ?? null)
       }
       const nextSteps = Object.fromEntries(
         steps.map((step, index) => [
@@ -124,21 +128,27 @@ function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectMod
         ]),
       )
       const nextProject: GanttProject = {
+        ...original,
         ad: title, tur, durum, baslangicTarihi, bitisTarihi, sorumlu, oncelik,
-        ilerleme: progress, adimlar: nextSteps, takvimEtkinlikId, renk, arsiv: false,
-        olusturan: project?.olusturan || writer.actor!.name || writer.actor!.email,
-        olusturmaTs: project?.olusturmaTs ?? (serverTimestamp() as unknown as number),
+        ilerleme: progress, adimlar: { ...Object.fromEntries(Object.entries(original?.adimlar ?? {}).filter(([, step]) => step?.arsiv)), ...nextSteps }, takvimEtkinlikId, renk, arsiv: false,
+        olusturan: original?.olusturan || writer.actor!.name || writer.actor!.email,
+        olusturmaTs: original?.olusturmaTs ?? (serverTimestamp() as unknown as number),
         guncelleyen: writer.actor!.name || writer.actor!.email,
       }
 
       const usedId = projectId || push(ref(db, writer.path('haberProjeleri'))).key
       if (!usedId) { setError('Proje kimliği oluşturulamadı.'); return false }
-      const previousEventId = project?.takvimEtkinlikId || ''
-      const nextEventId = takvimEtkinlikId || ''
+      const previousEventId = original?.takvimEtkinlikId || ''
+      let nextEventId = takvimEtkinlikId || ''
       const eventIds = [...new Set([previousEventId, nextEventId].filter(Boolean))]
       const snapshots = await Promise.all(eventIds.map((eventId) => get(ref(db, writer.path(`etkinlikler/${eventId}`)))))
       const latestEvents = Object.fromEntries(eventIds.map((eventId, index) => [eventId, snapshots[index].val() as CalendarEventRef | null]))
-      const nextEvent = nextEventId ? latestEvents[nextEventId] : null
+      let nextEvent = nextEventId ? latestEvents[nextEventId] : null
+      if (nextEventId === previousEventId && (!nextEvent || (nextEvent.projeId && nextEvent.projeId !== usedId))) {
+        nextEventId = ''
+        nextEvent = null
+        nextProject.takvimEtkinlikId = ''
+      }
       if (nextEventId && !nextEvent) { setError('Bağlanacak takvim etkinliği artık mevcut değil.'); return false }
       if (nextEvent?.projeId && nextEvent.projeId !== usedId) { setError('Bu takvim etkinliği başka bir haber projesine bağlı.'); return false }
       const nextEventDates = nextEvent ? linkedEventDatePatch(nextEvent, bitisTarihi) : null
@@ -150,20 +160,32 @@ function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectMod
       const updates: Record<string, unknown> = { [writer.path(`haberProjeleri/${usedId}`)]: { ...nextProject, guncellemeTs: serverTimestamp() } }
       if (previousEventId && previousEventId !== nextEventId && latestEvents[previousEventId]?.projeId === usedId) {
         updates[writer.path(`etkinlikler/${previousEventId}/projeId`)] = null
+        updates[writer.path(`etkinlikler/${previousEventId}/guncellemeTs`)] = serverTimestamp()
       }
       if (nextEventId) {
         updates[writer.path(`etkinlikler/${nextEventId}/projeId`)] = usedId
         Object.entries(nextEventDates ?? {}).forEach(([key, value]) => { updates[writer.path(`etkinlikler/${nextEventId}/${key}`)] = value })
+        updates[writer.path(`etkinlikler/${nextEventId}/guncellemeTs`)] = serverTimestamp()
+        if (nextEventDates && eventDatesWouldChange(nextEvent, nextEventDates)) updates[writer.path(`etkinlikler/${nextEventId}/autoLockedForDate`)] = null
       }
 
-      await update(ref(db), updates)
-      await writer.log('haberProje', `${title} haber projesi ${project ? 'güncellendi' : 'oluşturuldu'}`, title)
+      if (!writer.ensureWritable()) return false
+      if (projectId && !eventIds.length) {
+        await mutateExistingRecord(firebaseRecordStore<GanttProject>(writer.path(`haberProjeleri/${usedId}`), writer.ensureWritable), (current) => {
+          assertEventRevision(current, original?.guncellemeTs ?? null)
+          return { ...current, ...nextProject, guncellemeTs: serverTimestamp() as unknown as number }
+        })
+      } else await update(ref(db), updates)
+      if (writer.ensureWritable()) {
+        try { await writer.log('haberProje', `${title} haber projesi ${project ? 'güncellendi' : 'oluşturuldu'}`, title) }
+        catch (err) { console.error('Proje kaydedildi ancak log yazılamadı:', err) }
+      }
       toast.success(project ? 'Proje güncellendi.' : 'Proje oluşturuldu.')
       onOpenChange(false)
       return true
     } catch (err) {
       writer.reportError('Proje kaydedilemedi.')(err)
-      setError('Proje kaydedilemedi.')
+      setError(err instanceof Error ? err.message : 'Proje kaydedilemedi.')
       return false
     } finally {
       setIsSaving(false)
@@ -171,8 +193,13 @@ function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectMod
   }
 
   const archiveOrDelete = async (mode: 'archive' | 'delete') => {
-    if (!projectId || !project || !writer.canWrite) return
+    if (!projectId || !original || isSaving || !writer.ensureWritable()) return
+    if (openedInTestMode !== writer.isTestMode) { setError('Veritabanı modu değişti. Pencereyi yeniden açın.'); return }
+    setIsSaving(true)
     try {
+      const fresh = (await get(ref(db, writer.path(`haberProjeleri/${projectId}`)))).val() as GanttProject | null
+      if (!fresh) throw new Error('Proje artık mevcut değil.')
+      assertEventRevision(fresh, original.guncellemeTs ?? null)
       const updates: Record<string, unknown> =
         mode === 'archive'
           ? {
@@ -181,16 +208,25 @@ function ProjectForm({ onOpenChange, entry, events, ownerPool }: Omit<ProjectMod
               [writer.path(`haberProjeleri/${projectId}/guncellemeTs`)]: serverTimestamp(),
             }
           : { [writer.path(`haberProjeleri/${projectId}`)]: null }
-      if (project.takvimEtkinlikId) {
-        const linked = await get(ref(db, writer.path(`etkinlikler/${project.takvimEtkinlikId}`)))
-        if ((linked.val() as CalendarEventRef | null)?.projeId === projectId) updates[writer.path(`etkinlikler/${project.takvimEtkinlikId}/projeId`)] = null
+      if (fresh.takvimEtkinlikId) {
+        const linked = await get(ref(db, writer.path(`etkinlikler/${fresh.takvimEtkinlikId}`)))
+        if ((linked.val() as CalendarEventRef | null)?.projeId === projectId) {
+          updates[writer.path(`etkinlikler/${fresh.takvimEtkinlikId}/projeId`)] = null
+          updates[writer.path(`etkinlikler/${fresh.takvimEtkinlikId}/guncellemeTs`)] = serverTimestamp()
+        }
       }
+      if (!writer.ensureWritable()) return
       await update(ref(db), updates)
-      await writer.log('haberProje', `${project.ad ?? 'Haber projesi'} ${mode === 'archive' ? 'arşivlendi' : 'kalıcı olarak silindi'}`, project.ad ?? '')
+      if (writer.ensureWritable()) {
+        try { await writer.log('haberProje', `${original.ad ?? 'Haber projesi'} ${mode === 'archive' ? 'arşivlendi' : 'kalıcı olarak silindi'}`, original.ad ?? '') }
+        catch (err) { console.error('Proje kaldırıldı ancak log yazılamadı:', err) }
+      }
       toast.success(mode === 'archive' ? 'Proje arşivlendi.' : 'Proje silindi.')
       onOpenChange(false)
     } catch (err) {
       writer.reportError(mode === 'archive' ? 'Proje arşivlenemedi.' : 'Proje silinemedi.')(err)
+    } finally {
+      setIsSaving(false)
     }
   }
 

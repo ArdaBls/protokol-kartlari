@@ -2,7 +2,7 @@ import { Tooltip } from '@heroui/react'
 import { Lock, Plus } from 'lucide-react'
 import { dateKey } from '../../lib/dates'
 import type { CalendarEventWithId } from './calendarTypes'
-import { CAL_DOW, addDays, evType, fmtMultiDayRange, isSameDay, startOfWeek, todayDate } from './calendarTypes'
+import { CAL_DOW, addDays, eventsOnDate, evType, fmtMultiDayRange, isSameDay, startOfWeek, todayDate } from './calendarTypes'
 import { EventTooltipContent } from './EventTooltipContent'
 
 interface MonthViewProps {
@@ -34,7 +34,7 @@ export function MonthView({ anchor, eventsByDate, canWrite, onEdit, onCreate, on
           const key = dateKey(day)
           const weekday = (day.getDay() + 6) % 7
           const isOtherMonth = day.getMonth() !== anchor.getMonth()
-          const events = eventsByDate.get(key) ?? []
+          const events = eventsOnDate(eventsByDate, key)
           const shown = events.slice(0, MAX_CHIPS)
           return (
             <div

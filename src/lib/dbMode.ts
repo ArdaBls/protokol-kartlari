@@ -13,7 +13,7 @@ export interface DbModeState {
   hasError: boolean
 }
 
-const INITIAL_STATE: DbModeState = { isReady: false, isTestMode: false, isReadOnly: false, hasError: false }
+const INITIAL_STATE: DbModeState = { isReady: false, isTestMode: false, isReadOnly: true, hasError: false }
 
 let state = INITIAL_STATE
 const listeners = new Set<() => void>()
@@ -71,6 +71,11 @@ export function startDbMode(): () => void {
 
 export function useDbMode(): DbModeState {
   return useSyncExternalStore(subscribe, () => state)
+}
+
+/** Async actions must recheck the current mode immediately before a database write. */
+export function getDbModeState(): Readonly<DbModeState> {
+  return state
 }
 
 export function dbPathFor(basePath: string, isTestMode: boolean): string {

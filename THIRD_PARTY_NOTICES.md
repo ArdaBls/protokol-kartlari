@@ -34,3 +34,9 @@ Apache License, Version 2.0. The build was localized to Turkish and modified to
 post a `window.parent.postMessage({ type: 'tetris-gameover', score })` event on
 game over so the host page can record high scores. A copy of the Apache-2.0
 license text is available at http://www.apache.org/licenses/LICENSE-2.0.
+
+---
+
+The calendar Excel export uses [ExcelJS](https://github.com/exceljs/exceljs),
+Copyright (c) 2014-2019 Guyon Roche, under the MIT License. Its full license
+is distributed with the site at `/licenses/exceljs.txt`.

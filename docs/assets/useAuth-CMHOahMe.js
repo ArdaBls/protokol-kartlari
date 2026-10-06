@@ -1,0 +1,1 @@
+import{n as e,o as t}from"./jsx-runtime-C29kUG2a.js";var n=t(e(),1),r=(0,n.createContext)(null);function i(){let e=(0,n.useContext)(r);if(!e)throw Error(`useAuth, AuthProvider içinde kullanılmalı.`);return e}export{r as n,i as t};

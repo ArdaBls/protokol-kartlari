@@ -1,13 +1,15 @@
 import { Button, Input, TextField, toast } from '@heroui/react'
-import { ref, serverTimestamp, update } from 'firebase/database'
+import { serverTimestamp } from 'firebase/database'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useDbValue } from '../../hooks/useDbValue'
 import { useWriter } from '../../hooks/useWriter'
-import { db } from '../../lib/firebase'
+import { firebaseRecordStore } from '../calendar/firebaseRecordStore'
+import { mutateExistingRecord } from '../calendar/recordTransactions'
+import { applyEventPatch } from '../calendar/eventMutations'
 import { KanbanCard } from './KanbanCard'
 import type { KanbanItem, KanbanRecord, KanbanSource, KanbanStatus } from './kanbanTypes'
-import { KANBAN_COLUMNS, addDays, isVisibleInWeek, normalizeDurum, startOfWeek, toKanbanItem, weekRangeLabel } from './kanbanTypes'
+import { KANBAN_COLUMNS, addDays, isVisibleInWeek, kanbanItemKey, normalizeDurum, startOfWeek, toKanbanItem, weekRangeLabel } from './kanbanTypes'
 
 interface StaffProfile {
   displayName?: string
@@ -59,33 +61,34 @@ export function KanbanPage() {
     return map
   }, [visibleItems])
 
-  const moveCardTo = async (id: string, newStatus: KanbanStatus) => {
-    const item = items.find((entry) => entry.id === id)
+  const moveCardTo = async (key: string, newStatus: KanbanStatus) => {
+    const item = items.find((entry) => kanbanItemKey(entry) === key)
     if (!item || item.durum === newStatus) return
+    const id = item.id
     const actor = writer.ensureWritable()
     if (!actor) return
     const oldTitle = KANBAN_COLUMNS.find((c) => c.id === item.durum)?.title ?? item.durum
     const newTitle = KANBAN_COLUMNS.find((c) => c.id === newStatus)?.title ?? newStatus
     const basePath = writer.path(item.source === 'gorev' ? `gorevler/${id}` : `etkinlikler/${id}`)
     const isDone = newStatus === 'tamamlandi'
-    const updates: Record<string, unknown> = {
-      [`${basePath}/durum`]: newStatus,
-      [`${basePath}/guncellemeTs`]: serverTimestamp(),
-      [`${basePath}/tamamlayan`]: isDone ? actor.name || actor.email : null,
-      [`${basePath}/tamamlayanEmail`]: isDone ? actor.email : null,
-      [`${basePath}/tamamlayanUid`]: isDone ? actor.uid : null,
+    const patch = {
+      durum: newStatus,
+      tamamlayan: isDone ? actor.name || actor.email : null,
+      tamamlayanEmail: isDone ? actor.email : null,
+      tamamlayanUid: isDone ? actor.uid : null,
+      ...(item.source === 'gorev' ? { tamamlandi: isDone } : {}),
     }
-    if (item.source === 'gorev') updates[`${basePath}/tamamlandi`] = isDone
     try {
-      await update(ref(db), updates)
-      await writer.log(
+      await mutateExistingRecord(firebaseRecordStore<KanbanRecord>(basePath, writer.ensureWritable), (current) =>
+        applyEventPatch(current, patch, item.raw.guncellemeTs ?? null, serverTimestamp() as unknown as number))
+      if (writer.ensureWritable()) await writer.log(
         item.source === 'gorev' ? 'gorev' : 'etkinlik',
         `${item.title} ${item.source === 'gorev' ? 'görevinin' : 'etkinliğinin'} durumu panodan değiştirildi · Durum: ${oldTitle} → ${newTitle}`,
         item.title,
-      )
+      ).catch((err) => console.error('Durum kaydedildi fakat log yazılamadı:', err))
       toast.success(`"${item.title}" → ${newTitle}`)
     } catch (err) {
-      writer.reportError('Durum güncellenemedi.')(err)
+      writer.reportError(err instanceof Error ? err.message : 'Durum güncellenemedi.')(err)
     }
   }
 
@@ -148,13 +151,13 @@ export function KanbanPage() {
                   {colItems.length === 0 && <p className="px-2 py-4 text-center text-xs text-muted">Etkinlik yok.</p>}
                   {colItems.map((item) => (
                     <KanbanCard
-                      key={item.id}
+                      key={kanbanItemKey(item)}
                       item={item}
-                      canWrite={writer.canWrite}
+                      canWrite={writer.canWrite && !(item.source === 'etkinlik' && item.raw.locked)}
                       profilesByName={profilesByName}
-                      onDragStart={(event) => onDragStart(event, item.id)}
+                      onDragStart={(event) => onDragStart(event, kanbanItemKey(item))}
                       onDragEnd={onDragEnd}
-                      onMoveTo={(status) => void moveCardTo(item.id, status)}
+                      onMoveTo={(status) => void moveCardTo(kanbanItemKey(item), status)}
                     />
                   ))}
                 </div>

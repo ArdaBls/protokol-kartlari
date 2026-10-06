@@ -4,9 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../auth/useAuth'
 import { useDbValue } from '../../../hooks/useDbValue'
-import { dbPathFor, useDbMode } from '../../../lib/dbMode'
+import { dbPathFor } from '../../../lib/dbMode'
 import { db } from '../../../lib/firebase'
-import { isApprovedRole } from '../../../lib/roles'
+import { useGameWriteAccess } from '../useGameWriteAccess'
+import { patchGame, sameGameState } from '../gameMutations'
+import { fireShot, resolveShots, startBattle, hasPendingShot, nextAmiralStats, key, oyuncuNo, oyuncuUid, type AbGame, type AtisSonucu, type Durum, type Hucre, type GemiYerlesim } from './amiralLogic'
 import { StaffInvitePicker } from '../StaffInvitePicker'
 
 const SIZE = 10
@@ -17,30 +19,7 @@ const FLEET = [
   { id: 'denizalti', ad: 'Denizaltı', boy: 3 },
   { id: 'muhrip', ad: 'Muhrip', boy: 2 },
 ] as const
-const TOPLAM_HUCRE = FLEET.reduce((t, g) => t + g.boy, 0)
-
-type Durum = 'davet_edildi' | 'yerlestirme' | 'oynaniyor' | 'bitti' | 'iptal'
-type AtisSonucu = 'bekliyor' | 'kacti' | 'isabet' | 'batti'
-interface AbGame {
-  oyuncu1Uid?: string; oyuncu1Ad?: string; oyuncu2Uid?: string; oyuncu2Ad?: string
-  durum?: Durum; hazir1?: boolean; hazir2?: boolean; sira?: string | null
-  sonuc?: string | null; sonNot?: string
-  atislar1?: Record<string, AtisSonucu>; atislar2?: Record<string, AtisSonucu>
-  guncellemeTs?: number
-}
-interface Hucre { r: number; c: number }
-interface GemiYerlesim { id: string; hucreler: Hucre[] }
 const DURUM_LABEL: Record<Durum, string> = { davet_edildi: 'Davet bekleniyor', yerlestirme: 'Gemiler yerleştiriliyor', oynaniyor: 'Oynanıyor', bitti: 'Bitti', iptal: 'İptal edildi' }
-
-const key = (r: number, c: number) => `${r}_${c}`
-const oyuncuNo = (game: AbGame | null | undefined, uid: string): 1 | 2 | null => {
-  if (!game) return null
-  if (game.oyuncu1Uid === uid) return 1
-  if (game.oyuncu2Uid === uid) return 2
-  return null
-}
-const oyuncuUid = (game: AbGame, no: 1 | 2) => (no === 1 ? game.oyuncu1Uid : game.oyuncu2Uid)
-const oyuncuAdi = (game: AbGame, no: 1 | 2) => (no === 1 ? game.oyuncu1Ad : game.oyuncu2Ad)
 
 function gemiHucreleri(r0: number, c0: number, yon: 'h' | 'v', boy: number): Hucre[] {
   return Array.from({ length: boy }, (_, i) => (yon === 'h' ? { r: r0, c: c0 + i } : { r: r0 + i, c: c0 }))
@@ -67,13 +46,13 @@ function otomatikYerlestir(): Map<string, GemiYerlesim> {
 // ── Lobi ──
 function AbLobby() {
   const { state } = useAuth()
-  const { isTestMode, isReadOnly } = useDbMode()
+  const { isTestMode, canWrite, isCurrent } = useGameWriteAccess()
   const games = useDbValue<Record<string, AbGame | null>>('oyunBasarimlari/amiralBatti/oyunlar')
   const scores = useDbValue<Record<string, { isim?: string; oynanan?: number; kazanilan?: number } | null>>('oyunBasarimlari/amiralBatti')
   const [, setSearchParams] = useSearchParams()
   const [showInvite, setShowInvite] = useState(false)
 
-  const canPlay = state.status === 'ready' && isApprovedRole(state.role) && !isReadOnly
+  const canPlay = canWrite
   const myUid = state.status === 'ready' ? state.user.uid : ''
   const myName = state.status === 'ready' ? (state.displayName || state.user.email || '') : ''
 
@@ -87,7 +66,7 @@ function AbLobby() {
   const leaderboard = useMemo(
     () =>
       Object.values(scores.data ?? {})
-        .filter((r): r is { isim?: string; oynanan?: number; kazanilan?: number } => !!r)
+        .filter((r): r is { isim?: string; oynanan?: number; kazanilan?: number } => !!r && typeof r.oynanan === 'number' && typeof r.kazanilan === 'number')
         .sort((a, b) => (b.kazanilan ?? 0) - (a.kazanilan ?? 0) || (b.oynanan ?? 0) - (a.oynanan ?? 0))
         .slice(0, 20),
     [scores.data],
@@ -95,21 +74,23 @@ function AbLobby() {
 
   const createGame = async (opponentUid: string, opponentName: string) => {
     setShowInvite(false)
+    const context = { uid: myUid, isTestMode }
+    if (!isCurrent(context) || opponentUid === myUid) return
     const id = push(ref(db, dbPathFor('oyunBasarimlari/amiralBatti/oyunlar', isTestMode))).key
     if (!id) return
     const game: AbGame = { oyuncu1Uid: myUid, oyuncu1Ad: myName, oyuncu2Uid: opponentUid, oyuncu2Ad: opponentName, durum: 'davet_edildi', hazir1: false, hazir2: false, sira: null, sonuc: null, sonNot: '' }
     try {
-      await update(ref(db), { [`${dbPathFor('oyunBasarimlari/amiralBatti/oyunlar', isTestMode)}/${id}`]: { ...game, olusturmaTs: serverTimestamp(), guncellemeTs: serverTimestamp() } })
+      const changes: Record<string, unknown> = { [`${dbPathFor('oyunBasarimlari/amiralBatti/oyunlar', isTestMode)}/${id}`]: { ...game, olusturmaTs: serverTimestamp(), guncellemeTs: serverTimestamp() } }
       const notifKey = push(ref(db, dbPathFor(`notifications/${opponentUid}`, isTestMode))).key
       if (notifKey) {
-        await update(ref(db), {
-          [`${dbPathFor(`notifications/${opponentUid}`, isTestMode)}/${notifKey}`]: {
+        changes[`${dbPathFor(`notifications/${opponentUid}`, isTestMode)}/${notifKey}`] = {
             type: 'amiral_batti_invite', title: 'Amiral Battı daveti', message: `${myName} sizi bir Amiral Battı oyununa davet etti.`, relatedGameId: id,
             createdAt: serverTimestamp(), read: false,
-          },
-        })
+        }
       }
-      setSearchParams({ oyun: id })
+      if (!isCurrent(context)) return
+      await update(ref(db), changes)
+      if (isCurrent(context)) setSearchParams({ oyun: id })
     } catch (err) {
       console.error('Oyun oluşturulamadı:', err)
       toast.danger('Oyun oluşturulamadı.')
@@ -204,7 +185,7 @@ function CombatBoard({ cells, interactive, onFire }: { cells: CellVisual[]; inte
 // ── Oyun ekranı ──
 function AbGameView({ gameId }: { gameId: string }) {
   const { state } = useAuth()
-  const { isTestMode, isReadOnly } = useDbMode()
+  const { isTestMode, canWrite, isCurrent } = useGameWriteAccess()
   const gameData = useDbValue<AbGame>(`oyunBasarimlari/amiralBatti/oyunlar/${gameId}`)
   const myFleetData = useDbValue<{ gemiler?: GemiYerlesim[] }>(`amiralBattiGizli/${gameId}/${state.status === 'ready' ? state.user.uid : '_'}`, { enabled: state.status === 'ready' })
 
@@ -212,8 +193,8 @@ function AbGameView({ gameId }: { gameId: string }) {
   const [secili, setSecili] = useState<string | null>(null)
   const [yon, setYon] = useState<'h' | 'v'>('h')
   const hazirBildirildi = useRef(false)
-  const cozulmekteOlan = useRef(new Set<string>())
-  const istatistikYazildi = useRef(false)
+  const [writeError, setWriteError] = useState(false)
+  const [retry, setRetry] = useState(0)
 
   const myUid = state.status === 'ready' ? state.user.uid : ''
   const myName = state.status === 'ready' ? (state.displayName || state.user.email || '') : ''
@@ -223,61 +204,47 @@ function AbGameView({ gameId }: { gameId: string }) {
   const gameRef = ref(db, path(`oyunBasarimlari/amiralBatti/oyunlar/${gameId}`))
 
   const guard = (fn: () => void) => () => {
-    if (isReadOnly) { toast.danger('Salt-okunur kilit açık.'); return }
+    if (!isCurrent({ uid: myUid, isTestMode })) { toast.danger('Oyun şu anda değiştirilemiyor.'); return }
     fn()
   }
 
-  // Rakipten bana gelen "bekliyor" atışları çöz (sadece savunan taraf kendi gizli filosunu bilir).
-  useEffect(() => {
-    if (!game || !no || !myFleetData.data?.gemiler) return
-    const banaGelenAnahtar = no === 1 ? 'atislar2' : 'atislar1'
-    const banaGelenAtislar = game[banaGelenAnahtar] ?? {}
-    const bekleyenler = Object.keys(banaGelenAtislar).filter((k) => banaGelenAtislar[k] === 'bekliyor' && !cozulmekteOlan.current.has(k))
-    if (!bekleyenler.length) return
-    bekleyenler.forEach((k) => cozulmekteOlan.current.add(k))
+  const reportError = (error: unknown) => {
+    console.error('Oyun güncellenemedi:', error)
+    setWriteError(true)
+  }
+  const transact = (change: (current: AbGame | null) => AbGame | undefined) => {
+    const context = { uid: myUid, isTestMode }
+    if (!isCurrent(context)) return
+    return runTransaction(gameRef, (current: AbGame | null) =>
+      isCurrent(context) ? change(current) : undefined, { applyLocally: false }).catch(reportError)
+  }
+  const conditionalUpdate = (patch: Record<string, unknown>) => transact((current) =>
+    current && oyuncuNo(current, myUid) && sameGameState(current, game) ? patchGame(current, patch) : undefined)
 
-    const gemiler = myFleetData.data.gemiler
-    const hucreGemiHaritasi = new Map<string, string>()
-    gemiler.forEach((g) => g.hucreler.forEach((h) => hucreGemiHaritasi.set(key(h.r, h.c), g.id)))
-    const guncelAtislar: Record<string, AtisSonucu> = { ...banaGelenAtislar }
-    bekleyenler.forEach((k) => { guncelAtislar[k] = hucreGemiHaritasi.has(k) ? 'isabet' : 'kacti' })
-    gemiler.forEach((g) => {
-      const hepsiVuruldu = g.hucreler.every((h) => { const v = guncelAtislar[key(h.r, h.c)]; return v === 'isabet' || v === 'batti' })
-      if (hepsiVuruldu) g.hucreler.forEach((h) => { guncelAtislar[key(h.r, h.c)] = 'batti' })
-    })
-    const patch: Record<string, unknown> = {}
-    Object.keys(guncelAtislar).forEach((k) => { if (guncelAtislar[k] !== banaGelenAtislar[k]) patch[`${banaGelenAnahtar}/${k}`] = guncelAtislar[k] })
-    const toplamVurulan = Object.values(guncelAtislar).filter((v) => v === 'isabet' || v === 'batti').length
-    if (toplamVurulan >= TOPLAM_HUCRE) {
-      const saldiranNo: 1 | 2 = no === 1 ? 2 : 1
-      patch.durum = 'bitti'
-      patch.sonuc = oyuncuUid(game, saldiranNo)
-      patch.sonNot = `${oyuncuAdi(game, saldiranNo) || 'Rakip'} tüm filonu batırdı.`
-    }
-    patch.guncellemeTs = serverTimestamp()
-    update(gameRef, patch).catch((err) => console.error('Atış sonucu yazılamadı:', err))
-      .finally(() => { bekleyenler.forEach((k) => cozulmekteOlan.current.delete(k)) })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game, no, myFleetData.data])
-
-  // Her iki oyuncu hazır olunca savaşı başlat (idempotent).
+  // Only the defender can resolve a shot; recompute from the transaction's latest state.
   useEffect(() => {
-    if (!game || game.durum !== 'yerlestirme' || !game.hazir1 || !game.hazir2) return
-    update(gameRef, { durum: 'oynaniyor', sira: game.oyuncu1Uid, guncellemeTs: serverTimestamp() }).catch(() => {})
+    if (!canWrite || !game || !no || !myFleetData.data?.gemiler || game.durum !== 'oynaniyor') return
+    const incoming = no === 1 ? game.atislar2 : game.atislar1
+    if (!Object.values(incoming || {}).includes('bekliyor')) return
+    void transact((current) => resolveShots(current, myUid, myFleetData.data!.gemiler!, Date.now()))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.durum, game?.hazir1, game?.hazir2])
+  }, [game, no, myFleetData.data, canWrite, retry])
 
-  // Oyun bitince istatistik güncelle.
   useEffect(() => {
-    if (!game || game.durum !== 'bitti' || !game.sonuc || !no || istatistikYazildi.current) return
-    istatistikYazildi.current = true
-    const kazandimMi = game.sonuc === myUid
-    runTransaction(ref(db, path(`oyunBasarimlari/amiralBatti/${myUid}`)), (mevcut) => {
-      const m = mevcut ?? { isim: myName, oynanan: 0, kazanilan: 0 }
-      return { isim: myName || m.isim, oynanan: (m.oynanan ?? 0) + 1, kazanilan: (m.kazanilan ?? 0) + (kazandimMi ? 1 : 0) }
-    }).catch((err) => console.error('İstatistik güncellenemedi:', err))
+    if (!canWrite || !game || game.durum !== 'yerlestirme' || !game.hazir1 || !game.hazir2) return
+    void transact((current) => startBattle(current, myUid, Date.now()))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.durum, game?.sonuc])
+  }, [game?.durum, game?.hazir1, game?.hazir2, canWrite, retry])
+
+  // The game ID and counters commit together. Reopening or a second tab is harmless.
+  useEffect(() => {
+    if (!canWrite || !game || game.durum !== 'bitti' || !game.sonuc || !no) return
+    const context = { uid: myUid, isTestMode }
+    runTransaction(ref(db, path(`oyunBasarimlari/amiralBatti/${myUid}`)), (previous) =>
+      isCurrent(context) ? nextAmiralStats(previous, gameId, game.sonuc === myUid, myName) : undefined,
+    { applyLocally: false }).catch(reportError)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.durum, game?.sonuc, no, canWrite, myUid, isTestMode, retry])
 
   const gemiSec = (r: number, c: number) => {
     if (!secili) return
@@ -289,7 +256,8 @@ function AbGameView({ gameId }: { gameId: string }) {
   }
 
   const hazirim = () => {
-    if (yerlesim.size !== FLEET.length || hazirBildirildi.current || !no) return
+    if (!isCurrent({ uid: myUid, isTestMode }) || game?.durum !== 'yerlestirme' || !no
+      || (no === 1 ? game.hazir1 : game.hazir2) || yerlesim.size !== FLEET.length || hazirBildirildi.current) return
     hazirBildirildi.current = true
     const gemiler = Array.from(yerlesim.values())
     update(ref(db), {
@@ -300,15 +268,7 @@ function AbGameView({ gameId }: { gameId: string }) {
   }
 
   const atesEt = (r: number, c: number) => {
-    if (!game || !no || game.sira !== myUid || game.durum !== 'oynaniyor') return
-    const benimAtisAnahtarim = no === 1 ? 'atislar1' : 'atislar2'
-    if ((game[benimAtisAnahtarim] ?? {})[key(r, c)]) return
-    const rakipNo: 1 | 2 = no === 1 ? 2 : 1
-    update(gameRef, {
-      [`${benimAtisAnahtarim}/${key(r, c)}`]: 'bekliyor',
-      sira: oyuncuUid(game, rakipNo),
-      guncellemeTs: serverTimestamp(),
-    }).catch((err) => { console.error('Atış yapılamadı:', err); toast.danger('Atış yapılamadı.') })
+    void transact((current) => fireShot(current, myUid, key(r, c), Date.now()))
   }
 
   if (gameData.isLoading) return <p className="py-16 text-center text-sm text-muted">Yükleniyor…</p>
@@ -324,13 +284,13 @@ function AbGameView({ gameId }: { gameId: string }) {
       statusText = `${game.oyuncu1Ad || 'Rakip'} sizi Amiral Battı oynamaya davet etti.`
       actions = (
         <>
-          <Button variant="primary" size="sm" onPress={guard(() => update(gameRef, { durum: 'yerlestirme', guncellemeTs: serverTimestamp() }))}>Kabul Et</Button>
-          <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: serverTimestamp() }))}>Reddet</Button>
+          <Button variant="primary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'yerlestirme', guncellemeTs: serverTimestamp() }))}>Kabul Et</Button>
+          <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: serverTimestamp() }))}>Reddet</Button>
         </>
       )
     } else if (no === 1) {
       statusText = `${game.oyuncu2Ad || 'Rakibiniz'} daveti kabul etmesini bekliyor…`
-      actions = <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { durum: 'iptal', sonNot: 'Davet iptal edildi', guncellemeTs: serverTimestamp() }))}>Daveti İptal Et</Button>
+      actions = <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'iptal', sonNot: 'Davet iptal edildi', guncellemeTs: serverTimestamp() }))}>Daveti İptal Et</Button>
     }
   } else if (game.durum === 'yerlestirme') {
     statusText = benimHazir ? 'Filonuz hazır, rakibinizi bekliyorsunuz…' : 'Filonuzu yerleştirin.'
@@ -344,7 +304,7 @@ function AbGameView({ gameId }: { gameId: string }) {
           onPress={guard(() => {
             if (!window.confirm('Oyundan çekilmek istediğinize emin misiniz?')) return
             const rakipNo: 1 | 2 = no === 1 ? 2 : 1
-            update(gameRef, { durum: 'bitti', sonuc: oyuncuUid(game, rakipNo), sonNot: 'Oyundan çekildi', guncellemeTs: serverTimestamp() })
+            conditionalUpdate({ durum: 'bitti', sonuc: oyuncuUid(game, rakipNo), sonNot: 'Oyundan çekildi', guncellemeTs: serverTimestamp() })
           })}
         >
           Oyundan Çekil
@@ -359,7 +319,7 @@ function AbGameView({ gameId }: { gameId: string }) {
     statusText = `Oyun iptal edildi${game.sonNot ? ` · ${game.sonNot}` : ''}.`
   }
 
-  const showPlacement = game.durum === 'yerlestirme' && !benimHazir
+  const showPlacement = game.durum === 'yerlestirme' && !!no && !benimHazir
   const showCombat = (game.durum === 'oynaniyor' || game.durum === 'bitti') && !!no
 
   const kendiHucreler = new Set((myFleetData.data?.gemiler ?? []).flatMap((g) => g.hucreler.map((h) => key(h.r, h.c))))
@@ -401,7 +361,7 @@ function AbGameView({ gameId }: { gameId: string }) {
                 })}
                 <Button variant="secondary" size="sm" onPress={() => setYon((y) => (y === 'h' ? 'v' : 'h'))}>Döndür ({yon === 'h' ? 'Yatay' : 'Dikey'})</Button>
                 <Button variant="secondary" size="sm" onPress={() => setYerlesim(otomatikYerlestir())}>Rastgele Yerleştir</Button>
-                <Button variant="primary" size="sm" isDisabled={yerlesim.size !== FLEET.length} onPress={hazirim}>Hazırım</Button>
+                <Button variant="primary" size="sm" isDisabled={!canWrite || yerlesim.size !== FLEET.length} onPress={hazirim}>Hazırım</Button>
               </div>
               <PlacementBoard yerlesim={yerlesim} secili={secili} onPick={gemiSec} />
             </>
@@ -414,7 +374,7 @@ function AbGameView({ gameId }: { gameId: string }) {
               </div>
               <div className="w-full max-w-[260px]">
                 <h3 className="mb-1.5 text-center text-sm text-muted">Düşman Suları</h3>
-                <CombatBoard cells={dusmanTahtaHucreler} interactive={game.durum === 'oynaniyor' && game.sira === myUid} onFire={atesEt} />
+                <CombatBoard cells={dusmanTahtaHucreler} interactive={canWrite && game.durum === 'oynaniyor' && game.sira === myUid && !hasPendingShot(game)} onFire={atesEt} />
               </div>
             </div>
           )}
@@ -422,6 +382,7 @@ function AbGameView({ gameId }: { gameId: string }) {
         <div className="flex w-full max-w-[280px] flex-col gap-2.5">
           <div className="rounded-xl bg-default px-3 py-2 text-sm">{game.oyuncu1Ad}{game.durum === 'oynaniyor' && game.sira === game.oyuncu1Uid ? ' · sırası' : ''}</div>
           <div className="min-h-[18px] text-sm text-muted">{statusText}</div>
+          {writeError && <button type="button" disabled={!canWrite} className="text-sm text-danger underline" onClick={() => { setWriteError(false); setRetry((n) => n + 1) }}>Kayıt başarısız. Tekrar dene.</button>}
           <div className="flex flex-wrap gap-2">{actions}</div>
           <div className="rounded-xl bg-default px-3 py-2 text-sm">{game.oyuncu2Ad || '(davet bekleniyor)'}{game.durum === 'oynaniyor' && game.sira === game.oyuncu2Uid ? ' · sırası' : ''}</div>
           <Link to="/oyunlar/amiral-batti" className="mt-2 w-fit rounded-full border border-separator px-3 py-1.5 text-sm hover:bg-default">← Oyunlarıma dön</Link>
@@ -434,5 +395,6 @@ function AbGameView({ gameId }: { gameId: string }) {
 export function AmiralBattiPage() {
   const [searchParams] = useSearchParams()
   const gameId = searchParams.get('oyun')
-  return gameId ? <AbGameView key={gameId} gameId={gameId} /> : <AbLobby />
+  const { uid, isTestMode } = useGameWriteAccess()
+  return gameId ? <AbGameView key={`${uid}:${isTestMode}:${gameId}`} gameId={gameId} /> : <AbLobby />
 }

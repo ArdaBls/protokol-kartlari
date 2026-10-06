@@ -1,6 +1,7 @@
 // JSON içe aktarma doğrulaması — eski ayarlar.html ile aynı kurallar. Yedekten gelen veri güvenilmezdir:
 // yalnızca bilinen alanlar, doğrulanmış biçimleriyle yazılır.
 import { safePhotoUrl } from '../protocol/protocolRules'
+import { parseKey } from '../calendar/calendarTypes'
 
 const VALID_STATUS = new Set(['aktif', 'pasif', 'silindi'])
 const NEWS_SOURCES = ['İHA', 'AA', 'DHA', 'ANKA']
@@ -15,10 +16,10 @@ const isObject = (value: unknown): value is Loose => !!value && typeof value ===
 function cleanRank(value: unknown, fallback: number | string = ''): number | string {
   if (value === undefined || value === null || value === '') return fallback
   const n = Number(value)
-  return Number.isNaN(n) || n < 0 ? fallback : n
+  return !Number.isFinite(n) || n < 0 ? fallback : n
 }
 
-const cleanDate = (value: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(text(value).trim()) ? text(value).trim() : '')
+const cleanDate = (value: unknown) => (parseKey(text(value).trim()) ? text(value).trim() : '')
 
 /** Firebase anahtarı olarak güvenli mi? __proto__ gibi anahtarlar nesnenin prototipini bozar ve kayıt sessizce kaybolur. */
 export const isSafeDbKey = (key: string) => /^[A-Za-z0-9_-]+$/.test(key) && !['__proto__', 'constructor', 'prototype'].includes(key)
@@ -110,7 +111,8 @@ export function buildMerge(entries: ImportEntry[], existing: Record<string, Loos
   return { patch, skipped, matchCount, newCount }
 }
 
-const isDateKey = (value: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(text(value))
+const isDateKey = (value: unknown) => !!parseKey(text(value))
+const cleanBoolean = (value: unknown) => value === true || value === 'true'
 
 /** Takvim yedeği: { etkinlikler: {...} } sarmalı ya da doğrudan etkinlik nesnesi. */
 export function sanitizeEvents(raw: string, newKey: () => string, timestamp: unknown) {
@@ -122,7 +124,7 @@ export function sanitizeEvents(raw: string, newKey: () => string, timestamp: unk
   let kept = 0
   let skipped = 0
   Object.entries(source).forEach(([rawKey, item]) => {
-    if (!isObject(item) || !item.ad || !isDateKey(item.tarih)) {
+    if (!isObject(item) || !text(item.ad).trim() || !isDateKey(item.tarih)) {
       skipped += 1
       return
     }
@@ -135,17 +137,19 @@ export function sanitizeEvents(raw: string, newKey: () => string, timestamp: unk
       haberYazanlari: text(item.haberYazanlari), haberMetni: text(item.haberMetni),
       katilimcilar: (Array.isArray(item.katilimcilar) ? item.katilimcilar : []).filter(isObject).map((a) => ({
         prefix: text(a.prefix), name: text(a.name), title: text(a.title),
-        rank: a.rank !== undefined && a.rank !== null ? a.rank : '', kaynak: a.kaynak === 'il' ? 'il' : 'universite',
+        rank: cleanRank(a.rank), kaynak: a.kaynak === 'il' ? 'il' : 'universite',
       })),
-      locked: !!item.locked,
+      locked: cleanBoolean(item.locked),
+      autoLockedForDate: isDateKey(item.autoLockedForDate) ? text(item.autoLockedForDate) : null,
       projeId: isSafeDbKey(text(item.projeId)) ? text(item.projeId) : null,
       renk: item.renk !== undefined ? text(item.renk) : null,
       taslak: item.taslak === true ? true : null,
       rozetler: Array.isArray(item.rozetler) ? item.rozetler.map(String) : [],
       haberKaynagi: NEWS_SOURCES.includes(text(item.haberKaynagi)) ? item.haberKaynagi : '',
-      arsiv: text(item.arsiv), not: text(item.not),
+      arsiv: cleanBoolean(item.arsiv), not: text(item.not),
       tamamlayan: item.tamamlayan ? text(item.tamamlayan) : null,
       tamamlayanEmail: item.tamamlayanEmail ? text(item.tamamlayanEmail) : null,
+      tamamlayanUid: item.tamamlayanUid ? text(item.tamamlayanUid) : null,
       guncelleyen: item.guncelleyen ? text(item.guncelleyen) : null,
       olusturan: text(item.olusturan),
       olusturmaTs: Number.isFinite(Number(item.olusturmaTs)) && item.olusturmaTs !== null && item.olusturmaTs !== '' ? Number(item.olusturmaTs) : timestamp,

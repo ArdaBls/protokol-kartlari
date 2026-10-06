@@ -2,6 +2,7 @@ import { Button, Card } from '@heroui/react'
 import { Navigate } from 'react-router-dom'
 import { FullScreenSpinner } from '../auth/RequireAuth'
 import { useAuth } from '../auth/useAuth'
+import { AccountAccessIssue } from '../auth/AccountAccessIssue'
 
 const CONTENT = {
   pending: {
@@ -68,6 +69,7 @@ export function AccountStatusPage({ kind }: { kind: keyof typeof CONTENT }) {
 
   if (state.status === 'loading') return <FullScreenSpinner />
   if (state.status === 'guest') return <Navigate to="/giris" replace />
+  if (state.status === 'error' || state.status === 'missing') return <AccountAccessIssue />
   if (state.status !== kind) return <Navigate to="/" replace />
 
   if (kind === 'blocked') {

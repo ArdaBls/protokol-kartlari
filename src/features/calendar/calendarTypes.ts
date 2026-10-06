@@ -1,7 +1,7 @@
 // Takvim: veri tipleri, sabitler, tarih/pikselleme yardımcıları -- eski admin-src/src/v4/calendar.js'in
 // (birebir aynı) karşılığı. Küçük yardımcılar (addDays vb.) proje kuralı gereği diğer feature'larla
 // paylaşılmaz, burada ayrı bir kopya tutulur.
-import { dateKey } from '../../lib/dates'
+import { dateKey } from '../../lib/dates.ts'
 
 export interface Attendee {
   prefix?: string
@@ -29,6 +29,7 @@ export interface CalendarEvent {
   haberKaynagi?: string
   not?: string
   locked?: boolean
+  projeId?: string | null
   /** Etkinliğin hangi bitiş tarihi için otomatik kilitlendiği. Manuel kilit açma işleminden sonra
    * aynı etkinlik tekrar otomatik kilitlenmesin diye saklanır. */
   autoLockedForDate?: string | null
@@ -243,4 +244,16 @@ export function layoutMultiDayRow(bars: MultiDayBar[]): number {
 
 export function toEventListWithId(records: Record<string, CalendarEvent | null> | null): CalendarEventWithId[] {
   return Object.entries(records ?? {}).flatMap(([id, ev]) => (ev && typeof ev === 'object' ? [{ ...ev, _id: id }] : []))
+}
+
+/** CalendarPage başlangıç gününe göre indeksler; ay/yıl görünümü devam eden günleri de bulur. */
+export function eventsOnDate(eventsByDate: Map<string, CalendarEventWithId[]>, key: string): CalendarEventWithId[] {
+  const matches = new Map<string, CalendarEventWithId>()
+  for (const [startKey, events] of eventsByDate) {
+    if (startKey > key) continue
+    for (const event of events) {
+      if (event.tarih && event.tarih <= key && (eventAutoLockDateKey(event) ?? event.tarih) >= key) matches.set(event._id, event)
+    }
+  }
+  return [...matches.values()]
 }

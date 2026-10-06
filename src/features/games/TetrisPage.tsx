@@ -1,10 +1,11 @@
-import { ref, serverTimestamp, set } from 'firebase/database'
+import { ref, runTransaction, serverTimestamp } from 'firebase/database'
 import { useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { useDbValue } from '../../hooks/useDbValue'
-import { dbPathFor, useDbMode } from '../../lib/dbMode'
+import { dbPathFor } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
-import { isApprovedRole } from '../../lib/roles'
+import { useGameWriteAccess } from './useGameWriteAccess'
+import { tetrisScoreFromMessage } from './tetrisLogic'
 
 interface ScoreEntry {
   name?: string
@@ -18,11 +19,9 @@ interface ScoreEntry {
  * score}) gönderir; burada dinlenip yalnızca kişisel rekor kırılırsa Firebase'e yazılır. */
 export function TetrisPage() {
   const { state } = useAuth()
-  const { isReadOnly, isTestMode } = useDbMode()
+  const { uid, canWrite: canSave, isTestMode, isCurrent } = useGameWriteAccess()
   const scores = useDbValue<Record<string, ScoreEntry | null>>('oyunBasarimlari/tetris')
   const iframeRef = useRef<HTMLIFrameElement>(null)
-
-  const canSave = state.status === 'ready' && isApprovedRole(state.role) && !isReadOnly
 
   const rows = useMemo(
     () =>
@@ -35,22 +34,18 @@ export function TetrisPage() {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (!event.data || event.data.type !== 'tetris-gameover') return
       if (!canSave || state.status !== 'ready') return
-      const newScore = Number(event.data.score) || 0
-      if (newScore <= 0) return
-      const uid = state.user.uid
-      const prev = scores.data?.[uid]?.score ?? 0
-      if (newScore <= prev) return
-      set(ref(db, dbPathFor(`oyunBasarimlari/tetris/${uid}`, isTestMode)), {
-        name: state.displayName || state.user.email || 'İsimsiz',
-        score: newScore,
-        ts: serverTimestamp(),
-      }).catch((err) => console.error('Tetris skoru kaydedilemedi:', err))
+      const newScore = tetrisScoreFromMessage(event, iframeRef.current?.contentWindow, window.location.origin)
+      if (newScore === null) return
+      const context = { uid, isTestMode }
+      runTransaction(ref(db, dbPathFor(`oyunBasarimlari/tetris/${uid}`, isTestMode)), (previous: ScoreEntry | null) => {
+        if (!isCurrent(context) || newScore <= (previous?.score ?? 0)) return
+        return { name: state.displayName || state.user.email || 'İsimsiz', score: newScore, ts: serverTimestamp() }
+      }, { applyLocally: false }).catch((err) => console.error('Tetris skoru kaydedilemedi:', err))
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [canSave, state, isTestMode, scores.data])
+  }, [canSave, state, uid, isTestMode, isCurrent])
 
   // Kullanıcı bulgusu (eski site): iframe dışına bir kez tıklanınca ok tuşları/SPACE odağı
   // kalıcı olarak kayboluyordu. Fare iframe üzerine her geldiğinde (mouseenter, tıklamadan farklı

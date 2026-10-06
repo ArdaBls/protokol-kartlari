@@ -6,40 +6,19 @@ import type { Api as ChessgroundApi } from 'chessground/api'
 import type { Key } from 'chessground/types'
 import { Chess } from 'chess.js'
 import { Button, toast } from '@heroui/react'
-import { push, ref, serverTimestamp, update } from 'firebase/database'
+import { push, ref, runTransaction, serverTimestamp, update } from 'firebase/database'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../auth/useAuth'
 import { useDbValue } from '../../../hooks/useDbValue'
-import { dbPathFor, useDbMode } from '../../../lib/dbMode'
+import { dbPathFor } from '../../../lib/dbMode'
 import { db } from '../../../lib/firebase'
-import { isApprovedRole } from '../../../lib/roles'
+import { useGameWriteAccess } from '../useGameWriteAccess'
+import { patchGame, sameGameState } from '../gameMutations'
+import { applyChessMove, chessFromGame, claimChessRematch, hamleListesi, myColor, type ChessGame, type Durum, type Renk } from './chessLogic'
 import { StaffInvitePicker } from '../StaffInvitePicker'
 
-interface ChessMove { from: string; to: string; promotion?: string | null }
-type Renk = 'w' | 'b'
-type Durum = 'davet_edildi' | 'oynaniyor' | 'bitti' | 'iptal'
-
-interface ChessGame {
-  beyazUid?: string; beyazAd?: string; siyahUid?: string; siyahAd?: string
-  fen?: string; sira?: Renk; durum?: Durum
-  sonuc?: 'beyaz' | 'siyah' | 'beraberlik' | null; sonNot?: string
-  beraberlikTeklifEden?: Renk | null; geriAlmaTeklifEden?: Renk | null
-  oncekiFen?: string | null; oncekiSira?: Renk | null
-  hamleler?: Record<string, ChessMove>
-  yenidenOynaBeyaz?: boolean; yenidenOynaSiyah?: boolean; yeniOyunId?: string | null
-  guncellemeTs?: number
-}
-
 const colorLabel = (c: Renk) => (c === 'w' ? 'Beyaz' : 'Siyah')
-const myColor = (game: ChessGame | null, uid: string): Renk | null => {
-  if (!game) return null
-  if (game.beyazUid === uid) return 'w'
-  if (game.siyahUid === uid) return 'b'
-  return null
-}
-const hamleListesi = (game: ChessGame | null | undefined): ChessMove[] =>
-  Object.keys(game?.hamleler ?? {}).map(Number).sort((a, b) => a - b).map((k) => game!.hamleler![k])
 
 function toDests(chess: Chess): Map<string, string[]> {
   const dests = new Map<string, string[]>()
@@ -51,35 +30,18 @@ function toDests(chess: Chess): Map<string, string[]> {
   return dests
 }
 
-function gameOverInfo(chess: Chess): { over: boolean; sonuc?: 'beyaz' | 'siyah' | 'beraberlik'; sonNot?: string } {
-  if (chess.isCheckmate()) return { over: true, sonuc: chess.turn() === 'w' ? 'siyah' : 'beyaz', sonNot: 'Şah mat' }
-  if (chess.isStalemate()) return { over: true, sonuc: 'beraberlik', sonNot: 'Pat (berabere)' }
-  if (chess.isThreefoldRepetition()) return { over: true, sonuc: 'beraberlik', sonNot: 'Üç kez tekrar (berabere)' }
-  if (chess.isInsufficientMaterial()) return { over: true, sonuc: 'beraberlik', sonNot: 'Yetersiz materyal (berabere)' }
-  if (chess.isDraw()) return { over: true, sonuc: 'beraberlik', sonNot: 'Elli hamle kuralı (berabere)' }
-  return { over: false }
-}
-
 const DURUM_LABEL: Record<Durum, string> = { davet_edildi: 'Davet bekleniyor', oynaniyor: 'Oynanıyor', bitti: 'Bitti', iptal: 'İptal edildi' }
 const PROMO_PIECES: Array<[string, string]> = [['q', '♕'], ['r', '♖'], ['b', '♗'], ['n', '♘']]
-
-/** Kişiye özel bildirim -- eski sitedeki notifications/{uid}/{key} deseninin aynısı. */
-function sendPersonalNotification(uid: string, isTestMode: boolean, notif: { type: string; title: string; message: string; relatedGameId?: string }) {
-  const key = push(ref(db, dbPathFor(`notifications/${uid}`, isTestMode))).key
-  if (!key) return
-  return update(ref(db), { [`${dbPathFor(`notifications/${uid}`, isTestMode)}/${key}`]: { ...notif, createdAt: serverTimestamp(), read: false } })
-}
-
 
 // ── Lobi (davet listesi) ──
 function ChessLobby() {
   const { state } = useAuth()
-  const { isTestMode, isReadOnly } = useDbMode()
+  const { isTestMode, canWrite, isCurrent } = useGameWriteAccess()
   const games = useDbValue<Record<string, ChessGame | null>>('satranc')
   const [, setSearchParams] = useSearchParams()
   const [showInvite, setShowInvite] = useState(false)
 
-  const canPlay = state.status === 'ready' && isApprovedRole(state.role) && !isReadOnly
+  const canPlay = canWrite
   const myUid = state.status === 'ready' ? state.user.uid : ''
   const myName = state.status === 'ready' ? (state.displayName || state.user.email || '') : ''
 
@@ -93,6 +55,8 @@ function ChessLobby() {
 
   const createGame = async (opponentUid: string, opponentName: string) => {
     setShowInvite(false)
+    const context = { uid: myUid, isTestMode }
+    if (!isCurrent(context) || opponentUid === myUid) return
     const id = push(ref(db, dbPathFor('satranc', isTestMode))).key
     if (!id) return
     const game: ChessGame = {
@@ -103,11 +67,14 @@ function ChessLobby() {
       [`${dbPathFor('satranc', isTestMode)}/${id}`]: { ...game, olusturmaTs: serverTimestamp(), guncellemeTs: serverTimestamp() },
     }
     try {
+      const key = push(ref(db, dbPathFor(`notifications/${opponentUid}`, isTestMode))).key
+      if (key) updates[`${dbPathFor(`notifications/${opponentUid}`, isTestMode)}/${key}`] = {
+        type: 'chess_invite', title: 'Satranç daveti', message: `${myName} sizi bir satranç oyununa davet etti.`,
+        relatedGameId: id, createdAt: serverTimestamp(), read: false,
+      }
+      if (!isCurrent(context)) return
       await update(ref(db), updates)
-      await sendPersonalNotification(opponentUid, isTestMode, {
-        type: 'chess_invite', title: 'Satranç daveti', message: `${myName} sizi bir satranç oyununa davet etti.`, relatedGameId: id,
-      })
-      setSearchParams({ oyun: id })
+      if (isCurrent(context)) setSearchParams({ oyun: id })
     } catch (err) {
       console.error('Oyun oluşturulamadı:', err)
       toast.danger('Oyun oluşturulamadı.')
@@ -149,7 +116,7 @@ function ChessLobby() {
 // ── Oyun ekranı ──
 function ChessGameView({ gameId }: { gameId: string }) {
   const { state } = useAuth()
-  const { isTestMode, isReadOnly } = useDbMode()
+  const { isTestMode, canWrite, isCurrent } = useGameWriteAccess()
   const gameData = useDbValue<ChessGame>(`satranc/${gameId}`)
   const [, setSearchParams] = useSearchParams()
 
@@ -159,7 +126,9 @@ function ChessGameView({ gameId }: { gameId: string }) {
   const [promoColor, setPromoColor] = useState<Renk | null>(null)
   const promoResolveRef = useRef<((piece: string) => void) | null>(null)
   const [reviewIndex, setReviewIndex] = useState(0)
-  const rematchRedirected = useRef(false)
+  const pendingRef = useRef(false)
+  const [pending, setPending] = useState(false)
+  const [boardRevision, setBoardRevision] = useState(0)
 
   const myUid = state.status === 'ready' ? state.user.uid : ''
   const game = gameData.data
@@ -168,26 +137,45 @@ function ChessGameView({ gameId }: { gameId: string }) {
   const path = (p: string) => dbPathFor(p, isTestMode)
   const gameRef = ref(db, path(`satranc/${gameId}`))
 
+  const submitChange = async (change: (current: ChessGame | null) => ChessGame | undefined) => {
+    const context = { uid: myUid, isTestMode }
+    if (!isCurrent(context) || !mine || pendingRef.current) return
+    pendingRef.current = true
+    setPending(true)
+    try {
+      const result = await runTransaction(gameRef, (current: ChessGame | null) => {
+        if (!isCurrent(context)) return
+        return change(current)
+      }, { applyLocally: false })
+      if (!result.committed && isCurrent(context)) toast.info('Oyun değişti; güncel durumdan tekrar deneyin.')
+    } catch (err) {
+      console.error('Oyun kaydedilemedi:', err)
+      toast.danger('Oyun kaydedilemedi.')
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+      setBoardRevision((n) => n + 1)
+    }
+  }
+
+  const conditionalUpdate = (patch: Record<string, unknown>) => submitChange((current) => {
+    if (!current || !sameGameState(current, game) || !myColor(current, myUid)) return
+    return patchGame(current, patch)
+  })
+
   const finalizeMove = (orig: string, dest: string, promotion?: string) => {
     if (!game) return
-    const chess = chessRef.current
-    const oncekiFen = chess.fen()
-    const oncekiSira = chess.turn()
-    const result = chess.move({ from: orig, to: dest, promotion: promotion || 'q' })
-    if (!result) { cgRef.current?.set({ fen: chess.fen() }); return }
-    const info = gameOverInfo(chess)
-    const hamleIndex = hamleListesi(game).length
-    const patch: Record<string, unknown> = {
-      fen: chess.fen(), sira: chess.turn(), guncellemeTs: serverTimestamp(),
-      beraberlikTeklifEden: null, geriAlmaTeklifEden: null, oncekiFen, oncekiSira,
-      [`hamleler/${hamleIndex}`]: { from: orig, to: dest, promotion: promotion || null },
-    }
-    if (info.over) { patch.durum = 'bitti'; patch.sonuc = info.sonuc; patch.sonNot = info.sonNot }
-    update(gameRef, patch).catch((err) => { console.error('Hamle kaydedilemedi:', err); toast.danger('Hamle kaydedilemedi.') })
+    const expected = game
+    void submitChange((current) => applyChessMove(current, expected, myUid,
+      { from: orig, to: dest, promotion: promotion || null }, Date.now()))
   }
 
   const onUserMoveRef = useRef((_orig: string, _dest: string) => {})
   onUserMoveRef.current = (orig, dest) => {
+    if (!isCurrent({ uid: myUid, isTestMode }) || pendingRef.current || !mine || game?.durum !== 'oynaniyor') {
+      setBoardRevision((n) => n + 1)
+      return
+    }
     const chess = chessRef.current
     const moves = chess.moves({ square: orig as never, verbose: true })
     const match = moves.find((m) => m.to === dest)
@@ -218,11 +206,11 @@ function ChessGameView({ gameId }: { gameId: string }) {
     const c = new Chess()
     const fens = [c.fen()]
     const lastMoves: Array<[Key, Key] | null> = [null]
-    hamleListesi(game).forEach((m) => {
+    try { hamleListesi(game).forEach((m) => {
       const res = c.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' })
       fens.push(c.fen())
       lastMoves.push(res ? [res.from as Key, res.to as Key] : lastMoves[lastMoves.length - 1])
-    })
+    }) } catch { return { fens: [game.fen || new Chess().fen()], lastMoves: [null] } }
     return { fens, lastMoves }
   }, [game])
 
@@ -233,7 +221,7 @@ function ChessGameView({ gameId }: { gameId: string }) {
     if (!game || !cgRef.current) return
     const cg = cgRef.current
     if (reviewData) {
-      const fen = reviewData.fens[reviewIndex]
+      const fen = reviewData.fens[Math.min(reviewIndex, reviewData.fens.length - 1)]
       const c = new Chess(fen)
       cg.set({
         fen, lastMove: reviewData.lastMoves[reviewIndex] ?? undefined,
@@ -242,14 +230,17 @@ function ChessGameView({ gameId }: { gameId: string }) {
       })
       return
     }
-    const chess = new Chess(game.fen)
+    let chess: Chess
+    try { chess = chessFromGame(game) } catch { cg.set({ viewOnly: true }); return }
     chessRef.current = chess
-    const active = game.durum === 'oynaniyor'
+    const active = game.durum === 'oynaniyor' && canWrite && !pending
     const isMyTurn = active && !!mine && chess.turn() === mine
     const canInteract = active && !!mine
     const liste = hamleListesi(game)
     const last = liste[liste.length - 1]
+    if (!active) { cg.cancelPremove(); setPromoColor(null); promoResolveRef.current = null }
     cg.set({
+      premovable: { enabled: active },
       fen: game.fen,
       orientation: mine === 'b' ? 'black' : 'white',
       turnColor: chess.turn() === 'w' ? 'white' : 'black',
@@ -264,37 +255,39 @@ function ChessGameView({ gameId }: { gameId: string }) {
       },
     })
     if (isMyTurn) cg.playPremove()
-  }, [game, mine, reviewData, reviewIndex])
+  }, [game, mine, reviewData, reviewIndex, canWrite, pending, boardRevision])
 
-  // Rakip renkler değişerek yeniden oyna kabul edilince ikinci oyunu oluştur (sadece eski siyah taraf).
+  // Claim the child ID first. Concurrent tabs and interrupted creation reuse that ID.
+  const rematchData = useDbValue<ChessGame>(`satranc/${game?.yeniOyunId || '_'}`, { enabled: !!game?.yeniOyunId })
   useEffect(() => {
-    if (!game || game.durum !== 'bitti' || game.yeniOyunId) return
-    if (!game.yenidenOynaBeyaz || !game.yenidenOynaSiyah) return
-    if (mine !== 'b') return
+    if (!game || !canWrite || game.durum !== 'bitti' || !game.yenidenOynaBeyaz || !game.yenidenOynaSiyah || mine !== 'b') return
+    const context = { uid: myUid, isTestMode }
     void (async () => {
-      const yeniId = push(ref(db, path('satranc'))).key
-      if (!yeniId) return
-      const yeniOyun: ChessGame = {
-        beyazUid: game.siyahUid, beyazAd: game.siyahAd, siyahUid: game.beyazUid, siyahAd: game.beyazAd,
-        fen: new Chess().fen(), sira: 'w', durum: 'oynaniyor', sonuc: null, sonNot: '', beraberlikTeklifEden: null,
+      const candidate = push(ref(db, path('satranc'))).key
+      if (!candidate) return
+      const claimed = await runTransaction(gameRef, (current: ChessGame | null) =>
+        isCurrent(context) ? claimChessRematch(current, myUid, candidate) : undefined, { applyLocally: false })
+      const parent = claimed.snapshot.val() as ChessGame | null
+      if (!parent?.yeniOyunId || !isCurrent(context) || parent.siyahUid !== myUid) return
+      const next: ChessGame = {
+        beyazUid: parent.siyahUid, beyazAd: parent.siyahAd || '', siyahUid: parent.beyazUid, siyahAd: parent.beyazAd || '',
+        fen: new Chess().fen(), sira: 'w', durum: 'oynaniyor', sonNot: '',
       }
-      await update(ref(db), {
-        [`${path('satranc')}/${yeniId}`]: { ...yeniOyun, olusturmaTs: serverTimestamp(), guncellemeTs: serverTimestamp() },
-        [`${path(`satranc/${gameId}`)}/yeniOyunId`]: yeniId,
-      }).catch((err) => console.error('Yeniden oyun başlatılamadı:', err))
-    })()
+      await runTransaction(ref(db, path(`satranc/${parent.yeniOyunId}`)), (current) =>
+        !current && isCurrent(context) ? { ...next, olusturmaTs: serverTimestamp(), guncellemeTs: serverTimestamp() } : undefined,
+      { applyLocally: false })
+    })().catch((err) => { console.error('Yeniden oyun başlatılamadı:', err); toast.danger('Yeni oyun açılamadı; sayfayı yenileyerek tekrar deneyin.') })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game, mine])
+  }, [game, mine, canWrite, myUid, isTestMode, isCurrent])
 
   useEffect(() => {
-    if (!game?.yeniOyunId || rematchRedirected.current) return
-    rematchRedirected.current = true
-    toast.success('Yeni oyun başlıyor…')
-    setTimeout(() => setSearchParams({ oyun: game.yeniOyunId! }), 500)
-  }, [game?.yeniOyunId, setSearchParams])
+    if (!game?.yeniOyunId || !rematchData.data) return
+    const timer = setTimeout(() => setSearchParams({ oyun: game.yeniOyunId! }), 500)
+    return () => clearTimeout(timer)
+  }, [game?.yeniOyunId, rematchData.data, setSearchParams])
 
   const guard = (fn: () => void) => () => {
-    if (isReadOnly) { toast.danger('Salt-okunur kilit açık.'); return }
+    if (!isCurrent({ uid: myUid, isTestMode }) || pendingRef.current) { toast.danger('Oyun şu anda değiştirilemiyor.'); return }
     fn()
   }
 
@@ -308,13 +301,13 @@ function ChessGameView({ gameId }: { gameId: string }) {
       statusText = `${game.beyazAd || 'Rakip'} sizi satranç oynamaya davet etti.`
       actions = (
         <>
-          <Button variant="primary" size="sm" onPress={guard(() => update(gameRef, { durum: 'oynaniyor', guncellemeTs: serverTimestamp() }))}>Kabul Et</Button>
-          <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: serverTimestamp() }))}>Reddet</Button>
+          <Button variant="primary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'oynaniyor', guncellemeTs: serverTimestamp() }))}>Kabul Et</Button>
+          <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'iptal', sonNot: 'Davet reddedildi', guncellemeTs: serverTimestamp() }))}>Reddet</Button>
         </>
       )
     } else if (mine === 'w') {
       statusText = `${game.siyahAd || 'Rakibiniz'} daveti kabul etmesini bekliyor…`
-      actions = <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { durum: 'iptal', sonNot: 'Davet iptal edildi', guncellemeTs: serverTimestamp() }))}>Daveti İptal Et</Button>
+      actions = <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'iptal', sonNot: 'Davet iptal edildi', guncellemeTs: serverTimestamp() }))}>Daveti İptal Et</Button>
     } else {
       statusText = 'Bu davet size ait değil.'
     }
@@ -327,8 +320,8 @@ function ChessGameView({ gameId }: { gameId: string }) {
       statusText = `${mine === 'w' ? game.siyahAd : game.beyazAd} beraberlik teklif ediyor.`
       actions = (
         <>
-          <Button variant="primary" size="sm" onPress={guard(() => update(gameRef, { durum: 'bitti', sonuc: 'beraberlik', sonNot: 'Karşılıklı anlaşma', beraberlikTeklifEden: null, guncellemeTs: serverTimestamp() }))}>Beraberliği Kabul Et</Button>
-          <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { beraberlikTeklifEden: null, guncellemeTs: serverTimestamp() }))}>Reddet</Button>
+          <Button variant="primary" size="sm" onPress={guard(() => conditionalUpdate({ durum: 'bitti', sonuc: 'beraberlik', sonNot: 'Karşılıklı anlaşma', beraberlikTeklifEden: null, guncellemeTs: serverTimestamp() }))}>Beraberliği Kabul Et</Button>
+          <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ beraberlikTeklifEden: null, guncellemeTs: serverTimestamp() }))}>Reddet</Button>
         </>
       )
     } else if (mine && game.geriAlmaTeklifEden && game.geriAlmaTeklifEden !== mine) {
@@ -343,29 +336,29 @@ function ChessGameView({ gameId }: { gameId: string }) {
               const sonIndex = anahtarlar[anahtarlar.length - 1]
               const patch: Record<string, unknown> = { fen: game.oncekiFen, sira: game.oncekiSira, geriAlmaTeklifEden: null, oncekiFen: null, oncekiSira: null, guncellemeTs: serverTimestamp() }
               if (sonIndex !== undefined) patch[`hamleler/${sonIndex}`] = null
-              update(gameRef, patch)
+              conditionalUpdate(patch)
             })}
           >
             Geri Almayı Kabul Et
           </Button>
-          <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { geriAlmaTeklifEden: null, guncellemeTs: serverTimestamp() }))}>Reddet</Button>
+          <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ geriAlmaTeklifEden: null, guncellemeTs: serverTimestamp() }))}>Reddet</Button>
         </>
       )
     } else if (mine) {
       const canOfferUndo = !!game.oncekiFen && !game.geriAlmaTeklifEden
       actions = (
         <>
-          <Button variant="secondary" size="sm" isDisabled={game.beraberlikTeklifEden === mine} onPress={guard(() => update(gameRef, { beraberlikTeklifEden: mine, guncellemeTs: serverTimestamp() }))}>
+          <Button variant="secondary" size="sm" isDisabled={game.beraberlikTeklifEden === mine} onPress={guard(() => conditionalUpdate({ beraberlikTeklifEden: mine, guncellemeTs: serverTimestamp() }))}>
             {game.beraberlikTeklifEden === mine ? 'Beraberlik teklifiniz bekleniyor…' : 'Beraberlik Teklif Et'}
           </Button>
-          <Button variant="secondary" size="sm" isDisabled={!canOfferUndo} onPress={guard(() => update(gameRef, { geriAlmaTeklifEden: mine, guncellemeTs: serverTimestamp() }))}>
+          <Button variant="secondary" size="sm" isDisabled={!canOfferUndo} onPress={guard(() => conditionalUpdate({ geriAlmaTeklifEden: mine, guncellemeTs: serverTimestamp() }))}>
             {game.geriAlmaTeklifEden === mine ? 'Geri alma teklifiniz bekleniyor…' : 'Hamleyi Geri Al Teklif Et'}
           </Button>
           <Button
             variant="danger" size="sm"
             onPress={guard(() => {
               if (!window.confirm('Oyundan çekilmek istediğinize emin misiniz?')) return
-              update(gameRef, { durum: 'bitti', sonuc: mine === 'w' ? 'siyah' : 'beyaz', sonNot: 'Oyundan çekildi', guncellemeTs: serverTimestamp() })
+              conditionalUpdate({ durum: 'bitti', sonuc: mine === 'w' ? 'siyah' : 'beyaz', sonNot: 'Oyundan çekildi', guncellemeTs: serverTimestamp() })
             })}
           >
             Oyundan Çekil
@@ -383,14 +376,14 @@ function ChessGameView({ gameId }: { gameId: string }) {
         statusText += ` · ${mine === 'w' ? (game.siyahAd || 'Rakibiniz') : (game.beyazAd || 'Rakibiniz')} yeniden oynamak istiyor.`
         actions = (
           <>
-            <Button variant="primary" size="sm" onPress={guard(() => update(gameRef, { [mine === 'w' ? 'yenidenOynaBeyaz' : 'yenidenOynaSiyah']: true, guncellemeTs: serverTimestamp() }))}>Yeniden Oynamayı Kabul Et</Button>
-            <Button variant="secondary" size="sm" onPress={guard(() => update(gameRef, { [mine === 'w' ? 'yenidenOynaSiyah' : 'yenidenOynaBeyaz']: false, guncellemeTs: serverTimestamp() }))}>Reddet</Button>
+            <Button variant="primary" size="sm" onPress={guard(() => conditionalUpdate({ [mine === 'w' ? 'yenidenOynaBeyaz' : 'yenidenOynaSiyah']: true, guncellemeTs: serverTimestamp() }))}>Yeniden Oynamayı Kabul Et</Button>
+            <Button variant="secondary" size="sm" onPress={guard(() => conditionalUpdate({ [mine === 'w' ? 'yenidenOynaSiyah' : 'yenidenOynaBeyaz']: false, guncellemeTs: serverTimestamp() }))}>Reddet</Button>
           </>
         )
       } else if (benIstiyorum) {
         actions = <Button variant="secondary" size="sm" isDisabled>Yeniden oyna teklifiniz bekleniyor…</Button>
       } else {
-        actions = <Button variant="primary" size="sm" onPress={guard(() => update(gameRef, { [mine === 'w' ? 'yenidenOynaBeyaz' : 'yenidenOynaSiyah']: true, guncellemeTs: serverTimestamp() }))}>Yeniden Oyna</Button>
+        actions = <Button variant="primary" size="sm" onPress={guard(() => conditionalUpdate({ [mine === 'w' ? 'yenidenOynaBeyaz' : 'yenidenOynaSiyah']: true, guncellemeTs: serverTimestamp() }))}>Yeniden Oyna</Button>
       }
     } else if (game.yeniOyunId) {
       statusText += ' · Yeni oyun başlıyor…'
@@ -453,5 +446,6 @@ function ChessGameView({ gameId }: { gameId: string }) {
 export function ChessPage() {
   const [searchParams] = useSearchParams()
   const gameId = searchParams.get('oyun')
-  return gameId ? <ChessGameView key={gameId} gameId={gameId} /> : <ChessLobby />
+  const { uid, isTestMode } = useGameWriteAccess()
+  return gameId ? <ChessGameView key={`${uid}:${isTestMode}:${gameId}`} gameId={gameId} /> : <ChessLobby />
 }

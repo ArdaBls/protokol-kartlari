@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { FormModal } from '../../components/FormModal'
 import { useDbValue } from '../../hooks/useDbValue'
+import { useWriter } from '../../hooks/useWriter'
 import { dbPathFor, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
 import { approveAttendanceRequest, rejectAttendanceRequest } from './attendance'
@@ -69,7 +70,8 @@ function PersonalRow({ n }: { n: PersonalNotification }) {
 
 export function NotificationsPage() {
   const { state } = useAuth()
-  const { isTestMode } = useDbMode()
+  const { isTestMode, isReady } = useDbMode()
+  const writer = useWriter()
   const [tab, setTab] = useState<TabKey>('all')
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null)
   const [clearTarget, setClearTarget] = useState<TabKey | null>(null)
@@ -83,10 +85,10 @@ export function NotificationsPage() {
   // Sayfa her açıldığında "son görüldü" an'ı ilerletilir -- Topbar zilindeki rozet bundan
   // ÖNCEKİ logları bir daha saymaz (bkz. useNotificationBadge -- cihaz-yerel, Firebase kuralı gerekmez).
   useEffect(() => {
-    if (!uid) return
-    markNotificationsSeenNow(uid)
+    if (!uid || !isReady) return
+    markNotificationsSeenNow(uid, isTestMode)
     window.dispatchEvent(new Event('protokol-notif-seen'))
-  }, [uid])
+  }, [uid, isTestMode, isReady])
 
   const users = useDbValue<Record<string, { role?: string; blocked?: boolean; firstName?: string; lastName?: string; email?: string; createdAt?: number } | null>>('users', { shadow: false, enabled: isAdmin })
   const logIl = useDbValue<Record<string, LogEntry | null>>('logs/il', { enabled: isAdmin })
@@ -140,18 +142,18 @@ export function NotificationsPage() {
     : personal.isLoading
 
   // Sayfaya girildiğinde görüntülenen kişisel bildirimler okundu işaretlenir -- zil rozetinin düşmesi için.
-  useMemo(() => {
-    if (!uid || !personal.data) return
+  useEffect(() => {
+    if (!uid || !personal.data || personal.isLoading || !writer.canWrite) return
     const updates: Record<string, unknown> = {}
     Object.entries(personal.data).forEach(([id, n]) => {
       if (n && n.read !== true) updates[`${dbPathFor(`notifications/${uid}`, isTestMode)}/${id}/read`] = true
     })
-    if (Object.keys(updates).length) update(ref(db), updates).catch((err) => console.error('Bildirimler okundu olarak işaretlenemedi:', err))
+    if (Object.keys(updates).length && writer.ensureWritable()) update(ref(db), updates).catch((err) => console.error('Bildirimler okundu olarak işaretlenemedi:', err))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personal.data, uid])
+  }, [personal.data, personal.isLoading, uid, isTestMode, writer.canWrite])
 
   const handleAttendance = async (id: string, action: 'approve' | 'reject') => {
-    if (state.status !== 'ready') return
+    if (state.status !== 'ready' || !isAdmin || busyRequestId || !writer.ensureWritable()) return
     setBusyRequestId(id)
     try {
       if (action === 'approve') await approveAttendanceRequest(id, state.user.uid, state.displayName, isTestMode)
@@ -166,7 +168,7 @@ export function NotificationsPage() {
   }
 
   const clearTabData = async (target: TabKey) => {
-    if (!isAdmin || state.status !== 'ready' || isClearing) return
+    if (!isAdmin || state.status !== 'ready' || isClearing || !writer.ensureWritable()) return
     const updates: Record<string, unknown> = {}
     const addChildren = (basePath: string, values: Record<string, unknown> | null) => {
       Object.keys(values ?? {}).forEach((id) => {
@@ -174,13 +176,15 @@ export function NotificationsPage() {
       })
     }
     const addLogList = (list: LogList) => addChildren(`logs/${list}`, logBuckets[list].data as Record<string, unknown> | null)
+    // Bekleyen/sahiplenilmiş talepler silinirse sürmekte olan onayın sonucu kaybolur.
+    const completedRequests = Object.fromEntries(Object.entries(attendanceRaw.data ?? {}).filter(([, req]) => req && ['approved', 'rejected'].includes((req as { status?: string }).status ?? '')))
 
     if (target === 'all') {
       LOG_LISTS.forEach(addLogList)
-      addChildren('attendanceRequests', attendanceRaw.data as Record<string, unknown> | null)
+      addChildren('attendanceRequests', completedRequests)
       if (uid) updates[dbPathFor(`notifications/${uid}`, isTestMode)] = null
     } else if (target === 'katilim') {
-      addChildren('attendanceRequests', attendanceRaw.data as Record<string, unknown> | null)
+      addChildren('attendanceRequests', completedRequests)
     } else if (target === 'kisisel') {
       if (uid) updates[dbPathFor(`notifications/${uid}`, isTestMode)] = null
     } else {
@@ -193,6 +197,7 @@ export function NotificationsPage() {
     }
     setIsClearing(true)
     try {
+      if (!writer.ensureWritable()) return
       await update(ref(db), updates)
       toast.success(target === 'all' ? 'Tüm bildirim ve loglar temizlendi.' : 'Sekmedeki kayıtlar temizlendi.')
     } catch (err) {
@@ -267,7 +272,7 @@ export function NotificationsPage() {
             size="sm"
             variant="danger-soft"
             className="self-end shrink-0"
-            isDisabled={isClearing}
+            isDisabled={isClearing || !writer.canWrite}
             onPress={() => { setClearTarget(tab); setIsClearOpen(true) }}
           >
             <Trash2 size={15} />
@@ -288,7 +293,7 @@ export function NotificationsPage() {
                 <AttendanceRow
                   key={request.id}
                   request={request}
-                  isBusy={busyRequestId === request.id}
+                  isBusy={!!busyRequestId || !writer.canWrite}
                   onApprove={() => handleAttendance(request.id, 'approve')}
                   onReject={() => handleAttendance(request.id, 'reject')}
                 />
@@ -310,9 +315,9 @@ export function NotificationsPage() {
       >
         <p className="text-sm text-muted">
           {clearTarget === 'all'
-            ? 'Tüm loglar, katılım talepleri ve kendi bildirimleriniz Firebase’den kalıcı olarak silinecek.'
+            ? 'Tüm loglar, sonuçlandırılmış katılım talepleri ve kendi bildirimleriniz Firebase’den kalıcı olarak silinecek. Bekleyen talepler korunacak.'
             : clearTarget === 'katilim'
-              ? 'Bu sekmedeki katılım talepleri Firebase’den kalıcı olarak silinecek.'
+              ? 'Sonuçlandırılmış katılım talepleri Firebase’den kalıcı olarak silinecek. Bekleyen talepler korunacak.'
               : clearTarget === 'kisisel'
                 ? 'Kişisel bildirimleriniz Firebase’den kalıcı olarak silinecek.'
                 : `${clearTarget ? LOG_LIST_LABEL[clearTarget] : 'Bu sekmedeki'} logları Firebase’den kalıcı olarak silinecek.`}

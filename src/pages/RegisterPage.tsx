@@ -1,13 +1,16 @@
 import { Button, Card, Input, Label, TextField } from '@heroui/react'
 import { FirebaseError } from 'firebase/app'
-import { createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth'
-import { ref, serverTimestamp, set } from 'firebase/database'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import type { User } from 'firebase/auth'
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { FullScreenSpinner } from '../auth/RequireAuth'
 import { useAuth } from '../auth/useAuth'
-import { auth, db } from '../lib/firebase'
+import { auth } from '../lib/firebase'
+import { AccountAccessIssue } from '../auth/AccountAccessIssue'
+import { finishRegistration, IncompleteRegistrationError } from '../auth/finishRegistration'
+import { restoreMissingAccount } from '../auth/restoreMissingAccount'
 
 function registerErrorMessage(err: unknown): string {
   const code = err instanceof FirebaseError ? err.code : ''
@@ -20,7 +23,7 @@ function registerErrorMessage(err: unknown): string {
 }
 
 export function RegisterPage() {
-  const { state } = useAuth()
+  const { state, retryProfile } = useAuth()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -28,13 +31,19 @@ export function RegisterPage() {
   const [passwordAgain, setPasswordAgain] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [incompleteUser, setIncompleteUser] = useState<User | null>(null)
+  const submitting = useRef(false)
 
-  if (state.status === 'loading') return <FullScreenSpinner />
-  if (state.status === 'pending') return <Navigate to="/onay-bekliyor" replace />
-  if (state.status !== 'guest') return <Navigate to="/" replace />
+  if (!isSubmitting && !incompleteUser && !error) {
+    if (state.status === 'loading') return <FullScreenSpinner />
+    if (state.status === 'error' || state.status === 'missing') return <AccountAccessIssue />
+    if (state.status === 'pending') return <Navigate to="/onay-bekliyor" replace />
+    if (state.status !== 'guest') return <Navigate to="/" replace />
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (submitting.current) return
     const first = firstName.trim()
     const last = lastName.trim()
     const normalizedEmail = email.trim()
@@ -42,24 +51,33 @@ export function RegisterPage() {
     if (password.length < 6) return setError('Şifre en az 6 karakter olmalı.')
     if (password !== passwordAgain) return setError('Şifreler eşleşmiyor.')
 
+    submitting.current = true
     setError(null)
     setIsSubmitting(true)
     try {
-      const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
-      const displayName = `${first} ${last}`.trim()
-      await updateProfile(credential.user, { displayName })
-      await set(ref(db, `users/${credential.user.uid}`), {
-        firstName: first,
-        lastName: last,
-        email: normalizedEmail,
-        role: 'pending',
-        createdAt: serverTimestamp(),
+      if (incompleteUser && auth.currentUser?.uid !== incompleteUser.uid) {
+        setError('Oturum değişti. Mevcut hesabınla giriş yaparak kaydını tamamlayabilirsin.')
+        return
+      }
+      const result = await finishRegistration({
+        user: incompleteUser,
+        create: async () => (await createUserWithEmailAndPassword(auth, normalizedEmail, password)).user,
+        save: (user) => restoreMissingAccount(user, { firstName: first, lastName: last }),
+        syncName: (user) => updateProfile(user, { displayName: `${first} ${last}` }),
       })
+      if (result.nameSyncError) console.warn('Profil kaydedildi; Auth adı eşitlenemedi:', result.nameSyncError)
+      retryProfile()
+      setIncompleteUser(null)
     } catch (err) {
-      console.error('Kayıt başarısız:', err)
-      await signOut(auth).catch(() => undefined)
-      setError(registerErrorMessage(err))
+      console.error('Kayıt başarısız:', err instanceof IncompleteRegistrationError ? err.cause : err)
+      if (err instanceof IncompleteRegistrationError) {
+        setIncompleteUser(err.user)
+        setError('Giriş hesabın oluşturuldu ancak profilin kaydedilemedi. Kaydı tamamla düğmesiyle aynı hesabı kullanarak tekrar dene; yeniden hesap oluşturmana gerek yok.')
+      } else {
+        setError(registerErrorMessage(err))
+      }
     } finally {
+      submitting.current = false
       setIsSubmitting(false)
     }
   }
@@ -84,20 +102,20 @@ export function RegisterPage() {
                 <Input />
               </TextField>
             </div>
-            <TextField type="email" name="email" autoComplete="email" isRequired value={email} onChange={setEmail}>
+            <TextField type="email" name="email" autoComplete="email" isRequired isDisabled={!!incompleteUser} value={email} onChange={setEmail}>
               <Label>E-posta</Label>
               <Input placeholder="ornek@omu.edu.tr" />
             </TextField>
-            <TextField type="password" name="password" autoComplete="new-password" isRequired value={password} onChange={setPassword}>
+            <TextField type="password" name="password" autoComplete="new-password" isRequired isDisabled={!!incompleteUser} value={password} onChange={setPassword}>
               <Label>Şifre</Label>
               <Input />
             </TextField>
-            <TextField type="password" name="passwordAgain" autoComplete="new-password" isRequired value={passwordAgain} onChange={setPasswordAgain}>
+            <TextField type="password" name="passwordAgain" autoComplete="new-password" isRequired isDisabled={!!incompleteUser} value={passwordAgain} onChange={setPasswordAgain}>
               <Label>Şifre tekrar</Label>
               <Input />
             </TextField>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <Button type="submit" fullWidth isPending={isSubmitting}>Kayıt ol</Button>
+            <Button type="submit" fullWidth isPending={isSubmitting}>{incompleteUser ? 'Kaydı tamamla' : 'Kayıt ol'}</Button>
           </form>
         </Card.Content>
         <Card.Footer className="justify-center pt-0 text-sm text-muted">

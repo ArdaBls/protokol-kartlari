@@ -5,7 +5,6 @@ import { dateKey } from '../../lib/dates'
 import { db } from '../../lib/firebase'
 import { downloadJson } from '../../lib/browserFiles'
 import { useDbMode, dbPathFor } from '../../lib/dbMode'
-import { collectLogDeleteUpdates } from '../../lib/logCleanup'
 import type { ListKey, Person } from './protocolRules'
 import { LIST_PATHS, hierarchyWeight, institutionWeight } from './protocolRules'
 import { useProtocolWriter } from './useProtocolWriter'
@@ -46,21 +45,21 @@ export function useProtocolActions(listKey: ListKey) {
   }
 
   const deleteForever = async (person: Person) => {
-    const canDeleteLogs = state.status === 'ready' && (state.role === 'admin' || state.role === 'owner')
-    if (!canDeleteLogs) {
-      toast.danger('Kişiyi ve bağlı loglarını yalnızca admin veya kurucu silebilir.')
+    const canDelete = state.status === 'ready' && (state.role === 'admin' || state.role === 'owner')
+    if (!canDelete) {
+      toast.danger('Kişiyi kalıcı olarak yalnızca admin veya kurucu silebilir.')
       return false
     }
     const actor = writer.ensureWritable()
     if (!actor) return false
     try {
-      const targetName = (person.name ?? '').trim()
-      const logDeletes = await collectLogDeleteUpdates(isTestMode, (entry) => !!targetName && entry.target?.trim() === targetName)
-      await update(ref(db), { [writer.personPath(person._id)]: null, ...logDeletes })
-      toast.warning('Kayıt ve bağlı logları kalıcı olarak silindi.')
+      // Log target alanı ad içerir, benzersiz kayıt kimliği değildir. Aynı adlı
+      // başka kişilerin geçmişini silmemek için bu loglar korunur.
+      await update(ref(db), { [writer.personPath(person._id)]: null })
+      toast.warning('Kayıt kalıcı olarak silindi. İşlem geçmişi korundu.')
       return true
     } catch (err) {
-      console.error('Kayıt ve bağlı loglar silinemedi:', err)
+      console.error('Kayıt silinemedi:', err)
       toast.danger('Kayıt silinemedi. Firebase kurallarını kontrol edin.')
       return false
     }

@@ -1,4 +1,4 @@
-import { dateKey } from '../../lib/dates'
+import { dateKey } from '../../lib/dates.ts'
 
 export interface GanttStep {
   ad?: string
@@ -37,6 +37,7 @@ export interface CalendarEventRef {
   projeId?: string
   locked?: boolean
   guncellemeTs?: number
+  autoLockedForDate?: string | null
 }
 
 export const STATUSES: Record<string, string> = {

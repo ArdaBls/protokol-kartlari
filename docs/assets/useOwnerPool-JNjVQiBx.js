@@ -1,0 +1,1 @@
+import{n as e,o as t}from"./jsx-runtime-C29kUG2a.js";import{ht as n}from"./index-CpCUaBnM.js";var r=t(e(),1);function i(){let{data:e}=n(`basinGorevlileri`);return(0,r.useMemo)(()=>Object.entries(e??{}).flatMap(([e,t])=>t&&t.trim()?[{uid:e,name:t.trim()}]:[]).sort((e,t)=>e.name.localeCompare(t.name,`tr`)),[e])}export{i as t};

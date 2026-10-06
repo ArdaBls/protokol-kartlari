@@ -9,6 +9,7 @@ import { useAuth } from '../../auth/useAuth'
 import { isApprovedRole } from '../../lib/roles'
 import { EventModal } from './EventModal'
 import { CalendarSearch } from './CalendarSearch'
+import { CalendarExport } from './CalendarExport'
 import { ListView } from './ListView'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
@@ -44,7 +45,7 @@ function useDayCount(view: CalView): number {
 
 export function CalendarPage() {
   const { state } = useAuth()
-  const { isReadOnly } = useDbMode()
+  const { isReady, isReadOnly } = useDbMode()
   const [searchParams, setSearchParams] = useSearchParams()
   const [view, setView] = useState<CalView>('week')
   const [anchor, setAnchor] = useState(() => todayDate())
@@ -54,7 +55,7 @@ export function CalendarPage() {
   const events = useDbValue<Record<string, CalendarEvent | null>>('etkinlikler')
   const dayCount = useDayCount(view)
 
-  const canWrite = state.status === 'ready' && isApprovedRole(state.role) && !isReadOnly
+  const canWrite = state.status === 'ready' && isApprovedRole(state.role) && isReady && !isReadOnly
 
   const allEvents = useMemo(() => {
     const list = toEventListWithId(events.data)
@@ -160,6 +161,7 @@ export function CalendarPage() {
           </Button>
           <Button size="sm" variant="ghost" onPress={goToday}>Bugün</Button>
           <strong className="min-w-0 truncate px-1 text-sm">{monthLabel}</strong>
+          <CalendarExport events={allEvents} initialYear={anchor.getFullYear()} isLoading={events.isLoading} hasError={!!events.error} />
         </div>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
           <div className="flex min-w-0 gap-1 overflow-x-auto rounded-xl bg-default p-1">

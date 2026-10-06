@@ -1,7 +1,7 @@
 import { Avatar, Button, Card, Input, TextField, toast } from '@heroui/react'
-import { ref, remove, set, update } from 'firebase/database'
+import { get, ref, serverTimestamp, update } from 'firebase/database'
 import { Download, Search, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { FormModal } from '../../components/FormModal'
@@ -10,10 +10,11 @@ import { SwitchButton } from '../../components/SwitchButton'
 import { downloadJson } from '../../lib/browserFiles'
 import { dbPathFor, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
-import { collectLogDeleteUpdates } from '../../lib/logCleanup'
+import { collectLogDeleteUpdates, matchesAccountLog } from '../../lib/logCleanup'
 import type { Role, UserProfile } from '../../lib/roles'
 import { ROLE_LABEL, initials, isSafeAvatarUrl } from '../../lib/roles'
 import { useDbValue } from '../../hooks/useDbValue'
+import { accountDeleteUpdates } from './accountCleanup'
 
 interface UserRecord extends UserProfile {
   createdAt?: number
@@ -61,6 +62,7 @@ export function UserManagementPage() {
   const [busyUid, setBusyUid] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ uid: string; user: UserRecord } | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const deletionInProgress = useRef(false)
 
   const users = useDbValue<Record<string, UserRecord | null>>('users', { shadow: false })
   const pressOfficers = useDbValue<Record<string, string | null>>('basinGorevlileri')
@@ -113,7 +115,10 @@ export function UserManagementPage() {
     }
     setBusyUid(uid)
     try {
-      await update(ref(db, `users/${uid}`), { role: nextRole })
+      await update(ref(db), {
+        [`users/${uid}/role`]: nextRole,
+        ...(nextRole === 'pending' ? { [`presence/${uid}`]: null } : {}),
+      })
       toast.success(`${fullNameOf(user ?? {})}: rol ${ROLE_LABEL[oldRole as Role]} → ${ROLE_LABEL[nextRole as Role]}`)
     } catch (err) {
       console.error('Yetki güncellenemedi:', err)
@@ -147,7 +152,10 @@ export function UserManagementPage() {
     if (user?.role === 'owner') return toast.danger('Kurucunun erişimi bu ekrandan kısıtlanamaz.')
     setBusyUid(uid)
     try {
-      await update(ref(db, `users/${uid}`), { blocked: nextBlocked })
+      await update(ref(db), {
+        [`users/${uid}/blocked`]: nextBlocked,
+        ...(nextBlocked ? { [`presence/${uid}`]: null } : {}),
+      })
       toast.success(nextBlocked ? `${fullNameOf(user ?? {})}: erişimi kısıtlandı.` : `${fullNameOf(user ?? {})}: erişimi geri verildi.`)
     } catch (err) {
       console.error('Erişim durumu güncellenemedi:', err)
@@ -158,44 +166,31 @@ export function UserManagementPage() {
   }
 
   const deleteUser = async () => {
-    if (!deleteTarget || state.status !== 'ready') return
-    const { uid, user } = deleteTarget
-    const role = user.role ?? 'pending'
+    if (!deleteTarget || state.status !== 'ready' || deletionInProgress.current) return
+    const { uid } = deleteTarget
     if (uid === currentUid) return toast.danger('Kendi hesabınızı silemezsiniz.')
-    if (role === 'owner') return toast.danger('Kurucu hesabı silinemez.')
-    if (role === 'admin' && stats.admins <= 1) return toast.danger('Son yönetici hesabı silinemez.')
+    deletionInProgress.current = true
     setBusyUid(uid)
     try {
-      const email = (user.email ?? '').trim().toLocaleLowerCase('tr')
-      const name = fullNameOf(user).trim()
-      const logDeletes = await collectLogDeleteUpdates(isTestMode, (entry) => {
-        const matchesEmail = !!email && entry.email?.trim().toLocaleLowerCase('tr') === email
-        const matchesName = !!name && entry.by?.trim() === name
-        return matchesEmail || matchesName
+      const user = (await get(ref(db, `users/${uid}`))).val() as UserRecord | null
+      if (!user) return toast.danger('Kullanıcı kaydı artık mevcut değil.')
+      if (user.role === 'owner') return toast.danger('Kurucu hesabı silinemez.')
+      if (user.role === 'admin' && stats.admins <= 1) return toast.danger('Son yönetici hesabı silinemez.')
+      const logDeletes = await collectLogDeleteUpdates(db, 'both', (entry) => matchesAccountLog(entry, uid))
+      // İşaret ve iki daldaki temizlik tek atomik işlem: başarısızlıkta yarım silme yok.
+      await update(ref(db), {
+        ...accountDeleteUpdates(uid),
+        [`deletedAccounts/${uid}`]: { deletedAt: serverTimestamp(), deletedByUid: currentUid },
+        ...logDeletes,
       })
-      const deletedAccountRef = ref(db, `deletedAccounts/${uid}`)
-      // Önce tombstone yazılır. Kural yayınlanmamışsa işlem burada durur ve
-      // kullanıcı kaydı yarım silinip yeniden oluşturulamaz.
-      await set(deletedAccountRef, { deletedAt: Date.now(), deletedByUid: currentUid })
-      try {
-        await update(ref(db), {
-          [`users/${uid}`]: null,
-          [`staffProfiles/${uid}`]: null,
-          [dbPathFor(`basinGorevlileri/${uid}`, isTestMode)]: null,
-          [`presence/${uid}`]: null,
-          [dbPathFor(`notifications/${uid}`, isTestMode)]: null,
-          ...logDeletes,
-        })
-      } catch (err) {
-        await remove(deletedAccountRef).catch(() => undefined)
-        throw err
-      }
-      toast.warning(`${fullNameOf(user)} kullanıcısı ve kullanıcı logları silindi. Etkinlik ve protokol kartları korundu.`)
+      toast.warning(`${fullNameOf(user)}: profil ve kullanıcıya ait olduğu doğrulanan işlem kayıtları silindi. Belirsiz eski kayıtlar korundu.`)
+      setIsDeleteOpen(false)
       setDeleteTarget(null)
     } catch (err) {
       console.error('Kullanıcı silinemedi:', err)
       toast.danger('Kullanıcı silinemedi. Firebase kurallarını kontrol edin.')
     } finally {
+      deletionInProgress.current = false
       setBusyUid(null)
     }
   }
@@ -318,14 +313,15 @@ export function UserManagementPage() {
 
       <FormModal
         isOpen={isDeleteOpen}
-        onOpenChange={(isOpen) => { setIsDeleteOpen(isOpen); if (!isOpen) setDeleteTarget(null) }}
+        onOpenChange={(isOpen) => { if (deletionInProgress.current) return; setIsDeleteOpen(isOpen); if (!isOpen) setDeleteTarget(null) }}
         title="Kullanıcıyı sil"
-        submitLabel="Evet, sil"
+        submitLabel={busyUid === deleteTarget?.uid ? 'Siliniyor…' : 'Evet, sil'}
         isDanger
-        onSubmit={() => { void deleteUser() }}
+        onSubmit={() => { void deleteUser(); return false }}
       >
         <p className="text-sm text-muted">
-          {deleteTarget ? `${fullNameOf(deleteTarget.user)} kullanıcısı ile bu kullanıcıya ait loglar kalıcı olarak silinecek. Etkinlik ve protokol kartları korunacak.` : 'Bu kullanıcı kaydı ve logları kalıcı olarak silinecek.'}
+          {deleteTarget ? `${fullNameOf(deleteTarget.user)} kullanıcısının profili, test ve canlı ortamdaki bildirim ve basın görevlisi kayıtları ile bu kullanıcıya ait olduğu doğrulanan işlem kayıtları silinecek.` : 'Kullanıcı profili ve bu kullanıcıya ait olduğu doğrulanan işlem kayıtları silinecek.'}
+          {' '}Kimliği doğrulanamayan eski loglar, etkinlik ve protokol kartları korunur. Kullanıcı aynı e-posta ve şifreyle yeniden giriş yaparsa tekrar yönetici onayına gönderilir.
         </p>
       </FormModal>
     </div>

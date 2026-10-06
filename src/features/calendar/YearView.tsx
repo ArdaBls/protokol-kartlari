@@ -1,6 +1,6 @@
 import { dateKey } from '../../lib/dates'
 import type { CalendarEventWithId } from './calendarTypes'
-import { CAL_DOW, CAL_MONTHS, addDays, evType, fmtTrDate, isSameDay, startOfWeek, todayDate } from './calendarTypes'
+import { CAL_DOW, CAL_MONTHS, addDays, eventsOnDate, evType, fmtTrDate, isSameDay, startOfWeek, todayDate } from './calendarTypes'
 
 interface YearViewProps {
   year: number
@@ -28,7 +28,7 @@ export function YearView({ year, eventsByDate, onGoToDay, onGoToMonth }: YearVie
               {days.map((day, i) => {
                 if (day.getMonth() !== month) return <span key={i} className="flex size-7 items-center justify-center justify-self-center text-[11px] text-muted/30">{day.getDate()}</span>
                 const key = dateKey(day)
-                const events = eventsByDate.get(key) ?? []
+                const events = eventsOnDate(eventsByDate, key)
                 const colors = [...new Set(events.map((ev) => evType(ev.tur).renk))].slice(0, 3)
                 const isToday = isSameDay(day, today)
                 return (

@@ -1,56 +1,48 @@
 import { toast } from '@heroui/react'
 import type { User } from 'firebase/auth'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { onDisconnect, onValue, ref, serverTimestamp, set } from 'firebase/database'
+import { onDisconnect, onValue, ref, remove, serverTimestamp, set } from 'firebase/database'
 import type { ReactNode } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { startDbMode } from '../lib/dbMode'
 import { auth, db } from '../lib/firebase'
-import { fullName, isApprovedRole } from '../lib/roles'
-import type { UserProfile } from '../lib/roles'
 import { initStreak } from '../lib/streak'
 import type { StreakResult } from '../lib/streak'
 import { AuthContext } from './AuthContext'
-import type { AuthContextValue, AuthState } from './AuthContext'
+import type { AuthContextValue } from './AuthContext'
+import { authStateFromProfile } from './profileState'
+import type { ProfileSnapshot } from './profileState'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined)
-  const [profile, setProfile] = useState<{ uid: string; value: UserProfile | null } | null>(null)
-  const [streak, setStreak] = useState<StreakResult | null>(null)
+  const [profileAttempt, setProfileAttempt] = useState(0)
+  const [profile, setProfile] = useState<ProfileSnapshot | null>(null)
+  const [streak, setStreak] = useState<{ uid: string; value: StreakResult } | null>(null)
+  const retryProfile = useCallback(() => setProfileAttempt((attempt) => attempt + 1), [])
 
   useEffect(() => onAuthStateChanged(auth, setUser), [])
 
   // Canlı dinleme: oturum sırasında rol değişirse veya hesap engellenirse anında yansır.
   useEffect(() => {
     if (!user) return
-    return onValue(
+    let active = true
+    const stop = onValue(
       ref(db, `users/${user.uid}`),
       (snap) => {
-        if (!snap.exists()) {
-          // Profilin silinmesi açık oturumun kendi kendine yeni pending kullanıcı
-          // oluşturacağı anlamına gelmez. Yeniden oluşturma yalnızca başarılı yeni
-          // girişten sonra LoginPage tarafından açıkça yapılır.
-          setProfile({ uid: user.uid, value: null })
-          return
-        }
-        setProfile({ uid: user.uid, value: snap.val() as UserProfile | null })
+        if (!active) return
+        // Eksik profil otomatik oluşturulmaz; açık oturumun silme işlemini geri
+        // almasını önlemek için yalnızca açık giriş/kayıt akışı profil oluşturur.
+        setProfile({ user, attempt: profileAttempt, value: snap.val() as ProfileSnapshot['value'], failed: false })
       },
       (err) => {
         console.error('Kullanıcı kaydı okunamadı:', err)
-        setProfile({ uid: user.uid, value: null })
+        if (active) setProfile({ user, attempt: profileAttempt, value: null, failed: true })
       },
     )
-  }, [user])
+    return () => { active = false; stop() }
+  }, [user, profileAttempt])
 
-  const state = useMemo<AuthState>(() => {
-    if (user === undefined) return { status: 'loading' }
-    if (user === null) return { status: 'guest' }
-    if (!profile || profile.uid !== user.uid) return { status: 'loading' }
-    const value = profile.value ?? {}
-    if (value.blocked === true) return { status: 'blocked', user }
-    if (!isApprovedRole(value.role)) return { status: 'pending', user }
-    return { status: 'ready', user, profile: value, role: value.role, displayName: fullName(value) || user.email || 'Kullanıcı' }
-  }, [user, profile])
+  const state = useMemo(() => authStateFromProfile(user, profile, profileAttempt), [user, profile, profileAttempt])
 
   const isReady = state.status === 'ready'
   const uid = user?.uid
@@ -58,18 +50,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => (isReady ? startDbMode() : undefined), [isReady])
 
-  // Çevrimiçi durumu (presence): bağlantı kurulunca "çevrimiçi" yazılır, kopunca sunucu tarafında çalışan
-  // onDisconnect kaydı "çevrimdışı" yapar — sekme aniden kapansa bile durum doğru kalır. Test modunda gölgelenmez.
+  // Kopunca kayıt kaldırılır; silinen hesap için eski ad/durum tekrar yazılmaz.
   useEffect(() => {
     if (!isReady || !uid) return
     const presenceRef = ref(db, `presence/${uid}`)
-    return onValue(ref(db, '.info/connected'), (snap) => {
+    const disconnect = onDisconnect(presenceRef)
+    let active = true
+    const stop = onValue(ref(db, '.info/connected'), (snap) => {
       if (!snap.val()) return
-      onDisconnect(presenceRef)
-        .set({ cevrimici: false, isim: displayName, sonGorulme: serverTimestamp() })
-        .then(() => set(presenceRef, { cevrimici: true, isim: displayName, sonGorulme: serverTimestamp() }))
+      disconnect.remove()
+        .then(() => {
+          if (active && auth.currentUser?.uid === uid) {
+            return set(presenceRef, { cevrimici: true, isim: displayName, sonGorulme: serverTimestamp() })
+          }
+        })
         .catch((err) => console.error('Çevrimiçi durumu yazılamadı:', err))
     })
+    return () => {
+      active = false
+      stop()
+      void disconnect.cancel().catch(() => undefined)
+      // Yetki kaybında yönetici aynı atomik işlemde presence kaydını kaldırır.
+      if (auth.currentUser?.uid === uid) void remove(presenceRef).catch(() => undefined)
+    }
   }, [isReady, uid, displayName])
 
   useEffect(() => {
@@ -77,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isCancelled = false
     initStreak(uid).then((result) => {
       if (isCancelled) return
-      setStreak(result)
+      setStreak({ uid, value: result })
       if (result.justBroken) toast.warning('Giriş serin sona erdi — bugün yeniden başladı.')
     })
     return () => {
@@ -86,8 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isReady, uid])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ state, streak: isReady ? streak : null, signOutUser: () => signOut(auth) }),
-    [state, streak, isReady],
+    () => ({
+      state,
+      streak: isReady && streak && streak.uid === uid ? streak.value : null,
+      retryProfile,
+      signOutUser: () => {
+        // Bağlantı yoksa veritabanı yazma sözü çıkışı süresiz bekletmemeli.
+        if (auth.currentUser) void remove(ref(db, `presence/${auth.currentUser.uid}`)).catch(() => undefined)
+        return signOut(auth)
+      },
+    }),
+    [state, streak, isReady, uid, retryProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

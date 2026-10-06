@@ -1,18 +1,17 @@
 import { Card, toast } from '@heroui/react'
-import { ref, update } from 'firebase/database'
+import { ref, runTransaction } from 'firebase/database'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth'
 import { useDbValue } from '../../../hooks/useDbValue'
 import { fullName } from '../../../lib/roles'
-import { useDbMode } from '../../../lib/dbMode'
+import { dbPathFor, useDbMode } from '../../../lib/dbMode'
 import { db } from '../../../lib/firebase'
+import { useGameWriteAccess } from '../useGameWriteAccess'
 import type { Guess, LetterState, WordleStats } from './wordleLogic'
 import {
   EMPTY_STATS, KEYBOARD_ROWS, MAX_TRIES, WORD_LEN,
-  ardisikGunMu, bugununTarihiIstanbul, geriBildirimHesapla, harfDurumunuGuncelle, harfleriAyir, seedliIndeks,
+  bugununTarihiIstanbul, geriBildirimHesapla, harfDurumunuGuncelle, harfleriAyir, seedliIndeks, nextWordleStats, wordleStorageKey,
 } from './wordleLogic'
-
-const STORAGE_KEY = 'omuWordleDurum'
 
 interface SavedState {
   tarih: string
@@ -21,19 +20,21 @@ interface SavedState {
   kazandi: boolean
 }
 
-function loadSaved(bugunTarih: string): SavedState | null {
+function loadSaved(storageKey: string, bugunTarih: string): SavedState | null {
   try {
-    const kayit = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as SavedState | null
-    if (kayit && kayit.tarih === bugunTarih && Array.isArray(kayit.tahminler)) return kayit
+    const kayit = JSON.parse(localStorage.getItem(storageKey) ?? 'null') as SavedState | null
+    if (kayit && kayit.tarih === bugunTarih && Array.isArray(kayit.tahminler) && kayit.tahminler.length <= MAX_TRIES
+      && kayit.tahminler.every((guess) => typeof guess?.kelime === 'string' && guess.kelime.length === WORD_LEN
+        && Array.isArray(guess.sonuc) && guess.sonuc.length === WORD_LEN && guess.sonuc.every((s) => ['dogru', 'var', 'yok'].includes(s)))) return kayit
   } catch {
     // bozuk kayıt varsa sessizce yok say
   }
   return null
 }
 
-function saveState(state: SavedState) {
+function saveState(storageKey: string, state: SavedState) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(storageKey, JSON.stringify(state))
   } catch {
     // localStorage kapalıysa oyun yine oynanabilir, sadece yenilemede sıfırlanır
   }
@@ -50,10 +51,9 @@ const KEY_STATE_CLASS: Record<LetterState, string> = {
   yok: 'bg-default/60 text-muted',
 }
 
-export function WordlePage() {
+function WordleGame({ storageKey }: { storageKey: string }) {
   const { state } = useAuth()
-  const { isReadOnly } = useDbMode()
-  const uid = state.status === 'ready' ? state.user.uid : ''
+  const { uid, canWrite, isTestMode, isCurrent } = useGameWriteAccess()
   const displayName = state.status === 'ready' ? fullName(state.profile) || state.user.email || 'İsimsiz' : ''
 
   const bugunTarih = useMemo(bugununTarihiIstanbul, [])
@@ -67,18 +67,23 @@ export function WordlePage() {
   const [shakeRow, setShakeRow] = useState(false)
   const [flipRow, setFlipRow] = useState(-1)
   const statsWritten = useRef(false)
+  const [statsError, setStatsError] = useState(false)
+  const [statsRetry, setStatsRetry] = useState(0)
 
   const statsAll = useDbValue<Record<string, WordleStats | null>>('oyunBasarimlari/wordle')
 
   // Kelime listesi + günün kelimesi + varsa bugüne ait kayıtlı ilerleme.
   useEffect(() => {
-    fetch('/data/kelime-5.json')
-      .then((r) => r.json() as Promise<string[]>)
+    const controller = new AbortController()
+    fetch('/data/kelime-5.json', { signal: controller.signal })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<string[]> })
       .then((liste) => {
+        if (controller.signal.aborted) return
+        if (!Array.isArray(liste) || !liste.length) throw new Error('Kelime listesi boş')
         setWordSet(new Set(liste))
         const idx = seedliIndeks(bugunTarih, liste.length)
         setHedefKelime(liste[idx])
-        const saved = loadSaved(bugunTarih)
+        const saved = loadSaved(storageKey, bugunTarih)
         if (saved) {
           setTahminler(saved.tahminler)
           setOyunBitti(saved.oyunBitti)
@@ -89,38 +94,14 @@ export function WordlePage() {
         }
       })
       .catch((err) => {
+        if (controller.signal.aborted) return
         console.error('Kelime listesi yüklenemedi:', err)
         toast.danger('Kelime listesi yüklenemedi.')
       })
-  }, [bugunTarih])
+    return () => controller.abort()
+  }, [bugunTarih, storageKey])
 
   const kendiIstatistik = uid ? statsAll.data?.[uid] ?? EMPTY_STATS : EMPTY_STATS
-
-  const yazIstatistik = async () => {
-    if (!uid || statsWritten.current) return
-    const eski = statsAll.data?.[uid] ?? EMPTY_STATS
-    if (eski.sonTarih === bugunTarih) return
-    statsWritten.current = true
-    const dunOynandiMi = ardisikGunMu(eski.sonTarih, bugunTarih)
-    const yeniSeri = kazandi ? (dunOynandiMi ? (eski.seri || 0) + 1 : 1) : 0
-    const dagitim = { ...eski.dagitim }
-    if (kazandi) { const k = String(tahminler.length); dagitim[k] = (dagitim[k] ?? 0) + 1 }
-    const yeni: WordleStats = {
-      isim: displayName || 'İsimsiz',
-      oynanan: (eski.oynanan || 0) + 1,
-      kazanilan: (eski.kazanilan || 0) + (kazandi ? 1 : 0),
-      seri: yeniSeri,
-      enUzunSeri: Math.max(eski.enUzunSeri || 0, yeniSeri),
-      sonTarih: bugunTarih,
-      sonKazandi: kazandi,
-      dagitim,
-    }
-    try {
-      await update(ref(db, `oyunBasarimlari/wordle/${uid}`), yeni)
-    } catch (err) {
-      console.error('Wordle istatistiği kaydedilemedi:', err)
-    }
-  }
 
   const harfGir = (h: string) => {
     if (oyunBitti || mevcutGiris.length >= WORD_LEN) return
@@ -155,14 +136,29 @@ export function WordlePage() {
     }
     setOyunBitti(bitti)
     setKazandi(kazandiSonuc)
-    saveState({ tarih: bugunTarih, tahminler: yeniTahminler, oyunBitti: bitti, kazandi: kazandiSonuc })
+    saveState(storageKey, { tarih: bugunTarih, tahminler: yeniTahminler, oyunBitti: bitti, kazandi: kazandiSonuc })
   }
 
   // Oyun bittiğinde (kazanma/kaybetme anında) istatistik bir kez yazılır.
   useEffect(() => {
-    if (oyunBitti && !isReadOnly) void yazIstatistik()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oyunBitti])
+    if (!oyunBitti || !canWrite || !uid || statsWritten.current) return
+    const context = { uid, isTestMode }
+    statsWritten.current = true
+    setStatsError(false)
+    runTransaction(ref(db, dbPathFor(`oyunBasarimlari/wordle/${uid}`, isTestMode)), (previous: WordleStats | null) => {
+      if (!isCurrent(context)) return
+      return nextWordleStats(previous, bugunTarih, kazandi, tahminler.length, displayName)
+    }, { applyLocally: false }).then((result) => {
+      if (!result.committed && (result.snapshot.child('sonTarih').val() || '') < bugunTarih) {
+        statsWritten.current = false
+        setStatsError(true)
+      }
+    }).catch((err) => {
+      statsWritten.current = false
+      setStatsError(true)
+      console.error('Wordle istatistiği kaydedilemedi:', err)
+    })
+  }, [oyunBitti, canWrite, uid, isTestMode, isCurrent, bugunTarih, kazandi, tahminler.length, displayName, statsRetry])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -244,6 +240,7 @@ export function WordlePage() {
       {oyunBitti && (
         <Card className="w-full">
           <Card.Content className="flex flex-col items-center gap-3 text-center">
+            {statsError && <button type="button" disabled={!canWrite} className="text-sm text-danger underline" onClick={() => setStatsRetry((n) => n + 1)}>İstatistik kaydedilemedi. Tekrar dene.</button>}
             {kazandi ? (
               <>
                 <div className="text-lg font-semibold">Kazandın!</div>
@@ -316,4 +313,12 @@ export function WordlePage() {
       </Card>
     </div>
   )
+}
+
+export function WordlePage() {
+  const { state } = useAuth()
+  const { isReady, isTestMode } = useDbMode()
+  if (!isReady || state.status !== 'ready') return <p className="py-8 text-center text-muted">Yükleniyor…</p>
+  const storageKey = wordleStorageKey(state.user.uid, isTestMode)
+  return <WordleGame key={storageKey} storageKey={storageKey} />
 }

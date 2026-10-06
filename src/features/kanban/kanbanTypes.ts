@@ -52,10 +52,13 @@ export interface KanbanRecord {
   durum?: string
   createdAt?: number
   guncellemeTs?: number
-  tamamlayan?: string
+  tamamlayan?: string | null
   gorevli?: string
   haberYazanlari?: string
+  locked?: boolean
 }
+
+export const kanbanItemKey = (item: { source: KanbanSource; id: string }) => `${item.source}:${item.id}`
 
 export interface KanbanItem {
   id: string

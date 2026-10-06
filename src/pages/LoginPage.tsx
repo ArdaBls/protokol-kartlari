@@ -2,12 +2,13 @@ import { Button, Card, Input, Label, TextField } from '@heroui/react'
 import { FirebaseError } from 'firebase/app'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { FullScreenSpinner } from '../auth/RequireAuth'
 import { restoreMissingAccount } from '../auth/restoreMissingAccount'
 import { useAuth } from '../auth/useAuth'
 import { auth } from '../lib/firebase'
+import { AccountAccessIssue } from '../auth/AccountAccessIssue'
 
 const CREDENTIAL_ERRORS = ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email']
 
@@ -25,29 +26,40 @@ function safeReturnPath(from: unknown): string {
 }
 
 export function LoginPage() {
-  const { state } = useAuth()
+  const { state, retryProfile } = useAuth()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submitting = useRef(false)
 
-  if (state.status === 'loading') return <FullScreenSpinner />
-  if (state.status !== 'guest') {
+  if (!isSubmitting && !error && state.status === 'loading') return <FullScreenSpinner />
+  if (!isSubmitting && !error && (state.status === 'error' || state.status === 'missing')) return <AccountAccessIssue />
+  if (!isSubmitting && !error && state.status !== 'guest') {
     return <Navigate to={safeReturnPath((location.state as { from?: unknown } | null)?.from)} replace />
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (submitting.current) return
+    submitting.current = true
     setError(null)
     setIsSubmitting(true)
     try {
       const credential = await signInWithEmailAndPassword(auth, email.trim(), password)
-      await restoreMissingAccount(credential.user)
+      try {
+        await restoreMissingAccount(credential.user)
+        retryProfile()
+      } catch (err) {
+        console.error('Giriş sonrası profil hazırlanamadı:', err)
+        setError('Giriş doğrulandı ancak hesap profili hazırlanamadı. Aynı bilgilerle tekrar deneyin.')
+      }
     } catch (err) {
       console.error('Giriş başarısız:', err)
       setError(loginErrorMessage(err))
     } finally {
+      submitting.current = false
       setIsSubmitting(false)
     }
   }

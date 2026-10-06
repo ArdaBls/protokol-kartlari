@@ -91,3 +91,21 @@ export interface WordleStats {
 }
 
 export const EMPTY_STATS: WordleStats = { oynanan: 0, kazanilan: 0, seri: 0, enUzunSeri: 0, sonTarih: '', dagitim: {} }
+
+export function wordleStorageKey(uid: string, isTestMode: boolean): string {
+  return `omuWordleDurum:${isTestMode ? 'test' : 'live'}:${uid}`
+}
+
+/** Returning undefined aborts a duplicate or an older day's transaction. */
+export function nextWordleStats(previous: WordleStats | null, date: string, won: boolean, guesses: number, name: string): WordleStats | undefined {
+  const old = previous ?? EMPTY_STATS
+  if (old.sonTarih >= date || !Number.isInteger(guesses) || guesses < 1 || guesses > MAX_TRIES) return
+  const streak = won ? (ardisikGunMu(old.sonTarih, date) ? (old.seri || 0) + 1 : 1) : 0
+  const distribution = { ...old.dagitim }
+  if (won) distribution[String(guesses)] = (distribution[String(guesses)] || 0) + 1
+  return {
+    ...old, isim: name || 'İsimsiz', oynanan: (old.oynanan || 0) + 1,
+    kazanilan: (old.kazanilan || 0) + (won ? 1 : 0), seri: streak,
+    enUzunSeri: Math.max(old.enUzunSeri || 0, streak), sonTarih: date, sonKazandi: won, dagitim: distribution,
+  }
+}

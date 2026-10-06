@@ -6,6 +6,7 @@ import type { CalendarEventWithId, MultiDayBar } from './calendarTypes'
 import { CAL_DOW, evType, fmtTrDate, isSameDay, layoutDay, layoutMultiDayRow, minToHm, parseKey, todayDate } from './calendarTypes'
 import { EventTooltipContent } from './EventTooltipContent'
 import { useCalendarWriter } from './useCalendarWriter'
+import { multiDayDragDates } from './eventMutations'
 
 const HOUR_H = 48
 const GUTTER = 54
@@ -26,7 +27,7 @@ interface WeekViewProps {
 type MovePreview = { id: string; ev: CalendarEventWithId; dayIdx: number; startMin: number; durationMin: number }
 type ResizePreview = { id: string; ev: CalendarEventWithId; edge: 'start' | 'end'; min: number; otherMin: number }
 type CreatePreview = { dayIdx: number; startMin: number; endMin: number }
-type BarPreview = { id: string; ev: CalendarEventWithId; startIdx: number; endIdx: number }
+type BarPreview = { id: string; ev: CalendarEventWithId; startIdx: number; endIdx: number; startKey: string; endKey: string }
 
 function snapTo(value: number, step: number): number {
   return Math.round(value / step) * step
@@ -236,7 +237,7 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
   // Masaüstünde kartın gövdesiyle, dokunmatik cihazlarda ise yalnızca görünür tutma koluyla başlar.
   // Böylece kartın üstünde dikey kaydırma yapmak takvimi kaydırır, etkinliği yanlışlıkla taşımaz.
   const beginMove = (event: React.PointerEvent<HTMLElement>, ev: CalendarEventWithId, startMinOfItem: number, durationMin: number) => {
-    if (ev.locked) return
+    if (!canWrite || ev.locked) return
     event.stopPropagation()
     const target = event.currentTarget
     const startClientX = event.clientX
@@ -288,12 +289,13 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
 
   // --- Üst/alt kenar tutamağından sürükleyerek saat ayarlama ---
   const beginResize = (event: React.PointerEvent<HTMLElement>, ev: CalendarEventWithId, edge: 'start' | 'end', startMinOfItem: number, endMinOfItem: number) => {
-    if (ev.locked) return
+    if (!canWrite || ev.locked) return
     event.stopPropagation()
     const target = event.currentTarget
     const columnEl = target.closest('[data-cal-column]') as HTMLElement | null
     const startClientY = event.clientY
     let dragging = false
+    let latestResize: { edge: 'start' | 'end'; min: number } | null = null
     target.setPointerCapture(event.pointerId)
 
     const onMove = (moveEvent: PointerEvent) => {
@@ -304,35 +306,42 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
       const minDelta = Math.round((dy / HOUR_H) * 60)
       if (edge === 'start') {
         const newMin = snapTo(clampMin(Math.min(startMinOfItem + minDelta, endMinOfItem - RESIZE_SNAP)), RESIZE_SNAP)
+        latestResize = { edge, min: newMin }
         setResizePreview({ id: ev._id, ev, edge, min: newMin, otherMin: endMinOfItem })
       } else {
         const newMin = snapTo(Math.max(startMinOfItem + RESIZE_SNAP, Math.min(24 * 60, endMinOfItem + minDelta)), RESIZE_SNAP)
+        latestResize = { edge, min: newMin }
         setResizePreview({ id: ev._id, ev, edge, min: newMin, otherMin: startMinOfItem })
       }
     }
     const onUp = () => {
       target.removeEventListener('pointermove', onMove)
       target.removeEventListener('pointerup', onUp)
+      target.removeEventListener('pointercancel', onCancel)
       void columnEl
-      if (dragging) {
-        setResizePreview((current) => {
-          if (current) void writer.resizeEvent(ev._id, ev, current.edge, current.min)
-          return null
-        })
-      }
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
+      setResizePreview(null)
+      if (dragging && latestResize) void writer.resizeEvent(ev._id, ev, latestResize.edge, latestResize.min)
+    }
+    const onCancel = () => {
+      latestResize = null
+      dragging = false
+      onUp()
     }
     target.addEventListener('pointermove', onMove)
     target.addEventListener('pointerup', onUp)
+    target.addEventListener('pointercancel', onCancel)
   }
 
   // --- Çok günlü etkinlik şeridini sürükleme (gövde) / kenarından uzatma ---
   const beginBarDrag = (event: React.PointerEvent<HTMLElement>, bar: MultiDayBar, mode: 'move' | 'resize-start' | 'resize-end') => {
-    if (bar.ev.locked) return
+    if (!canWrite || bar.ev.locked) return
     event.stopPropagation()
     const target = event.currentTarget
     const rowEl = barRowRef.current
     const startClientX = event.clientX
     let dragging = false
+    let latestPreview: BarPreview | null = null
     target.setPointerCapture(event.pointerId)
 
     const onMove = (moveEvent: PointerEvent) => {
@@ -342,30 +351,34 @@ export function WeekView({ days, eventsByDate, allEvents, canWrite, onEdit, onCr
       didDragRef.current = true
       const colWidth = rowEl ? rowEl.getBoundingClientRect().width / days.length : 0
       const dayDelta = colWidth ? Math.round(dx / colWidth) : 0
-      if (mode === 'move') {
-        const span = bar.endIdx - bar.startIdx
-        const newStart = Math.max(0, Math.min(days.length - 1 - span, bar.startIdx + dayDelta))
-        setBarPreview({ id: bar.ev._id, ev: bar.ev, startIdx: newStart, endIdx: newStart + span })
-      } else if (mode === 'resize-start') {
-        const newStart = Math.max(0, Math.min(bar.endIdx, bar.startIdx + dayDelta))
-        setBarPreview({ id: bar.ev._id, ev: bar.ev, startIdx: newStart, endIdx: bar.endIdx })
-      } else {
-        const newEnd = Math.max(bar.startIdx, Math.min(days.length - 1, bar.endIdx + dayDelta))
-        setBarPreview({ id: bar.ev._id, ev: bar.ev, startIdx: bar.startIdx, endIdx: newEnd })
+      const dates = multiDayDragDates(bar.ev, mode, dayDelta)
+      if (!dates) return
+      const toIndex = (key: string) => Math.round((parseKey(key)!.getTime() - days[0].getTime()) / 86400000)
+      latestPreview = {
+        id: bar.ev._id, ev: bar.ev, startKey: dates.tarih, endKey: dates.bitisTarihi,
+        startIdx: Math.max(0, Math.min(days.length - 1, toIndex(dates.tarih))),
+        endIdx: Math.max(0, Math.min(days.length - 1, toIndex(dates.bitisTarihi))),
       }
+      setBarPreview(latestPreview)
     }
     const onUp = () => {
       target.removeEventListener('pointermove', onMove)
       target.removeEventListener('pointerup', onUp)
-      if (dragging) {
-        setBarPreview((current) => {
-          if (current) void writer.moveMultiDayEvent(bar.ev._id, bar.ev, dateKey(days[current.startIdx]), dateKey(days[current.endIdx]))
-          return null
-        })
+      target.removeEventListener('pointercancel', onCancel)
+      if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
+      setBarPreview(null)
+      if (dragging && latestPreview && (latestPreview.startKey !== bar.ev.tarih || latestPreview.endKey !== bar.ev.bitisTarihi)) {
+        void writer.moveMultiDayEvent(bar.ev._id, bar.ev, latestPreview.startKey, latestPreview.endKey)
       }
+    }
+    const onCancel = () => {
+      latestPreview = null
+      dragging = false
+      onUp()
     }
     target.addEventListener('pointermove', onMove)
     target.addEventListener('pointerup', onUp)
+    target.addEventListener('pointercancel', onCancel)
   }
 
   const handleLockedClick = (name?: string) => toast.warning(`"${name || 'Bu etkinlik'}" kilitli. Taşımak/yeniden boyutlandırmak için önce kilidi açın.`)

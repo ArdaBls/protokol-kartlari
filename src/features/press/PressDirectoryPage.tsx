@@ -8,6 +8,7 @@ import { FormModal } from '../../components/FormModal'
 import { ModalScrollBody, ModalShell, ModalTitle } from '../../components/ModalShell'
 import { TextAreaField } from '../../components/formControls'
 import { useDbValue } from '../../hooks/useDbValue'
+import { useWriter } from '../../hooks/useWriter'
 import { EASE_OUT } from '../../lib/ease'
 import { dbPathFor, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
@@ -19,7 +20,8 @@ import { DIRECTORY_LABELS, DIRECTORY_PATHS, sortContacts, telHref } from './pres
 
 export function PressDirectoryPage() {
   const { state } = useAuth()
-  const { isTestMode, isReadOnly } = useDbMode()
+  const { isReady, isTestMode, isReadOnly } = useDbMode()
+  const writer = useWriter()
   const [kind, setKind] = useState<DirectoryKind>('email')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
@@ -35,7 +37,7 @@ export function PressDirectoryPage() {
   const labels = DIRECTORY_LABELS[kind]
   const basePath = dbPathFor(DIRECTORY_PATHS[kind], isTestMode)
 
-  const canWrite = state.status === 'ready' && isApprovedRole(state.role) && !isReadOnly
+  const canWrite = state.status === 'ready' && isApprovedRole(state.role) && isReady && !isReadOnly
   const contacts = useMemo(
     () => Object.entries(source.data ?? {}).flatMap(([id, record]) => (record ? [{ ...record, id }] : [])),
     [source.data],
@@ -48,9 +50,7 @@ export function PressDirectoryPage() {
   )
 
   const requireWritable = () => {
-    if (canWrite) return true
-    toast.danger(isReadOnly ? 'Salt-okunur kilit açık, düzenleme yapılamaz.' : 'Bu işlem için düzenleme yetkisi gerekiyor.')
-    return false
+    return !!writer.ensureWritable()
   }
 
   const switchKind = (next: DirectoryKind) => {

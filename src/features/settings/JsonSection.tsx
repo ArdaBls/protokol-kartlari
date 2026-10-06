@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/useAuth'
 import { ModalScrollBody, ModalShell, ModalTitle } from '../../components/ModalShell'
 import { downloadJson } from '../../lib/browserFiles'
 import { dateKey } from '../../lib/dates'
-import { dbPathFor, useDbMode } from '../../lib/dbMode'
+import { dbPathFor, getDbModeState, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
 import type { ImportEntry } from './jsonImport'
 import { buildFullRestore, buildMerge, parsePeopleFile, sanitizeEvents } from './jsonImport'
@@ -27,7 +27,8 @@ type ImportState =
 
 export function JsonSection() {
   const { state: auth } = useAuth()
-  const { isTestMode, isReadOnly } = useDbMode()
+  const { isReady, isTestMode, isReadOnly, hasError } = useDbMode()
+  const importMode = useRef<boolean | null>(null)
   const inputs = useRef<Partial<Record<CategoryKey, HTMLInputElement | null>>>({})
   const [busyKey, setBusyKey] = useState<CategoryKey | null>(null)
   const [pending, setPending] = useState<ImportState | null>(null)
@@ -37,16 +38,33 @@ export function JsonSection() {
   const newKey = (base: string) => () => push(ref(db, path(base))).key ?? `-local${Date.now().toString(36)}`
   const openModal = (next: ImportState) => { setPending(next); setIsModalOpen(true) }
 
-  const ensureWritable = () => {
-    if (!isReadOnly) return true
-    toast.danger('Salt-okunur kilit açıkken JSON içe aktarılamaz.')
+  const canAccess = auth.status === 'ready' && (auth.role === 'admin' || auth.role === 'owner')
+  const ensureReadable = () => {
+    const mode = getDbModeState()
+    if (canAccess && mode.isReady && !mode.hasError && mode.isTestMode === isTestMode) return true
+    toast.warning('Yetki ve veritabanı modu doğrulanamadı. Birazdan tekrar deneyin.')
     return false
+  }
+  const ensureWritable = (checkImportMode = false) => {
+    if (!ensureReadable()) return false
+    if (getDbModeState().isReadOnly) {
+      toast.danger('Salt-okunur kilit açıkken JSON içe aktarılamaz.')
+      return false
+    }
+    if (checkImportMode && importMode.current !== isTestMode) {
+      toast.warning('Dosya seçildikten sonra veritabanı modu değişti. Dosyayı yeniden seçin.')
+      setIsModalOpen(false)
+      return false
+    }
+    return true
   }
 
   const download = async (category: (typeof CATEGORIES)[number]) => {
+    if (!ensureReadable()) return
     setBusyKey(category.key)
     try {
       const value = (await get(ref(db, path(category.path)))).val() ?? {}
+      if (!ensureReadable()) return
       if (category.key === 'takvim') {
         downloadJson({ yedekTarihi: new Date().toISOString(), kayitSayisi: Object.keys(value).length, etkinlikler: value }, `${category.fileLabel}-${dateKey(new Date())}.json`)
       } else {
@@ -65,8 +83,10 @@ export function JsonSection() {
     const input = inputs.current[category.key]
     if (input) input.value = ''
     if (!file || !ensureWritable()) return
+    importMode.current = isTestMode
     try {
       const raw = await file.text()
+      if (!ensureWritable(true)) return
       if (category.key === 'takvim') {
         const result = sanitizeEvents(raw, newKey('etkinlikler'), serverTimestamp())
         if (!result) return toast.danger('Format hatalı.')
@@ -85,11 +105,13 @@ export function JsonSection() {
   }
 
   const merge = async (category: (typeof CATEGORIES)[number], entries: ImportEntry[]) => {
+    if (!ensureWritable(true)) return
     setIsModalOpen(false)
     try {
       const existing = (await get(ref(db, path(category.path)))).val() ?? {}
       const { patch, skipped, matchCount, newCount } = buildMerge(entries, existing, newKey(category.path))
       if (!Object.keys(patch).length) return toast.danger('İçe aktarılacak geçerli kayıt yok.')
+      if (!ensureWritable(true)) return
       await update(ref(db, path(category.path)), patch)
       toast.success(`${matchCount} kayıt güncellendi, ${newCount} kayıt eklendi.${skipped ? ` ${skipped} geçersiz satır atlandı.` : ''}`)
     } catch (err) {
@@ -99,6 +121,7 @@ export function JsonSection() {
   }
 
   const askFullRestore = async (category: (typeof CATEGORIES)[number], entries: ImportEntry[]) => {
+    if (!ensureWritable(true)) return
     try {
       const existingCount = Object.keys((await get(ref(db, path(category.path)))).val() ?? {}).length
       setPending({ kind: 'people-full', category, entries, existingCount })
@@ -110,6 +133,7 @@ export function JsonSection() {
   }
 
   const fullRestore = async (category: (typeof CATEGORIES)[number], entries: ImportEntry[]) => {
+    if (!ensureWritable(true)) return
     setIsModalOpen(false)
     const { records, skipped } = buildFullRestore(entries, newKey(category.path))
     if (!Object.keys(records).length) return toast.danger('İçe aktarılacak geçerli kayıt yok.')
@@ -123,12 +147,14 @@ export function JsonSection() {
   }
 
   const restoreEvents = async (clean: Record<string, unknown>, kept: number, skipped: number) => {
+    if (!ensureWritable(true)) return
     setIsModalOpen(false)
     try {
       await set(ref(db, path('etkinlikler')), clean)
       if (auth.status === 'ready') {
         set(push(ref(db, path('logs/etkinlik'))), {
           by: auth.displayName,
+          actorUid: auth.user.uid,
           email: auth.user.email ?? '',
           action: `Etkinlik takvimi JSON yedekten geri yüklendi (${kept} kayıt${skipped ? `, ${skipped} geçersiz satır atlandı` : ''})`,
           target: '',
@@ -150,11 +176,11 @@ export function JsonSection() {
     >
       {CATEGORIES.map((category) => (
         <SettingsRow key={category.key} label={category.label} description={category.description}>
-          <Button size="sm" variant="secondary" onPress={() => ensureWritable() && inputs.current[category.key]?.click()}>
+          <Button size="sm" variant="secondary" isDisabled={!canAccess || !isReady || isReadOnly || hasError} onPress={() => ensureWritable() && inputs.current[category.key]?.click()}>
             <Upload size={14} />
             JSON yükle
           </Button>
-          <Button size="sm" variant="secondary" isPending={busyKey === category.key} onPress={() => download(category)}>
+          <Button size="sm" variant="secondary" isDisabled={!canAccess || !isReady || hasError} isPending={busyKey === category.key} onPress={() => download(category)}>
             <Download size={14} />
             JSON indir
           </Button>

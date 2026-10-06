@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { ModalScrollBody, ModalShell, ModalTitle } from '../../components/ModalShell'
 import { TextInputField } from '../../components/formControls'
 import { db } from '../../lib/firebase'
+import { useWriter } from '../../hooks/useWriter'
 import type { Contact, DirectoryKind } from './pressTypes'
-import { DIRECTORY_LABELS } from './pressTypes'
+import { DIRECTORY_LABELS, DIRECTORY_PATHS } from './pressTypes'
 
 interface ContactModalProps {
   isOpen: boolean
@@ -20,6 +21,7 @@ const MAX_TEXT = 200
 const MAX_PHONE = 40
 
 function ContactForm({ onOpenChange, kind, basePath, contact }: Omit<ContactModalProps, 'isOpen'>) {
+  const writer = useWriter()
   const labels = DIRECTORY_LABELS[kind]
   const [draft, setDraft] = useState({
     ad: contact?.ad ?? '',
@@ -31,6 +33,8 @@ function ContactForm({ onOpenChange, kind, basePath, contact }: Omit<ContactModa
   const set2 = <K extends keyof typeof draft>(key: K) => (value: string) => setDraft((current) => ({ ...current, [key]: value }))
 
   const save = async () => {
+    if (!writer.ensureWritable()) return
+    if (basePath !== writer.path(DIRECTORY_PATHS[kind])) return toast.warning('Veritabanı modu değişti. Formu yeniden açın.')
     const ad = draft.ad.trim()
     if (!ad) return toast.danger('Ad soyad zorunlu.')
     const patch: Record<string, unknown> = {
@@ -72,7 +76,7 @@ function ContactForm({ onOpenChange, kind, basePath, contact }: Omit<ContactModa
       </ModalScrollBody>
       <Modal.Footer>
         <Button variant="tertiary" slot="close">Vazgeç</Button>
-        <Button type="submit" variant="primary" isPending={isSaving}>{contact ? 'Kaydet' : 'Ekle'}</Button>
+        <Button type="submit" variant="primary" isDisabled={!writer.canWrite} isPending={isSaving}>{contact ? 'Kaydet' : 'Ekle'}</Button>
       </Modal.Footer>
     </form>
   )

@@ -10,6 +10,7 @@ export interface Actor {
 /** Kayıt üzerine yazılır, log ise HER SEFERİNDE yeni satır olarak eklenir. */
 export async function logAction(logPath: string, actor: Actor, action: string, target = ''): Promise<void> {
   await set(push(ref(db, logPath)), {
+    actorUid: actor.uid,
     by: actor.name || actor.email,
     email: actor.email,
     action,

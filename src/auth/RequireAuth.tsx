@@ -1,6 +1,7 @@
 import { Spinner } from '@heroui/react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './useAuth'
+import { AccountAccessIssue } from './AccountAccessIssue'
 
 export function FullScreenSpinner() {
   return (
@@ -23,7 +24,10 @@ export function RequireAuth() {
       return <Navigate to="/onay-bekliyor" replace />
     case 'blocked':
       return <Navigate to="/erisim-kisitlandi" replace />
-    default:
+    case 'error':
+    case 'missing':
+      return <AccountAccessIssue />
+    case 'ready':
       return <Outlet />
   }
 }

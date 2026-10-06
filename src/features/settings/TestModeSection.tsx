@@ -7,7 +7,7 @@ import { db } from '../../lib/firebase'
 import { SettingsRow, SettingsSection, SwitchButton } from './SettingsSection'
 
 // Test ortamı açılırken bu dalların gerçek verisinin TAZE kopyası test/ altına yazılır (eski panelle aynı liste).
-const CLONE_PATHS = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'basinGorevlileri', 'haberProjeleri']
+const CLONE_PATHS = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkinlikler', 'basinGorevlileri', 'haberProjeleri', 'gorevler', 'basinRehberi', 'telefonRehberi']
 
 export function TestModeSection() {
   const { isReady, isTestMode, hasError } = useDbMode()

@@ -110,7 +110,7 @@ export function KanbanCard({ item, canWrite, profilesByName, onDragStart, onDrag
             <AttendeeAvatars
               gorevli={item.raw.gorevli}
               haberYazanlari={item.raw.haberYazanlari}
-              excludeName={item.durum === 'tamamlandi' ? completerName : undefined}
+              excludeName={item.durum === 'tamamlandi' ? completerName ?? undefined : undefined}
               profilesByName={profilesByName}
               size={24}
             />

@@ -1,4 +1,4 @@
-import { n as dbPath, o as onDbModeChange, r as initDbMode } from './db-mode-F_jprkvV.js';
+import { n as dbPath, o as onDbModeChange, r as initDbMode, q as isReady } from './db-mode-F_jprkvV.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDOfhq3aYW6sg2_zj0sFsRzXeGziGtLxCk',
@@ -115,7 +115,13 @@ function observeGameRenderer() {
 }
 
 function subscribeToTable() {
-  if (!database) return;
+  if (!database || !isReady() || !globalThis.firebase?.auth().currentUser) {
+    if (tableRef && tableListener) tableRef.off('value', tableListener);
+    activePath = '';
+    currentTable = { elNo: 0, masaKartlari: [] };
+    scheduleStablePile();
+    return;
+  }
   const path = dbPath(TABLE_PATH);
   if (path === activePath) return;
 
@@ -123,6 +129,7 @@ function subscribeToTable() {
   activePath = path;
   tableRef = database.ref(path);
   tableListener = (snapshot) => {
+    if (!isReady() || path !== activePath || dbPath(TABLE_PATH) !== path) return;
     currentTable = snapshot.val() || { elNo: 0, masaKartlari: [] };
     scheduleStablePile();
   };
@@ -148,8 +155,12 @@ async function start() {
       return;
     }
 
-    await initDbMode(database);
-    subscribeToTable();
+    try {
+      await initDbMode(database);
+      if (firebase.auth().currentUser?.uid === user.uid) subscribeToTable();
+    } catch (error) {
+      console.error('Pişti görünümü açılamadı:', error);
+    }
   });
   onDbModeChange(subscribeToTable);
 }

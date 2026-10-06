@@ -1,9 +1,13 @@
 import { toast } from '@heroui/react'
-import { get, push, ref, remove, serverTimestamp, update } from 'firebase/database'
+import { get, push, ref, serverTimestamp, update } from 'firebase/database'
 import { useWriter } from '../../hooks/useWriter'
 import { db } from '../../lib/firebase'
 import type { CalendarEvent, CalendarEventWithId } from './calendarTypes'
 import { CAL_MONTHS, eventAutoLockDateKey, evStatus, evType, minToHm, parseKey, shouldAutoLockPastEvent } from './calendarTypes'
+import { applyEventPatch, assertEventRevision, detachDeletedEvent, savedEventSnapshot } from './eventMutations'
+import { firebaseRecordStore } from './firebaseRecordStore'
+import { mutateExistingRecord } from './recordTransactions'
+import type { GanttProject } from '../gantt/ganttTypes'
 
 const FIELD_LABELS: Record<string, string> = {
   ad: 'Etkinlik Adı', tur: 'Tür', durum: 'Durum', tarih: 'Tarih', saat: 'Başlangıç Saati',
@@ -41,8 +45,14 @@ export const evLogName = (name?: string) => String(name || 'Etkinlik').split(' �
 export function useCalendarWriter() {
   const writer = useWriter()
 
-  /** İyimser kilit: kaydetmeden önce sunucudaki gerçek guncellemeTs okunur; farklıysa aradan
-   * başka biri yazmış demektir. Var olan alanlar korunur, yalnızca patch'teki alanlar üzerine yazılır. */
+  const logEvent = async (label: string, name: string) => {
+    // Kayıt başarılı olduktan sonraki log hatası kaydı başarısız gibi göstermemeli.
+    if (!writer.ensureWritable()) return
+    try { await writer.log('etkinlik', label, name) }
+    catch (err) { console.error('Etkinlik kaydedildi fakat log yazılamadı:', err) }
+  }
+
+  /** Kontrol ile birleştirme aynı transaction'da; hata veya silinmiş kayıt boş nesneye dönüşmez. */
   const persistEvent = async (
     id: string | null,
     patch: CalendarEvent,
@@ -51,47 +61,26 @@ export function useCalendarWriter() {
   ): Promise<string | null> => {
     const actor = writer.ensureWritable()
     if (!actor) return null
-    // ÖNEMLİ: Firebase update() bir path'e verilen değeri TAMAMEN değiştirir, o path'in altındaki
-    // diğer alanları SİLER (merge yapmaz) -- bu yüzden var olan kaydı ÖNCE okuyup patch'i onun
-    // üzerine uygulamak ZORUNLU, yoksa yalnızca patch'teki alanlarla kayıt üzerine yazılır ve
-    // formda/patch'te olmayan tüm alanlar (ad, tarih, saat, katılımcılar...) kalıcı olarak kaybolur.
-    let current: CalendarEvent = {}
-    if (id) {
-      try {
-        const fresh = await get(ref(db, writer.path(`etkinlikler/${id}`)))
-        current = (fresh.val() as CalendarEvent | null) ?? {}
-        if (expectedUpdateTs !== undefined && (current.guncellemeTs ?? null) !== (expectedUpdateTs ?? null)) {
-          toast.danger('Bu etkinlik siz düzenlerken başka biri tarafından değiştirildi, sayfa yenilenip tekrar denenecek.')
-          return null
-        }
-      } catch (err) {
-        console.error('Çakışma kontrolü başarısız:', err)
-      }
-    }
     const finalId = id ?? push(ref(db, writer.path('etkinlikler'))).key
     if (!finalId) { toast.danger('Etkinlik kimliği oluşturulamadı.'); return null }
-
-    const nextEvent: CalendarEvent = { ...current, ...patch }
-    const autoLockDateChanged = !!id && eventAutoLockDateKey(current) !== eventAutoLockDateKey(nextEvent)
-    const toWrite: Record<string, unknown> = { ...nextEvent, guncellemeTs: serverTimestamp() }
-    // Etkinlik gelecekteki başka bir güne taşınırsa, o yeni tarih geçtiğinde yeniden bir kez
-    // otomatik kilitlenebilmelidir. Sadece tarih/bitiş tarihi değişince işareti sıfırla.
-    if (autoLockDateChanged) toWrite.autoLockedForDate = null
-    if (!id) {
-      toWrite.olusturmaTs = serverTimestamp()
-      toWrite.olusturan = actor.name || actor.email
-    }
-    const logPath = writer.path('logs/etkinlik')
-    const logKey = push(ref(db, logPath)).key
-    const updates: Record<string, unknown> = {
-      [writer.path(`etkinlikler/${finalId}`)]: toWrite,
-      [`${logPath}/${logKey}`]: { by: actor.name || actor.email, email: actor.email, action: logLabel, target: patch.ad ?? '', timestamp: serverTimestamp() },
-    }
     try {
-      await update(ref(db), updates)
+      if (id) {
+        const saved = await mutateExistingRecord(firebaseRecordStore<CalendarEvent>(writer.path(`etkinlikler/${id}`), writer.ensureWritable),
+          (current) => applyEventPatch(current, patch, expectedUpdateTs, serverTimestamp() as unknown as number))
+        await logEvent(logLabel, saved?.ad ?? '')
+      } else {
+        if (!writer.ensureWritable()) return null
+        const logPath = writer.path('logs/etkinlik')
+        const logKey = push(ref(db, logPath)).key
+        if (!logKey) throw new Error('Log kimliği oluşturulamadı.')
+        await update(ref(db), {
+          [writer.path(`etkinlikler/${finalId}`)]: { ...patch, guncellemeTs: serverTimestamp(), olusturmaTs: serverTimestamp(), olusturan: actor.name || actor.email },
+          [`${logPath}/${logKey}`]: { by: actor.name || actor.email, email: actor.email, action: logLabel, target: patch.ad ?? '', timestamp: serverTimestamp() },
+        })
+      }
       return finalId
     } catch (err) {
-      writer.reportError('Etkinlik kaydedilemedi. Yetkinizi kontrol edin.')(err)
+      writer.reportError(err instanceof Error ? err.message : 'Etkinlik kaydedilemedi.')(err)
       return null
     }
   }
@@ -99,33 +88,28 @@ export function useCalendarWriter() {
   const deleteEvent = async (id: string, ev: CalendarEventWithId): Promise<boolean> => {
     const actor = writer.ensureWritable()
     if (!actor) return false
-    const logPath = writer.path('logs/etkinlik')
-    const logKey = push(ref(db, logPath)).key
-    if (!logKey) {
-      toast.danger('Etkinlik silinemedi. Log kimliği oluşturulamadı.')
-      return false
-    }
     try {
-      // Silme ile loglamayı aynı çok-yollu güncellemeye bağlama: log kuralları
-      // değişse bile etkinlik silme işlemi geri alınmamalı.
-      await remove(ref(db, writer.path(`etkinlikler/${id}`)))
-      try {
-        await update(ref(db), {
-          [`${logPath}/${logKey}`]: {
-            by: actor.name || actor.email,
-            email: actor.email,
-            action: `${ev.ad || 'Etkinlik'} etkinliği takvimden silindi`,
-            target: ev.ad ?? '',
-            timestamp: Date.now(),
-          },
-        })
-      } catch (logError) {
-        console.error('Etkinlik silme logu yazılamadı:', logError)
+      let projectId: string | null | undefined
+      await mutateExistingRecord(firebaseRecordStore<CalendarEvent>(writer.path(`etkinlikler/${id}`), writer.ensureWritable), (current) => {
+        assertEventRevision(current, ev.guncellemeTs ?? null)
+        if (current.locked) throw new Error('Bu etkinlik kilitli. Önce kilidi açın.')
+        projectId = current.projeId
+        return null
+      })
+      if (projectId) {
+        try {
+          const store = firebaseRecordStore<GanttProject>(writer.path(`haberProjeleri/${projectId}`), writer.ensureWritable)
+          if (await store.read()) await mutateExistingRecord(store, (project) => detachDeletedEvent(project, id, serverTimestamp() as unknown as number))
+        } catch (err) {
+          console.error('Silinen etkinliğin proje bağlantısı temizlenemedi:', err)
+          toast.warning('Etkinlik silindi. Proje bağlantısı bir sonraki proje kaydında temizlenecek.')
+        }
       }
+      await logEvent(`${ev.ad || 'Etkinlik'} etkinliği takvimden silindi`, ev.ad ?? '')
       toast.success('Etkinlik silindi.')
       return true
     } catch (err) {
-      writer.reportError('Etkinlik silinemedi.')(err)
+      writer.reportError(err instanceof Error ? err.message : 'Etkinlik silinemedi.')(err)
       return false
     }
   }
@@ -145,33 +129,24 @@ export function useCalendarWriter() {
     const dueEvents = events.filter((event) => shouldAutoLockPastEvent(event, todayKey))
     if (!dueEvents.length) return 0
 
-    const updates: Record<string, unknown> = {}
-    dueEvents.forEach((event) => {
-      const lockDate = eventAutoLockDateKey(event)
-      if (!lockDate) return
-      const eventPath = writer.path(`etkinlikler/${event._id}`)
-      updates[`${eventPath}/locked`] = true
-      updates[`${eventPath}/autoLockedForDate`] = lockDate
-      updates[`${eventPath}/guncellemeTs`] = serverTimestamp()
-    })
-    if (!Object.keys(updates).length) return 0
-
-    try {
-      await update(ref(db), updates)
-      return dueEvents.length
-    } catch (err) {
-      writer.reportError('Geçmiş etkinlikler otomatik kilitlenemedi.')(err)
-      return 0
-    }
+    const results = await Promise.allSettled(dueEvents.map(async (event) => {
+      let changed = false
+      await mutateExistingRecord(firebaseRecordStore<CalendarEvent>(writer.path(`etkinlikler/${event._id}`), writer.ensureWritable), (current) => {
+        changed = shouldAutoLockPastEvent(current, todayKey)
+        return changed ? { ...current, locked: true, autoLockedForDate: eventAutoLockDateKey(current), guncellemeTs: serverTimestamp() as unknown as number } : current
+      })
+      return changed ? 1 : 0
+    }))
+    return results.reduce((count, result) => count + (result.status === 'fulfilled' ? result.value : 0), 0)
   }
 
   /** Etkinliği (saat korunarak) başka bir güne, veya aynı gün içinde başka bir başlangıç saatine sürükleyerek taşır. */
   const moveEvent = async (id: string, ev: CalendarEventWithId, newDateKey: string, newStartMin: number): Promise<boolean> => {
     const oldStart = ev.saat ? Number(ev.saat.split(':')[0]) * 60 + Number(ev.saat.split(':')[1]) : 0
     const oldEnd = ev.bitisSaat ? Number(ev.bitisSaat.split(':')[0]) * 60 + Number(ev.bitisSaat.split(':')[1]) : oldStart + 60
-    const duration = Math.max(15, oldEnd - oldStart)
+    const duration = Math.max(15, oldEnd <= oldStart ? oldEnd + 1440 - oldStart : oldEnd - oldStart)
     const clampedStart = Math.max(0, Math.min(23 * 60 + 45, newStartMin))
-    const newEnd = Math.min(24 * 60, clampedStart + duration)
+    const newEnd = clampedStart + duration
     const label = `${evLogName(ev.ad)} etkinliği ${ev.tarih === newDateKey ? 'saati değiştirildi' : 'başka bir güne taşındı'} (${ev.tarih} ${ev.saat} → ${newDateKey} ${minToHm(clampedStart)})`
     const result = await persistEvent(id, { tarih: newDateKey, saat: minToHm(clampedStart), bitisSaat: minToHm(newEnd) }, label, ev.guncellemeTs ?? null)
     return !!result
@@ -192,5 +167,10 @@ export function useCalendarWriter() {
     return !!result
   }
 
-  return { canWrite: writer.canWrite, persistEvent, deleteEvent, toggleLock, autoLockPastEvents, moveEvent, resizeEvent, moveMultiDayEvent }
+  const readEvent = async (id: string): Promise<CalendarEventWithId> => {
+    const value = (await get(ref(db, writer.path(`etkinlikler/${id}`)))).val() as CalendarEvent | null
+    return savedEventSnapshot(id, value)
+  }
+
+  return { canWrite: writer.canWrite, ensureWritable: writer.ensureWritable, persistEvent, readEvent, deleteEvent, toggleLock, autoLockPastEvents, moveEvent, resizeEvent, moveMultiDayEvent }
 }

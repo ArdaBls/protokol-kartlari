@@ -4,7 +4,7 @@ import { Download, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { downloadJson } from '../../lib/browserFiles'
 import { dateKey } from '../../lib/dates'
-import { dbPathFor, useDbMode } from '../../lib/dbMode'
+import { dbPathFor, getDbModeState, useDbMode } from '../../lib/dbMode'
 import { db } from '../../lib/firebase'
 import { SettingsRow, SettingsSection } from './SettingsSection'
 
@@ -12,10 +12,12 @@ const EXPORT_PATHS = ['ilProtokolVerileri', 'universiteProtokolVerileri', 'etkin
 const ACCOUNT_DELETION_MAIL = 'mailto:bilasaarda@gmail.com?subject=Hesap%20silme%20talebi'
 
 export function DangerSection() {
-  const { isTestMode } = useDbMode()
+  const { isReady, isTestMode, hasError } = useDbMode()
   const [isExporting, setIsExporting] = useState(false)
 
   const exportAll = async () => {
+    const mode = getDbModeState()
+    if (!mode.isReady || mode.hasError || mode.isTestMode !== isTestMode) return toast.warning('Veritabanı modu henüz hazır değil.')
     setIsExporting(true)
     try {
       const snapshots = await Promise.all(EXPORT_PATHS.map((path) => get(ref(db, dbPathFor(path, isTestMode)))))
@@ -33,7 +35,7 @@ export function DangerSection() {
   return (
     <SettingsSection id="tehlikeli" title="Tehlikeli bölge" description="Geniş kapsamlı işlemler. Dikkatli olun." isDanger>
       <SettingsRow label="Tüm verileri dışa aktar" description="İl, Üniversite, Takvim ve haber projelerinin JSON arşivini indir.">
-        <Button variant="secondary" isPending={isExporting} onPress={exportAll}>
+        <Button variant="secondary" isDisabled={!isReady || hasError} isPending={isExporting} onPress={exportAll}>
           <Download size={16} />
           Dışa aktar
         </Button>

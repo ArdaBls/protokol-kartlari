@@ -61,8 +61,11 @@ export function TasksCard({ hasConcertTicket = false, onOpenConcertTicket }: { h
       const id = await calendarWriter.persistEvent(null, patch, `${QUICK_DRAFT_NAME} taslak etkinliği oluşturuldu ("Bir Etkinliğe Gidiyorum")`, undefined)
       if (id) {
         toast.success('Taslak etkinlik oluşturuldu.')
-        setQuickEntry([id, { ...patch, _id: id }])
+        const saved = await calendarWriter.readEvent(id)
+        if (writer.ensureWritable()) setQuickEntry([id, saved])
       }
+    } catch (err) {
+      writer.reportError('Taslak açılırken hata oluştu. Kaydedilen taslağı takvimden açabilirsiniz.')(err)
     } finally {
       setIsCreatingQuick(false)
     }

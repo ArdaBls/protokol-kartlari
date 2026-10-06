@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-C29kUG2a.js";import{et as t}from"./index-CpCUaBnM.js";var n=e();function r(){return(0,n.jsx)(t,{title:`Mayın Tarlası`,src:`https://minesweeper.online/`,externalUrl:`https://minesweeper.online/`})}export{r as MayinTarlasiPage};

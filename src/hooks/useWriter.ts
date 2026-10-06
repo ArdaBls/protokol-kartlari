@@ -1,7 +1,8 @@
 import { toast } from '@heroui/react'
 import { FirebaseError } from 'firebase/app'
 import { useAuth } from '../auth/useAuth'
-import { dbPathFor, useDbMode } from '../lib/dbMode'
+import { dbPathFor, getDbModeState, useDbMode } from '../lib/dbMode'
+import { isApprovedRole } from '../lib/roles'
 import { logAction } from '../lib/logAction'
 import type { Actor } from '../lib/logAction'
 
@@ -14,19 +15,21 @@ export function useWriter() {
 
   const actor: Actor | null =
     state.status === 'ready' ? { uid: state.user.uid, name: state.displayName, email: state.user.email ?? '' } : null
-  const canWrite = !!actor && isReady && !isReadOnly
+  const approved = state.status === 'ready' && isApprovedRole(state.role)
+  const canWrite = !!actor && approved && isReady && !isReadOnly
 
   /** Yazılabiliyorsa işlemi yapan kişiyi döner, değilse kullanıcıya nedenini gösterip null döner. */
   const ensureWritable = (): Actor | null => {
-    if (!actor) {
+    if (!actor || !approved) {
       toast.danger('Bu işlem için giriş yapmanız gerekiyor.')
       return null
     }
-    if (!isReady) {
+    const currentMode = getDbModeState()
+    if (!currentMode.isReady || currentMode.hasError || currentMode.isTestMode !== isTestMode) {
       toast.warning('Veritabanı modu henüz yüklenmedi, birazdan tekrar deneyin.')
       return null
     }
-    if (isReadOnly) {
+    if (currentMode.isReadOnly) {
       toast.danger('Salt-okunur kilit açık, düzenleme yapılamaz.')
       return null
     }

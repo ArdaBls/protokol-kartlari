@@ -28,6 +28,7 @@ interface DragState {
   start: Date
   end: Date
   originalWidth: number
+  originalLeft: string
   expectedUpdateTs: number | undefined
 }
 
@@ -227,7 +228,7 @@ export function GanttBoard({ projects, canWrite, onEdit, onUpdateDates }: GanttB
     dragStateRef.current = {
       id, stepId, bar, pointerId: event.pointerId, originX: event.clientX, delta: 0,
       mode: (handle?.dataset.resize as DragState['mode']) || 'move',
-      start, end, originalWidth: bar.offsetWidth, expectedUpdateTs: found.project.guncellemeTs,
+      start, end, originalWidth: bar.offsetWidth, originalLeft: bar.style.left, expectedUpdateTs: found.project.guncellemeTs,
     }
     bar.setPointerCapture(event.pointerId)
     bar.classList.add('opacity-70', 'z-10')
@@ -261,6 +262,7 @@ export function GanttBoard({ projects, canWrite, onEdit, onUpdateDates }: GanttB
     const drag = dragStateRef.current
     if (!drag || event.pointerId !== drag.pointerId) return
     dragStateRef.current = null
+    if (drag.bar.hasPointerCapture(drag.pointerId)) drag.bar.releasePointerCapture(drag.pointerId)
     drag.bar.classList.remove('opacity-70', 'z-10')
     // transform React'in style prop'unda hiç yönetilmiyor, sıfırlamak güvenli. width/left ise
     // JSX style={{...}} ile React tarafından yönetiliyor -- bunları '' yaparsak React'in kendi
@@ -271,6 +273,11 @@ export function GanttBoard({ projects, canWrite, onEdit, onUpdateDates }: GanttB
     // değerleri üretir, görünürde bir sıçrama olmaz.
     drag.bar.style.transform = ''
     hideTooltip()
+    const restore = () => {
+      drag.bar.style.left = drag.originalLeft
+      drag.bar.style.width = `${drag.originalWidth}px`
+    }
+    if (event.type === 'pointercancel') { restore(); return }
     if (!drag.delta) {
       drag.bar.style.width = `${drag.originalWidth}px`
       onEdit(drag.id, drag.stepId)
@@ -284,6 +291,8 @@ export function GanttBoard({ projects, canWrite, onEdit, onUpdateDates }: GanttB
     }
     const found = findItem(drag.id, drag.stepId)
     if (found) void onUpdateDates(drag.id, found.project, dateKey(start), dateKey(end), drag.stepId, drag.expectedUpdateTs)
+      .then((saved) => { if (!saved) restore() }, restore)
+    else restore()
   }
 
   useEffect(() => {

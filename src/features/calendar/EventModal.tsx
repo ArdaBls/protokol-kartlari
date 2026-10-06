@@ -7,7 +7,8 @@ import { ModalScrollBody, ModalShell, ModalTitle } from '../../components/ModalS
 import { FieldLabel, FormSection, SelectField, TextAreaField, TextInputField } from '../../components/formControls'
 import { useDbMode } from '../../lib/dbMode'
 import { hierarchyWeight, institutionWeight } from '../protocol/protocolRules'
-import { createAttendanceRequest } from '../notifications/attendance'
+import { createAttendanceRequests } from '../notifications/attendance'
+import { attendanceAtSave } from './eventMutations'
 import { AttendeePicker } from './AttendeePicker'
 import { NewsPanel } from './NewsPanel'
 import { PressRolePicker } from './PressRolePicker'
@@ -79,6 +80,8 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
   const { isTestMode } = useDbMode()
   const writer = useCalendarWriter()
   const ev = entry?.[1] ?? null
+  const [original] = useState(ev)
+  const [openedInTestMode] = useState(isTestMode)
   const id = entry?.[0] ?? null
   const isLocked = !!ev?.locked
   const isEditor = state.status === 'ready' && state.role === 'editor'
@@ -111,8 +114,6 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
   const [showNewsPanel, setShowNewsPanel] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
-  const [pendingPress, setPendingPress] = useState<string[]>([])
-  const [pendingNews, setPendingNews] = useState<string[]>([])
 
   if (state.status !== 'ready') return null
   const actorUid = state.user.uid
@@ -120,24 +121,11 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
 
   const birimValue = birim === DIGER ? birimDiger.trim() : birim
 
-  const togglePressRole = async (name: string, role: 'gorevli' | 'haberYazanlari', checked: boolean) => {
+  const togglePressRole = (name: string, role: 'gorevli' | 'haberYazanlari', checked: boolean) => {
     const setList = role === 'gorevli' ? setGorevli : setHaberYazanlari
     const draftEv = { tarih, saat: cokGunlu ? '' : saat, bitisSaat: cokGunlu ? '' : bitisSaat, bitisTarihi: cokGunlu ? bitisTarihi : null }
     if (checked && isEditor && calHasEventEnded(draftEv)) {
-      if (!id) {
-        const pendingSet = role === 'gorevli' ? setPendingPress : setPendingNews
-        pendingSet((current) => (current.includes(name) ? current : [...current, name]))
-        toast.success(`${name} için katılım talebi, etkinlik oluşturulunca admin/owner onayına gönderilecek.`)
-        return
-      }
-      try {
-        await createAttendanceRequest({ eventId: id, eventName: ad, eventDate: tarih, attendeeName: name, role, requestedByUid: actorUid, requestedByName: actorName }, isTestMode)
-        toast.success(`${name} için katılım talebi admin/owner onayına gönderildi.`)
-      } catch (err) {
-        console.error('Katılım talebi oluşturulamadı:', err)
-        toast.danger('Katılım talebi oluşturulamadı.')
-      }
-      return
+      toast.info(`${name} için katılım talebi, kaydettiğinizde admin/owner onayına gönderilecek.`)
     }
     setList((current) => (checked ? (current.includes(name) ? current : [...current, name]) : current.filter((n) => n !== name)))
   }
@@ -164,6 +152,8 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
   }
 
   const save = async () => {
+    if (isSaving || !writer.ensureWritable()) return false
+    if (openedInTestMode !== isTestMode) { toast.warning('Veritabanı modu değişti. Pencereyi kapatıp yeniden açın.'); return false }
     if (isLocked) { toast.danger('Bu etkinlik kilitli. Kaydetmek için önce kilidi açın.'); return false }
     const title = ad.trim()
     if (!title) { toast.warning('Etkinlik adı zorunlu.'); return false }
@@ -179,13 +169,10 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
       if (!confirmed) { toast.warning('Bitiş saati başlangıçtan sonra olmalı.'); return false }
     }
 
-    let finalGorevli = gorevli
-    let finalHaberYazanlari = haberYazanlari
     const draftEv = { tarih, saat: saatVal, bitisSaat: bitisVal, bitisTarihi: cokGunlu ? bitisTarihi : null }
-    if (!calHasEventEnded(draftEv)) {
-      finalGorevli = [...new Set([...gorevli, ...pendingPress])]
-      finalHaberYazanlari = [...new Set([...haberYazanlari, ...pendingNews])]
-    }
+    const needsApproval = isEditor && calHasEventEnded(draftEv)
+    const press = attendanceAtSave(original?.gorevli, gorevli, needsApproval)
+    const news = attendanceAtSave(original?.haberYazanlari, haberYazanlari, needsApproval)
 
     setIsSaving(true)
     try {
@@ -194,8 +181,8 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
         tarih, saat: saatVal || '', bitisSaat: bitisVal || '',
         bitisTarihi: cokGunlu && bitisTarihi && bitisTarihi !== tarih ? bitisTarihi : null,
         yer: yer.trim(), birim: birimValue, planlayan: planlayan.trim(),
-        gorevli: [...finalGorevli].sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
-        haberYazanlari: [...finalHaberYazanlari].sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
+        gorevli: press.accepted.sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
+        haberYazanlari: news.accepted.sort((a, b) => a.localeCompare(b, 'tr')).join(', '),
         katilimcilar: attendees, haberKaynagi, not: not.trim(), taslak: title === QUICK_DRAFT_NAME ? true : null,
         tamamlayan: durum === 'tamamlandi' ? (ev?.durum === 'tamamlandi' ? ev.tamamlayan || actorName : actorName) : null,
         tamamlayanEmail: durum === 'tamamlandi' ? (ev?.durum === 'tamamlandi' ? ev.tamamlayanEmail || (state.user.email ?? '') : state.user.email ?? '') : null,
@@ -204,15 +191,20 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
       const logLabel = id
         ? `${evLogName(title)} etkinliği düzenlendi${ev ? (() => { const changes = describeChanges(ev, { ...ev, ...patch }); return changes.length ? ` · ${changes.join(' · ')}` : '' })() : ''}`
         : `${evLogName(title)} etkinliği oluşturuldu`
-      const resultId = await writer.persistEvent(id, patch, logLabel, id ? ev?.guncellemeTs ?? null : undefined)
+      const resultId = await writer.persistEvent(id, patch, logLabel, id ? original?.guncellemeTs ?? null : undefined)
       if (!resultId) return false
       toast.success(id ? 'Etkinlik kaydedildi.' : 'Etkinlik oluşturuldu.')
 
-      const pendingNames = [...pendingPress.map((name) => ({ name, role: 'gorevli' as const })), ...pendingNews.map((name) => ({ name, role: 'haberYazanlari' as const }))]
+      const pendingNames = [...press.requested.map((name) => ({ name, role: 'gorevli' as const })), ...news.requested.map((name) => ({ name, role: 'haberYazanlari' as const }))]
       if (pendingNames.length) {
-        Promise.all(pendingNames.map((p) => createAttendanceRequest({ eventId: resultId, eventName: title, eventDate: tarih, attendeeName: p.name, role: p.role, requestedByUid: actorUid, requestedByName: actorName }, isTestMode)))
-          .then(() => toast.success(`${pendingNames.length} kişi için katılım talebi admin/owner onayına gönderildi.`))
-          .catch((err) => { console.error('Katılım talepleri oluşturulamadı:', err); toast.danger('Katılım talepleri oluşturulurken bir hata oluştu.') })
+        try {
+          if (!writer.ensureWritable()) throw new Error('Veritabanı modu değişti.')
+          await createAttendanceRequests(pendingNames.map((p) => ({ eventId: resultId, eventName: title, eventDate: tarih, attendeeName: p.name, role: p.role, requestedByUid: actorUid, requestedByName: actorName })), isTestMode)
+          toast.success(`${pendingNames.length} kişi için katılım talebi admin/owner onayına gönderildi.`)
+        } catch (err) {
+          console.error('Katılım talepleri oluşturulamadı:', err)
+          toast.warning('Etkinlik kaydedildi, ancak katılım talepleri gönderilemedi. Etkinliği yeniden açıp bu kişileri tekrar seçin.')
+        }
       }
       onOpenChange(false)
       return true
@@ -224,14 +216,16 @@ function EventForm({ onOpenChange, entry, presetDate, presetTime, presetEndTime 
   const remove = async () => {
     if (!id || !ev) return false
     if (isLocked) { toast.danger('Bu etkinlik kilitli. Silmek için önce kilidi açın.'); return false }
-    const deleted = await writer.deleteEvent(id, ev)
+    if (openedInTestMode !== isTestMode || !original) return false
+    const deleted = await writer.deleteEvent(id, original)
     if (deleted) onOpenChange(false)
     return deleted
   }
 
   const toggleEventLock = async () => {
     if (!id || !ev) return
-    const changed = await writer.toggleLock(id, ev)
+    if (openedInTestMode !== isTestMode || !original) return
+    const changed = await writer.toggleLock(id, original)
     if (!changed) return
     toast.success(isLocked ? 'Etkinlik kilidi açıldı.' : 'Etkinlik kilitlendi.')
     onOpenChange(false)
